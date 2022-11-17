@@ -1,0 +1,12 @@
+syntax = "proto3";
+package services.admin.v1;
+
+service AdminService {
+  rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}
+}
+
+message BootstrapRequest {}
+
+message BootstrapResponse {
+  string api_key = 1;
+}

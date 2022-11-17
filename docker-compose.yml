@@ -1,0 +1,22 @@
+version: "3"
+services:
+  integration-deps:
+    image: busybox
+    depends_on:
+    - postgres
+  postgres:
+    image: postgres:14.1
+    environment:
+      - POSTGRES_USER=galoy
+      - POSTGRES_PASSWORD=galoy
+      - POSTGRES_DB=galoy
+  integration-tests:
+    image: us.gcr.io/galoy-org/rust-concourse
+    depends_on:
+    - integration-deps
+    command: ["make", "test-in-ci"]
+    environment:
+    - PG_HOST=galoy
+    working_dir: /repo
+    volumes:
+      - ./:/repo
