@@ -13,7 +13,7 @@ impl Default for TracingConfig {
         Self {
             host: "localhost".to_string(),
             port: 6831,
-            service_name: "galoy-bitcoin-dev".to_string(),
+            service_name: "bria-dev".to_string(),
         }
     }
 }

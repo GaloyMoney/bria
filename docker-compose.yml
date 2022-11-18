@@ -7,16 +7,16 @@ services:
   postgres:
     image: postgres:14.1
     environment:
-      - POSTGRES_USER=galoy
-      - POSTGRES_PASSWORD=galoy
-      - POSTGRES_DB=galoy
+      - POSTGRES_USER=bria
+      - POSTGRES_PASSWORD=bria
+      - POSTGRES_DB=bria
   integration-tests:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
     - integration-deps
     command: ["make", "test-in-ci"]
     environment:
-    - PG_HOST=galoy
+    - PG_HOST=bria
     working_dir: /repo
     volumes:
       - ./:/repo

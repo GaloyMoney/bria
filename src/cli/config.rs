@@ -2,14 +2,17 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use super::tracing::TracingConfig;
+use crate::admin::AdminApiConfig;
+use crate::tracing::TracingConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
-    db_con: String,
+    pub db_con: String,
     #[serde(default)]
     pub tracing: TracingConfig,
+    #[serde(default)]
+    pub admin: AdminApiConfig,
 }
 
 pub struct EnvOverride {

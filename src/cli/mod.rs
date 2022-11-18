@@ -1,8 +1,10 @@
+mod config;
+
 use anyhow::Context;
 use clap::{Parser, Subcommand};
 use std::{collections::HashMap, path::PathBuf};
 
-use super::config::*;
+use config::*;
 
 #[derive(Parser)]
 #[clap(version, long_about = None)]
@@ -11,8 +13,8 @@ struct Cli {
     #[clap(
         short,
         long,
-        env = "GALOY_BITCOIN_CONFIG",
-        default_value = "galoy-bitcoin.yml",
+        env = "BRIA_CONFIG",
+        default_value = "bria.yml",
         value_name = "FILE"
     )]
     config: PathBuf,
@@ -44,7 +46,7 @@ pub async fn run() -> anyhow::Result<()> {
             let config = Config::from_path(cli.config, EnvOverride { db_con })?;
             match (run_cmd(config.clone()).await, crash_report_config) {
                 (Err(e), Some(true)) => {
-                    println!("Stablesats was started with the following config:");
+                    println!("Bria was started with the following config:");
                     println!("{}", serde_yaml::to_string(&config).unwrap());
                     return Err(e);
                 }
@@ -56,8 +58,32 @@ pub async fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run_cmd(Config { tracing, .. }: Config) -> anyhow::Result<()> {
-    println!("Starting server process");
+async fn run_cmd(
+    Config {
+        tracing,
+        db_con,
+        admin,
+    }: Config,
+) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
-    Ok(())
+    println!("Starting server processes");
+    let (send, mut receive) = tokio::sync::mpsc::channel(1);
+    let mut handles = Vec::new();
+    let pool = sqlx::PgPool::connect(&db_con).await?;
+
+    println!("Starting admin server on port {}", admin.listen_port);
+
+    let admin_send = send.clone();
+    handles.push(tokio::spawn(async move {
+        let _ = admin_send.try_send(
+            super::admin::run(pool, admin)
+                .await
+                .context("Admin server error"),
+        );
+    }));
+    let reason = receive.recv().await.expect("Didn't receive msg");
+    for handle in handles {
+        handle.abort();
+    }
+    reason
 }

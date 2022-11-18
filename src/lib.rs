@@ -4,7 +4,6 @@
 mod admin;
 mod api;
 pub mod cli;
-pub mod config;
 mod macros;
 mod primitives;
 mod tracing;

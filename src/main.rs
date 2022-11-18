@@ -1,4 +1,4 @@
-use galoy_bitcoin::*;
+use bria::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

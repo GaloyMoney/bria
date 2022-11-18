@@ -1,0 +1,6 @@
+# admin:
+#   listen_port: 2743
+# tracing:
+#   host: "localhost"
+#   port: 6831
+#   service_name: "bria-dev"
