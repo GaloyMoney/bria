@@ -1,3 +1,5 @@
+mod entity;
 mod repo;
 
-pub use repo::*;
+pub(super) use entity::*;
+pub(super) use repo::*;

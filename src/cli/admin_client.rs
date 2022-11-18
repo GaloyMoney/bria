@@ -1,3 +1,4 @@
+use anyhow::Context;
 use url::Url;
 
 use crate::admin::proto;
@@ -37,11 +38,12 @@ impl AdminApiClient {
     pub async fn bootstrap(&self) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::BootstrapRequest {});
         let response = self.connect().await?.bootstrap(request).await?;
-        print_admin_api_key(response.into_inner().api_key);
+        print_admin_api_key(response.into_inner().key.context("No key returned")?);
         Ok(())
     }
 }
 
-pub fn print_admin_api_key(key: String) {
-    println!("Admin API key: {}", key);
+pub fn print_admin_api_key(key: proto::AdminApiKey) {
+    println!("Admin API key");
+    println!("---\nname: {}\nkey: {}\nid: {}", key.name, key.key, key.id,);
 }

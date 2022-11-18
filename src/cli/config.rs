@@ -33,7 +33,3 @@ impl Config {
         Ok(config)
     }
 }
-
-fn bool_true() -> bool {
-    true
-}

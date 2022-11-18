@@ -1,0 +1,92 @@
+{
+  "db": "PostgreSQL",
+  "0205f42eef1b82d92fa8cfd7d501b694b8915e512ab68868e5788f46b41f6409": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, name FROM admin_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
+  },
+  "1569bde5837b0ab12d6e739ebcea697973af34fd0d7d145a90dd288c7c4c774d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
+  },
+  "248ae2aa5f37c97d7f98b4f15d137fc747270aa910619c039081a1d440cba4f2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO account_api_keys (name, encrypted_key, account_id)\n            VALUES ($1, crypt($2, gen_salt('bf')), $3) RETURNING (id)"
+  },
+  "cb8218e411bad1a8e3386998761a4547e81ff95c2dd0681583784ec672f1d619": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO accounts (name)\n            VALUES ($1) RETURNING (id)"
+  }
+}

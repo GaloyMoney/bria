@@ -3,10 +3,32 @@ package services.admin.v1;
 
 service AdminService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}
+  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}
 }
 
 message BootstrapRequest {}
 
 message BootstrapResponse {
-  string api_key = 1;
+  AdminApiKey key = 1;
+}
+
+message AdminApiKey {
+  string id = 1;
+  string name = 2;
+  string key = 3;
+}
+
+message AccountCreateRequest {
+  string name = 1;
+}
+
+message AccountCreateResponse {
+  AccountApiKey key = 1;
+}
+
+message AccountApiKey {
+  string id = 1;
+  string name = 2;
+  string key = 3;
+  string account_id = 4;
 }
