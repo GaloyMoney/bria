@@ -1,5 +1,5 @@
 syntax = "proto3";
-package services.admin.v1;
+package services.bria_admin.v1;
 
 service AdminService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}

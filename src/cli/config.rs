@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::admin::AdminApiConfig;
+use crate::api::ApiConfig;
 use crate::tracing::TracingConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +14,8 @@ pub struct Config {
     pub tracing: TracingConfig,
     #[serde(default)]
     pub admin: AdminApiConfig,
+    #[serde(default)]
+    pub api: ApiConfig,
 }
 
 pub struct EnvOverride {

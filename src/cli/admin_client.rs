@@ -4,6 +4,8 @@ use url::Url;
 use crate::admin::proto;
 type ProtoClient = proto::admin_service_client::AdminServiceClient<tonic::transport::Channel>;
 
+use super::token_store;
+
 pub struct AdminApiClientConfig {
     pub url: Url,
 }
@@ -21,7 +23,6 @@ pub struct AdminApiClient {
 
 impl AdminApiClient {
     pub fn new(config: AdminApiClientConfig, key: String) -> Self {
-        println!("API KEY: {}", key);
         Self { config, key }
     }
 
@@ -38,17 +39,19 @@ impl AdminApiClient {
         }
     }
 
-    pub fn inject_auth_token<T>(
+    pub fn inject_admin_auth_token<T>(
         &self,
         mut request: tonic::Request<T>,
     ) -> anyhow::Result<tonic::Request<T>> {
-        if self.key.is_empty() {
-            return Err(anyhow::anyhow!("No BRIA_ADMIN_API_KEY specified"));
-        }
+        let key = if self.key.is_empty() {
+            token_store::load_admin_token()?
+        } else {
+            self.key.clone()
+        };
 
         request.metadata_mut().insert(
             crate::admin::ADMIN_API_KEY_HEADER,
-            tonic::metadata::MetadataValue::try_from(&self.key)
+            tonic::metadata::MetadataValue::try_from(&key)
                 .context("Couldn't create MetadataValue")?,
         );
         Ok(request)
@@ -57,7 +60,9 @@ impl AdminApiClient {
     pub async fn bootstrap(&self) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::BootstrapRequest {});
         let response = self.connect().await?.bootstrap(request).await?;
-        print_admin_api_key(response.into_inner().key.context("No key returned")?);
+        let key = response.into_inner().key.context("No key in response")?;
+        token_store::store_admin_token(&key.key)?;
+        print_admin_api_key(key);
         Ok(())
     }
 
@@ -66,9 +71,11 @@ impl AdminApiClient {
         let response = self
             .connect()
             .await?
-            .account_create(self.inject_auth_token(request)?)
+            .account_create(self.inject_admin_auth_token(request)?)
             .await?;
-        print_account(response.into_inner().key.context("No key returned")?);
+        let key = response.into_inner().key.context("No key in response")?;
+        token_store::store_account_token(&key.key)?;
+        print_account(key);
         Ok(())
     }
 }

@@ -1,5 +1,6 @@
 mod admin_client;
 mod config;
+mod token_store;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
@@ -101,6 +102,7 @@ async fn run_cmd(
         tracing,
         db_con,
         admin,
+        api,
     }: Config,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
@@ -112,12 +114,17 @@ async fn run_cmd(
     println!("Starting admin server on port {}", admin.listen_port);
 
     let admin_send = send.clone();
+    let admin_pool = pool.clone();
     handles.push(tokio::spawn(async move {
         let _ = admin_send.try_send(
-            super::admin::run(pool, admin)
+            super::admin::run(admin_pool, admin)
                 .await
                 .context("Admin server error"),
         );
+    }));
+    let api_send = send.clone();
+    handles.push(tokio::spawn(async move {
+        let _ = api_send.try_send(super::api::run(pool, api).await.context("Api server error"));
     }));
     let reason = receive.recv().await.expect("Didn't receive msg");
     for handle in handles {

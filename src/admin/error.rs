@@ -18,6 +18,7 @@ impl From<BriaError> for AdminApiError {
     fn from(err: BriaError) -> Self {
         match err {
             BriaError::SqlxError(e) => AdminApiError::SqlxError(e),
+            BriaError::TonicError(e) => AdminApiError::TonicError(e),
         }
     }
 }

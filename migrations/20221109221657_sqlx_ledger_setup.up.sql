@@ -5,8 +5,8 @@ CREATE TYPE Layer AS ENUM ('settled', 'pending', 'encumbered');
 CREATE TABLE sqlx_ledger_accounts (
   id UUID NOT NULL,
   version INT NOT NULL DEFAULT 1,
-  code VARCHAR(80) NOT NULL,
-  name VARCHAR(80) NOT NULL,
+  code VARCHAR NOT NULL,
+  name VARCHAR NOT NULL,
   description VARCHAR,
   status Status NOT NULL,
   normal_balance_type DebitOrCredit NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE sqlx_ledger_accounts (
 CREATE TABLE sqlx_ledger_journals (
   id UUID NOT NULL,
   version INT NOT NULL DEFAULT 1,
-  name VARCHAR(80) NOT NULL,
+  name VARCHAR NOT NULL,
   description VARCHAR,
   status Status NOT NULL,
   modified_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -32,7 +32,7 @@ CREATE TABLE sqlx_ledger_journals (
 
 CREATE TABLE sqlx_ledger_tx_templates (
   id UUID NOT NULL,
-  code VARCHAR(80) NOT NULL,
+  code VARCHAR NOT NULL,
   version INT NOT NULL DEFAULT 1,
   params JSONB,
   tx_input JSONB NOT NULL,

@@ -20,7 +20,7 @@ impl AccountApiKeys {
         account_id: AccountId,
     ) -> Result<AccountApiKey, BriaError> {
         let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
-        let key = format!("bria_admin_{}", code);
+        let key = format!("bria_{}", code);
         let record = sqlx::query!(
             r#"INSERT INTO account_api_keys (name, encrypted_key, account_id)
             VALUES ($1, crypt($2, gen_salt('bf')), $3) RETURNING (id)"#,

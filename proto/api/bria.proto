@@ -1,0 +1,15 @@
+syntax = "proto3";
+package services.bria.v1;
+
+service BriaService {
+  rpc XPubImport (XPubImportRequest) returns (XPubImportResponse) {}
+}
+
+message XPubImportRequest {
+  string name = 1;
+  string xpub = 2;
+}
+
+message XPubImportResponse {
+  string id = 1;
+}

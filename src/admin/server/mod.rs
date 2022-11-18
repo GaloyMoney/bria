@@ -2,7 +2,7 @@ mod convert;
 
 #[allow(clippy::all)]
 pub mod proto {
-    tonic::include_proto!("services.admin.v1");
+    tonic::include_proto!("services.bria_admin.v1");
 }
 
 use tonic::{transport::Server, Request, Response, Status};
