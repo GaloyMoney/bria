@@ -8,6 +8,8 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
+sqlx-ledger = { git = "https://github.com/bodymindarts/sqlx-ledger" }
+
 anyhow = "1.0.66"
 clap = { version = "4.0", features = ["derive", "env"] }
 chrono = { version = "0.4.22", features = ["clock", "serde"], default-features = false }

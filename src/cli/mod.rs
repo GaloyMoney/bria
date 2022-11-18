@@ -40,12 +40,18 @@ enum Command {
         command: AdminCommand,
         #[clap(short, long, action, value_parser, env = "ADMIN_API_URL")]
         url: Option<Url>,
+        #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
+        admin_api_key: String,
     },
 }
 
 #[derive(Subcommand)]
 enum AdminCommand {
     Bootstrap,
+    AccountCreate {
+        #[clap(short, long, action, value_parser)]
+        name: String,
+    },
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -67,14 +73,22 @@ pub async fn run() -> anyhow::Result<()> {
                 _ => (),
             }
         }
-        Command::Admin { command, url } => {
+        Command::Admin {
+            command,
+            url,
+            admin_api_key,
+        } => {
             let client = admin_client::AdminApiClient::new(
                 url.map(|url| admin_client::AdminApiClientConfig { url })
                     .unwrap_or_else(admin_client::AdminApiClientConfig::default),
+                admin_api_key,
             );
             match command {
                 AdminCommand::Bootstrap => {
                     client.bootstrap().await?;
+                }
+                AdminCommand::AccountCreate { name } => {
+                    client.account_create(name).await?;
                 }
             }
         }

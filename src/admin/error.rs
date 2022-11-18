@@ -1,3 +1,4 @@
+use sqlx_ledger::SqlxLedgerError;
 use thiserror::Error;
 
 use crate::error::*;
@@ -9,6 +10,8 @@ pub enum AdminApiError {
     TonicError(#[from] tonic::transport::Error),
     #[error("AdminApiError - SqlxError: {0}")]
     SqlxError(#[from] sqlx::Error),
+    #[error("AdminApiError - SqlxLedgerError: {0}")]
+    SqlxLedgerError(#[from] SqlxLedgerError),
 }
 
 impl From<BriaError> for AdminApiError {

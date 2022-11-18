@@ -11,6 +11,7 @@ CREATE TABLE admin_api_keys (
 
 CREATE TABLE accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  journal_id UUID NOT NULL,
   name VARCHAR UNIQUE NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now()

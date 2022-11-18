@@ -12,7 +12,7 @@ use proto::{admin_service_server::AdminService, *};
 
 use super::{app::*, config::*, error::*};
 
-const ADMIN_API_KEY_HEADER: &str = "X_BRIA_ADMIN_API_KEY";
+pub const ADMIN_API_KEY_HEADER: &str = "x-bria-admin-api-key";
 
 pub struct Admin {
     app: AdminApp,
@@ -42,16 +42,15 @@ impl AdminService for Admin {
     ) -> Result<Response<AccountCreateResponse>, Status> {
         let admin_api_key = extract_api_token(&request)?;
         self.app.authenticate(admin_api_key).await?;
-        self.app.account_create(request.into_inner().name).await?;
-        unimplemented!()
-        // let super::AdminApiKey { id, name, key } = self.app.bootstrap().await?;
-        // Ok(Response::new(BootstrapResponse {
-        //     key: Some(AdminApiKey {
-        //         id: id.to_string(),
-        //         name,
-        //         key,
-        //     }),
-        // }))
+        let keys = self.app.account_create(request.into_inner().name).await?;
+        Ok(Response::new(AccountCreateResponse {
+            key: Some(AccountApiKey {
+                id: keys.id.to_string(),
+                name: keys.name,
+                key: keys.key,
+                account_id: keys.account_id.to_string(),
+            }),
+        }))
     }
 }
 
