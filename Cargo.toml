@@ -28,6 +28,7 @@ rusty-money = "0.4.1"
 thiserror = "1.0.37"
 uuid = { version = "1.2.1", features = ["serde", "v4"] }
 futures = "0.3.25"
+url = "2.3.1"
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }

@@ -1,8 +1,10 @@
+mod admin_client;
 mod config;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
+use url::Url;
 
 use config::*;
 
@@ -33,6 +35,17 @@ enum Command {
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
     },
+    Admin {
+        #[clap(subcommand)]
+        command: AdminCommand,
+        #[clap(short, long, action, value_parser, env = "ADMIN_API_URL")]
+        url: Option<Url>,
+    },
+}
+
+#[derive(Subcommand)]
+enum AdminCommand {
+    Bootstrap,
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -52,6 +65,17 @@ pub async fn run() -> anyhow::Result<()> {
                 }
                 (Err(e), _) => return Err(e),
                 _ => (),
+            }
+        }
+        Command::Admin { command, url } => {
+            let client = admin_client::AdminApiClient::new(
+                url.map(|url| admin_client::AdminApiClientConfig { url })
+                    .unwrap_or_else(admin_client::AdminApiClientConfig::default),
+            );
+            match command {
+                AdminCommand::Bootstrap => {
+                    client.bootstrap().await?;
+                }
             }
         }
     }
