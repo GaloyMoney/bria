@@ -26,7 +26,11 @@ impl BriaService for Bria {
         &self,
         request: Request<XPubImportRequest>,
     ) -> Result<Response<XPubImportResponse>, Status> {
-        unimplemented!()
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(&key).await?;
+        let XPubImportRequest { name, xpub } = request.into_inner();
+        let id = self.app.import_xpub(account_id, name, xpub).await?;
+        Ok(Response::new(XPubImportResponse { id: id.to_string() }))
     }
 }
 

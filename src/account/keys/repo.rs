@@ -37,4 +37,19 @@ impl AccountApiKeys {
             account_id,
         })
     }
+
+    pub async fn find_by_key(&self, key: &str) -> Result<AccountApiKey, BriaError> {
+        let record = sqlx::query!(
+            r#"SELECT id, account_id, name FROM account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"#,
+            key
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(AccountApiKey {
+            name: record.name,
+            account_id: AccountId::from(record.account_id),
+            key: key.to_string(),
+            id: AccountApiKeyId::from(record.id),
+        })
+    }
 }

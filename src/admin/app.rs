@@ -34,7 +34,7 @@ impl AdminApp {
         Ok(())
     }
 
-    pub async fn account_create(&self, name: String) -> Result<AccountApiKey, AdminApiError> {
+    pub async fn create_account(&self, name: String) -> Result<AccountApiKey, AdminApiError> {
         let new_journal = NewJournal::builder()
             .name(name.clone())
             .build()

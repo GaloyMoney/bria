@@ -26,3 +26,12 @@ CREATE TABLE account_api_keys (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE xpubs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) NOT NULL,
+  name VARCHAR UNIQUE NOT NULL,
+  xpub VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

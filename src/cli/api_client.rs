@@ -1,0 +1,70 @@
+use anyhow::Context;
+use url::Url;
+
+use crate::api::proto;
+type ProtoClient = proto::bria_service_client::BriaServiceClient<tonic::transport::Channel>;
+
+use super::token_store;
+
+pub struct ApiClientConfig {
+    pub url: Url,
+}
+impl Default for ApiClientConfig {
+    fn default() -> Self {
+        Self {
+            url: Url::parse("http://localhost:2742").unwrap(),
+        }
+    }
+}
+pub struct ApiClient {
+    config: ApiClientConfig,
+    key: String,
+}
+
+impl ApiClient {
+    pub fn new(config: ApiClientConfig, key: String) -> Self {
+        Self { config, key }
+    }
+
+    async fn connect(&self) -> anyhow::Result<ProtoClient> {
+        match ProtoClient::connect(self.config.url.to_string()).await {
+            Ok(client) => Ok(client),
+            Err(err) => {
+                eprintln!(
+                    "Couldn't connect to price server\nAre you sure its running on {}?\n",
+                    self.config.url
+                );
+                Err(anyhow::anyhow!(err))
+            }
+        }
+    }
+
+    pub fn inject_auth_token<T>(
+        &self,
+        mut request: tonic::Request<T>,
+    ) -> anyhow::Result<tonic::Request<T>> {
+        let key = if self.key.is_empty() {
+            token_store::load_account_token()?
+        } else {
+            self.key.clone()
+        };
+
+        request.metadata_mut().insert(
+            crate::api::ACCOUNT_API_KEY_HEADER,
+            tonic::metadata::MetadataValue::try_from(&key)
+                .context("Couldn't create MetadataValue")?,
+        );
+        Ok(request)
+    }
+
+    pub async fn import_xpub(&self, name: String, xpub: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::XPubImportRequest { name, xpub });
+        let response = self
+            .connect()
+            .await?
+            .x_pub_import(self.inject_auth_token(request)?)
+            .await?;
+        println!("XPUB imported - {}", response.into_inner().id);
+        Ok(())
+    }
+}

@@ -1,4 +1,5 @@
 mod admin_client;
+mod api_client;
 mod config;
 mod token_store;
 
@@ -12,16 +13,6 @@ use config::*;
 #[derive(Parser)]
 #[clap(version, long_about = None)]
 struct Cli {
-    /// Sets a custom config file
-    #[clap(
-        short,
-        long,
-        env = "BRIA_CONFIG",
-        default_value = "bria.yml",
-        value_name = "FILE"
-    )]
-    config: PathBuf,
-
     #[clap(subcommand)]
     command: Command,
 }
@@ -30,6 +21,16 @@ struct Cli {
 enum Command {
     /// Runs the configured processes
     Run {
+        /// Sets a custom config file
+        #[clap(
+            short,
+            long,
+            env = "BRIA_CONFIG",
+            default_value = "bria.yml",
+            value_name = "FILE"
+        )]
+        config: PathBuf,
+
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
         /// Connection string for the user-trades database
@@ -39,17 +40,34 @@ enum Command {
     Admin {
         #[clap(subcommand)]
         command: AdminCommand,
-        #[clap(short, long, action, value_parser, env = "ADMIN_API_URL")]
+        #[clap(short, long, action, value_parser, env = "BRIE_ADMIN_API_URL")]
         url: Option<Url>,
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
+    },
+    ImportXpub {
+        #[clap(
+            short,
+            long,
+            action,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(short, long, action, value_parser)]
+        xpub: String,
+        #[clap(short, long, action, value_parser)]
+        name: String,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
     },
 }
 
 #[derive(Subcommand)]
 enum AdminCommand {
     Bootstrap,
-    AccountCreate {
+    CreateAccount {
         #[clap(short, long, action, value_parser)]
         name: String,
     },
@@ -60,10 +78,11 @@ pub async fn run() -> anyhow::Result<()> {
 
     match cli.command {
         Command::Run {
+            config,
             crash_report_config,
             db_con,
         } => {
-            let config = Config::from_path(cli.config, EnvOverride { db_con })?;
+            let config = Config::from_path(config, EnvOverride { db_con })?;
             match (run_cmd(config.clone()).await, crash_report_config) {
                 (Err(e), Some(true)) => {
                     println!("Bria was started with the following config:");
@@ -88,10 +107,23 @@ pub async fn run() -> anyhow::Result<()> {
                 AdminCommand::Bootstrap => {
                     client.bootstrap().await?;
                 }
-                AdminCommand::AccountCreate { name } => {
+                AdminCommand::CreateAccount { name } => {
                     client.account_create(name).await?;
                 }
             }
+        }
+        Command::ImportXpub {
+            url,
+            api_key,
+            xpub,
+            name,
+        } => {
+            let client = api_client::ApiClient::new(
+                url.map(|url| api_client::ApiClientConfig { url })
+                    .unwrap_or_else(api_client::ApiClientConfig::default),
+                api_key,
+            );
+            client.import_xpub(name, xpub).await?;
         }
     }
     Ok(())
