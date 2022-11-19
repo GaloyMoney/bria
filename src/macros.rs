@@ -1,9 +1,26 @@
 #[macro_export]
 macro_rules! entity_id {
     ($name:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Deserialize)]
+        #[derive(
+            Debug,
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
+            serde::Deserialize,
+            serde::Serialize,
+        )]
         #[serde(transparent)]
         pub struct $name(uuid::Uuid);
+
+        impl $name {
+            pub fn new() -> Self {
+                uuid::Uuid::new_v4().into()
+            }
+        }
 
         impl From<uuid::Uuid> for $name {
             fn from(uuid: uuid::Uuid) -> Self {

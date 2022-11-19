@@ -32,6 +32,21 @@ impl BriaService for Bria {
         let id = self.app.import_xpub(account_id, name, xpub).await?;
         Ok(Response::new(XPubImportResponse { id: id.to_string() }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn wallet_create(
+        &self,
+        request: Request<WalletCreateRequest>,
+    ) -> Result<Response<WalletCreateResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(&key).await?;
+        let request = request.into_inner();
+        let id = self
+            .app
+            .create_wallet(account_id, request.name, request.xpub_ids)
+            .await?;
+        Ok(Response::new(WalletCreateResponse { id: id.to_string() }))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {

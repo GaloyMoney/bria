@@ -29,4 +29,15 @@ impl XPubs {
         .await?;
         Ok(XPubId::from(record.id))
     }
+
+    pub async fn find(&self, account_id: AccountId, xpub_id: XPubId) -> Result<String, BriaError> {
+        let record = sqlx::query!(
+            r#"SELECT xpub FROM xpubs WHERE account_id = $1 AND id = $2"#,
+            Uuid::from(account_id),
+            Uuid::from(xpub_id),
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(record.xpub)
+    }
 }

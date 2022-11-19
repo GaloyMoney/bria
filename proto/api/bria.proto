@@ -3,6 +3,7 @@ package services.bria.v1;
 
 service BriaService {
   rpc XPubImport (XPubImportRequest) returns (XPubImportResponse) {}
+  rpc WalletCreate (WalletCreateRequest) returns (WalletCreateResponse) {}
 }
 
 message XPubImportRequest {
@@ -11,5 +12,14 @@ message XPubImportRequest {
 }
 
 message XPubImportResponse {
+  string id = 1;
+}
+
+message WalletCreateRequest {
+  string name = 1;
+  repeated string xpub_ids = 2;
+}
+
+message WalletCreateResponse {
   string id = 1;
 }

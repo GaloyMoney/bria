@@ -55,9 +55,26 @@ enum Command {
             env = "BRIE_API_URL"
         )]
         url: Option<Url>,
-        #[clap(short, long, action, value_parser)]
+        #[clap(short, long, action)]
         xpub: String,
-        #[clap(short, long, action, value_parser)]
+        #[clap(short, long, action)]
+        name: String,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+    },
+    CreateWallet {
+        #[clap(
+            short,
+            long,
+            action,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(short, long, action)]
+        xpub: Vec<String>,
+        #[clap(short, long, action)]
         name: String,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
@@ -125,6 +142,7 @@ pub async fn run() -> anyhow::Result<()> {
             );
             client.import_xpub(name, xpub).await?;
         }
+        Command::CreateWallet { .. } => unimplemented!(),
     }
     Ok(())
 }

@@ -12,6 +12,8 @@ pub enum AdminApiError {
     SqlxError(#[from] sqlx::Error),
     #[error("AdminApiError - SqlxLedgerError: {0}")]
     SqlxLedgerError(#[from] SqlxLedgerError),
+    #[error("AdminApiError - BriaError: {0}")]
+    BriaError(BriaError),
 }
 
 impl From<BriaError> for AdminApiError {
@@ -19,6 +21,7 @@ impl From<BriaError> for AdminApiError {
         match err {
             BriaError::SqlxError(e) => AdminApiError::SqlxError(e),
             BriaError::TonicError(e) => AdminApiError::TonicError(e),
+            e => AdminApiError::BriaError(e),
         }
     }
 }

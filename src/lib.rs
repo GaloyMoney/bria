@@ -10,4 +10,5 @@ mod error;
 mod macros;
 pub mod primitives;
 mod tracing;
+pub mod wallet;
 pub mod xpub;
