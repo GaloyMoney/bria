@@ -8,9 +8,9 @@ services:
   postgres:
     image: postgres:14.1
     environment:
-      - POSTGRES_USER=bria
-      - POSTGRES_PASSWORD=bria
-      - POSTGRES_DB=bria
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=pg
   integration-tests:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
