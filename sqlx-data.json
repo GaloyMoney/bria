@@ -47,7 +47,148 @@
     },
     "query": "INSERT INTO admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
   },
-  "248ae2aa5f37c97d7f98b4f15d137fc747270aa910619c039081a1d440cba4f2": {
+  "78f4dc961acbea41b5fd7734cabcb499193c0e0a33026bce5c08a30c2669c7b7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO accounts (id, name, journal_id)\n            VALUES ($1, $2, $1)\n            RETURNING (id)"
+  },
+  "8b738392e41143c1558c676ca3438b0a980b92738d85302a8638dac37b3ee3da": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, account_id, name FROM account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
+  },
+  "97a5af69011eea88ce6b68936378afe3cc0a27b28cb43f56205d228bd687ee82": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO wallets (id, account_id, ledger_account_id, keychain_id, name)\n            VALUES ($1, $2, (SELECT id FROM sqlx_ledger_accounts WHERE id = $3 LIMIT 1), $4, $5)\n            RETURNING (id)"
+  },
+  "b48c68f12f60f3774978e823d591775e1a7f65d33620e5d48ae9cb048dfcba6b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "xpub",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT xpub FROM xpubs WHERE account_id = $1 AND id = $2"
+  },
+  "c26e8392e41591ec52032a77decd055169eb1c5c2b15a3cde5acfd369793db1d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO keychains (account_id, config)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2)\n            RETURNING (id)"
+  },
+  "e067f8fcf00c79e48527a7d7079f6131025a46befef3bdff47a5364526ff0773": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO xpubs (account_id, name, xpub)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3) RETURNING (id)"
+  },
+  "e7436a63d409ccad88e40cc4372237edfdeba698681c1ed46a9b8726f31af051": {
     "describe": {
       "columns": [
         {
@@ -67,26 +208,6 @@
         ]
       }
     },
-    "query": "INSERT INTO account_api_keys (name, encrypted_key, account_id)\n            VALUES ($1, crypt($2, gen_salt('bf')), $3) RETURNING (id)"
-  },
-  "cb8218e411bad1a8e3386998761a4547e81ff95c2dd0681583784ec672f1d619": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO accounts (name)\n            VALUES ($1) RETURNING (id)"
+    "query": "INSERT INTO account_api_keys (name, encrypted_key, account_id)\n            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM accounts WHERE id = $3)) RETURNING (id)"
   }
 }

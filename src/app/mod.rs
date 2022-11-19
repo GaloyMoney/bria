@@ -39,10 +39,10 @@ impl App {
         name: String,
         mut xpub_ids: Vec<String>,
     ) -> Result<WalletId, BriaError> {
-        let xpub_ids: Vec<Result<XPubId, _>> = xpub_ids.drain(..).map(|id| id.parse()).collect();
+        let mut xpub_ids = xpub_ids.drain(..).map(|id| id.parse());
         let xpub = self
             .xpubs
-            .find(account_id, xpub_ids.into_iter().next().unwrap()?)
+            .find(account_id, xpub_ids.next().unwrap()?)
             .await?;
 
         let new_wallet = NewWallet::builder()

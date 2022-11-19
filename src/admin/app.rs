@@ -1,4 +1,5 @@
 use sqlx_ledger::journal::*;
+use uuid::Uuid;
 
 use crate::account::{keys::*, *};
 
@@ -11,6 +12,7 @@ pub struct AdminApp {
     accounts: Accounts,
     account_keys: AccountApiKeys,
     journals: Journals,
+    pool: sqlx::PgPool,
 }
 
 impl AdminApp {
@@ -20,6 +22,7 @@ impl AdminApp {
             accounts: Accounts::new(&pool),
             account_keys: AccountApiKeys::new(&pool),
             journals: Journals::new(&pool),
+            pool,
         }
     }
 }
@@ -35,12 +38,19 @@ impl AdminApp {
     }
 
     pub async fn create_account(&self, name: String) -> Result<AccountApiKey, AdminApiError> {
+        let mut tx = self.pool.begin().await?;
+        let account = self.accounts.create_in_tx(&mut tx, name.clone()).await?;
         let new_journal = NewJournal::builder()
+            .id(Uuid::from(account.id))
             .name(name.clone())
             .build()
-            .expect("Invalid journal name");
-        let journal_id = self.journals.create(new_journal).await?;
-        let account = self.accounts.create(name.clone(), journal_id).await?;
-        Ok(self.account_keys.create(name, account.id).await?)
+            .expect("Couldn't build NewJournal");
+        self.journals.create_in_tx(&mut tx, new_journal).await?;
+        let keys = self
+            .account_keys
+            .create_in_tx(&mut tx, name, account.id)
+            .await?;
+        tx.commit().await?;
+        Ok(keys)
     }
 }

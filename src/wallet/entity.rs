@@ -19,7 +19,7 @@ impl NewWallet {
 }
 
 #[derive(Deserialize, Serialize, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum WalletKeyChainConfig {
     SingleSig(SingleSigWalletKeyChainConfig),
 }
@@ -37,18 +37,5 @@ impl SingleSigWalletKeyChainConfig {
 impl From<SingleSigWalletKeyChainConfig> for WalletKeyChainConfig {
     fn from(cfg: SingleSigWalletKeyChainConfig) -> Self {
         WalletKeyChainConfig::SingleSig(cfg)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn serialize_keychain_config() {
-        let cfg = WalletKeyChainConfig::SingleSig(SingleSigWalletKeyChainConfig {
-            xpub: "xpub".to_string(),
-        });
-        // assert_eq!(serde_json::to_string(&cfg).unwrap(), "".to_string());
     }
 }

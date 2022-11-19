@@ -19,8 +19,8 @@ pub enum AdminApiError {
 impl From<BriaError> for AdminApiError {
     fn from(err: BriaError) -> Self {
         match err {
-            BriaError::SqlxError(e) => AdminApiError::SqlxError(e),
-            BriaError::TonicError(e) => AdminApiError::TonicError(e),
+            BriaError::Sqlx(e) => AdminApiError::SqlxError(e),
+            BriaError::Tonic(e) => AdminApiError::TonicError(e),
             e => AdminApiError::BriaError(e),
         }
     }

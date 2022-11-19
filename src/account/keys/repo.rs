@@ -14,8 +14,9 @@ impl AccountApiKeys {
         Self { pool: pool.clone() }
     }
 
-    pub async fn create(
+    pub async fn create_in_tx(
         &self,
+        tx: &mut sqlx::Transaction<'_, Postgres>,
         name: String,
         account_id: AccountId,
     ) -> Result<AccountApiKey, BriaError> {
@@ -23,12 +24,12 @@ impl AccountApiKeys {
         let key = format!("bria_{}", code);
         let record = sqlx::query!(
             r#"INSERT INTO account_api_keys (name, encrypted_key, account_id)
-            VALUES ($1, crypt($2, gen_salt('bf')), $3) RETURNING (id)"#,
+            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM accounts WHERE id = $3)) RETURNING (id)"#,
             name,
             key,
             Uuid::from(account_id),
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
         Ok(AccountApiKey {
             name,
