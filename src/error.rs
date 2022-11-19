@@ -12,4 +12,6 @@ pub enum BriaError {
     SqlxLedger(#[from] sqlx_ledger::SqlxLedgerError),
     #[error("BriaError - SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("BriaError - Bip32 {0}")]
+    Bip32(#[from] bitcoin::util::bip32::Error),
 }

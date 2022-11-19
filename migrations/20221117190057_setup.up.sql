@@ -28,10 +28,10 @@ CREATE TABLE account_api_keys (
 );
 
 CREATE TABLE xpubs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
-  xpub VARCHAR NOT NULL,
+  fingerprint BYTEA NOT NULL,
+  xpub BYTEA NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(account_id, xpub),

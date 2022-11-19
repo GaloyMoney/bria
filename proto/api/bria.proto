@@ -17,7 +17,7 @@ message XPubImportResponse {
 
 message WalletCreateRequest {
   string name = 1;
-  repeated string xpub_ids = 2;
+  repeated string xpub_refs = 2;
 }
 
 message WalletCreateResponse {

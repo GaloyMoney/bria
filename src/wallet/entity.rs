@@ -2,6 +2,8 @@ use crate::primitives::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use crate::xpub::XPub;
+
 #[derive(Builder, Clone)]
 pub struct NewWallet {
     pub id: WalletId,
@@ -26,10 +28,10 @@ pub enum WalletKeyChainConfig {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct SingleSigWalletKeyChainConfig {
-    xpub: String,
+    xpub: XPub,
 }
 impl SingleSigWalletKeyChainConfig {
-    pub fn new(xpub: String) -> Self {
+    pub fn new(xpub: XPub) -> Self {
         Self { xpub }
     }
 }

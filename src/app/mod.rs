@@ -33,7 +33,7 @@ impl App {
         name: String,
         xpub: String,
     ) -> Result<XPubId, BriaError> {
-        let id = self.xpubs.persist(account_id, name, xpub).await?;
+        let id = self.xpubs.persist(account_id, name, xpub.parse()?).await?;
         Ok(id)
     }
 
@@ -41,17 +41,22 @@ impl App {
         &self,
         account_id: AccountId,
         name: String,
-        mut xpub_ids: Vec<String>,
+        mut xpub_refs: Vec<String>,
     ) -> Result<WalletId, BriaError> {
-        let mut xpub_ids = xpub_ids.drain(..).map(|id| id.parse());
-        let xpub = self
-            .xpubs
-            .find(account_id, xpub_ids.next().unwrap()?)
-            .await?;
+        let mut xpubs = Vec::new();
+        for xpub_ref in xpub_refs {
+            xpubs.push(self.xpubs.find_from_ref(account_id, xpub_ref).await?);
+        }
+
+        if xpubs.len() > 1 {
+            unimplemented!()
+        }
 
         let new_wallet = NewWallet::builder()
             .name(name.clone())
-            .keychain(SingleSigWalletKeyChainConfig::new(xpub))
+            .keychain(SingleSigWalletKeyChainConfig::new(
+                xpubs.into_iter().next().unwrap(),
+            ))
             .build()
             .expect("Couldn't build NewWallet");
 

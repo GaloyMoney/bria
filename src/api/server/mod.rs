@@ -43,7 +43,7 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let id = self
             .app
-            .create_wallet(account_id, request.name, request.xpub_ids)
+            .create_wallet(account_id, request.name, request.xpub_refs)
             .await?;
         Ok(Response::new(WalletCreateResponse { id: id.to_string() }))
     }

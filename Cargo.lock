@@ -272,6 +272,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bdk",
+ "bitcoin",
  "chrono",
  "clap",
  "derive_builder",
