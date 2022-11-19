@@ -48,13 +48,13 @@ CREATE TABLE keychains (
 
 CREATE TABLE wallets (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
-  account_id UUID NOT NULL,
+  account_id UUID REFERENCES accounts(id) NOT NULL,
   ledger_account_id UUID NOT NULL,
   keychain_id UUID REFERENCES keychains(id) NOT NULL,
-  name VARCHAR  NOT NULL,
+  name VARCHAR NOT NULL,
   version INT NOT NULL DEFAULT 1,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(id, version),
-  UNIQUE(name, version)
+  UNIQUE(account_id, name, version)
 );

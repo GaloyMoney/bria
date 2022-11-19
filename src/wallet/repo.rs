@@ -23,7 +23,7 @@ impl Wallets {
     ) -> Result<WalletId, BriaError> {
         let record = sqlx::query!(
             r#"INSERT INTO keychains (account_id, config)
-            VALUES ((SELECT id FROM accounts WHERE id = $1), $2)
+            VALUES ($1, $2)
             RETURNING (id)"#,
             Uuid::from(account_id),
             serde_json::to_value(new_wallet.keychain)?

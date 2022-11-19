@@ -1,5 +1,7 @@
 mod helpers;
 
+use rand::distributions::{Alphanumeric, DistString};
+
 use bria::{app::*, xpub::*};
 use helpers::*;
 
@@ -12,10 +14,11 @@ async fn test_wallet() -> anyhow::Result<()> {
     let account_id = create_test_account(&pool).await?;
     let repo = XPubs::new(&pool);
     let id = repo
-        .persist(account_id, "name".to_string(), "xpub".to_string())
+        .persist(account_id, "wallet".to_string(), "wallet".to_string())
         .await?;
     let app = App::new(pool);
-    app.create_wallet(account_id, "name".to_string(), vec![id.to_string()])
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    app.create_wallet(account_id, name, vec![id.to_string()])
         .await?;
 
     Ok(())
