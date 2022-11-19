@@ -133,18 +133,29 @@ pub async fn run() -> anyhow::Result<()> {
             xpub,
             name,
         } => {
-            let client = api_client::ApiClient::new(
-                url.map(|url| api_client::ApiClientConfig { url })
-                    .unwrap_or_else(api_client::ApiClientConfig::default),
-                api_key,
-            );
+            let client = api_client(url, api_key);
             client.import_xpub(name, xpub).await?;
         }
-        Command::CreateWallet { .. } => unimplemented!(),
+        Command::CreateWallet {
+            url,
+            api_key,
+            xpub,
+            name,
+        } => {
+            let client = api_client(url, api_key);
+            client.create_wallet(name, xpub).await?;
+        }
     }
     Ok(())
 }
 
+fn api_client(url: Option<Url>, api_key: String) -> api_client::ApiClient {
+    api_client::ApiClient::new(
+        url.map(|url| api_client::ApiClientConfig { url })
+            .unwrap_or_else(api_client::ApiClientConfig::default),
+        api_key,
+    )
+}
 async fn run_cmd(
     Config {
         tracing,

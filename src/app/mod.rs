@@ -41,7 +41,7 @@ impl App {
         &self,
         account_id: AccountId,
         name: String,
-        mut xpub_refs: Vec<String>,
+        xpub_refs: Vec<String>,
     ) -> Result<WalletId, BriaError> {
         let mut xpubs = Vec::new();
         for xpub_ref in xpub_refs {
