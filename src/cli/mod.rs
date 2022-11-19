@@ -40,7 +40,7 @@ enum Command {
     Admin {
         #[clap(subcommand)]
         command: AdminCommand,
-        #[clap(short, long, action, value_parser, env = "BRIE_ADMIN_API_URL")]
+        #[clap(short, long, value_parser, env = "BRIE_ADMIN_API_URL")]
         url: Option<Url>,
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
@@ -49,15 +49,14 @@ enum Command {
         #[clap(
             short,
             long,
-            action,
             value_parser,
             default_value = "http://localhost:2742",
             env = "BRIE_API_URL"
         )]
         url: Option<Url>,
-        #[clap(short, long, action)]
+        #[clap(short, long)]
         xpub: String,
-        #[clap(short, long, action)]
+        #[clap(short, long)]
         name: String,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
@@ -66,15 +65,14 @@ enum Command {
         #[clap(
             short,
             long,
-            action,
             value_parser,
             default_value = "http://localhost:2742",
             env = "BRIE_API_URL"
         )]
         url: Option<Url>,
-        #[clap(short, long, action)]
+        #[clap(short, long)]
         xpub: Vec<String>,
-        #[clap(short, long, action)]
+        #[clap(short, long)]
         name: String,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
@@ -85,7 +83,7 @@ enum Command {
 enum AdminCommand {
     Bootstrap,
     CreateAccount {
-        #[clap(short, long, action, value_parser)]
+        #[clap(short, long)]
         name: String,
     },
 }

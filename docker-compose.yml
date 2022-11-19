@@ -4,6 +4,8 @@ services:
     image: busybox
     depends_on:
     - postgres
+    - bitcoind
+    - lnd
     - otel-agent
   postgres:
     image: postgres:14.1
@@ -29,3 +31,25 @@ services:
     - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
     volumes:
       - ./dev/otel-agent-config.yaml:/etc/otel-agent-config.yaml
+  bitcoind:
+    image: lncm/bitcoind:v23.0
+    volumes:
+      - ${PWD}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
+  lnd:
+    image: lightninglabs/lnd:v0.15.3-beta
+    volumes:
+      - ${PWD}/dev/lnd/lnd.conf:/root/.lnd/lnd.conf
+      - ${PWD}/dev/lnd/tls.key:/root/.lnd/tls.key
+      - ${PWD}/dev/lnd/tls.cert:/root/.lnd/tls.cert
+      - ${PWD}/dev/lnd/regtest/lnd.wallet.db:/root/.lnd/wallet.db
+      - ${PWD}/dev/lnd/regtest/lnd.macaroons.db:/root/.lnd/macaroons.db
+      - ${PWD}/dev/lnd/regtest/lnd.admin.macaroon:/root/.lnd/admin.macaroon
+    depends_on: [bitcoind]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        mkdir -p /root/.lnd/data/chain/bitcoin/regtest/
+        cp /root/.lnd/wallet.db /root/.lnd/data/chain/bitcoin/regtest/wallet.db
+        cp /root/.lnd/macaroons.db /root/.lnd/data/chain/bitcoin/regtest/macaroons.db
+        cp /root/.lnd/admin.macaroon /root/.lnd/data/chain/bitcoin/regtest/admin.macaroon
+        /bin/lnd
