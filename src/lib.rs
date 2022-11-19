@@ -4,7 +4,7 @@
 pub mod account;
 pub mod admin;
 mod api;
-mod app;
+pub mod app;
 pub mod cli;
 mod error;
 mod macros;

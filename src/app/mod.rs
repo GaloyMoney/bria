@@ -1,11 +1,14 @@
-use crate::{account::keys::*, error::*, primitives::*, wallet::*, xpub::*};
 use sqlx_ledger::{account::NewAccount as NewLedgerAccount, SqlxLedger};
+use uuid::Uuid;
+
+use crate::{account::keys::*, error::*, primitives::*, wallet::*, xpub::*};
 
 pub struct App {
     keys: AccountApiKeys,
     xpubs: XPubs,
     wallets: Wallets,
     ledger: SqlxLedger,
+    pool: sqlx::PgPool,
 }
 
 impl App {
@@ -15,6 +18,7 @@ impl App {
             xpubs: XPubs::new(&pool),
             wallets: Wallets::new(&pool),
             ledger: SqlxLedger::new(&pool),
+            pool,
         }
     }
 
@@ -50,17 +54,23 @@ impl App {
             .keychain(SingleSigWalletKeyChainConfig::new(xpub))
             .build()
             .expect("Couldn't build NewWallet");
-        let new_account = NewLedgerAccount::builder()
-            .name(name)
-            .code(format!("WALLET_{}", new_wallet.id))
-            .build()
-            .expect("Couldn't build NewLedgerAccount");
-        let new_account_id = self.ledger.accounts().create(new_account).await?;
 
+        let mut tx = self.pool.begin().await?;
         let wallet_id = self
             .wallets
-            .create(account_id, new_account_id, new_wallet)
+            .create_in_tx(&mut tx, account_id, new_wallet)
             .await?;
+        let new_account = NewLedgerAccount::builder()
+            .id(Uuid::from(wallet_id))
+            .name(name)
+            .code(format!("WALLET_{}", wallet_id))
+            .build()
+            .expect("Couldn't build NewLedgerAccount");
+        self.ledger
+            .accounts()
+            .create_in_tx(&mut tx, new_account)
+            .await?;
+        tx.commit().await?;
         Ok(wallet_id)
     }
 }
