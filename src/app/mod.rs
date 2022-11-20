@@ -75,7 +75,19 @@ impl App {
             .accounts()
             .create_in_tx(&mut tx, new_account)
             .await?;
+
         tx.commit().await?;
+
         Ok(wallet_id)
+    }
+
+    pub async fn gen_address(
+        &self,
+        account_id: AccountId,
+        name: String,
+    ) -> Result<String, BriaError> {
+        // let wallet = self.wallets.find(wallet_id).await?;
+        // Ok(wallet)
+        unimplemented!()
     }
 }

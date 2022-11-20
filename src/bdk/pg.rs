@@ -3,8 +3,19 @@ use bdk::{
     KeychainKind, LocalUtxo, TransactionDetails,
 };
 use bitcoin::{blockdata::transaction::OutPoint, Script, Transaction, Txid};
+use tokio::runtime::Handle;
 
-struct SqlxWalletDb {}
+struct SqlxWalletDb {
+    rt: Handle,
+}
+
+impl SqlxWalletDb {
+    fn new() -> Self {
+        Self {
+            rt: Handle::current(),
+        }
+    }
+}
 
 impl BatchOperations for SqlxWalletDb {
     fn set_script_pubkey(&mut self, _: &Script, _: KeychainKind, _: u32) -> Result<(), bdk::Error> {
