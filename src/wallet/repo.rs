@@ -31,12 +31,13 @@ impl Wallets {
         .fetch_one(&mut *tx)
         .await?;
         let record = sqlx::query!(
-            r#"INSERT INTO wallets (id, account_id, ledger_account_id, keychain_id, name)
-            VALUES ($1, $2, $3, $4, $5)
+            r#"INSERT INTO wallets (id, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING (id)"#,
             Uuid::from(new_wallet.id),
             Uuid::from(account_id),
             Uuid::from(new_wallet.id),
+            Uuid::from(new_wallet.dust_account_id),
             record.id,
             new_wallet.name
         )

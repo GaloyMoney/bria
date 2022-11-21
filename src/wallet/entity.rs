@@ -1,15 +1,17 @@
-use crate::primitives::*;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
+use sqlx_ledger::AccountId as LedgerAccountId;
 
-use crate::xpub::XPub;
+use crate::{primitives::*, xpub::*};
 
 #[derive(Builder, Clone)]
 pub struct NewWallet {
+    #[builder(setter(into))]
     pub id: WalletId,
     pub(super) name: String,
     #[builder(setter(into))]
     pub(super) keychain: WalletKeyChainConfig,
+    pub(super) dust_account_id: LedgerAccountId,
 }
 
 impl NewWallet {
