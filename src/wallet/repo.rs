@@ -5,14 +5,12 @@ use super::entity::*;
 use crate::{error::*, primitives::*};
 
 pub struct Wallets {
-    _pool: Pool<Postgres>,
+    pool: Pool<Postgres>,
 }
 
 impl Wallets {
     pub fn new(pool: &Pool<Postgres>) -> Self {
-        Self {
-            _pool: pool.clone(),
-        }
+        Self { pool: pool.clone() }
     }
 
     pub async fn create_in_tx(
@@ -44,5 +42,41 @@ impl Wallets {
         .fetch_one(&mut *tx)
         .await?;
         Ok(WalletId::from(record.id))
+    }
+
+    pub async fn find_by_name(
+        &self,
+        account_id: AccountId,
+        name: String,
+    ) -> Result<Wallet, BriaError> {
+        let rows = sqlx::query!(
+            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config
+                 FROM wallets w
+                 JOIN keychains k ON w.keychain_id = k.id
+                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
+            Uuid::from(account_id),
+            name
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        if rows.is_empty() {
+            return Err(BriaError::WalletNotFound);
+        }
+        let mut iter = rows.into_iter();
+        let first_row = iter.next().expect("There is always 1 row here");
+        let keychain: WalletKeyChainConfig =
+            serde_json::from_value(first_row.config.expect("Should always have config"))?;
+        let mut keychains = vec![keychain];
+        while let Some(row) = iter.next() {
+            let keychain: WalletKeyChainConfig =
+                serde_json::from_value(row.config.expect("Should always have config"))?;
+            keychains.push(keychain);
+        }
+        Ok(Wallet {
+            id: first_row.id.expect("Id should always be present").into(),
+            ledger_account_id: first_row.ledger_account_id.into(),
+            dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
+            keychains,
+        })
     }
 }

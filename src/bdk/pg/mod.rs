@@ -1,25 +1,36 @@
+mod convert;
+mod descriptor_checksum;
+
 use bdk::{
     database::{BatchDatabase, BatchOperations, Database, SyncTime},
     KeychainKind, LocalUtxo, TransactionDetails,
 };
 use bitcoin::{blockdata::transaction::OutPoint, Script, Transaction, Txid};
+use sqlx::PgPool;
 use tokio::runtime::Handle;
 
-struct SqlxWalletDb {
+use crate::primitives::*;
+use descriptor_checksum::DescriptorChecksums;
+
+pub struct SqlxWalletDb {
     rt: Handle,
+    pool: PgPool,
+    keychain_id: KeychainId,
 }
 
 impl SqlxWalletDb {
-    fn new() -> Self {
+    pub fn new(pool: PgPool, keychain_id: KeychainId) -> Self {
         Self {
             rt: Handle::current(),
+            keychain_id,
+            pool,
         }
     }
 }
 
 impl BatchOperations for SqlxWalletDb {
     fn set_script_pubkey(&mut self, _: &Script, _: KeychainKind, _: u32) -> Result<(), bdk::Error> {
-        unimplemented!()
+        Ok(())
     }
     fn set_utxo(&mut self, _: &LocalUtxo) -> Result<(), bdk::Error> {
         unimplemented!()
@@ -67,11 +78,32 @@ impl BatchOperations for SqlxWalletDb {
 }
 
 impl Database for SqlxWalletDb {
-    fn check_descriptor_checksum<B>(&mut self, _: KeychainKind, _: B) -> Result<(), bdk::Error>
+    fn check_descriptor_checksum<B>(
+        &mut self,
+        keychain: KeychainKind,
+        script_bytes: B,
+    ) -> Result<(), bdk::Error>
     where
         B: AsRef<[u8]>,
     {
-        unimplemented!()
+        self.rt.block_on(async {
+            let checksums = DescriptorChecksums::new(self.keychain_id);
+            println!("check_descriptor_checksum");
+            let mut tx = self
+                .pool
+                .begin()
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+            checksums
+                .check_or_persist_descriptor_checksum(&mut tx, keychain, &script_bytes.as_ref())
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+
+            Ok(())
+        })
     }
     fn iter_script_pubkeys(&self, _: Option<KeychainKind>) -> Result<Vec<Script>, bdk::Error> {
         unimplemented!()
@@ -90,7 +122,7 @@ impl Database for SqlxWalletDb {
         _: KeychainKind,
         _: u32,
     ) -> Result<Option<Script>, bdk::Error> {
-        unimplemented!()
+        Ok(None)
     }
     fn get_path_from_script_pubkey(
         &self,
@@ -122,9 +154,9 @@ impl BatchDatabase for SqlxWalletDb {
     type Batch = Self;
 
     fn begin_batch(&self) -> <Self as BatchDatabase>::Batch {
-        unimplemented!()
+        SqlxWalletDb::new(self.pool.clone(), self.keychain_id)
     }
     fn commit_batch(&mut self, _: <Self as BatchDatabase>::Batch) -> Result<(), bdk::Error> {
-        unimplemented!()
+        Ok(())
     }
 }

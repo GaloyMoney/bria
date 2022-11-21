@@ -5,7 +5,7 @@ pub mod account;
 pub mod admin;
 mod api;
 pub mod app;
-mod bdk;
+pub mod bdk;
 pub mod cli;
 mod error;
 mod macros;

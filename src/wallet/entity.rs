@@ -4,6 +4,13 @@ use sqlx_ledger::AccountId as LedgerAccountId;
 
 use crate::{primitives::*, xpub::*};
 
+pub struct Wallet {
+    pub id: WalletId,
+    pub ledger_account_id: LedgerAccountId,
+    pub dust_ledger_account_id: LedgerAccountId,
+    pub keychains: Vec<WalletKeyChainConfig>,
+}
+
 #[derive(Builder, Clone)]
 pub struct NewWallet {
     #[builder(setter(into))]
