@@ -16,4 +16,6 @@ pub enum BriaError {
     Bip32(#[from] bitcoin::util::bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
+    #[error("BriaError - JoinError: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
 }

@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use super::entity::*;
+use super::{entity::*, keychain::*};
 use crate::{error::*, primitives::*};
 
 pub struct Wallets {
