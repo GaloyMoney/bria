@@ -11,60 +11,57 @@ use crate::primitives::*;
 
 pub struct BdkWallet {
     pool: PgPool,
+    network: Network,
     keychain_id: KeychainId,
     descriptor: String,
 }
 
 impl BdkWallet {
-    pub fn new(pool: PgPool, keychain_id: KeychainId, descriptor: String) -> Self {
+    pub fn new(
+        pool: PgPool,
+        network: Network,
+        keychain_id: KeychainId,
+        descriptor: String,
+    ) -> Self {
         Self {
             pool,
+            network,
             keychain_id,
             descriptor,
         }
     }
 
     pub async fn next_address(&self) -> Result<bdk::wallet::AddressInfo, tokio::task::JoinError> {
+        let addr = self
+            .with_wallet(|wallet| {
+                wallet
+                    .get_address(AddressIndex::New)
+                    .expect("Couldn't get new address")
+            })
+            .await?;
+        Ok(addr)
+    }
+
+    async fn with_wallet<F, T>(&self, f: F) -> Result<T, tokio::task::JoinError>
+    where
+        F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> T,
+        T: Send + 'static,
+    {
         let descriptor = self.descriptor.clone();
         let pool = self.pool.clone();
         let keychain_id = self.keychain_id.clone();
-        let address = tokio::task::spawn_blocking(move || {
+        let network = self.network.clone();
+        let res = tokio::task::spawn_blocking(move || {
             let wallet = Wallet::new(
                 descriptor.as_str(),
                 None,
-                Network::Testnet,
+                network,
                 SqlxWalletDb::new(pool, keychain_id),
             )
             .expect("Couldn't construct wallet");
-            wallet
-                .get_address(AddressIndex::New)
-                .expect("Couldn't get new address")
+            f(wallet)
         })
         .await?;
-        Ok(address)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::bdk::pg::*;
-    use bdk::{wallet::AddressIndex, Wallet};
-    use bitcoin::Network;
-
-    #[tokio::test]
-    async fn test() {
-        // let xpub = "tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4";
-        // let descriptor = format!("wpkh({})", xpub);
-
-        // let address = tokio::task::spawn_blocking(move || {
-        //     let wallet = Wallet::new(&descriptor, None, Network::Testnet, SqlxWalletDb::new())
-        //         .expect("Couldn't construct wallet");
-        //     wallet
-        //         .get_address(AddressIndex::New)
-        //         .expect("Couldn't get new address")
-        // })
-        // .await;
-        // println!("{:?}", address);
-        // assert_eq!(1, 1);
+        Ok(res)
     }
 }

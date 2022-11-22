@@ -31,6 +31,7 @@ CREATE TABLE xpubs (
   account_id UUID REFERENCES accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
   fingerprint BYTEA NOT NULL,
+  original VARCHAR NOT NULL,
   xpub BYTEA NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),

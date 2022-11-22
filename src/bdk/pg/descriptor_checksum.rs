@@ -1,33 +1,32 @@
-use bdk::KeychainKind;
-use sqlx::{Postgres, Transaction};
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use super::convert::KeychainKindPg;
+use super::convert::BdkKeychainKind;
 use crate::primitives::*;
 
 pub struct DescriptorChecksums {
     keychain_id: KeychainId,
+    pool: PgPool,
 }
 
 impl DescriptorChecksums {
-    pub fn new(keychain_id: KeychainId) -> Self {
-        Self { keychain_id }
+    pub fn new(keychain_id: KeychainId, pool: PgPool) -> Self {
+        Self { keychain_id, pool }
     }
 
     pub async fn check_or_persist_descriptor_checksum(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
-        keychain: impl Into<KeychainKindPg>,
+        keychain: impl Into<BdkKeychainKind>,
         script_bytes: &[u8],
     ) -> Result<(), bdk::Error> {
         let kind = keychain.into();
         let record = sqlx::query!(
             r#"SELECT script_bytes
-            FROM descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"#,
+            FROM bdk_descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"#,
             Uuid::from(self.keychain_id),
-            kind as KeychainKindPg
+            kind as BdkKeychainKind
         )
-        .fetch_all(&mut *tx)
+        .fetch_all(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
         if let Some(record) = record.get(0) {
@@ -38,13 +37,13 @@ impl DescriptorChecksums {
             };
         } else {
             sqlx::query!(
-                r#"INSERT INTO descriptor_checksums (script_bytes, keychain_kind, keychain_id)
+                r#"INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)
             VALUES ($1, $2, $3)"#,
                 script_bytes,
-                kind as KeychainKindPg,
+                kind as BdkKeychainKind,
                 Uuid::from(self.keychain_id),
             )
-            .execute(&mut *tx)
+            .execute(&self.pool)
             .await
             .map_err(|e| bdk::Error::Generic(e.to_string()))?;
             Ok(())
