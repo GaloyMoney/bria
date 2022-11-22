@@ -3,7 +3,7 @@ mod helpers;
 use bitcoin::Network;
 use uuid::Uuid;
 
-use bria::bdk::*;
+use bria::wallet::*;
 
 #[tokio::test]
 async fn test_get_address() -> anyhow::Result<()> {

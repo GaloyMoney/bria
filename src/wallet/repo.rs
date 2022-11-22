@@ -67,7 +67,7 @@ impl Wallets {
         let keychain: WalletKeyChainConfig =
             serde_json::from_value(first_row.config.expect("Should always have config"))?;
         let mut keychains = vec![keychain];
-        while let Some(row) = iter.next() {
+        for row in iter {
             let keychain: WalletKeyChainConfig =
                 serde_json::from_value(row.config.expect("Should always have config"))?;
             keychains.push(keychain);

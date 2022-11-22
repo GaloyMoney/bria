@@ -1,4 +1,4 @@
-use sqlx::{Executor, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;

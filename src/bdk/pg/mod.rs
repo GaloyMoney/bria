@@ -102,7 +102,7 @@ impl Database for SqlxWalletDb {
         self.rt.block_on(async {
             let checksums = DescriptorChecksums::new(self.keychain_id, self.pool.clone());
             checksums
-                .check_or_persist_descriptor_checksum(keychain, &script_bytes.as_ref())
+                .check_or_persist_descriptor_checksum(keychain, script_bytes.as_ref())
                 .await?;
 
             Ok(())

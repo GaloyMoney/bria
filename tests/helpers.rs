@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use bria::{admin::*, primitives::*};
 use rand::distributions::{Alphanumeric, DistString};
 

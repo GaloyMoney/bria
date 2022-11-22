@@ -1,4 +1,1 @@
-mod pg;
-mod wallet;
-
-pub use wallet::*;
+pub(crate) mod pg;

@@ -30,11 +30,11 @@ impl DescriptorChecksums {
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
         if let Some(record) = record.get(0) {
-            return if script_bytes == &record.script_bytes {
+            if script_bytes == record.script_bytes {
                 Ok(())
             } else {
                 Err(bdk::Error::ChecksumMismatch)
-            };
+            }
         } else {
             sqlx::query!(
                 r#"INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)

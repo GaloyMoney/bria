@@ -67,9 +67,7 @@ impl App {
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
             .name(name.clone())
-            .keychain(SingleSigWalletKeyChainConfig::new(
-                xpubs.into_iter().next().unwrap(),
-            ))
+            .keychain(WpkhKeyChainConfig::new(xpubs.into_iter().next().unwrap()))
             .dust_account_id(dust_account_id)
             .build()
             .expect("Couldn't build NewWallet");
@@ -95,8 +93,8 @@ impl App {
 
     pub async fn gen_address(
         &self,
-        account_id: AccountId,
-        name: String,
+        _account_id: AccountId,
+        _name: String,
     ) -> Result<String, BriaError> {
         // let wallet = self.wallets.find(wallet_id).await?;
         // Ok(wallet)
