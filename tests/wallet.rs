@@ -12,7 +12,7 @@ async fn test_wallet() -> anyhow::Result<()> {
     let pool = sqlx::PgPool::connect(&pg_con).await?;
 
     let account_id = create_test_account(&pool).await?;
-    let xpub: XPub = "tpubDD6sGNgWVAeKaMGF5XkfBhMAuSqjoiqUoSM7Dmf11auxu41PDg1AL4LDwTkuVEMUS2zY51zPESy1xr26cLj7BZHfwZQHd4Xf1Ym5WbvAMru".parse()?;
+    let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let repo = XPubs::new(&pool);
     let id = repo.persist(account_id, name.clone(), xpub).await?;

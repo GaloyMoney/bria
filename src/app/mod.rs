@@ -34,7 +34,7 @@ impl App {
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
-        let xpub = XPub::try_new(xpub, derivation)?;
+        let xpub = XPub::try_from((xpub, derivation))?;
         let id = self.xpubs.persist(account_id, name, xpub).await?;
         Ok(id)
     }

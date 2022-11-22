@@ -11,17 +11,33 @@ pub struct XPub {
 }
 
 impl XPub {
-    pub fn try_new(original: String, derivation: Option<String>) -> Result<Self, BriaError> {
-        let derivation = derivation.map(|d| d.parse().unwrap());
+    pub fn id(&self) -> XPubId {
+        XPubId::from(self.inner.fingerprint())
+    }
+}
+
+impl<O: Into<String>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
+    type Error = BriaError;
+
+    fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
+        let original = original.into();
+        let derivation: Option<DerivationPath> = derivation.map(|d| d.as_ref().parse().unwrap());
         let inner: ExtendedPubKey = original.parse()?;
+        if let Some(ref d) = derivation {
+            if d.len() != inner.depth as usize {
+                return Err(BriaError::XPubDepthMissmatch(inner.depth, d.len()));
+            }
+        } else {
+            if inner.depth > 0 {
+                return Err(BriaError::XPubDepthMissmatch(inner.depth, 0));
+            }
+        }
+
         Ok(Self {
             derivation,
             original,
             inner,
         })
-    }
-    pub fn id(&self) -> XPubId {
-        XPubId::from(self.inner.fingerprint())
     }
 }
 
@@ -30,17 +46,5 @@ impl std::ops::Deref for XPub {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
-    }
-}
-
-impl std::str::FromStr for XPub {
-    type Err = BriaError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            derivation: None,
-            original: s.to_string(),
-            inner: s.parse()?,
-        })
     }
 }
