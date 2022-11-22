@@ -90,4 +90,17 @@ impl ApiClient {
         println!("Wallet created - {}", response.into_inner().id);
         Ok(())
     }
+
+    pub async fn new_address(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::NewAddressRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .new_address(self.inject_auth_token(request)?)
+            .await?;
+        println!("New Address - {}", response.into_inner().address);
+        Ok(())
+    }
 }

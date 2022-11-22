@@ -1,3 +1,4 @@
+use bitcoin::Network;
 use sqlx_ledger::{account::NewAccount as NewLedgerAccount, SqlxLedger};
 use uuid::Uuid;
 
@@ -93,13 +94,20 @@ impl App {
         Ok(wallet_id)
     }
 
-    pub async fn gen_address(
+    pub async fn new_address(
         &self,
-        _account_id: AccountId,
-        _name: String,
+        account_id: AccountId,
+        name: String,
     ) -> Result<String, BriaError> {
-        // let wallet = self.wallets.find(wallet_id).await?;
-        // Ok(wallet)
-        unimplemented!()
+        let wallet = self.wallets.find_by_name(account_id, name).await?;
+        let (keychain_id, cfg) = wallet.current_keychain();
+        let keychain_wallet = KeychainWallet::new(
+            self.pool.clone(),
+            Network::Regtest,
+            keychain_id,
+            cfg.clone(),
+        );
+        let addr = keychain_wallet.new_external_address().await?;
+        Ok(addr.to_string())
     }
 }

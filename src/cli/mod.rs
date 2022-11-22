@@ -75,12 +75,26 @@ enum Command {
             env = "BRIE_API_URL"
         )]
         url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
         #[clap(short, long)]
         xpub: Vec<String>,
         #[clap(short, long)]
         name: String,
+    },
+    NewAddress {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
+        #[clap(short, long)]
+        wallet: String,
     },
 }
 
@@ -150,6 +164,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(url, api_key);
             client.create_wallet(name, xpub).await?;
+        }
+        Command::NewAddress {
+            url,
+            api_key,
+            wallet,
+        } => {
+            let client = api_client(url, api_key);
+            client.new_address(wallet).await?;
         }
     }
     Ok(())

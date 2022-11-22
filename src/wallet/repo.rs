@@ -66,11 +66,11 @@ impl Wallets {
         let first_row = iter.next().expect("There is always 1 row here");
         let keychain: WalletKeyChainConfig =
             serde_json::from_value(first_row.config.expect("Should always have config"))?;
-        let mut keychains = vec![keychain];
+        let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
         for row in iter {
             let keychain: WalletKeyChainConfig =
                 serde_json::from_value(row.config.expect("Should always have config"))?;
-            keychains.push(keychain);
+            keychains.push((KeychainId::from(row.keychain_id), keychain));
         }
         Ok(Wallet {
             id: first_row.id.expect("Id should always be present").into(),

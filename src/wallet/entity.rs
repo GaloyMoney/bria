@@ -8,7 +8,14 @@ pub struct Wallet {
     pub id: WalletId,
     pub ledger_account_id: LedgerAccountId,
     pub dust_ledger_account_id: LedgerAccountId,
-    pub keychains: Vec<WalletKeyChainConfig>,
+    pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
+}
+
+impl Wallet {
+    pub fn current_keychain(&self) -> (KeychainId, &WalletKeyChainConfig) {
+        let (id, cfg) = &self.keychains[0];
+        (*id, cfg)
+    }
 }
 
 #[derive(Builder, Clone)]

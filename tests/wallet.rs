@@ -3,24 +3,26 @@ mod helpers;
 use rand::distributions::{Alphanumeric, DistString};
 
 use bria::{app::*, xpub::*};
-use helpers::*;
 
 #[tokio::test]
 async fn test_wallet() -> anyhow::Result<()> {
-    let pg_host = std::env::var("PG_HOST").unwrap_or("localhost".to_string());
-    let pg_con = format!("postgres://user:password@{pg_host}:5432/pg");
-    let pool = sqlx::PgPool::connect(&pg_con).await?;
+    let pool = helpers::init_pool().await?;
+    let account_id = helpers::create_test_account(&pool).await?;
 
-    let account_id = create_test_account(&pool).await?;
     let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let repo = XPubs::new(&pool);
+
     let id = repo.persist(account_id, name.clone(), xpub).await?;
 
     let app = App::new(pool);
     app.create_wallet(account_id, name.clone(), vec![id.to_string()])
         .await?;
-    // app.gen_address(account_id, name).await?;
+
+    let addr = app.new_address(account_id, name.clone()).await?;
+    assert_eq!(addr, "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0");
+    let addr = app.new_address(account_id, name).await?;
+    assert_eq!(addr, "bcrt1q6q79yce8vutqzpnwkxr5x8p5kxw5rc0hqqzwym");
 
     Ok(())
 }

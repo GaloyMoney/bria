@@ -59,6 +59,21 @@ impl BriaService for Bria {
             .await?;
         Ok(Response::new(WalletCreateResponse { id: id.to_string() }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn new_address(
+        &self,
+        request: Request<NewAddressRequest>,
+    ) -> Result<Response<NewAddressResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let address = self
+            .app
+            .new_address(account_id, request.wallet_name)
+            .await?;
+        Ok(Response::new(NewAddressResponse { address }))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
