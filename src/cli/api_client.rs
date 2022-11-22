@@ -57,8 +57,17 @@ impl ApiClient {
         Ok(request)
     }
 
-    pub async fn import_xpub(&self, name: String, xpub: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::XPubImportRequest { name, xpub });
+    pub async fn import_xpub(
+        &self,
+        name: String,
+        xpub: String,
+        derivation: Option<String>,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::XPubImportRequest {
+            name,
+            xpub,
+            derivation: derivation.unwrap_or_else(String::default),
+        });
         let response = self
             .connect()
             .await?

@@ -54,12 +54,17 @@ enum Command {
             env = "BRIE_API_URL"
         )]
         url: Option<Url>,
-        #[clap(short, long)]
-        xpub: String,
-        #[clap(short, long)]
-        name: String,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
+        /// The name to be associated with the key
+        #[clap(short, long)]
+        name: String,
+        /// The base58 encoded extended public key
+        #[clap(short, long)]
+        xpub: String,
+        /// The derivation from the parent key (eg. m/84'/0'/0')
+        #[clap(short, long)]
+        derivation: Option<String>,
     },
     CreateWallet {
         #[clap(
@@ -132,9 +137,10 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             xpub,
             name,
+            derivation,
         } => {
             let client = api_client(url, api_key);
-            client.import_xpub(name, xpub).await?;
+            client.import_xpub(name, xpub, derivation).await?;
         }
         Command::CreateWallet {
             url,
