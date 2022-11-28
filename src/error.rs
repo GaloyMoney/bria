@@ -1,3 +1,4 @@
+use crate::job::JobExecutionError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,3 +22,5 @@ pub enum BriaError {
     #[error("BriaError - JoinError: {0}")]
     JoinError(#[from] tokio::task::JoinError),
 }
+
+impl JobExecutionError for BriaError {}

@@ -1,4 +1,8 @@
+use opentelemetry::{propagation::TextMapPropagator, sdk::propagation::TraceContextPropagator};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, time::Duration};
+use tracing::{instrument, Span};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,4 +42,24 @@ pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
         .try_init()?;
 
     Ok(())
+}
+
+pub fn extract_tracing_data() -> HashMap<String, String> {
+    let mut tracing_data = HashMap::new();
+    let propagator = TraceContextPropagator::new();
+    let context = Span::current().context();
+    propagator.inject_context(&context, &mut tracing_data);
+    tracing_data
+}
+
+pub fn inject_tracing_data(span: &Span, tracing_data: &HashMap<String, String>) {
+    let propagator = TraceContextPropagator::new();
+    let context = propagator.extract(tracing_data);
+    span.set_parent(context);
+}
+
+pub fn insert_error_fields(level: tracing::Level, error: impl std::fmt::Display) {
+    Span::current().record("error", &tracing::field::display("true"));
+    Span::current().record("error.level", &tracing::field::display(level));
+    Span::current().record("error.message", &tracing::field::display(error));
 }
