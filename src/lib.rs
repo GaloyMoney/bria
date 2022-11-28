@@ -8,6 +8,7 @@ pub mod app;
 pub mod bdk;
 pub mod cli;
 mod error;
+mod job;
 mod macros;
 pub mod primitives;
 mod tracing;

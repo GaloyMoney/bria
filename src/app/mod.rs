@@ -1,10 +1,12 @@
 use bitcoin::Network;
 use sqlx_ledger::{account::NewAccount as NewLedgerAccount, SqlxLedger};
+use sqlxmq::OwnedHandle;
 use uuid::Uuid;
 
-use crate::{account::keys::*, error::*, primitives::*, wallet::*, xpub::*};
+use crate::{account::keys::*, error::*, job, primitives::*, wallet::*, xpub::*};
 
 pub struct App {
+    _runner: OwnedHandle,
     keys: AccountApiKeys,
     xpubs: XPubs,
     wallets: Wallets,
@@ -13,14 +15,16 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(pool: sqlx::PgPool) -> Self {
-        Self {
+    pub async fn run(pool: sqlx::PgPool) -> Result<Self, BriaError> {
+        let runner = job::start_job_runner(&pool).await?;
+        Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
             wallets: Wallets::new(&pool),
             ledger: SqlxLedger::new(&pool),
             pool,
-        }
+            _runner: runner,
+        })
     }
 
     pub async fn authenticate(&self, key: &str) -> Result<AccountId, BriaError> {
