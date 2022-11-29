@@ -36,7 +36,7 @@ services:
     volumes:
       - ${PWD}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
   lnd:
-    image: lightninglabs/lnd:v0.15.3-beta
+    image: lightninglabs/lnd:v0.15.4-beta
     volumes:
       - ${PWD}/dev/lnd/lnd.conf:/root/.lnd/lnd.conf
       - ${PWD}/dev/lnd/tls.key:/root/.lnd/tls.key
@@ -54,7 +54,7 @@ services:
         cp /root/.lnd/admin.macaroon /root/.lnd/data/chain/bitcoin/regtest/admin.macaroon
         /bin/lnd
   fulcrum:
-    image: openoms/fulcrum:373f7e5
+    image: cculianu/fulcrum:latest
     depends_on: [bitcoind]
     volumes:
       - ${PWD}/dev/fulcrum/fulcrum.conf:/fulcrum.conf
