@@ -14,8 +14,12 @@ const SYNC_ALL_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 #[derive(Debug, Clone)]
 struct SyncAllDelay(std::time::Duration);
 
-pub async fn start_job_runner(pool: &sqlx::PgPool) -> Result<OwnedHandle, BriaError> {
-    let registry = JobRegistry::new(&[sync_all_wallets]);
+pub async fn start_job_runner(
+    pool: &sqlx::PgPool,
+    sync_all_delay: std::time::Duration,
+) -> Result<OwnedHandle, BriaError> {
+    let mut registry = JobRegistry::new(&[sync_all_wallets]);
+    registry.set_context(SyncAllDelay(sync_all_delay));
 
     Ok(registry.runner(pool).run().await?)
 }

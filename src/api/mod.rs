@@ -1,12 +1,17 @@
 mod config;
 mod server;
 
-use super::{app::App, error::*};
+use super::{app::*, error::*};
 pub use config::*;
 pub use server::*;
 
-pub async fn run(pool: sqlx::PgPool, config: ApiConfig) -> Result<(), BriaError> {
-    let app = App::run(pool).await?;
+pub async fn run(
+    pool: sqlx::PgPool,
+    config: ApiConfig,
+    blockchain_cfg: BlockchainConfig,
+    wallets_cfg: WalletsConfig,
+) -> Result<(), BriaError> {
+    let app = App::run(pool, blockchain_cfg, wallets_cfg).await?;
     server::start(config, app).await?;
     Ok(())
 }

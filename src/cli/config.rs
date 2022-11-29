@@ -2,14 +2,16 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::admin::AdminApiConfig;
-use crate::api::ApiConfig;
-use crate::tracing::TracingConfig;
+use crate::{admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub db_con: String,
+    #[serde(default)]
+    pub blockchain: BlockchainConfig,
+    #[serde(default)]
+    pub wallets: WalletsConfig,
     #[serde(default)]
     pub tracing: TracingConfig,
     #[serde(default)]

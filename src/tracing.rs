@@ -1,7 +1,7 @@
 use opentelemetry::{propagation::TextMapPropagator, sdk::propagation::TraceContextPropagator};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, time::Duration};
-use tracing::{instrument, Span};
+use std::collections::HashMap;
+use tracing::Span;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 

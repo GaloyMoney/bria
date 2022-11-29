@@ -190,6 +190,8 @@ async fn run_cmd(
         db_con,
         admin,
         api,
+        blockchain,
+        wallets,
     }: Config,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
@@ -211,7 +213,11 @@ async fn run_cmd(
     }));
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
-        let _ = api_send.try_send(super::api::run(pool, api).await.context("Api server error"));
+        let _ = api_send.try_send(
+            super::api::run(pool, api, blockchain, wallets)
+                .await
+                .context("Api server error"),
+        );
     }));
     let reason = receive.recv().await.expect("Didn't receive msg");
     for handle in handles {

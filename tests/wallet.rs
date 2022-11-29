@@ -15,7 +15,7 @@ async fn test_wallet() -> anyhow::Result<()> {
 
     let id = repo.persist(account_id, name.clone(), xpub).await?;
 
-    let app = App::run(pool).await?;
+    let app = App::run(pool, BlockchainConfig::default(), WalletsConfig::default()).await?;
     app.create_wallet(account_id, name.clone(), vec![id.to_string()])
         .await?;
 

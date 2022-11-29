@@ -1,7 +1,10 @@
-use bitcoin::Network;
+mod config;
+
 use sqlx_ledger::{account::NewAccount as NewLedgerAccount, SqlxLedger};
 use sqlxmq::OwnedHandle;
 use uuid::Uuid;
+
+pub use config::*;
 
 use crate::{account::keys::*, error::*, job, primitives::*, wallet::*, xpub::*};
 
@@ -12,11 +15,16 @@ pub struct App {
     wallets: Wallets,
     ledger: SqlxLedger,
     pool: sqlx::PgPool,
+    blockchain_cfg: BlockchainConfig,
 }
 
 impl App {
-    pub async fn run(pool: sqlx::PgPool) -> Result<Self, BriaError> {
-        let runner = job::start_job_runner(&pool).await?;
+    pub async fn run(
+        pool: sqlx::PgPool,
+        blockchain_cfg: BlockchainConfig,
+        wallets_cfg: WalletsConfig,
+    ) -> Result<Self, BriaError> {
+        let runner = job::start_job_runner(&pool, wallets_cfg.sync_all_delay).await?;
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
@@ -24,6 +32,7 @@ impl App {
             ledger: SqlxLedger::new(&pool),
             pool,
             _runner: runner,
+            blockchain_cfg,
         })
     }
 
@@ -107,7 +116,7 @@ impl App {
         let (keychain_id, cfg) = wallet.current_keychain();
         let keychain_wallet = KeychainWallet::new(
             self.pool.clone(),
-            Network::Regtest,
+            self.blockchain_cfg.network,
             keychain_id,
             cfg.clone(),
         );

@@ -1,5 +1,11 @@
+# blockchain:
+#   network: regtest
+# wallets:
+#   sync_all_delay: 10s
 # admin:
 #   listen_port: 2743
+# api:
+#   listen_port: 2742
 # tracing:
 #   host: "localhost"
 #   port: 6831
