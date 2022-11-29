@@ -59,6 +59,10 @@ pub(crate) async fn start(
     app: AdminApp,
 ) -> Result<(), AdminApiError> {
     let price_service = Admin { app };
+    println!(
+        "Starting admin server on port {}",
+        server_config.listen_port
+    );
     Server::builder()
         .add_service(proto::admin_service_server::AdminServiceServer::new(
             price_service,

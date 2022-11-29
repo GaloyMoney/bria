@@ -4,6 +4,7 @@ use uuid::Uuid;
 use super::{entity::*, keychain::*};
 use crate::{error::*, primitives::*};
 
+#[derive(Debug, Clone)]
 pub struct Wallets {
     pool: Pool<Postgres>,
 }
@@ -73,10 +74,17 @@ impl Wallets {
             keychains.push((KeychainId::from(row.keychain_id), keychain));
         }
         Ok(Wallet {
-            id: first_row.id.expect("Id should always be present").into(),
+            id: first_row.id.into(),
             ledger_account_id: first_row.ledger_account_id.into(),
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
         })
+    }
+
+    pub async fn all_keychain_ids(&self) -> Result<Vec<KeychainId>, BriaError> {
+        let rows = sqlx::query!(r#"SELECT id FROM keychains"#,)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(rows.into_iter().map(|row| row.id.into()).collect())
     }
 }

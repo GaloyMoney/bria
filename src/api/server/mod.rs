@@ -78,6 +78,7 @@ impl BriaService for Bria {
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
     let bria = Bria { app };
+    println!("Starting main server on port {}", server_config.listen_port);
     Server::builder()
         .add_service(proto::bria_service_server::BriaServiceServer::new(bria))
         .serve(([0, 0, 0, 0], server_config.listen_port).into())

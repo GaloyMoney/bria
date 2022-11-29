@@ -200,8 +200,6 @@ async fn run_cmd(
     let mut handles = Vec::new();
     let pool = sqlx::PgPool::connect(&db_con).await?;
 
-    println!("Starting admin server on port {}", admin.listen_port);
-
     let admin_send = send.clone();
     let admin_pool = pool.clone();
     handles.push(tokio::spawn(async move {

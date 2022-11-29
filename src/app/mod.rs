@@ -24,11 +24,14 @@ impl App {
         blockchain_cfg: BlockchainConfig,
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
-        let runner = job::start_job_runner(&pool, wallets_cfg.sync_all_delay).await?;
+        let wallets = Wallets::new(&pool);
+        let runner =
+            job::start_job_runner(&pool, wallets.clone(), wallets_cfg.sync_all_delay).await?;
+        Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_delay).await?;
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
-            wallets: Wallets::new(&pool),
+            wallets,
             ledger: SqlxLedger::new(&pool),
             pool,
             _runner: runner,
@@ -122,5 +125,18 @@ impl App {
         );
         let addr = keychain_wallet.new_external_address().await?;
         Ok(addr.to_string())
+    }
+
+    async fn spawn_sync_all_wallets(
+        pool: sqlx::PgPool,
+        delay: std::time::Duration,
+    ) -> Result<(), BriaError> {
+        let _ = tokio::spawn(async move {
+            loop {
+                let _ = job::spawn_sync_all_wallets(&pool, std::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Ok(())
     }
 }
