@@ -53,3 +53,15 @@ services:
         cp /root/.lnd/macaroons.db /root/.lnd/data/chain/bitcoin/regtest/macaroons.db
         cp /root/.lnd/admin.macaroon /root/.lnd/data/chain/bitcoin/regtest/admin.macaroon
         /bin/lnd
+  fulcrum:
+    image: openoms/fulcrum:373f7e5
+    depends_on: [bitcoind]
+    volumes:
+      - ${PWD}/dev/fulcrum/fulcrum.conf:/fulcrum.conf
+      - ${PWD}/dev/fulcrum/tls.key:/tls.key
+      - ${PWD}/dev/fulcrum/tls.cert:/tls.cert
+    environment:
+      - DATA_DIR=/db
+      - SSL_CERTFILE=/tls.cert
+      - SSL_KEYFILE=/tls.key
+    command: [ "Fulcrum", "/fulcrum.conf" ]
