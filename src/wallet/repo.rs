@@ -65,12 +65,10 @@ impl Wallets {
         }
         let mut iter = rows.into_iter();
         let first_row = iter.next().expect("There is always 1 row here");
-        let keychain: WalletKeyChainConfig =
-            serde_json::from_value(first_row.config.expect("Should always have config"))?;
+        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.config)?;
         let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
         for row in iter {
-            let keychain: WalletKeyChainConfig =
-                serde_json::from_value(row.config.expect("Should always have config"))?;
+            let keychain: WalletKeyChainConfig = serde_json::from_value(row.config)?;
             keychains.push((KeychainId::from(row.keychain_id), keychain));
         }
         Ok(Wallet {
@@ -81,10 +79,39 @@ impl Wallets {
         })
     }
 
-    pub async fn all_keychain_ids(&self) -> Result<Vec<KeychainId>, BriaError> {
-        let rows = sqlx::query!(r#"SELECT id FROM keychains"#,)
+    pub async fn all_ids(&self) -> Result<impl Iterator<Item = WalletId>, BriaError> {
+        let rows = sqlx::query!(r#"SELECT distinct(id) FROM wallets"#,)
             .fetch_all(&self.pool)
             .await?;
-        Ok(rows.into_iter().map(|row| row.id.into()).collect())
+        Ok(rows.into_iter().map(|row| WalletId::from(row.id)))
+    }
+
+    pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
+        let rows = sqlx::query!(
+            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config
+                 FROM wallets w
+                 JOIN keychains k ON w.keychain_id = k.id
+                 WHERE w.id = $1 ORDER BY w.version DESC"#,
+            Uuid::from(id)
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        if rows.is_empty() {
+            return Err(BriaError::WalletNotFound);
+        }
+        let mut iter = rows.into_iter();
+        let first_row = iter.next().expect("There is always 1 row here");
+        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.config)?;
+        let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
+        for row in iter {
+            let keychain: WalletKeyChainConfig = serde_json::from_value(row.config)?;
+            keychains.push((KeychainId::from(row.keychain_id), keychain));
+        }
+        Ok(Wallet {
+            id: first_row.id.into(),
+            ledger_account_id: first_row.ledger_account_id.into(),
+            dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
+            keychains,
+        })
     }
 }

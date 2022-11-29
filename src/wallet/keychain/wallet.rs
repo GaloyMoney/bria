@@ -1,4 +1,8 @@
-use bdk::{wallet::AddressIndex, Wallet};
+use bdk::{
+    blockchain::{GetHeight, WalletSync},
+    wallet::AddressIndex,
+    Wallet,
+};
 use bitcoin::Network;
 use sqlx::PgPool;
 
@@ -53,6 +57,14 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         Ok(addr)
     }
 
+    pub async fn sync<B: WalletSync + GetHeight + Send + Sync + 'static>(
+        &self,
+        blockchain: B,
+    ) -> Result<(), BriaError> {
+        self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
+            .await?;
+        Ok(())
+    }
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>
     where
         F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> R,

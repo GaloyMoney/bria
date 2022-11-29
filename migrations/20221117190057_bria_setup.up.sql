@@ -44,7 +44,7 @@ CREATE TABLE xpubs (
 CREATE TABLE keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES accounts(id) NOT NULL,
-  config JSONB,
+  config JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

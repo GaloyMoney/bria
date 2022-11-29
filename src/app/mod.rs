@@ -25,8 +25,13 @@ impl App {
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
-        let runner =
-            job::start_job_runner(&pool, wallets.clone(), wallets_cfg.sync_all_delay).await?;
+        let runner = job::start_job_runner(
+            &pool,
+            wallets.clone(),
+            wallets_cfg.sync_all_delay,
+            blockchain_cfg.network,
+        )
+        .await?;
         Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_delay).await?;
         Ok(Self {
             keys: AccountApiKeys::new(&pool),

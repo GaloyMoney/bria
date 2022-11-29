@@ -276,6 +276,7 @@ dependencies = [
  "chrono",
  "clap",
  "derive_builder",
+ "electrum-client",
  "futures",
  "lazy_static",
  "opentelemetry",

@@ -7,3 +7,7 @@ services:
     ports:
       - "6831:6831/udp" # Jaeger receiver
       - "6832:6832/udp" # Jaeger receiver
+  fulcrum:
+    ports:
+      - "50001:50001"
+      - "50002:50002"

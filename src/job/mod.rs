@@ -1,5 +1,5 @@
 mod executor;
-mod sync_keychain;
+mod sync_wallet;
 
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
 use tracing::instrument;
@@ -18,10 +18,12 @@ pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
     sync_all_delay: std::time::Duration,
+    network: bitcoin::Network,
 ) -> Result<OwnedHandle, BriaError> {
-    let mut registry = JobRegistry::new(&[sync_all_wallets, sync_keychain]);
+    let mut registry = JobRegistry::new(&[sync_all_wallets, sync_wallet]);
     registry.set_context(SyncAllDelay(sync_all_delay));
     registry.set_context(wallets);
+    registry.set_context(network);
 
     Ok(registry.runner(pool).run().await?)
 }
@@ -37,8 +39,8 @@ async fn sync_all_wallets(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            for id in wallets.all_keychain_ids().await? {
-                let _ = spawn_sync_keychain(&pool, id).await;
+            for id in wallets.all_ids().await? {
+                let _ = spawn_sync_wallet(&pool, id).await;
             }
             Ok::<(), BriaError>(())
         })
@@ -47,13 +49,18 @@ async fn sync_all_wallets(
     Ok(())
 }
 
-#[job(name = "sync_keychain", channel_name = "wallet", retries = 20)]
-async fn sync_keychain(mut current_job: CurrentJob, wallets: Wallets) -> Result<(), BriaError> {
-    let keychain_id = KeychainId::from(current_job.id());
+#[job(name = "sync_wallet", channel_name = "wallet", retries = 20)]
+async fn sync_wallet(
+    mut current_job: CurrentJob,
+    wallets: Wallets,
+    network: bitcoin::Network,
+) -> Result<(), BriaError> {
+    let wallet_id = WalletId::from(current_job.id());
+    let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
-        .execute(|_| async move { sync_keychain::execute(wallets, keychain_id).await })
+        .execute(|_| async move { sync_wallet::execute(pool, wallets, network, wallet_id).await })
         .await?;
     Ok(())
 }
@@ -78,8 +85,8 @@ pub async fn spawn_sync_all_wallets(
 }
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
-pub async fn spawn_sync_keychain(pool: &sqlx::PgPool, id: KeychainId) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(id), "sync_keychain")
+pub async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), BriaError> {
+    match JobBuilder::new_with_id(Uuid::from(id), "sync_wallet")
         .spawn(pool)
         .await
     {
