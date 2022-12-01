@@ -16,7 +16,9 @@ impl Utxos {
 
     pub async fn persist(&self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
         sqlx::query!(
-            r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json) VALUES ($1, $2, $3, $4)"#,
+            r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json)
+            VALUES ($1, $2, $3, $4) ON CONFLICT (keychain_id, tx_id, vout)
+            DO UPDATE set utxo_json = EXCLUDED.utxo_json"#,
             Uuid::from(self.keychain_id),
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,

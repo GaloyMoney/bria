@@ -54,7 +54,7 @@ impl Indexes {
     ) -> Result<(), bdk::Error> {
         sqlx::query!(
             r#"INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)
-                VALUES ($1, $2, $3)"#,
+                VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"#,
             Uuid::from(self.keychain_id),
             keychain.into() as BdkKeychainKind,
             idx as i32

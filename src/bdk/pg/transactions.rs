@@ -17,7 +17,9 @@ impl Transactions {
     pub async fn persist(&self, tx: &TransactionDetails) -> Result<(), bdk::Error> {
         sqlx::query!(
             r#"
-        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json) VALUES ($1, $2, $3)"#,
+        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json)
+        VALUES ($1, $2, $3) ON CONFLICT (keychain_id, tx_id)
+        DO UPDATE SET details_json = EXCLUDED.details_json"#,
             Uuid::from(self.keychain_id),
             tx.txid.to_string(),
             serde_json::to_value(&tx)?,

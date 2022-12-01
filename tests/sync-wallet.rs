@@ -22,12 +22,18 @@ async fn sync_wallet() -> anyhow::Result<()> {
 
     let bitcoind = helpers::bitcoind_client()?;
     helpers::fund_addr(&bitcoind, &addr, 1)?;
-    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
 
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
-    let blockchain = ElectrumBlockchain::from(Client::new(&electrum_url)?);
-    wallet.sync(blockchain).await?;
+    for _ in 0..5 {
+        let blockchain = ElectrumBlockchain::from(Client::new(&electrum_url)?);
+        wallet.sync(blockchain).await?;
+        let balance = wallet.balance().await?;
+        if balance.untrusted_pending == 100_000_00 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
     assert_eq!(wallet.balance().await?.untrusted_pending, 100_000_000);
     Ok(())
 }

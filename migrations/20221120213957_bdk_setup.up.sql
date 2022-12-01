@@ -36,7 +36,8 @@ CREATE TABLE bdk_utxos (
   vout INTEGER NOT NULL,
   utxo_json JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(keychain_id, tx_id, vout)
 );
 
 CREATE TABLE bdk_transactions (
