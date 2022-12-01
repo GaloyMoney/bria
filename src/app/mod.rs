@@ -29,7 +29,7 @@ impl App {
             &pool,
             wallets.clone(),
             wallets_cfg.sync_all_delay,
-            blockchain_cfg.network,
+            blockchain_cfg.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_delay).await?;

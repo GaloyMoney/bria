@@ -1,19 +1,28 @@
 use bdk::blockchain::ElectrumBlockchain;
-use bitcoin::Network;
 use electrum_client::Client;
 
-use crate::{error::*, primitives::*, wallet::*};
+use crate::{app::BlockchainConfig, bdk::pg::Utxos, error::*, primitives::*, wallet::*};
 
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
-    network: Network,
     id: WalletId,
+    blockchain_cfg: BlockchainConfig,
 ) -> Result<(), BriaError> {
-    let keychain = wallets.find_by_id(id).await?;
-    // let keychain_wallet = KeychainWallet::new(pool, network, id, keychain);
-    // let electrum_url = "127.0.0.1:50001";
-    // let blockchain = ElectrumBlockchain::from(Client::new(electrum_url).unwrap());
-    // keychain_wallet.sync(blockchain).await?;
+    let wallet = wallets.find_by_id(id).await?;
+    // let ledger = sqlx_ledger::SqlxLedger::new(&pool);
+    // let new_utxo_tx_id = ledger.tx_templates().create()
+    for (keychain_id, cfg) in wallet.keychains {
+        let keychain_wallet =
+            KeychainWallet::new(pool.clone(), blockchain_cfg.network, keychain_id, cfg);
+        let blockchain =
+            ElectrumBlockchain::from(Client::new(&blockchain_cfg.electrum_url).unwrap());
+        let _ = keychain_wallet.sync(blockchain).await;
+        let utxos = Utxos::new(keychain_id, pool.clone());
+        let mut tx = pool.begin().await?;
+        if let Ok(new_pending_tx) = utxos.list_without_pending_tx(&mut tx).await {
+            //
+        }
+    }
     Ok(())
 }

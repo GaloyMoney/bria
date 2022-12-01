@@ -9,6 +9,7 @@ pub mod bdk;
 pub mod cli;
 mod error;
 mod job;
+pub mod ledger;
 mod macros;
 pub mod primitives;
 mod tracing;

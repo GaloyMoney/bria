@@ -6,18 +6,25 @@ use std::time::Duration;
 pub struct BlockchainConfig {
     #[serde(default = "default_network")]
     pub network: Network,
+    #[serde(default = "default_electrum_url")]
+    pub electrum_url: String,
 }
 
 impl Default for BlockchainConfig {
     fn default() -> Self {
         Self {
-            network: Network::Regtest,
+            network: default_network(),
+            electrum_url: default_electrum_url(),
         }
     }
 }
 
 fn default_network() -> Network {
     Network::Regtest
+}
+
+fn default_electrum_url() -> String {
+    "127.0.0.1:50001".to_string()
 }
 
 #[serde_with::serde_as]

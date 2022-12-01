@@ -1,5 +1,5 @@
 use derive_builder::Builder;
-use sqlx_ledger::AccountId as LedgerAccountId;
+use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use super::keychain::*;
 use crate::primitives::*;
@@ -8,6 +8,7 @@ pub struct Wallet {
     pub id: WalletId,
     pub ledger_account_id: LedgerAccountId,
     pub dust_ledger_account_id: LedgerAccountId,
+    pub journal_id: JournalId,
     pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
 }
 

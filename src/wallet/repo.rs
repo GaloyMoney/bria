@@ -51,9 +51,9 @@ impl Wallets {
         name: String,
     ) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config
+            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config
                  FROM wallets w
-                 JOIN keychains k ON w.keychain_id = k.id
+                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
                  WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
             Uuid::from(account_id),
             name
@@ -73,6 +73,7 @@ impl Wallets {
         }
         Ok(Wallet {
             id: first_row.id.into(),
+            journal_id: first_row.journal_id.into(),
             ledger_account_id: first_row.ledger_account_id.into(),
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
@@ -88,9 +89,9 @@ impl Wallets {
 
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config
+            r#"SElECT k.id, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config
                  FROM wallets w
-                 JOIN keychains k ON w.keychain_id = k.id
+                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
                  WHERE w.id = $1 ORDER BY w.version DESC"#,
             Uuid::from(id)
         )
@@ -109,6 +110,7 @@ impl Wallets {
         }
         Ok(Wallet {
             id: first_row.id.into(),
+            journal_id: first_row.journal_id.into(),
             ledger_account_id: first_row.ledger_account_id.into(),
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
