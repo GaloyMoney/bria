@@ -1,19 +1,17 @@
 mod config;
 
-use sqlx_ledger::{account::NewAccount as NewLedgerAccount, SqlxLedger};
 use sqlxmq::OwnedHandle;
-use uuid::Uuid;
 
 pub use config::*;
 
-use crate::{account::keys::*, error::*, job, primitives::*, wallet::*, xpub::*};
+use crate::{account::keys::*, error::*, job, ledger::Ledger, primitives::*, wallet::*, xpub::*};
 
 pub struct App {
     _runner: OwnedHandle,
     keys: AccountApiKeys,
     xpubs: XPubs,
     wallets: Wallets,
-    ledger: SqlxLedger,
+    ledger: Ledger,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
 }
@@ -37,7 +35,7 @@ impl App {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
             wallets,
-            ledger: SqlxLedger::new(&pool),
+            ledger: Ledger::init(&pool).await?,
             pool,
             _runner: runner,
             blockchain_cfg,
@@ -76,17 +74,11 @@ impl App {
             unimplemented!()
         }
 
-        let wallet_id = Uuid::new_v4();
+        let wallet_id = WalletId::new();
         let mut tx = self.pool.begin().await?;
-        let dust_account = NewLedgerAccount::builder()
-            .name(format!("{}-dust", wallet_id))
-            .code(format!("WALLET_{}_DUST", wallet_id))
-            .build()
-            .expect("Couldn't build NewLedgerAccount");
         let dust_account_id = self
             .ledger
-            .accounts()
-            .create_in_tx(&mut tx, dust_account)
+            .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
@@ -98,16 +90,6 @@ impl App {
         let wallet_id = self
             .wallets
             .create_in_tx(&mut tx, account_id, new_wallet)
-            .await?;
-        let new_account = NewLedgerAccount::builder()
-            .id(Uuid::from(wallet_id))
-            .name(wallet_id.to_string())
-            .code(format!("WALLET_{}", wallet_id))
-            .build()
-            .expect("Couldn't build NewLedgerAccount");
-        self.ledger
-            .accounts()
-            .create_in_tx(&mut tx, new_account)
             .await?;
 
         tx.commit().await?;
