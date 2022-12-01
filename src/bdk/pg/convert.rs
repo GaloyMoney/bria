@@ -13,3 +13,12 @@ impl From<bdk::KeychainKind> for BdkKeychainKind {
         }
     }
 }
+
+impl From<BdkKeychainKind> for bdk::KeychainKind {
+    fn from(kind: BdkKeychainKind) -> Self {
+        match kind {
+            BdkKeychainKind::External => Self::External,
+            BdkKeychainKind::Internal => Self::Internal,
+        }
+    }
+}

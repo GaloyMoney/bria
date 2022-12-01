@@ -46,4 +46,39 @@ impl Indexes {
             .map_err(|e| bdk::Error::Generic(e.to_string()))?;
         Ok(new_idx as u32)
     }
+
+    pub async fn persist_last_index(
+        &self,
+        keychain: impl Into<BdkKeychainKind>,
+        idx: u32,
+    ) -> Result<(), bdk::Error> {
+        sqlx::query!(
+            r#"INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)
+                VALUES ($1, $2, $3)"#,
+            Uuid::from(self.keychain_id),
+            keychain.into() as BdkKeychainKind,
+            idx as i32
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        Ok(())
+    }
+
+    pub async fn get_latest(
+        &self,
+        keychain: impl Into<BdkKeychainKind>,
+    ) -> Result<Option<u32>, bdk::Error> {
+        let kind = keychain.into();
+        let rows = sqlx::query!(
+            r#"SELECT index FROM bdk_indexes
+          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"#,
+            Uuid::from(self.keychain_id),
+            kind as BdkKeychainKind
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        Ok(rows.get(0).map(|row| row.index as u32))
+    }
 }

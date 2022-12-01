@@ -62,9 +62,15 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         blockchain: B,
     ) -> Result<(), BriaError> {
         self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
-            .await?;
+            .await??;
         Ok(())
     }
+
+    pub async fn balance(&self) -> Result<bdk::Balance, BriaError> {
+        let balance = self.with_wallet(|wallet| wallet.get_balance()).await??;
+        Ok(balance)
+    }
+
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>
     where
         F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> R,

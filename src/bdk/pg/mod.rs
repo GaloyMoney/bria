@@ -2,6 +2,9 @@ mod convert;
 mod descriptor_checksum;
 mod index;
 mod script_pubkeys;
+mod sync_times;
+mod transactions;
+mod utxos;
 
 use bdk::{
     database::{BatchDatabase, BatchOperations, Database, SyncTime},
@@ -15,6 +18,9 @@ use crate::primitives::*;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
+use sync_times::SyncTimes;
+use transactions::Transactions;
+use utxos::Utxos;
 
 pub struct SqlxWalletDb {
     rt: Handle,
@@ -45,20 +51,34 @@ impl BatchOperations for SqlxWalletDb {
             Ok(())
         })
     }
-    fn set_utxo(&mut self, _: &LocalUtxo) -> Result<(), bdk::Error> {
-        unimplemented!()
+
+    fn set_utxo(&mut self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
+        self.rt.block_on(async {
+            let utxos = Utxos::new(self.keychain_id, self.pool.clone());
+            utxos.persist(utxo).await
+        })
     }
+
     fn set_raw_tx(&mut self, _: &Transaction) -> Result<(), bdk::Error> {
         unimplemented!()
     }
-    fn set_tx(&mut self, _: &TransactionDetails) -> Result<(), bdk::Error> {
-        unimplemented!()
+    fn set_tx(&mut self, tx: &TransactionDetails) -> Result<(), bdk::Error> {
+        self.rt.block_on(async {
+            let txs = Transactions::new(self.keychain_id, self.pool.clone());
+            txs.persist(tx).await
+        })
     }
-    fn set_last_index(&mut self, _: KeychainKind, _: u32) -> Result<(), bdk::Error> {
-        unimplemented!()
+    fn set_last_index(&mut self, kind: KeychainKind, idx: u32) -> Result<(), bdk::Error> {
+        self.rt.block_on(async {
+            let indexes = Indexes::new(self.keychain_id, self.pool.clone());
+            indexes.persist_last_index(kind, idx).await
+        })
     }
-    fn set_sync_time(&mut self, _: SyncTime) -> Result<(), bdk::Error> {
-        unimplemented!()
+    fn set_sync_time(&mut self, time: SyncTime) -> Result<(), bdk::Error> {
+        self.rt.block_on(async {
+            let sync_times = SyncTimes::new(self.keychain_id, self.pool.clone());
+            sync_times.persist(time).await
+        })
     }
     fn del_script_pubkey_from_path(
         &mut self,
@@ -108,18 +128,33 @@ impl Database for SqlxWalletDb {
             Ok(())
         })
     }
-    fn iter_script_pubkeys(&self, _: Option<KeychainKind>) -> Result<Vec<Script>, bdk::Error> {
-        unimplemented!()
+    fn iter_script_pubkeys(
+        &self,
+        keychain: Option<KeychainKind>,
+    ) -> Result<Vec<Script>, bdk::Error> {
+        self.rt.block_on(async {
+            let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
+            let scripts = script_pubkeys.list_scripts(keychain).await?;
+            Ok(scripts)
+        })
     }
     fn iter_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
-        unimplemented!()
+        self.rt.block_on(async {
+            let utxos = Utxos::new(self.keychain_id, self.pool.clone());
+            utxos.list().await
+        })
     }
     fn iter_raw_txs(&self) -> Result<Vec<Transaction>, bdk::Error> {
         unimplemented!()
     }
+
     fn iter_txs(&self, _: bool) -> Result<Vec<TransactionDetails>, bdk::Error> {
-        unimplemented!()
+        self.rt.block_on(async {
+            let txs = Transactions::new(self.keychain_id, self.pool.clone());
+            txs.list().await
+        })
     }
+
     fn get_script_pubkey_from_path(
         &self,
         keychain: KeychainKind,
@@ -127,29 +162,51 @@ impl Database for SqlxWalletDb {
     ) -> Result<Option<Script>, bdk::Error> {
         self.rt.block_on(async {
             let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
-            script_pubkeys.find(keychain, path).await
+            script_pubkeys.find_script(keychain, path).await
         })
     }
     fn get_path_from_script_pubkey(
         &self,
-        _: &Script,
+        script: &Script,
     ) -> Result<Option<(KeychainKind, u32)>, bdk::Error> {
-        unimplemented!()
+        self.rt.block_on(async {
+            let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
+            Ok(script_pubkeys
+                .find_path(script)
+                .await?
+                .map(|(kind, path)| (kind.into(), path)))
+        })
     }
     fn get_utxo(&self, _: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
         unimplemented!()
     }
-    fn get_raw_tx(&self, _: &Txid) -> Result<Option<Transaction>, bdk::Error> {
-        unimplemented!()
+    fn get_raw_tx(&self, tx_id: &Txid) -> Result<Option<Transaction>, bdk::Error> {
+        self.rt.block_on(async {
+            let txs = Transactions::new(self.keychain_id, self.pool.clone());
+            Ok(txs.find_by_id(tx_id).await?.and_then(|tx| tx.transaction))
+        })
     }
-    fn get_tx(&self, _: &Txid, _: bool) -> Result<Option<TransactionDetails>, bdk::Error> {
-        unimplemented!()
+    fn get_tx(
+        &self,
+        tx_id: &Txid,
+        _include_raw: bool,
+    ) -> Result<Option<TransactionDetails>, bdk::Error> {
+        self.rt.block_on(async {
+            let txs = Transactions::new(self.keychain_id, self.pool.clone());
+            txs.find_by_id(tx_id).await
+        })
     }
-    fn get_last_index(&self, _: KeychainKind) -> Result<std::option::Option<u32>, bdk::Error> {
-        unimplemented!()
+    fn get_last_index(&self, kind: KeychainKind) -> Result<std::option::Option<u32>, bdk::Error> {
+        self.rt.block_on(async {
+            let last_indexes = Indexes::new(self.keychain_id, self.pool.clone());
+            last_indexes.get_latest(kind).await
+        })
     }
     fn get_sync_time(&self) -> Result<Option<SyncTime>, bdk::Error> {
-        unimplemented!()
+        self.rt.block_on(async {
+            let sync_times = SyncTimes::new(self.keychain_id, self.pool.clone());
+            sync_times.get().await
+        })
     }
     fn increment_last_index(&mut self, keychain: KeychainKind) -> Result<u32, bdk::Error> {
         self.rt.block_on(async {

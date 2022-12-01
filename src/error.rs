@@ -21,6 +21,8 @@ pub enum BriaError {
     XPubDepthMissmatch(u8, usize),
     #[error("BriaError - JoinError: {0}")]
     JoinError(#[from] tokio::task::JoinError),
+    #[error("BriaError - BdkError: {0}")]
+    BdkError(#[from] bdk::Error),
 }
 
 impl JobExecutionError for BriaError {}

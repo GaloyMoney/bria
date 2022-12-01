@@ -7,6 +7,7 @@ services:
     - bitcoind
     - lnd
     - otel-agent
+    - fulcrum
   postgres:
     image: postgres:14.1
     environment:
@@ -19,7 +20,8 @@ services:
     - integration-deps
     command: ["make", "test-in-ci"]
     environment:
-    - PG_HOST=bria
+    - PG_HOST=postgres
+    - BITCOIND_HOST=bitcoind
     working_dir: /repo
     volumes:
       - ./:/repo

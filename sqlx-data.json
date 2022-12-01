@@ -1,5 +1,38 @@
 {
   "db": "PostgreSQL",
+  "0070cff76c045c12325a1bb31340bbeab7d124642f704234afb2c52305b8b727": {
+    "describe": {
+      "columns": [
+        {
+          "name": "derivation_path",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "original",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND xpub = $2"
+  },
   "0205f42eef1b82d92fa8cfd7d501b694b8915e512ab68868e5788f46b41f6409": {
     "describe": {
       "columns": [
@@ -36,7 +69,7 @@
         }
       ],
       "nullable": [
-        true
+        false
       ],
       "parameters": {
         "Left": [
@@ -99,6 +132,24 @@
     },
     "query": "INSERT INTO admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
   },
+  "1b05e8fd3108f5ece10d044040ab59cebb4cbc18bd43cf9810b1fcd9b03804d0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Bytea",
+          "Varchar",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "INSERT INTO xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
+  },
   "323bf243d28db3a7f6810a2e640a8339e41793a7982e9ed6dc7175570f1d921d": {
     "describe": {
       "columns": [
@@ -130,6 +181,96 @@
     },
     "query": "SELECT script_bytes\n            FROM bdk_descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"
   },
+  "46b5eee37f84d1274f4d22a0ee26d4399fe629ea70f25d5974a4859fee6cd0fe": {
+    "describe": {
+      "columns": [
+        {
+          "name": "utxo_json",
+          "ordinal": 0,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1"
+  },
+  "48574ce81c7a0c2a19029557fead1c8162e88406b58a0f72838a64614dde9949": {
+    "describe": {
+      "columns": [
+        {
+          "name": "derivation_path",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "original",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND name = $2"
+  },
+  "4a7edc3efda3a45415a9eccd8c1ff7656ae63c074086843e43c325661b3fb516": {
+    "describe": {
+      "columns": [
+        {
+          "name": "keychain_kind: BdkKeychainKind",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          }
+        },
+        {
+          "name": "path",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
+  },
   "51bdbea22dd32d76957426a821f7e5880cb301aa41bfeb385db0d77c24a00e55": {
     "describe": {
       "columns": [
@@ -160,11 +301,11 @@
         }
       ],
       "nullable": [
-        true,
         false,
         false,
         false,
-        true
+        false,
+        false
       ],
       "parameters": {
         "Left": [
@@ -174,33 +315,6 @@
       }
     },
     "query": "SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id\n                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"
-  },
-  "57e62e5bae97ae544e99e944a60487e2bc0890788be4c9506ba814a7f3c10af6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "original",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "xpub",
-          "ordinal": 1,
-          "type_info": "Bytea"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "SELECT original, xpub FROM xpubs WHERE account_id = $1 AND xpub = $2"
   },
   "686b60d4112f0c9ff21a69b79b520a2da9fff0fc4539dba12ae687c8f141c426": {
     "describe": {
@@ -228,7 +342,7 @@
     },
     "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_fmt)\n            VALUES ($1, $2, $3, $4, $5)"
   },
-  "74abaca4bc385b99fcb1539bb6bfad0aa1083e4ec95a1e249e2eb316ffe190f0": {
+  "6b0a99b92fce8e4e3ca90502875cfcd906952faaa774ab6097c64f422bd0df91": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -236,13 +350,31 @@
         "Left": [
           "Uuid",
           "Varchar",
-          "Varchar",
-          "Bytea",
-          "Bytea"
+          "Jsonb"
         ]
       }
     },
-    "query": "INSERT INTO xpubs (account_id, name, original, xpub, fingerprint)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3, $4, $5)"
+    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json) VALUES ($1, $2, $3)"
+  },
+  "73e658dc30bd137f4aa6b118aa8919ff6b9d5cfd9a63dd147d7cc2e2a71bd182": {
+    "describe": {
+      "columns": [
+        {
+          "name": "details_json",
+          "ordinal": 0,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1"
   },
   "78f4dc961acbea41b5fd7734cabcb499193c0e0a33026bce5c08a30c2669c7b7": {
     "describe": {
@@ -264,6 +396,90 @@
       }
     },
     "query": "INSERT INTO accounts (id, name, journal_id)\n            VALUES ($1, $2, $1)\n            RETURNING (id)"
+  },
+  "79eff690e77e488dccc3c066b265e7718128987e44d97f408059cca30fc5124c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "script",
+          "ordinal": 0,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "keychain_kind: BdkKeychainKind",
+          "ordinal": 1,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT script, keychain_kind as \"keychain_kind: BdkKeychainKind\" FROM bdk_script_pubkeys\n            WHERE keychain_id = $1"
+  },
+  "80957e169526f4d9d1f3ca374f0d69e3f0a56a0a7758c005fb3d7a2f96c4002a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Int4",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json) VALUES ($1, $2, $3, $4)"
+  },
+  "85e29bf6a0064e82705d55a2f0313bb90e0acd8abec26bb484786f0353b2983d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "derivation_path",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "original",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND fingerprint = $2"
   },
   "8b738392e41143c1558c676ca3438b0a980b92738d85302a8638dac37b3ee3da": {
     "describe": {
@@ -297,32 +513,40 @@
     },
     "query": "SELECT id, account_id, name FROM account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
   },
-  "9793d4f125b38fcfff856bfd277b68c72df784af6d81badf18969bd8e189bf6c": {
+  "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO bdk_sync_times (keychain_id, height, timestamp)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (keychain_id) DO UPDATE SET height = EXCLUDED.height, timestamp = EXCLUDED.timestamp, modified_at = NOW()"
+  },
+  "a17c30ab0f4af264c0239ee4f9aee7dbc3d1c90901d0a21c6682131ba5a7742e": {
     "describe": {
       "columns": [
         {
-          "name": "original",
+          "name": "details_json",
           "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "xpub",
-          "ordinal": 1,
-          "type_info": "Bytea"
+          "type_info": "Jsonb"
         }
       ],
       "nullable": [
-        false,
         false
       ],
       "parameters": {
         "Left": [
           "Uuid",
-          "Bytea"
+          "Text"
         ]
       }
     },
-    "query": "SELECT original, xpub FROM xpubs WHERE account_id = $1 AND fingerprint = $2"
+    "query": "\n        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2"
   },
   "ae177e99b1f881fe87a3311651580e35f4c37b41e64f76db925a74cb364bcdc0": {
     "describe": {
@@ -373,6 +597,68 @@
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
   },
+  "bbc0b01c045d30392f796cca3594f84cbe51ca7132d7c713c5056766bb0834de": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT distinct(id) FROM wallets"
+  },
+  "c5e33844fc740500b708ed4ad888705af78beb06562a3c358316261cbdfef086": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "config",
+          "ordinal": 4,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id\n                 WHERE w.id = $1 ORDER BY w.version DESC"
+  },
   "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
     "describe": {
       "columns": [],
@@ -419,18 +705,18 @@
     },
     "query": "INSERT INTO account_api_keys (name, encrypted_key, account_id)\n            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM accounts WHERE id = $3)) RETURNING (id)"
   },
-  "f587d4ff6127774e5ebb8cbe9f0385d7a2be0fac8470861266d658c9a3118be8": {
+  "f6273d55a9ef0ab5746064b4064346c2789b6db97251e49d99d82d5e49dfd174": {
     "describe": {
       "columns": [
         {
-          "name": "original",
+          "name": "height",
           "ordinal": 0,
-          "type_info": "Varchar"
+          "type_info": "Int4"
         },
         {
-          "name": "xpub",
+          "name": "timestamp",
           "ordinal": 1,
-          "type_info": "Bytea"
+          "type_info": "Int4"
         }
       ],
       "nullable": [
@@ -439,12 +725,11 @@
       ],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Text"
+          "Uuid"
         ]
       }
     },
-    "query": "SELECT original, xpub FROM xpubs WHERE account_id = $1 AND name = $2"
+    "query": "SELECT height, timestamp FROM bdk_sync_times WHERE keychain_id = $1"
   },
   "f786f29a9de1c9f15a64fc7d541156184e9353f286c111aa90e74e1b950da39f": {
     "describe": {

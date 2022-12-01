@@ -38,7 +38,7 @@ impl ScriptPubkeys {
         Ok(())
     }
 
-    pub async fn find(
+    pub async fn find_script(
         &self,
         keychain: impl Into<BdkKeychainKind>,
         path: u32,
@@ -55,5 +55,54 @@ impl ScriptPubkeys {
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
         Ok(rows.into_iter().next().map(|row| Script::from(row.script)))
+    }
+
+    pub async fn find_path(
+        &self,
+        script: &Script,
+    ) -> Result<Option<(BdkKeychainKind, u32)>, bdk::Error> {
+        let rows = sqlx::query!(
+            r#"SELECT keychain_kind as "keychain_kind: BdkKeychainKind", path FROM bdk_script_pubkeys
+            WHERE keychain_id = $1 AND script = $2"#,
+            Uuid::from(self.keychain_id),
+            script.as_ref(),
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        if let Some(row) = rows.into_iter().next() {
+            Ok(Some((row.keychain_kind, row.path as u32)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn list_scripts(
+        &self,
+        keychain: Option<impl Into<BdkKeychainKind>>,
+    ) -> Result<Vec<Script>, bdk::Error> {
+        let kind = keychain.map(|k| k.into());
+        let rows = sqlx::query!(
+            r#"SELECT script, keychain_kind as "keychain_kind: BdkKeychainKind" FROM bdk_script_pubkeys
+            WHERE keychain_id = $1"#,
+            Uuid::from(self.keychain_id),
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|row| {
+                if let Some(kind) = kind {
+                    if kind == row.keychain_kind {
+                        Some(Script::from(row.script))
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(Script::from(row.script))
+                }
+            })
+            .collect())
     }
 }
