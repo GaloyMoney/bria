@@ -1,5 +1,6 @@
 mod config;
 
+use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
 
 pub use config::*;
@@ -97,6 +98,19 @@ impl App {
         tx.commit().await?;
 
         Ok(wallet_id)
+    }
+
+    pub async fn get_wallet_balance(
+        &self,
+        account_id: AccountId,
+        name: String,
+    ) -> Result<LedgerAccountBalance, BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, name).await?;
+        unimplemented!()
+        // Ok(self
+        //     .ledger
+        //     .get_balance(wallet.journal_id, wallet.ledger_account_id)
+        //     .await?)
     }
 
     pub async fn new_address(

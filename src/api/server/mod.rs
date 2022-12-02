@@ -46,10 +46,10 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn wallet_create(
+    async fn create_wallet(
         &self,
-        request: Request<WalletCreateRequest>,
-    ) -> Result<Response<WalletCreateResponse>, Status> {
+        request: Request<CreateWalletRequest>,
+    ) -> Result<Response<CreateWalletResponse>, Status> {
         let key = extract_api_token(&request)?;
         let account_id = self.app.authenticate(key).await?;
         let request = request.into_inner();
@@ -57,7 +57,25 @@ impl BriaService for Bria {
             .app
             .create_wallet(account_id, request.name, request.xpub_refs)
             .await?;
-        Ok(Response::new(WalletCreateResponse { id: id.to_string() }))
+        Ok(Response::new(CreateWalletResponse { id: id.to_string() }))
+    }
+
+    #[instrument(skip_all, err)]
+    async fn get_wallet_balance(
+        &self,
+        request: Request<GetWalletBalanceRequest>,
+    ) -> Result<Response<GetWalletBalanceResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let balance = self
+            .app
+            .get_wallet_balance(account_id, request.wallet_name)
+            .await?;
+        unimplemented!()
+        // Ok(Response::new(GetWalletBalanceResponse {
+        //     pending: balance.pending(),
+        // }))
     }
 
     #[instrument(skip_all, err)]

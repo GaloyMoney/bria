@@ -86,7 +86,7 @@ impl Ledger {
         Ok(dust_account_id)
     }
 
-    pub async fn pending_income(
+    pub async fn pending_onchain_income(
         &self,
         tx: Transaction<'_, Postgres>,
         params: PendingOnchainIncomeParams,

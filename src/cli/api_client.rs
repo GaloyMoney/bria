@@ -78,14 +78,14 @@ impl ApiClient {
     }
 
     pub async fn create_wallet(&self, name: String, xpubs: Vec<String>) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::WalletCreateRequest {
+        let request = tonic::Request::new(proto::CreateWalletRequest {
             name,
             xpub_refs: xpubs,
         });
         let response = self
             .connect()
             .await?
-            .wallet_create(self.inject_auth_token(request)?)
+            .create_wallet(self.inject_auth_token(request)?)
             .await?;
         println!("Wallet created - {}", response.into_inner().id);
         Ok(())

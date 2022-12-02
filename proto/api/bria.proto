@@ -3,7 +3,8 @@ package services.bria.v1;
 
 service BriaService {
   rpc XPubImport (XPubImportRequest) returns (XPubImportResponse) {}
-  rpc WalletCreate (WalletCreateRequest) returns (WalletCreateResponse) {}
+  rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
+  rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
 }
 
@@ -17,12 +18,12 @@ message XPubImportResponse {
   string id = 1;
 }
 
-message WalletCreateRequest {
+message CreateWalletRequest {
   string name = 1;
   repeated string xpub_refs = 2;
 }
 
-message WalletCreateResponse {
+message CreateWalletResponse {
   string id = 1;
 }
 
@@ -32,4 +33,12 @@ message NewAddressRequest {
 
 message NewAddressResponse {
   string address = 1;
+}
+
+message GetWalletBalanceRequest {
+  string wallet_name = 1;
+}
+
+message GetWalletBalanceResponse {
+  uint64 pending = 1;
 }
