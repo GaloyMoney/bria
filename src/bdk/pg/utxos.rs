@@ -46,21 +46,28 @@ impl Utxos {
             .collect())
     }
 
-    pub async fn list_without_pending_tx(
+    pub async fn find_new_pending_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<Vec<LocalUtxo>, BriaError> {
+    ) -> Result<Option<(Uuid, LocalUtxo)>, BriaError> {
+        let pending_id = Uuid::new_v4();
         let utxos = sqlx::query!(
-            r#"SELECT utxo_json FROM bdk_utxos
-            WHERE keychain_id = $1 AND ledger_tx_pending_id IS NULL FOR UPDATE"#,
+            r#"UPDATE bdk_utxos SET ledger_tx_pending_id = $1
+            WHERE keychain_id = $2 AND (tx_id, vout) in (
+              SELECT tx_id, vout FROM bdk_utxos
+              WHERE keychain_id = $1 AND ledger_tx_pending_id IS NULL LIMIT 1)
+            RETURNING utxo_json"#,
+            pending_id,
             Uuid::from(self.keychain_id),
         )
-        .fetch_all(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
-        Ok(utxos
-            .into_iter()
-            .map(|utxo| serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"))
-            .collect())
+        Ok(utxos.map(|utxo| {
+            (
+                pending_id,
+                serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
+            )
+        }))
     }
 
     pub async fn set_pending_tx_id(
