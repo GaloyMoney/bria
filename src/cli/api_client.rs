@@ -63,7 +63,7 @@ impl ApiClient {
         xpub: String,
         derivation: Option<String>,
     ) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::XPubImportRequest {
+        let request = tonic::Request::new(proto::ImportXpubRequest {
             name,
             xpub,
             derivation: derivation.unwrap_or_else(String::default),
@@ -71,7 +71,7 @@ impl ApiClient {
         let response = self
             .connect()
             .await?
-            .x_pub_import(self.inject_auth_token(request)?)
+            .import_xpub(self.inject_auth_token(request)?)
             .await?;
         println!("XPUB imported - {}", response.into_inner().id);
         Ok(())
@@ -88,6 +88,20 @@ impl ApiClient {
             .create_wallet(self.inject_auth_token(request)?)
             .await?;
         println!("Wallet created - {}", response.into_inner().id);
+        Ok(())
+    }
+
+    pub async fn get_wallet_balance(&self, wallet_name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::GetWalletBalanceRequest { wallet_name });
+        let response = self
+            .connect()
+            .await?
+            .get_wallet_balance(self.inject_auth_token(request)?)
+            .await?;
+        println!(
+            "Wallet balance - pending: {}",
+            response.into_inner().pending
+        );
         Ok(())
     }
 

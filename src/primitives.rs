@@ -1,4 +1,6 @@
 use bitcoin::util::bip32::Fingerprint;
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
@@ -21,3 +23,5 @@ impl std::ops::Deref for XPubId {
         &self.0
     }
 }
+
+pub const SATS_PER_BTC: Decimal = dec!(100_000_000);

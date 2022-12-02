@@ -2,6 +2,7 @@ use bdk::{bitcoin::Txid, LocalUtxo};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use sqlx_ledger::TransactionId as LedgerTransactionId;
 use std::collections::HashMap;
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
@@ -46,6 +47,7 @@ impl Utxos {
             .collect())
     }
 
+    #[instrument(name = "utxos.find_new_pending", skip_all)]
     pub async fn find_new_pending_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -55,7 +57,7 @@ impl Utxos {
             r#"UPDATE bdk_utxos SET ledger_tx_pending_id = $1
             WHERE keychain_id = $2 AND (tx_id, vout) in (
               SELECT tx_id, vout FROM bdk_utxos
-              WHERE keychain_id = $1 AND ledger_tx_pending_id IS NULL LIMIT 1)
+              WHERE keychain_id = $2 AND ledger_tx_pending_id IS NULL LIMIT 1)
             RETURNING utxo_json"#,
             pending_id,
             Uuid::from(self.keychain_id),

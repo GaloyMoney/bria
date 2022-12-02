@@ -5,6 +5,7 @@ use bdk::{
 };
 use bitcoin::Network;
 use sqlx::PgPool;
+use tracing::instrument;
 
 use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*};
 
@@ -35,6 +36,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         }
     }
 
+    #[instrument(name = "keychain_wallet.new_external_address", skip_all)]
     pub async fn new_external_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
         let addr = self
             .with_wallet(|wallet| {
@@ -46,6 +48,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         Ok(addr)
     }
 
+    #[instrument(name = "keychain_wallet.new_internal_address", skip_all)]
     pub async fn new_internal_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
         let addr = self
             .with_wallet(|wallet| {
@@ -57,6 +60,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         Ok(addr)
     }
 
+    #[instrument(name = "keychain_wallet.sync", skip_all)]
     pub async fn sync<B: WalletSync + GetHeight + Send + Sync + 'static>(
         &self,
         blockchain: B,
@@ -66,6 +70,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         Ok(())
     }
 
+    #[instrument(name = "keychain_wallet.balance", skip_all)]
     pub async fn balance(&self) -> Result<bdk::Balance, BriaError> {
         let balance = self.with_wallet(|wallet| wallet.get_balance()).await??;
         Ok(balance)

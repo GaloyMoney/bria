@@ -6,6 +6,7 @@ use sqlx_ledger::{
     journal::*, tx_template::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId,
     SqlxLedger, SqlxLedgerError,
 };
+use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{error::*, primitives::*};
@@ -39,15 +40,17 @@ impl Ledger {
         })
     }
 
+    #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
     pub async fn create_journal_for_account(
         &self,
         mut tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         id: AccountId,
-        name: String,
+        account_name: String,
     ) -> Result<JournalId, BriaError> {
         let new_journal = NewJournal::builder()
             .id(Uuid::from(id))
-            .name(name.clone())
+            .description(format!("Journal for account '{}'", account_name))
+            .name(account_name)
             .build()
             .expect("Couldn't build NewJournal");
         let id = self
@@ -58,14 +61,17 @@ impl Ledger {
         Ok(id)
     }
 
+    #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, tx))]
     pub async fn create_ledger_accounts_for_wallet(
         &self,
         mut tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         wallet_id: WalletId,
+        wallet_name: &str,
     ) -> Result<LedgerAccountId, BriaError> {
         let dust_account = NewLedgerAccount::builder()
             .name(format!("{}-dust", wallet_id))
             .code(format!("WALLET_{}_DUST", wallet_id))
+            .description(format!("Dust account for wallet '{}'", wallet_name))
             .build()
             .expect("Couldn't build NewLedgerAccount");
         let dust_account_id = self
@@ -77,6 +83,7 @@ impl Ledger {
             .id(Uuid::from(wallet_id))
             .name(wallet_id.to_string())
             .code(format!("WALLET_{}", wallet_id))
+            .description(format!("Account for wallet '{}'", wallet_name))
             .build()
             .expect("Couldn't build NewLedgerAccount");
         self.inner
@@ -86,6 +93,7 @@ impl Ledger {
         Ok(dust_account_id)
     }
 
+    #[instrument(name = "ledger.pending_oncain_income", skip(self, tx))]
     pub async fn pending_onchain_income(
         &self,
         tx: Transaction<'_, Postgres>,
@@ -97,6 +105,7 @@ impl Ledger {
         Ok(())
     }
 
+    #[instrument(name = "ledger.get_balance")]
     pub async fn get_balance(
         &self,
         journal_id: JournalId,
@@ -110,6 +119,7 @@ impl Ledger {
         Ok(balance)
     }
 
+    #[instrument(name = "ledger.onchain_income_account", skip_all)]
     async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
             .code(ONCHAIN_INCOMING_CODE)
@@ -126,6 +136,7 @@ impl Ledger {
         }
     }
 
+    #[instrument(name = "ledger.incoming_utxo_template", skip_all)]
     async fn incoming_utxo_template(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")

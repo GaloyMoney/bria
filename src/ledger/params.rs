@@ -1,19 +1,21 @@
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::Utc;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, AccountId as LedgerAccountId, JournalId};
 use uuid::Uuid;
 
-const SATS_PER_BTC: Decimal = dec!(100_000_000);
+use crate::primitives::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingOnchainIncomeMeta {
+    pub wallet_id: WalletId,
+    pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
     pub txout: TxOut,
 }
 
+#[derive(Debug)]
 pub struct PendingOnchainIncomeParams {
     pub journal_id: JournalId,
     pub recipient_account_id: LedgerAccountId,

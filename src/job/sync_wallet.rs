@@ -1,8 +1,10 @@
 use bdk::blockchain::ElectrumBlockchain;
 use electrum_client::Client;
+use tracing::instrument;
 
 use crate::{app::BlockchainConfig, bdk::pg::Utxos, error::*, ledger::*, primitives::*, wallet::*};
 
+#[instrument(name = "job.sync_wallet", skip(pool, wallets, ledger), err)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
@@ -30,6 +32,8 @@ pub async fn execute(
                             recipient_account_id: wallet.ledger_account_id,
                             pending_id,
                             meta: PendingOnchainIncomeMeta {
+                                wallet_id: id,
+                                keychain_id,
                                 outpoint: new_pending_tx.outpoint,
                                 txout: new_pending_tx.txout,
                             },

@@ -16,11 +16,11 @@ async fn test_ledger() -> anyhow::Result<()> {
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let mut tx = pool.begin().await?;
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name)
+        .create_journal_for_account(&mut tx, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let ledger_account_id = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
         .await?;
 
     let satoshis = 100_000_000;
@@ -45,7 +45,12 @@ async fn test_ledger() -> anyhow::Result<()> {
                 journal_id,
                 recipient_account_id: ledger_account_id,
                 pending_id,
-                meta: PendingOnchainIncomeMeta { outpoint, txout },
+                meta: PendingOnchainIncomeMeta {
+                    wallet_id,
+                    keychain_id: KeychainId::new(),
+                    outpoint,
+                    txout,
+                },
             },
         )
         .await?;

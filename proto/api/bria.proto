@@ -2,19 +2,19 @@ syntax = "proto3";
 package services.bria.v1;
 
 service BriaService {
-  rpc XPubImport (XPubImportRequest) returns (XPubImportResponse) {}
+  rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
 }
 
-message XPubImportRequest {
+message ImportXpubRequest {
   string name = 1;
   string xpub = 2;
   string derivation = 3;
 }
 
-message XPubImportResponse {
+message ImportXpubResponse {
   string id = 1;
 }
 

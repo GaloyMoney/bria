@@ -2,6 +2,7 @@ mod config;
 
 use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
+use tracing::instrument;
 
 pub use config::*;
 
@@ -45,27 +46,30 @@ impl App {
         })
     }
 
+    #[instrument(name = "app.authenticate", skip_all, err)]
     pub async fn authenticate(&self, key: &str) -> Result<AccountId, BriaError> {
         let key = self.keys.find_by_key(key).await?;
         Ok(key.account_id)
     }
 
+    #[instrument(name = "app.import_xpub", skip(self), err)]
     pub async fn import_xpub(
         &self,
         account_id: AccountId,
-        name: String,
+        key_name: String,
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
         let xpub = XPub::try_from((xpub, derivation))?;
-        let id = self.xpubs.persist(account_id, name, xpub).await?;
+        let id = self.xpubs.persist(account_id, key_name, xpub).await?;
         Ok(id)
     }
 
+    #[instrument(name = "app.create_wallet", skip(self), err)]
     pub async fn create_wallet(
         &self,
         account_id: AccountId,
-        name: String,
+        wallet_name: String,
         xpub_refs: Vec<String>,
     ) -> Result<WalletId, BriaError> {
         let mut xpubs = Vec::new();
@@ -81,11 +85,11 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let dust_account_id = self
             .ledger
-            .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+            .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
-            .name(name.clone())
+            .name(wallet_name.clone())
             .keychain(WpkhKeyChainConfig::new(xpubs.into_iter().next().unwrap()))
             .dust_account_id(dust_account_id)
             .build()
@@ -100,25 +104,26 @@ impl App {
         Ok(wallet_id)
     }
 
+    #[instrument(name = "app.get_wallet_balance", skip(self), err)]
     pub async fn get_wallet_balance(
         &self,
         account_id: AccountId,
-        name: String,
-    ) -> Result<LedgerAccountBalance, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, name).await?;
-        unimplemented!()
-        // Ok(self
-        //     .ledger
-        //     .get_balance(wallet.journal_id, wallet.ledger_account_id)
-        //     .await?)
+        wallet_name: String,
+    ) -> Result<Option<LedgerAccountBalance>, BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        Ok(self
+            .ledger
+            .get_balance(wallet.journal_id, wallet.ledger_account_id)
+            .await?)
     }
 
+    #[instrument(name = "app.new_address", skip(self), err)]
     pub async fn new_address(
         &self,
         account_id: AccountId,
-        name: String,
+        wallet_name: String,
     ) -> Result<String, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, name).await?;
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let (keychain_id, cfg) = wallet.current_keychain();
         let keychain_wallet = KeychainWallet::new(
             self.pool.clone(),
@@ -130,6 +135,7 @@ impl App {
         Ok(addr.to_string())
     }
 
+    #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,
         delay: std::time::Duration,

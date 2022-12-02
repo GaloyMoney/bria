@@ -11,7 +11,7 @@ use tracing::instrument;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*};
+use crate::{app::*, error::*, primitives::*};
 
 pub const ACCOUNT_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -22,13 +22,13 @@ pub struct Bria {
 #[tonic::async_trait]
 impl BriaService for Bria {
     #[instrument(skip_all, err)]
-    async fn x_pub_import(
+    async fn import_xpub(
         &self,
-        request: Request<XPubImportRequest>,
-    ) -> Result<Response<XPubImportResponse>, Status> {
+        request: Request<ImportXpubRequest>,
+    ) -> Result<Response<ImportXpubResponse>, Status> {
         let key = extract_api_token(&request)?;
         let account_id = self.app.authenticate(key).await?;
-        let XPubImportRequest {
+        let ImportXpubRequest {
             name,
             xpub,
             derivation,
@@ -42,7 +42,7 @@ impl BriaService for Bria {
             .app
             .import_xpub(account_id, name, xpub, derivation)
             .await?;
-        Ok(Response::new(XPubImportResponse { id: id.to_string() }))
+        Ok(Response::new(ImportXpubResponse { id: id.to_string() }))
     }
 
     #[instrument(skip_all, err)]
@@ -72,10 +72,14 @@ impl BriaService for Bria {
             .app
             .get_wallet_balance(account_id, request.wallet_name)
             .await?;
-        unimplemented!()
-        // Ok(Response::new(GetWalletBalanceResponse {
-        //     pending: balance.pending(),
-        // }))
+        Ok(balance
+            .map(|balance| {
+                Response::new(GetWalletBalanceResponse {
+                    pending: u64::try_from(balance.pending() * SATS_PER_BTC)
+                        .expect("To many satoshis"),
+                })
+            })
+            .unwrap_or_else(|| Response::new(GetWalletBalanceResponse { pending: 0 })))
     }
 
     #[instrument(skip_all, err)]
