@@ -23,9 +23,11 @@ impl App {
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
+        let ledger = Ledger::init(&pool).await?;
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
+            ledger.clone(),
             wallets_cfg.sync_all_delay,
             blockchain_cfg.clone(),
         )
@@ -35,8 +37,8 @@ impl App {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
             wallets,
-            ledger: Ledger::init(&pool).await?,
             pool,
+            ledger,
             _runner: runner,
             blockchain_cfg,
         })

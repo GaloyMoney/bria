@@ -1,13 +1,16 @@
 use bdk::blockchain::ElectrumBlockchain;
 use electrum_client::Client;
 
-use crate::{app::BlockchainConfig, bdk::pg::Utxos, error::*, primitives::*, wallet::*};
+use crate::{
+    app::BlockchainConfig, bdk::pg::Utxos, error::*, ledger::Ledger, primitives::*, wallet::*,
+};
 
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
     id: WalletId,
     blockchain_cfg: BlockchainConfig,
+    ledger: Ledger,
 ) -> Result<(), BriaError> {
     let wallet = wallets.find_by_id(id).await?;
     // let ledger = sqlx_ledger::SqlxLedger::new(&pool);

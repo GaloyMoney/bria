@@ -5,7 +5,7 @@ use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
 use tracing::instrument;
 use uuid::{uuid, Uuid};
 
-use crate::{app::BlockchainConfig, error::*, primitives::*, wallet::*};
+use crate::{app::BlockchainConfig, error::*, ledger::Ledger, primitives::*, wallet::*};
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
 
@@ -17,6 +17,7 @@ struct SyncAllDelay(std::time::Duration);
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
+    ledger: Ledger,
     sync_all_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
 ) -> Result<OwnedHandle, BriaError> {
@@ -24,6 +25,7 @@ pub async fn start_job_runner(
     registry.set_context(SyncAllDelay(sync_all_delay));
     registry.set_context(blockchain_cfg);
     registry.set_context(wallets);
+    registry.set_context(ledger);
 
     Ok(registry.runner(pool).run().await?)
 }
@@ -54,15 +56,16 @@ async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
+    ledger: Ledger,
 ) -> Result<(), BriaError> {
     let wallet_id = WalletId::from(current_job.id());
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
-        .execute(
-            |_| async move { sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg).await },
-        )
+        .execute(|_| async move {
+            sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg, ledger).await
+        })
         .await?;
     Ok(())
 }
