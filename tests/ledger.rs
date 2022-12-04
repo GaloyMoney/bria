@@ -41,11 +41,11 @@ async fn test_ledger() -> anyhow::Result<()> {
     ledger
         .pending_onchain_income(
             tx,
-            PendingOnchainIncomeParams {
+            IncomingUtxoParams {
                 journal_id,
                 recipient_account_id: ledger_account_id,
                 pending_id,
-                meta: PendingOnchainIncomeMeta {
+                meta: IncomingUtxoMeta {
                     wallet_id,
                     keychain_id: KeychainId::new(),
                     outpoint,

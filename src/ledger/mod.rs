@@ -1,20 +1,18 @@
-mod params;
+mod constants;
+mod templates;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
     account::NewAccount as NewLedgerAccount, balance::AccountBalance as LedgerAccountBalance,
-    journal::*, tx_template::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId,
-    SqlxLedger, SqlxLedgerError,
+    journal::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger,
+    SqlxLedgerError,
 };
 use tracing::instrument;
-use uuid::{uuid, Uuid};
+use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
-pub use params::*;
-
-const ONCHAIN_INCOMING_CODE: &str = "ONCHAIN_INCOMING";
-const ONCHAIN_INCOMING_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
-const PENDING_ONCHAIN_CREDIT_CODE: &str = "PENDING_ONCHAIN_CREDIT";
+use constants::*;
+pub use templates::{IncomingUtxoMeta, IncomingUtxoParams};
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
@@ -33,7 +31,7 @@ impl Ledger {
     pub async fn init(pool: &PgPool) -> Result<Self, BriaError> {
         let inner = SqlxLedger::new(&pool);
         Self::onchain_income_account(&inner).await?;
-        Self::incoming_utxo_template(&inner).await?;
+        templates::IncomingUtxo::init(&inner).await?;
         Ok(Self {
             inner,
             btc: "BTC".parse().unwrap(),
@@ -97,7 +95,7 @@ impl Ledger {
     pub async fn pending_onchain_income(
         &self,
         tx: Transaction<'_, Postgres>,
-        params: PendingOnchainIncomeParams,
+        params: IncomingUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, PENDING_ONCHAIN_CREDIT_CODE, Some(params))
@@ -133,52 +131,6 @@ impl Ledger {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_INCOMING_ID)),
             Err(e) => Err(e.into()),
             Ok(id) => Ok(id),
-        }
-    }
-
-    #[instrument(name = "ledger.incoming_utxo_template", skip_all)]
-    async fn incoming_utxo_template(ledger: &SqlxLedger) -> Result<(), BriaError> {
-        let tx_input = TxInput::builder()
-            .journal_id("params.journal_id")
-            .effective("params.effective")
-            .external_id("params.external_id")
-            .metadata("params.meta")
-            .description("'Income from onchain transaction'")
-            .build()
-            .expect("Couldn't build TxInput");
-        let entries = vec![
-            EntryInput::builder()
-                .entry_type("'ONCHAIN_DR'")
-                .currency("'BTC'")
-                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build ONCHAIN_DEBIT entry"),
-            EntryInput::builder()
-                .entry_type("'ONCHAIN_CR'")
-                .currency("'BTC'")
-                .account_id("params.recipient_account_id")
-                .direction("CREDIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build ONCHAIN_DEBIT entry"),
-        ];
-
-        let params = PendingOnchainIncomeParams::defs();
-        let template = NewTxTemplate::builder()
-            .code(PENDING_ONCHAIN_CREDIT_CODE)
-            .tx_input(tx_input)
-            .entries(entries)
-            .params(params)
-            .build()
-            .expect("Couldn't build PENDING_ONCHAIN_CREDIT_CODE");
-        match ledger.tx_templates().create(template).await {
-            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
-            Err(e) => Err(e.into()),
-            Ok(_) => Ok(()),
         }
     }
 }

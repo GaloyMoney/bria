@@ -72,74 +72,40 @@ impl Utxos {
         }))
     }
 
-    pub async fn set_pending_tx_id(
-        &self,
-        ids: Vec<(Txid, u32, LedgerTransactionId)>,
-        tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), BriaError> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new(r#"UPDATE bdk_utxos SET ledger_tx_pending_id = CASE"#);
-        let mut bind_numbers = HashMap::new();
-        let mut next_bind_number = 1;
-        for (tx_id, vout, ledger_tx_pending_id) in ids {
-            bind_numbers.insert((tx_id, vout), next_bind_number);
-            next_bind_number += 3;
-            query_builder.push(" WHEN tx_id = ");
-            query_builder.push_bind(tx_id.to_string());
-            query_builder.push(" AND vout = ");
-            query_builder.push_bind(vout as i32);
-            query_builder.push(" THEN ");
-            query_builder.push_bind(Uuid::from(ledger_tx_pending_id));
-        }
-        query_builder.push(" END WHERE (tx_id, vout) IN");
-        query_builder.push_tuples(bind_numbers, |mut builder, (_, n)| {
-            builder.push(format!("${}, ${}", n, n + 1));
-        });
-        query_builder.build().execute(&mut *tx).await?;
-        Ok(())
-    }
-
-    pub async fn list_without_settled_tx(
+    #[instrument(name = "utxos.find_new_settled", skip(self, tx))]
+    pub async fn find_new_settled_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<Vec<LocalUtxo>, BriaError> {
+        confirmed_at_or_before: u32,
+    ) -> Result<Option<(Uuid, LocalUtxo, Uuid)>, BriaError> {
+        let settled_id = Uuid::new_v4();
         let utxos = sqlx::query!(
-            r#"SELECT utxo_json FROM bdk_utxos
-            WHERE keychain_id = $1 AND ledger_tx_settled_id IS NULL FOR UPDATE"#,
-            Uuid::from(self.keychain_id),
-        )
-        .fetch_all(&mut *tx)
-        .await?;
-        Ok(utxos
-            .into_iter()
-            .map(|utxo| serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"))
-            .collect())
-    }
+            r#"UPDATE bdk_utxos SET ledger_tx_settled_id = $1
+            WHERE keychain_id = $2 AND (tx_id, vout) in (
+              SELECT u.tx_id, vout
+                FROM bdk_utxos u
+                JOIN bdk_transactions t
+                  ON u.keychain_id = t.keychain_id
+                  AND u.tx_id = t.tx_id
 
-    pub async fn set_settled_tx_id(
-        &self,
-        ids: Vec<(Txid, u32, LedgerTransactionId)>,
-        tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<(), BriaError> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new(r#"UPDATE bdk_utxos SET ledger_tx_settled_id = CASE"#);
-        let mut bind_numbers = HashMap::new();
-        let mut next_bind_number = 1;
-        for (tx_id, vout, ledger_tx_pending_id) in ids {
-            bind_numbers.insert((tx_id, vout), next_bind_number);
-            next_bind_number += 3;
-            query_builder.push(" WHEN tx_id = ");
-            query_builder.push_bind(tx_id.to_string());
-            query_builder.push(" AND vout = ");
-            query_builder.push_bind(vout as i32);
-            query_builder.push(" THEN ");
-            query_builder.push_bind(Uuid::from(ledger_tx_pending_id));
-        }
-        query_builder.push(" END WHERE (tx_id, vout) IN");
-        query_builder.push_tuples(bind_numbers, |mut builder, (_, n)| {
-            builder.push(format!("${}, ${}", n, n + 1));
-        });
-        query_builder.build().execute(&mut *tx).await?;
-        Ok(())
+              WHERE u.keychain_id = $2
+              AND ledger_tx_settled_id IS NULL
+              AND ledger_tx_pending_id IS NOT NULL
+              AND (details_json->'confirmation_time'->'height')::INTEGER <= $3
+              LIMIT 1)
+            RETURNING utxo_json, ledger_tx_pending_id as "ledger_tx_pending_id!""#,
+            settled_id,
+            Uuid::from(self.keychain_id),
+            confirmed_at_or_before as i32
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        Ok(utxos.map(|utxo| {
+            (
+                settled_id,
+                serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
+                utxo.ledger_tx_pending_id,
+            )
+        }))
     }
 }
