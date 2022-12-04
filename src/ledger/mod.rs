@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 use constants::*;
-pub use templates::{IncomingUtxoMeta, IncomingUtxoParams};
+pub use templates::{ConfirmedUtxoMeta, ConfirmedUtxoParams, IncomingUtxoMeta, IncomingUtxoParams};
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
@@ -91,14 +91,26 @@ impl Ledger {
         Ok(dust_account_id)
     }
 
-    #[instrument(name = "ledger.pending_oncain_income", skip(self, tx))]
-    pub async fn pending_onchain_income(
+    #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
+    pub async fn incoming_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
         params: IncomingUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, PENDING_ONCHAIN_CREDIT_CODE, Some(params))
+            .post_transaction_in_tx(tx, INCOMING_UTXO_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
+    pub async fn confirmed_utxo(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        params: ConfirmedUtxoParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, CONFIRMED_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -120,9 +132,9 @@ impl Ledger {
     #[instrument(name = "ledger.onchain_income_account", skip_all)]
     async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(ONCHAIN_INCOMING_CODE)
+            .code(ONCHAIN_INCOMe_CODE)
             .id(ONCHAIN_INCOMING_ID)
-            .name(ONCHAIN_INCOMING_CODE)
+            .name(ONCHAIN_INCOMe_CODE)
             .description("Account for settlement of onchain".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()

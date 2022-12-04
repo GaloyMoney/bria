@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IncomingUtxoMeta {
+pub struct ConfirmedUtxoMeta {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
@@ -19,14 +19,14 @@ pub struct IncomingUtxoMeta {
 }
 
 #[derive(Debug)]
-pub struct IncomingUtxoParams {
+pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
     pub recipient_account_id: LedgerAccountId,
     pub pending_id: Uuid,
-    pub meta: IncomingUtxoMeta,
+    pub meta: ConfirmedUtxoMeta,
 }
 
-impl IncomingUtxoParams {
+impl ConfirmedUtxoParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -63,14 +63,14 @@ impl IncomingUtxoParams {
     }
 }
 
-impl From<IncomingUtxoParams> for TxParams {
+impl From<ConfirmedUtxoParams> for TxParams {
     fn from(
-        IncomingUtxoParams {
+        ConfirmedUtxoParams {
             journal_id,
             recipient_account_id,
             pending_id,
             meta,
-        }: IncomingUtxoParams,
+        }: ConfirmedUtxoParams,
     ) -> Self {
         let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
@@ -85,44 +85,62 @@ impl From<IncomingUtxoParams> for TxParams {
     }
 }
 
-pub struct IncomingUtxo {}
+pub struct ConfirmedUtxo {}
 
-impl IncomingUtxo {
-    #[instrument(name = "ledger.incoming_utxo.init", skip_all)]
+impl ConfirmedUtxo {
+    #[instrument(name = "ledger.confirmed_utxo.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
             .external_id("params.external_id")
-            .correlation_id("params.external_id")
+            .correlation_id("params.correlation_id")
             .metadata("params.meta")
-            .description("'Onchain tx in mempool'")
+            .description("'Onchain tx confirmed'")
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
-                .currency("'BTC'")
-                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
-            EntryInput::builder()
                 .entry_type("'PENDING_ONCHAIN_CR'")
                 .currency("'BTC'")
-                .account_id("params.recipient_account_id")
+                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
+                .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+            EntryInput::builder()
+                .entry_type("'SETTLED_ONCHAIN_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
+                .direction("DEBIT")
+                .layer("SETTLED")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build SETTLED_ONCHAIN_DR entry"),
+            EntryInput::builder()
+                .entry_type("'PENDING_ONCHAIN_DR'")
+                .currency("'BTC'")
+                .account_id("params.recipient_account_id")
+                .direction("DEBIT")
+                .layer("PENDING")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
+            EntryInput::builder()
+                .entry_type("'SETTLED_ONCHAIN_CR'")
+                .currency("'BTC'")
+                .account_id("params.recipient_account_id")
+                .direction("CREDIT")
+                .layer("SETTLED")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
         ];
 
-        let params = IncomingUtxoParams::defs();
+        let params = ConfirmedUtxoParams::defs();
         let template = NewTxTemplate::builder()
-            .code(INCOMING_UTXO_CODE)
+            .code(CONFIRMED_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)

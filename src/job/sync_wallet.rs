@@ -28,7 +28,7 @@ pub async fn execute(
             if let Ok(Some((pending_id, new_pending_tx))) = utxos.find_new_pending_tx(&mut tx).await
             {
                 ledger
-                    .pending_onchain_income(
+                    .incoming_utxo(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,

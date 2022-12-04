@@ -39,7 +39,7 @@ async fn test_ledger() -> anyhow::Result<()> {
 
     let pending_id = Uuid::new_v4();
     ledger
-        .pending_onchain_income(
+        .incoming_utxo(
             tx,
             IncomingUtxoParams {
                 journal_id,
