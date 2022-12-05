@@ -45,8 +45,13 @@ impl IncomingUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("external_id")
+                .name("correlation_id")
                 .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("external_id")
+                .r#type(ParamDataType::STRING)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -78,7 +83,8 @@ impl From<IncomingUtxoParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("recipient_account_id", recipient_account_id);
         params.insert("amount", amount);
-        params.insert("external_id", pending_id);
+        params.insert("external_id", pending_id.to_string());
+        params.insert("correlation_id", Uuid::from(pending_id));
         params.insert("meta", meta);
         params.insert("effective", Utc::now().date_naive());
         params
@@ -94,7 +100,7 @@ impl IncomingUtxo {
             .journal_id("params.journal_id")
             .effective("params.effective")
             .external_id("params.external_id")
-            .correlation_id("params.external_id")
+            .correlation_id("params.correlation_id")
             .metadata("params.meta")
             .description("'Onchain tx in mempool'")
             .build()

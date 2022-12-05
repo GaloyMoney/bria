@@ -32,6 +32,7 @@ impl Ledger {
         let inner = SqlxLedger::new(&pool);
         Self::onchain_income_account(&inner).await?;
         templates::IncomingUtxo::init(&inner).await?;
+        templates::ConfirmedUtxo::init(&inner).await?;
         Ok(Self {
             inner,
             btc: "BTC".parse().unwrap(),

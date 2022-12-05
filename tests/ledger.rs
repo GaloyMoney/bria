@@ -37,6 +37,7 @@ async fn test_ledger() -> anyhow::Result<()> {
             .unwrap(),
     };
 
+    let keychain_id = KeychainId::new();
     let pending_id = Uuid::new_v4();
     ledger
         .incoming_utxo(
@@ -47,9 +48,9 @@ async fn test_ledger() -> anyhow::Result<()> {
                 pending_id,
                 meta: IncomingUtxoMeta {
                     wallet_id,
-                    keychain_id: KeychainId::new(),
+                    keychain_id,
                     outpoint,
-                    txout,
+                    txout: txout.clone(),
                 },
             },
         )
@@ -61,6 +62,33 @@ async fn test_ledger() -> anyhow::Result<()> {
         .expect("No balance");
 
     assert_eq!(balance.pending(), Decimal::ONE);
+
+    let tx = pool.begin().await?;
+    let settled_id = Uuid::new_v4();
+    ledger
+        .confirmed_utxo(
+            tx,
+            ConfirmedUtxoParams {
+                journal_id,
+                recipient_account_id: ledger_account_id,
+                pending_id,
+                settled_id,
+                meta: ConfirmedUtxoMeta {
+                    wallet_id,
+                    keychain_id,
+                    outpoint,
+                    txout,
+                },
+            },
+        )
+        .await?;
+
+    let balance = ledger
+        .get_balance(journal_id, ledger_account_id)
+        .await?
+        .expect("No balance");
+    assert_eq!(balance.pending(), Decimal::ZERO);
+    assert_eq!(balance.settled(), Decimal::ONE);
 
     Ok(())
 }

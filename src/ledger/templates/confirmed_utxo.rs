@@ -23,6 +23,7 @@ pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
     pub recipient_account_id: LedgerAccountId,
     pub pending_id: Uuid,
+    pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
 }
 
@@ -45,8 +46,13 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("external_id")
+                .name("correlation_id")
                 .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("external_id")
+                .r#type(ParamDataType::STRING)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -69,6 +75,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
             journal_id,
             recipient_account_id,
             pending_id,
+            settled_id,
             meta,
         }: ConfirmedUtxoParams,
     ) -> Self {
@@ -78,7 +85,8 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("recipient_account_id", recipient_account_id);
         params.insert("amount", amount);
-        params.insert("external_id", pending_id);
+        params.insert("external_id", settled_id.to_string());
+        params.insert("correlation_id", Uuid::from(pending_id));
         params.insert("meta", meta);
         params.insert("effective", Utc::now().date_naive());
         params

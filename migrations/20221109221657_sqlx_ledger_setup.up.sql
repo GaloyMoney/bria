@@ -52,12 +52,13 @@ CREATE TABLE sqlx_ledger_transactions (
   tx_template_id UUID NOT NULL,
   correlation_id UUID NOT NULL,
   effective Date NOT NULL,
-  external_id UUID NOT NULL,
+  external_id VARCHAR NOT NULL,
   description VARCHAR,
   metadata JSONB,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version)
+  UNIQUE(id, version),
+  UNIQUE(external_id, version)
 );
 
 CREATE TABLE sqlx_ledger_entries (
