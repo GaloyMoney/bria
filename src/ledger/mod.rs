@@ -132,9 +132,9 @@ impl Ledger {
     #[instrument(name = "ledger.onchain_income_account", skip_all)]
     async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(ONCHAIN_INCOMe_CODE)
+            .code(ONCHAIN_INCOME_CODE)
             .id(ONCHAIN_INCOMING_ID)
-            .name(ONCHAIN_INCOMe_CODE)
+            .name(ONCHAIN_INCOME_CODE)
             .description("Account for settlement of onchain".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
