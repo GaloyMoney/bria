@@ -19,8 +19,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Runs the configured processes
-    Run {
+    /// Runs the servers
+    RunServer {
         /// Sets a custom config file
         #[clap(
             short,
@@ -37,6 +37,7 @@ enum Command {
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
     },
+    /// Subcommand to interact with Admin API
     Admin {
         #[clap(subcommand)]
         command: AdminCommand,
@@ -45,6 +46,7 @@ enum Command {
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
     },
+    /// Import an xpub
     ImportXpub {
         #[clap(
             short,
@@ -66,6 +68,7 @@ enum Command {
         #[clap(short, long)]
         derivation: Option<String>,
     },
+    /// Create a wallet from imported xpubs
     CreateWallet {
         #[clap(
             short,
@@ -82,6 +85,7 @@ enum Command {
         #[clap(short, long)]
         name: String,
     },
+    /// Report the balance of a wallet (as reflected in the ledger)
     WalletBalance {
         #[clap(
             short,
@@ -96,6 +100,7 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// Get a new address for a wallet
     NewAddress {
         #[clap(
             short,
@@ -125,7 +130,7 @@ pub async fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Run {
+        Command::RunServer {
             config,
             crash_report_config,
             db_con,
@@ -179,7 +184,11 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(url, api_key);
             client.create_wallet(name, xpub).await?;
         }
-        Command::WalletBalance { url, api_key, wallet: name } => {
+        Command::WalletBalance {
+            url,
+            api_key,
+            wallet: name,
+        } => {
             let client = api_client(url, api_key);
             client.get_wallet_balance(name).await?;
         }

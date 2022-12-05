@@ -57,6 +57,7 @@ CREATE TABLE wallets (
   keychain_id UUID REFERENCES keychains(id) NOT NULL,
   name VARCHAR NOT NULL,
   version INT NOT NULL DEFAULT 1,
+  wallet_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(id, version),

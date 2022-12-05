@@ -4,8 +4,6 @@ use tracing::instrument;
 
 use crate::{app::BlockchainConfig, bdk::pg::Utxos, error::*, ledger::*, primitives::*, wallet::*};
 
-const MIN_CONFIRMATIONS: u32 = 2;
-
 #[instrument(name = "job.sync_wallet", skip(pool, wallets, ledger), err)]
 pub async fn execute(
     pool: sqlx::PgPool,
@@ -32,7 +30,13 @@ pub async fn execute(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_account_id: wallet.ledger_account_id,
+                            recipient_account_id: if new_pending_tx.txout.value
+                                >= wallet.config.dust_threshold_sats
+                            {
+                                wallet.ledger_account_id
+                            } else {
+                                wallet.dust_ledger_account_id
+                            },
                             pending_id,
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
@@ -51,7 +55,10 @@ pub async fn execute(
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some((settled_id, new_settled_tx, pending_id))) = utxos
-                .find_new_settled_tx(&mut tx, current_height - MIN_CONFIRMATIONS)
+                .find_new_settled_tx(
+                    &mut tx,
+                    current_height - wallet.config.mark_settled_after_n_confs,
+                )
                 .await
             {
                 // ledger
