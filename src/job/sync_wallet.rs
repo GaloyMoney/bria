@@ -2,7 +2,14 @@ use bdk::blockchain::{ElectrumBlockchain, GetHeight};
 use electrum_client::Client;
 use tracing::instrument;
 
-use crate::{app::BlockchainConfig, bdk::pg::Utxos, error::*, ledger::*, primitives::*, wallet::*};
+use crate::{
+    app::BlockchainConfig,
+    bdk::pg::{NewPendingTx, NewSettledTx, Utxos},
+    error::*,
+    ledger::*,
+    primitives::*,
+    wallet::*,
+};
 
 #[instrument(name = "job.sync_wallet", skip(pool, wallets, ledger), err)]
 pub async fn execute(
@@ -23,14 +30,18 @@ pub async fn execute(
         let utxos = Utxos::new(keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
-            if let Ok(Some((pending_id, new_pending_tx))) = utxos.find_new_pending_tx(&mut tx).await
+            if let Ok(Some(NewPendingTx {
+                pending_id,
+                local_utxo,
+                confirmation_time,
+            })) = utxos.find_new_pending_tx(&mut tx).await
             {
                 ledger
                     .incoming_utxo(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_account_id: if new_pending_tx.txout.value
+                            recipient_account_id: if local_utxo.txout.value
                                 >= wallet.config.dust_threshold_sats
                             {
                                 wallet.ledger_account_id
@@ -41,8 +52,9 @@ pub async fn execute(
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
                                 keychain_id,
-                                outpoint: new_pending_tx.outpoint,
-                                txout: new_pending_tx.txout,
+                                outpoint: local_utxo.outpoint,
+                                txout: local_utxo.txout,
+                                confirmation_time,
                             },
                         },
                     )
@@ -54,29 +66,42 @@ pub async fn execute(
 
         loop {
             let mut tx = pool.begin().await?;
-            if let Ok(Some((settled_id, new_settled_tx, pending_id))) = utxos
+            if let Ok(Some(NewSettledTx {
+                settled_id,
+                pending_id,
+                confirmation_time,
+                local_utxo,
+            })) = utxos
                 .find_new_settled_tx(
                     &mut tx,
                     current_height - wallet.config.mark_settled_after_n_confs,
                 )
                 .await
             {
-                // ledger
-                //     .pending_onchain_income(
-                //         tx,
-                //         PendingOnchainIncomeParams {
-                //             journal_id: wallet.journal_id,
-                //             recipient_account_id: wallet.ledger_account_id,
-                //             pending_id,
-                //             meta: PendingOnchainIncomeMeta {
-                //                 wallet_id: id,
-                //                 keychain_id,
-                //                 outpoint: new_pending_tx.outpoint,
-                //                 txout: new_pending_tx.txout,
-                //             },
-                //         },
-                //     )
-                //     .await?;
+                ledger
+                    .confirmed_utxo(
+                        tx,
+                        ConfirmedUtxoParams {
+                            journal_id: wallet.journal_id,
+                            recipient_account_id: if local_utxo.txout.value
+                                >= wallet.config.dust_threshold_sats
+                            {
+                                wallet.ledger_account_id
+                            } else {
+                                wallet.dust_ledger_account_id
+                            },
+                            pending_id,
+                            settled_id,
+                            meta: ConfirmedUtxoMeta {
+                                wallet_id: id,
+                                keychain_id,
+                                confirmation_time,
+                                outpoint: local_utxo.outpoint,
+                                txout: local_utxo.txout,
+                            },
+                        },
+                    )
+                    .await?;
             } else {
                 break;
             }

@@ -77,9 +77,16 @@ impl BriaService for Bria {
                 Response::new(GetWalletBalanceResponse {
                     pending: u64::try_from(balance.pending() * SATS_PER_BTC)
                         .expect("To many satoshis"),
+                    settled: u64::try_from(balance.settled() * SATS_PER_BTC)
+                        .expect("To many satoshis"),
                 })
             })
-            .unwrap_or_else(|| Response::new(GetWalletBalanceResponse { pending: 0 })))
+            .unwrap_or_else(|| {
+                Response::new(GetWalletBalanceResponse {
+                    pending: 0,
+                    settled: 0,
+                })
+            }))
     }
 
     #[instrument(skip_all, err)]

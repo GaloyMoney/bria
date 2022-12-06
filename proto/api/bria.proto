@@ -41,4 +41,5 @@ message GetWalletBalanceRequest {
 
 message GetWalletBalanceResponse {
   uint64 pending = 1;
+  uint64 settled = 2;
 }

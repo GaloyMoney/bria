@@ -1,5 +1,6 @@
 mod helpers;
 
+use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use bria::{ledger::*, primitives::*};
 use rand::distributions::{Alphanumeric, DistString};
@@ -51,6 +52,7 @@ async fn test_ledger() -> anyhow::Result<()> {
                     keychain_id,
                     outpoint,
                     txout: txout.clone(),
+                    confirmation_time: None,
                 },
             },
         )
@@ -78,6 +80,10 @@ async fn test_ledger() -> anyhow::Result<()> {
                     keychain_id,
                     outpoint,
                     txout,
+                    confirmation_time: BlockTime {
+                        height: 1,
+                        timestamp: 123409,
+                    },
                 },
             },
         )

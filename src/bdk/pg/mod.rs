@@ -20,7 +20,7 @@ use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
 use sync_times::SyncTimes;
 use transactions::Transactions;
-pub use utxos::Utxos;
+pub use utxos::*;
 
 pub struct SqlxWalletDb {
     rt: Handle,

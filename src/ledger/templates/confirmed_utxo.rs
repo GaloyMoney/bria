@@ -1,5 +1,6 @@
+use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
-use chrono::Utc;
+use chrono::NaiveDateTime;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
@@ -16,6 +17,7 @@ pub struct ConfirmedUtxoMeta {
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
     pub txout: TxOut,
+    pub confirmation_time: BlockTime,
 }
 
 #[derive(Debug)]
@@ -80,6 +82,10 @@ impl From<ConfirmedUtxoParams> for TxParams {
         }: ConfirmedUtxoParams,
     ) -> Self {
         let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
+        let effective =
+            NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
+                .expect("Couldn't convert blocktime to NaiveDateTime")
+                .date();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
@@ -88,7 +94,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", Uuid::from(pending_id));
         params.insert("meta", meta);
-        params.insert("effective", Utc::now().date_naive());
+        params.insert("effective", effective);
         params
     }
 }

@@ -98,9 +98,10 @@ impl ApiClient {
             .await?
             .get_wallet_balance(self.inject_auth_token(request)?)
             .await?;
+        let proto::GetWalletBalanceResponse { pending, settled } = response.into_inner();
         println!(
-            "Wallet balance - pending: {}",
-            response.into_inner().pending
+            "Wallet balance:\npending: {}\nsettled: {}",
+            pending, settled
         );
         Ok(())
     }
