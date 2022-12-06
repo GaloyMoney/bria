@@ -133,15 +133,6 @@ impl ConfirmedUtxo {
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_DR entry"),
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
-                .currency("'BTC'")
-                .account_id("params.recipient_account_id")
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
-            EntryInput::builder()
                 .entry_type("'SETTLED_ONCHAIN_CR'")
                 .currency("'BTC'")
                 .account_id("params.recipient_account_id")
@@ -150,6 +141,15 @@ impl ConfirmedUtxo {
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+            EntryInput::builder()
+                .entry_type("'PENDING_ONCHAIN_CR'")
+                .currency("'BTC'")
+                .account_id("params.recipient_account_id")
+                .direction("CREDIT")
+                .layer("PENDING")
+                .units("params.amount * -1")
+                .build()
+                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
         ];
 
         let params = ConfirmedUtxoParams::defs();
