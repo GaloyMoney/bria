@@ -1,5 +1,5 @@
 build:
-	cargo build
+	SQLX_OFFLINE=true cargo build
 
 watch:
 	RUST_BACKTRACE=full cargo watch -s 'cargo test -- --nocapture'
