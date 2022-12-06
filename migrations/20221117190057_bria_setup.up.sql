@@ -63,3 +63,16 @@ CREATE TABLE wallets (
   UNIQUE(id, version),
   UNIQUE(account_id, name, version)
 );
+
+CREATE TABLE batch_groups (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES accounts(id) NOT NULL,
+  name VARCHAR NOT NULL,
+  description VARCHAR,
+  version INT NOT NULL DEFAULT 1,
+  batch_cfg JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(id, version),
+  UNIQUE(account_id, name, version)
+);

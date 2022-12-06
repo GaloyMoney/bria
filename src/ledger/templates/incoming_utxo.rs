@@ -95,7 +95,7 @@ impl From<IncomingUtxoParams> for TxParams {
         params.insert("recipient_account_id", recipient_account_id);
         params.insert("amount", amount);
         params.insert("external_id", pending_id.to_string());
-        params.insert("correlation_id", Uuid::from(pending_id));
+        params.insert("correlation_id", pending_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params

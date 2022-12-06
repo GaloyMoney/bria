@@ -59,6 +59,22 @@
     },
     "query": "SELECT id, name FROM admin_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
   },
+  "02428b64eab911a29560bb99a604e0db78c492eb49835c1282a401974f11f304": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO batch_groups (id, account_id, name, description, batch_cfg)\n            VALUES ($1, $2, $3, $4, $5)\n            "
+  },
   "0c184d2094166c0f10dbf50554c03ec4d3d540c32778cf1c9711a28b855117ba": {
     "describe": {
       "columns": [
@@ -150,6 +166,20 @@
     },
     "query": "INSERT INTO xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
   },
+  "318f82b3188e528f94254ecea21adae1cd19d9af02599f538234a0811089853f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json)\n        VALUES ($1, $2, $3) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json"
+  },
   "323bf243d28db3a7f6810a2e640a8339e41793a7982e9ed6dc7175570f1d921d": {
     "describe": {
       "columns": [
@@ -180,6 +210,103 @@
       }
     },
     "query": "SELECT script_bytes\n            FROM bdk_descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"
+  },
+  "32c6a990c175a8c612070a631c3edc2ed3195f8acdcf2c3eb75e59bd9b647d67": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_tx_pending_id!",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 3,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Int4"
+        ]
+      }
+    },
+    "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_settled_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT u.tx_id, vout\n                     FROM bdk_utxos u\n                     JOIN bdk_transactions t\n                       ON u.keychain_id = t.keychain_id\n                       AND u.tx_id = t.tx_id\n                   WHERE u.keychain_id = $2\n                   AND ledger_tx_settled_id IS NULL\n                   AND ledger_tx_pending_id IS NOT NULL\n                   AND (details_json->'confirmation_time'->'height')::INTEGER <= $3\n                   LIMIT 1)\n                 RETURNING tx_id, utxo_json, ledger_tx_pending_id\n               )\n               SELECT u.tx_id, utxo_json, ledger_tx_pending_id AS \"ledger_tx_pending_id!\", details_json\n               FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
+  },
+  "377e02bfda9e0d440cbc87d5c7a55aff971943a18cf39e5066af65c9ce5c8eea": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_cfg",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "journal_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "config",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id\n                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"
   },
   "46b5eee37f84d1274f4d22a0ee26d4399fe629ea70f25d5974a4859fee6cd0fe": {
     "describe": {
@@ -271,51 +398,6 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
   },
-  "51bdbea22dd32d76957426a821f7e5880cb301aa41bfeb385db0d77c24a00e55": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "ledger_account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "config",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id\n                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"
-  },
   "686b60d4112f0c9ff21a69b79b520a2da9fff0fc4539dba12ae687c8f141c426": {
     "describe": {
       "columns": [],
@@ -341,20 +423,6 @@
       }
     },
     "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_fmt)\n            VALUES ($1, $2, $3, $4, $5)"
-  },
-  "6b0a99b92fce8e4e3ca90502875cfcd906952faaa774ab6097c64f422bd0df91": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json) VALUES ($1, $2, $3)"
   },
   "73e658dc30bd137f4aa6b118aa8919ff6b9d5cfd9a63dd147d7cc2e2a71bd182": {
     "describe": {
@@ -433,20 +501,61 @@
     },
     "query": "SELECT script, keychain_kind as \"keychain_kind: BdkKeychainKind\" FROM bdk_script_pubkeys\n            WHERE keychain_id = $1"
   },
-  "80957e169526f4d9d1f3ca374f0d69e3f0a56a0a7758c005fb3d7a2f96c4002a": {
+  "7d9b46ec3be80ba05b86545d833e2ca932276bb897db9584d6a9c2cdcdbdab7e": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_cfg",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "journal_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "config",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Varchar",
-          "Int4",
-          "Jsonb"
+          "Uuid"
         ]
       }
     },
-    "query": "INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json) VALUES ($1, $2, $3, $4)"
+    "query": "SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id\n                 WHERE w.id = $1 ORDER BY w.version DESC"
   },
   "85e29bf6a0064e82705d55a2f0313bb90e0acd8abec26bb484786f0353b2983d": {
     "describe": {
@@ -548,30 +657,44 @@
     },
     "query": "\n        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2"
   },
-  "ae177e99b1f881fe87a3311651580e35f4c37b41e64f76db925a74cb364bcdc0": {
+  "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar"
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          },
+          "Int4"
         ]
       }
     },
-    "query": "INSERT INTO wallets (id, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING (id)"
+    "query": "INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)\n                VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
+  },
+  "b3aa6d827a9e8f2681a14f272cb8d64ea23acbc135d03bbb5b45f6b9df133982": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Int4",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json)\n            VALUES ($1, $2, $3, $4) ON CONFLICT (keychain_id, tx_id, vout)\n            DO UPDATE set utxo_json = EXCLUDED.utxo_json"
   },
   "b4ff1533cd12d644b6959e11e7594e2d04a10913c7b49eae397ad41b3f918b5c": {
     "describe": {
@@ -615,49 +738,31 @@
     },
     "query": "SELECT distinct(id) FROM wallets"
   },
-  "c5e33844fc740500b708ed4ad888705af78beb06562a3c358316261cbdfef086": {
+  "daf029ae2c9cea29f4a8d441a48e835ff78a42fe9ebf7891408fbe21b25cf3cf": {
     "describe": {
       "columns": [
         {
           "name": "id",
           "ordinal": 0,
           "type_info": "Uuid"
-        },
-        {
-          "name": "ledger_account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "config",
-          "ordinal": 4,
-          "type_info": "Jsonb"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        false,
         false
       ],
       "parameters": {
         "Left": [
-          "Uuid"
+          "Uuid",
+          "Jsonb",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar"
         ]
       }
     },
-    "query": "SElECT k.id, ledger_account_id, dust_ledger_account_id, keychain_id, config\n                 FROM wallets w\n                 JOIN keychains k ON w.keychain_id = k.id\n                 WHERE w.id = $1 ORDER BY w.version DESC"
+    "query": "INSERT INTO wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING (id)"
   },
   "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
     "describe": {
@@ -704,6 +809,39 @@
       }
     },
     "query": "INSERT INTO account_api_keys (name, encrypted_key, account_id)\n            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM accounts WHERE id = $3)) RETURNING (id)"
+  },
+  "eacda676458f587eb8578f8982101d007d9d1a42e6b3146250176a63e5d238c6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_pending_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT tx_id, vout FROM bdk_utxos\n                   WHERE keychain_id = $2 AND ledger_tx_pending_id IS NULL LIMIT 1)\n                 RETURNING tx_id, utxo_json\n                 )\n               SELECT u.tx_id, utxo_json, details_json\n                 FROM utxo u\n                 JOIN bdk_transactions t ON u.tx_id = t.tx_id"
   },
   "f6273d55a9ef0ab5746064b4064346c2789b6db97251e49d99d82d5e49dfd174": {
     "describe": {

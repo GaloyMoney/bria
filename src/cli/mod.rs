@@ -20,7 +20,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Runs the servers
-    RunServer {
+    Daemon {
         /// Sets a custom config file
         #[clap(
             short,
@@ -115,6 +115,20 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    CreateBatchGroup {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        name: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -130,7 +144,7 @@ pub async fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::RunServer {
+        Command::Daemon {
             config,
             crash_report_config,
             db_con,
@@ -199,6 +213,10 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(url, api_key);
             client.new_address(wallet).await?;
+        }
+        Command::CreateBatchGroup { url, api_key, name } => {
+            let client = api_client(url, api_key);
+            client.create_batch_group(name).await?;
         }
     }
     Ok(())

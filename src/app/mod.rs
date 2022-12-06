@@ -1,18 +1,21 @@
 mod config;
-
 use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
 pub use config::*;
 
-use crate::{account::keys::*, error::*, job, ledger::Ledger, primitives::*, wallet::*, xpub::*};
+use crate::{
+    account::keys::*, batch_group::*, error::*, job, ledger::Ledger, primitives::*, wallet::*,
+    xpub::*,
+};
 
 pub struct App {
     _runner: OwnedHandle,
     keys: AccountApiKeys,
     xpubs: XPubs,
     wallets: Wallets,
+    batch_groups: BatchGroups,
     ledger: Ledger,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
@@ -25,6 +28,7 @@ impl App {
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
+        let batch_groups = BatchGroups::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let runner = job::start_job_runner(
             &pool,
@@ -39,6 +43,7 @@ impl App {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
             wallets,
+            batch_groups,
             pool,
             ledger,
             _runner: runner,
@@ -111,10 +116,9 @@ impl App {
         wallet_name: String,
     ) -> Result<Option<LedgerAccountBalance>, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
-        Ok(self
-            .ledger
+        self.ledger
             .get_balance(wallet.journal_id, wallet.ledger_account_id)
-            .await?)
+            .await
     }
 
     #[instrument(name = "app.new_address", skip(self), err)]
@@ -133,6 +137,21 @@ impl App {
         );
         let addr = keychain_wallet.new_external_address().await?;
         Ok(addr.to_string())
+    }
+
+    #[instrument(name = "app.create_batch_group", skip(self), err)]
+    pub async fn create_batch_group(
+        &self,
+        account_id: AccountId,
+        batch_group_name: String,
+    ) -> Result<BatchGroupId, BriaError> {
+        let batch_group = NewBatchGroup::builder()
+            .account_id(account_id)
+            .name(batch_group_name)
+            .build()
+            .expect("Couldn't build NewBatchGroup");
+        let batch_group_id = self.batch_groups.create(batch_group).await?;
+        Ok(batch_group_id)
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

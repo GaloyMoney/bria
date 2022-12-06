@@ -6,6 +6,7 @@ service BriaService {
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
+  rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
 }
 
 message ImportXpubRequest {
@@ -42,4 +43,12 @@ message GetWalletBalanceRequest {
 message GetWalletBalanceResponse {
   uint64 pending = 1;
   uint64 settled = 2;
+}
+
+message CreateBatchGroupRequest {
+  string name = 1;
+}
+
+message CreateBatchGroupResponse {
+  string id = 1;
 }

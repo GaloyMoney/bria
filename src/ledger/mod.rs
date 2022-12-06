@@ -29,7 +29,7 @@ impl Ledger {
     }
 
     pub async fn init(pool: &PgPool) -> Result<Self, BriaError> {
-        let inner = SqlxLedger::new(&pool);
+        let inner = SqlxLedger::new(pool);
         Self::onchain_income_account(&inner).await?;
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
@@ -42,7 +42,7 @@ impl Ledger {
     #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
     pub async fn create_journal_for_account(
         &self,
-        mut tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         id: AccountId,
         account_name: String,
     ) -> Result<JournalId, BriaError> {
@@ -52,18 +52,14 @@ impl Ledger {
             .name(account_name)
             .build()
             .expect("Couldn't build NewJournal");
-        let id = self
-            .inner
-            .journals()
-            .create_in_tx(&mut tx, new_journal)
-            .await?;
+        let id = self.inner.journals().create_in_tx(tx, new_journal).await?;
         Ok(id)
     }
 
     #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, tx))]
     pub async fn create_ledger_accounts_for_wallet(
         &self,
-        mut tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         wallet_id: WalletId,
         wallet_name: &str,
     ) -> Result<LedgerAccountId, BriaError> {
@@ -73,11 +69,7 @@ impl Ledger {
             .description(format!("Dust account for wallet '{}'", wallet_name))
             .build()
             .expect("Couldn't build NewLedgerAccount");
-        let dust_account_id = self
-            .inner
-            .accounts()
-            .create_in_tx(&mut tx, dust_account)
-            .await?;
+        let dust_account_id = self.inner.accounts().create_in_tx(tx, dust_account).await?;
         let new_account = NewLedgerAccount::builder()
             .id(Uuid::from(wallet_id))
             .name(wallet_id.to_string())
@@ -85,10 +77,7 @@ impl Ledger {
             .description(format!("Account for wallet '{}'", wallet_name))
             .build()
             .expect("Couldn't build NewLedgerAccount");
-        self.inner
-            .accounts()
-            .create_in_tx(&mut tx, new_account)
-            .await?;
+        self.inner.accounts().create_in_tx(tx, new_account).await?;
         Ok(dust_account_id)
     }
 

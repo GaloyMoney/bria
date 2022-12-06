@@ -66,7 +66,7 @@ impl ApiClient {
         let request = tonic::Request::new(proto::ImportXpubRequest {
             name,
             xpub,
-            derivation: derivation.unwrap_or_else(String::default),
+            derivation: derivation.unwrap_or_default(),
         });
         let response = self
             .connect()
@@ -116,6 +116,17 @@ impl ApiClient {
             .new_address(self.inject_auth_token(request)?)
             .await?;
         println!("New Address - {}", response.into_inner().address);
+        Ok(())
+    }
+
+    pub async fn create_batch_group(&self, name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CreateBatchGroupRequest { name });
+        let response = self
+            .connect()
+            .await?
+            .create_batch_group(self.inject_auth_token(request)?)
+            .await?;
+        println!("BatchGroup created - {}", response.into_inner().id);
         Ok(())
     }
 }

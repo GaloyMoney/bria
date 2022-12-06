@@ -103,6 +103,23 @@ impl BriaService for Bria {
             .await?;
         Ok(Response::new(NewAddressResponse { address }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn create_batch_group(
+        &self,
+        request: Request<CreateBatchGroupRequest>,
+    ) -> Result<Response<CreateBatchGroupResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let id = self
+            .app
+            .create_batch_group(account_id, request.name)
+            .await?;
+        Ok(Response::new(CreateBatchGroupResponse {
+            id: id.to_string(),
+        }))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
