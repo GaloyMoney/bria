@@ -48,10 +48,9 @@ impl Default for BatchGroupConfig {
     fn default() -> Self {
         Self {
             target_confs: 1,
-            trigger: BatchGroupTrigger::Immediate,
-            // trigger: BatchGroupTrigger::Interval {
-            //     seconds: default_interval(),
-            // },
+            trigger: BatchGroupTrigger::Interval {
+                seconds: default_interval(),
+            },
         }
     }
 }

@@ -74,7 +74,7 @@ pub async fn execute(
             })) = utxos
                 .find_new_settled_tx(
                     &mut tx,
-                    current_height - wallet.config.mark_settled_after_n_confs,
+                    current_height - wallet.config.mark_settled_after_n_confs + 1,
                 )
                 .await
             {
