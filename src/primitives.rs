@@ -8,6 +8,7 @@ crate::entity_id! { AccountApiKeyId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { WalletId }
 crate::entity_id! { BatchGroupId }
+crate::entity_id! { PayoutId }
 
 pub struct XPubId(Fingerprint);
 

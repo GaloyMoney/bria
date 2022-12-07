@@ -12,6 +12,7 @@ mod error;
 mod job;
 pub mod ledger;
 mod macros;
+pub mod payout;
 pub mod primitives;
 mod tracing;
 pub mod wallet;

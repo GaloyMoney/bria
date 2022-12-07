@@ -1,4 +1,5 @@
 mod config;
+
 use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
@@ -6,8 +7,8 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
-    account::keys::*, batch_group::*, error::*, job, ledger::Ledger, primitives::*, wallet::*,
-    xpub::*,
+    account::keys::*, batch_group::*, error::*, job, ledger::Ledger, payout::*, primitives::*,
+    wallet::*, xpub::*,
 };
 
 pub struct App {
@@ -16,6 +17,7 @@ pub struct App {
     xpubs: XPubs,
     wallets: Wallets,
     batch_groups: BatchGroups,
+    payouts: Payouts,
     ledger: Ledger,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
@@ -29,6 +31,7 @@ impl App {
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
         let batch_groups = BatchGroups::new(&pool);
+        let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let runner = job::start_job_runner(
             &pool,
@@ -44,6 +47,7 @@ impl App {
             xpubs: XPubs::new(&pool),
             wallets,
             batch_groups,
+            payouts,
             pool,
             ledger,
             _runner: runner,
@@ -152,6 +156,42 @@ impl App {
             .expect("Couldn't build NewBatchGroup");
         let batch_group_id = self.batch_groups.create(batch_group).await?;
         Ok(batch_group_id)
+    }
+
+    #[instrument(name = "app.queue_payout", skip(self), err)]
+    pub async fn queue_payout(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+        group_name: String,
+        destination: PayoutDestination,
+        sats: u64,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<PayoutId, BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let group_id = self
+            .batch_groups
+            .find_by_name(account_id, group_name)
+            .await?;
+        let mut builder = NewPayout::builder();
+        builder
+            .wallet_id(wallet.id)
+            .batch_group_id(group_id)
+            .destination(destination)
+            .satoshis(sats)
+            .metadata(metadata);
+        if let Some(external_id) = external_id {
+            builder.external_id(external_id);
+        }
+        let new_payout = builder.build().expect("Couldn't build NewPayout");
+        let mut tx = self.pool.begin().await?;
+        let id = self
+            .payouts
+            .create_in_tx(&mut tx, account_id, new_payout)
+            .await?;
+        tx.commit().await?;
+        Ok(id)
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

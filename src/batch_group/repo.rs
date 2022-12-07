@@ -39,4 +39,25 @@ impl BatchGroups {
         .await?;
         Ok(id)
     }
+
+    pub async fn find_by_name(
+        &self,
+        account_id: AccountId,
+        name: String,
+    ) -> Result<BatchGroupId, BriaError> {
+        let record = sqlx::query!(
+            r#"SElECT id
+                 FROM batch_groups
+                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"#,
+            Uuid::from(account_id),
+            name
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        if record.is_none() {
+            return Err(BriaError::BatchGroupNotFound);
+        }
+
+        Ok(BatchGroupId::from(record.unwrap().id))
+    }
 }

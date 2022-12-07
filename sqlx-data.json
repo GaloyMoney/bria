@@ -166,6 +166,25 @@
     },
     "query": "INSERT INTO xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
   },
+  "25a04113ed1276ba32b142551fcde4ce6fc3874ca18e7e928c1fc58bc6a090c5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Int8",
+          "Jsonb",
+          "Varchar",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO payouts (id, account_id, batch_group_id, wallet_id, satoshis, destination_data, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+  },
   "318f82b3188e528f94254ecea21adae1cd19d9af02599f538234a0811089853f": {
     "describe": {
       "columns": [],
@@ -656,6 +675,27 @@
       }
     },
     "query": "\n        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2"
+  },
+  "aa64cc9303d3d3b2fa9fdee83ee31a71b67df628f168e41296db5ddc692a2d69": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SElECT id\n                 FROM batch_groups\n                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"
   },
   "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
     "describe": {

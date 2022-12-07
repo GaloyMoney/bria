@@ -76,3 +76,19 @@ CREATE TABLE batch_groups (
   UNIQUE(id, version),
   UNIQUE(account_id, name, version)
 );
+
+CREATE TABLE payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  version INT NOT NULL DEFAULT 1,
+  account_id UUID REFERENCES accounts(id) NOT NULL,
+  wallet_id UUID NOT NULL,
+  batch_group_id UUID NOT NULL,
+  destination_data JSONB NOT NULL,
+  satoshis BIGINT NOT NULL,
+  external_id VARCHAR NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(id, version),
+  UNIQUE(account_id, external_id, version)
+);
