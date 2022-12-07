@@ -20,14 +20,18 @@ pub async fn execute(
     ledger: Ledger,
 ) -> Result<(), BriaError> {
     let wallet = wallets.find_by_id(id).await?;
-    for (keychain_id, cfg) in wallet.keychains {
-        let keychain_wallet =
-            KeychainWallet::new(pool.clone(), blockchain_cfg.network, keychain_id, cfg);
+    for (keychain_id, cfg) in wallet.keychains.iter() {
+        let keychain_wallet = KeychainWallet::new(
+            pool.clone(),
+            blockchain_cfg.network,
+            *keychain_id,
+            cfg.clone(),
+        );
         let blockchain =
             ElectrumBlockchain::from(Client::new(&blockchain_cfg.electrum_url).unwrap());
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
-        let utxos = Utxos::new(keychain_id, pool.clone());
+        let utxos = Utxos::new(*keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some(NewPendingTx {
@@ -41,17 +45,11 @@ pub async fn execute(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_account_id: if local_utxo.txout.value
-                                >= wallet.config.dust_threshold_sats
-                            {
-                                wallet.ledger_account_id
-                            } else {
-                                wallet.dust_ledger_account_id
-                            },
+                            recipient_account_id: wallet.ledger_account_id_for_utxo(&local_utxo),
                             pending_id,
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
-                                keychain_id,
+                                keychain_id: *keychain_id,
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,
                                 confirmation_time,
@@ -83,18 +81,12 @@ pub async fn execute(
                         tx,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_account_id: if local_utxo.txout.value
-                                >= wallet.config.dust_threshold_sats
-                            {
-                                wallet.ledger_account_id
-                            } else {
-                                wallet.dust_ledger_account_id
-                            },
+                            recipient_account_id: wallet.ledger_account_id_for_utxo(&local_utxo),
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: id,
-                                keychain_id,
+                                keychain_id: *keychain_id,
                                 confirmation_time,
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,

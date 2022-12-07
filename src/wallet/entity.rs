@@ -1,3 +1,4 @@
+use bdk::LocalUtxo;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
@@ -18,6 +19,14 @@ impl Wallet {
     pub fn current_keychain(&self) -> (KeychainId, &WalletKeyChainConfig) {
         let (id, cfg) = &self.keychains[0];
         (*id, cfg)
+    }
+
+    pub fn ledger_account_id_for_utxo(&self, utxo: &LocalUtxo) -> LedgerAccountId {
+        if utxo.txout.value >= self.config.dust_threshold_sats {
+            self.ledger_account_id
+        } else {
+            self.dust_ledger_account_id
+        }
     }
 }
 
