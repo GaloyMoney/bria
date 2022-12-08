@@ -100,23 +100,23 @@ impl QueuedPayout {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
-                .currency("'BTC'")
-                .account_id("params.sender_account_id")
-                .direction("CREDIT")
-                .layer("SETTLED")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
-            EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_CR'")
+                .entry_type("'ENQUEUED_PAYOUT_DR'")
                 .currency("'BTC'")
                 .account_id("params.sender_account_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
+                .expect("Couldn't build ENQUEUED_PAYOUT_DEBIT entry"),
+            EntryInput::builder()
+                .entry_type("'ENQUEUED_PAYOUT_CR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build ENQUEUED_PAYOUT_CREDIT entry"),
         ];
 
         let params = QueuedPayoutParams::defs();
