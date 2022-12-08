@@ -1,4 +1,5 @@
 use sqlx::{Pool, Postgres, Transaction};
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::entity::*;
@@ -6,14 +7,17 @@ use crate::{error::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Payouts {
-    pool: Pool<Postgres>,
+    _pool: Pool<Postgres>,
 }
 
 impl Payouts {
     pub fn new(pool: &Pool<Postgres>) -> Self {
-        Self { pool: pool.clone() }
+        Self {
+            _pool: pool.clone(),
+        }
     }
 
+    #[instrument(name = "payouts.create", skip(self, tx))]
     pub async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,

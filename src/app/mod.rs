@@ -7,7 +7,7 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
-    account::keys::*, batch_group::*, error::*, job, ledger::Ledger, payout::*, primitives::*,
+    account::keys::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
     wallet::*, xpub::*,
 };
 
@@ -159,6 +159,7 @@ impl App {
     }
 
     #[instrument(name = "app.queue_payout", skip(self), err)]
+    #[allow(clippy::too_many_arguments)]
     pub async fn queue_payout(
         &self,
         account_id: AccountId,
@@ -178,10 +179,10 @@ impl App {
         builder
             .wallet_id(wallet.id)
             .batch_group_id(group_id)
-            .destination(destination)
+            .destination(destination.clone())
             .satoshis(sats)
-            .metadata(metadata);
-        if let Some(external_id) = external_id {
+            .metadata(metadata.clone());
+        if let Some(external_id) = external_id.as_ref() {
             builder.external_id(external_id);
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
@@ -190,7 +191,24 @@ impl App {
             .payouts
             .create_in_tx(&mut tx, account_id, new_payout)
             .await?;
-        tx.commit().await?;
+        self.ledger
+            .queued_payout(
+                tx,
+                QueuedPayoutParams {
+                    journal_id: wallet.journal_id,
+                    sender_account_id: wallet.ledger_account_id,
+                    external_id: external_id.unwrap_or_else(|| id.to_string()),
+                    satoshis: sats,
+                    meta: QueuedPayoutMeta {
+                        payout_id: id,
+                        batch_group_id: group_id,
+                        wallet_id: wallet.id,
+                        destination,
+                        additional_meta: metadata,
+                    },
+                },
+            )
+            .await?;
         Ok(id)
     }
 

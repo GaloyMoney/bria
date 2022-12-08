@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 use constants::*;
-pub use templates::{ConfirmedUtxoMeta, ConfirmedUtxoParams, IncomingUtxoMeta, IncomingUtxoParams};
+pub use templates::*;
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
@@ -33,6 +33,7 @@ impl Ledger {
         Self::onchain_income_account(&inner).await?;
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
+        templates::QueuedPayout::init(&inner).await?;
         Ok(Self {
             inner,
             btc: "BTC".parse().unwrap(),
@@ -101,6 +102,18 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, CONFIRMED_UTXO_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.queued_payout", skip(self, tx))]
+    pub async fn queued_payout(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        params: QueuedPayoutParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, QUEUED_PAYOUT_CODE, Some(params))
             .await?;
         Ok(())
     }
