@@ -4,6 +4,13 @@ use std::time::Duration;
 
 use crate::primitives::*;
 
+pub struct BatchGroup {
+    pub id: BatchGroupId,
+    pub config: BatchGroupConfig,
+}
+
+impl BatchGroup {}
+
 #[derive(Debug, Builder, Clone)]
 pub struct NewBatchGroup {
     #[builder(setter(into))]

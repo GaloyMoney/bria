@@ -37,11 +37,14 @@ impl App {
             &pool,
             wallets.clone(),
             ledger.clone(),
-            wallets_cfg.sync_all_delay,
+            wallets_cfg.sync_all_wallets_delay,
+            wallets_cfg.process_all_batch_groups_delay,
             blockchain_cfg.clone(),
         )
         .await?;
-        Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_delay).await?;
+        Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_wallets_delay).await?;
+        Self::spawn_process_all_batch_groups(pool.clone(), wallets_cfg.process_all_batch_groups_delay)
+            .await?;
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
@@ -220,6 +223,22 @@ impl App {
         let _ = tokio::spawn(async move {
             loop {
                 let _ = job::spawn_sync_all_wallets(&pool, std::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Ok(())
+    }
+
+    #[instrument(name = "app.spawn_process_all_batch_groups", skip_all, err)]
+    async fn spawn_process_all_batch_groups(
+        pool: sqlx::PgPool,
+        delay: std::time::Duration,
+    ) -> Result<(), BriaError> {
+        let _ = tokio::spawn(async move {
+            loop {
+                let _ =
+                    job::spawn_process_all_batch_groups(&pool, std::time::Duration::from_secs(1))
+                        .await;
                 tokio::time::sleep(delay).await;
             }
         });

@@ -60,4 +60,21 @@ impl BatchGroups {
 
         Ok(BatchGroupId::from(record.unwrap().id))
     }
+
+    pub async fn all(&self) -> Result<impl Iterator<Item = BatchGroup>, BriaError> {
+        let rows = sqlx::query!(
+            r#"WITH latest AS (
+                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
+                 FROM batch_groups
+               ) SELECT id, batch_cfg FROM batch_groups
+                 WHERE (id, version) IN (SELECT * FROM latest)"#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows.into_iter().map(|row| BatchGroup {
+            id: BatchGroupId::from(row.id),
+            config: serde_json::from_value(row.batch_cfg)
+                .expect("Couldn't deserialize batch config"),
+        }))
+    }
 }
