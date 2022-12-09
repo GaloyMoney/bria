@@ -1,4 +1,5 @@
 mod executor;
+mod process_batch_group;
 mod sync_wallet;
 
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
@@ -6,7 +7,8 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    app::BlockchainConfig, batch_group::*, error::*, ledger::Ledger, primitives::*, wallet::*,
+    app::BlockchainConfig, batch_group::*, error::*, ledger::Ledger, payout::*, primitives::*,
+    wallet::*,
 };
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
@@ -22,16 +24,25 @@ struct ProcessAllBatchesDelay(std::time::Duration);
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
+    batch_groups: BatchGroups,
+    payouts: Payouts,
     ledger: Ledger,
     sync_all_wallets_delay: std::time::Duration,
     process_all_batch_groups_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
 ) -> Result<OwnedHandle, BriaError> {
-    let mut registry = JobRegistry::new(&[sync_all_wallets, sync_wallet, process_all_batch_groups]);
+    let mut registry = JobRegistry::new(&[
+        sync_all_wallets,
+        sync_wallet,
+        process_all_batch_groups,
+        process_batch_group,
+    ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
     registry.set_context(blockchain_cfg);
     registry.set_context(wallets);
+    registry.set_context(batch_groups);
+    registry.set_context(payouts);
     registry.set_context(ledger);
 
     Ok(registry.runner(pool).run().await?)
@@ -59,7 +70,7 @@ async fn sync_all_wallets(
 }
 
 #[job(
-    name = "process_all_batche_groups",
+    name = "process_all_batch_groups",
     channel_name = "wallet",
     retries = 20
 )]
@@ -74,7 +85,9 @@ async fn process_all_batch_groups(
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
             for group in batch_groups.all().await? {
-                // let _ = spawn_process_batch_group(&pool, group.id).await;
+                if let Some(delay) = group.spawn_in() {
+                    let _ = spawn_process_batch_group(&pool, group.id, delay).await;
+                }
             }
             Ok::<(), BriaError>(())
         })
@@ -97,6 +110,25 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
             sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg, ledger).await
+        })
+        .await?;
+    Ok(())
+}
+
+#[job(name = "process_batch_group", channel_name = "wallet", retries = 20)]
+async fn process_batch_group(
+    mut current_job: CurrentJob,
+    payouts: Payouts,
+    wallets: Wallets,
+    batch_groups: BatchGroups,
+) -> Result<(), BriaError> {
+    let batch_group_id = BatchGroupId::from(current_job.id());
+    let pool = current_job.pool().clone();
+    JobExecutor::builder(&mut current_job)
+        .build()
+        .expect("couldn't build JobExecutor")
+        .execute(|_| async move {
+            process_batch_group::execute(pool, payouts, wallets, batch_groups, batch_group_id).await
         })
         .await?;
     Ok(())
@@ -139,10 +171,10 @@ async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), Bria
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
 pub async fn spawn_process_all_batch_groups(
     pool: &sqlx::PgPool,
-    duration: std::time::Duration,
+    delay: std::time::Duration,
 ) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batche_groups")
-        .set_delay(duration)
+    match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batch_groups")
+        .set_delay(delay)
         .spawn(pool)
         .await
     {
@@ -156,8 +188,13 @@ pub async fn spawn_process_all_batch_groups(
 }
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_process_batch_group(pool: &sqlx::PgPool, id: BatchGroupId) -> Result<(), BriaError> {
+async fn spawn_process_batch_group(
+    pool: &sqlx::PgPool,
+    id: BatchGroupId,
+    delay: std::time::Duration,
+) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(Uuid::from(id), "process_batch_group")
+        .set_delay(delay)
         .spawn(pool)
         .await
     {

@@ -4,6 +4,13 @@ use crate::primitives::*;
 
 use super::destination::*;
 
+pub struct Payout {
+    pub id: PayoutId,
+    pub wallet_id: WalletId,
+    pub destination: PayoutDestination,
+    pub satoshis: u64,
+}
+
 #[derive(Debug, Builder, Clone)]
 pub struct NewPayout {
     #[builder(setter(into))]

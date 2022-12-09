@@ -36,6 +36,8 @@ impl App {
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
+            batch_groups.clone(),
+            payouts.clone(),
             ledger.clone(),
             wallets_cfg.sync_all_wallets_delay,
             wallets_cfg.process_all_batch_groups_delay,
@@ -43,8 +45,11 @@ impl App {
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_wallets_delay).await?;
-        Self::spawn_process_all_batch_groups(pool.clone(), wallets_cfg.process_all_batch_groups_delay)
-            .await?;
+        Self::spawn_process_all_batch_groups(
+            pool.clone(),
+            wallets_cfg.process_all_batch_groups_delay,
+        )
+        .await?;
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),

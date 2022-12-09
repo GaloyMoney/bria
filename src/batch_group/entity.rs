@@ -9,7 +9,16 @@ pub struct BatchGroup {
     pub config: BatchGroupConfig,
 }
 
-impl BatchGroup {}
+impl BatchGroup {
+    pub fn spawn_in(&self) -> Option<Duration> {
+        use BatchGroupTrigger::*;
+        match self.config.trigger {
+            Manual => None,
+            Immediate => Some(Duration::from_secs(1)),
+            Interval { seconds } => Some(seconds),
+        }
+    }
+}
 
 #[derive(Debug, Builder, Clone)]
 pub struct NewBatchGroup {
@@ -63,5 +72,5 @@ impl Default for BatchGroupConfig {
 }
 
 fn default_interval() -> Duration {
-    Duration::from_secs(300)
+    Duration::from_secs(60)
 }

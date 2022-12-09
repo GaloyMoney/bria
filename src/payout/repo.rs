@@ -47,4 +47,33 @@ impl Payouts {
         ).execute(&mut *tx).await?;
         Ok(id)
     }
+
+    #[instrument(name = "payouts.list_unbatched", skip(self))]
+    pub async fn list_unbatched(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        batch_group_id: BatchGroupId,
+    ) -> Result<Vec<Payout>, BriaError> {
+        let rows = sqlx::query!(
+            r#"WITH latest AS (
+                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
+                 FROM payouts WHERE batch_group_id = $1 AND batch_id IS NULL
+               ) SELECT id, wallet_id, destination_data, satoshis FROM payouts
+                 WHERE (id, version) IN (SELECT * FROM latest)
+                 ORDER BY priority, created_at"#,
+            Uuid::from(batch_group_id),
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Payout {
+                id: PayoutId::from(row.id),
+                wallet_id: WalletId::from(row.wallet_id),
+                destination: serde_json::from_value(row.destination_data)
+                    .expect("Couldn't deserialize destination"),
+                satoshis: row.satoshis as u64,
+            })
+            .collect())
+    }
 }

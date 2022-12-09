@@ -1,4 +1,5 @@
 use sqlx::{Pool, Postgres, Transaction};
+use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use super::{entity::*, keychain::*};
@@ -21,7 +22,7 @@ impl Wallets {
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
         let record = sqlx::query!(
-            r#"INSERT INTO keychains (account_id, config)
+            r#"INSERT INTO keychains (account_id, keychain_cfg)
             VALUES ($1, $2)
             RETURNING (id)"#,
             Uuid::from(account_id),
@@ -52,7 +53,7 @@ impl Wallets {
         name: String,
     ) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config
+            r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
                  FROM wallets w
                  JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
                  WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
@@ -66,11 +67,11 @@ impl Wallets {
         }
         let mut iter = rows.into_iter();
         let first_row = iter.next().expect("There is always 1 row here");
-        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.config)?;
+        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.keychain_cfg)?;
         let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
         let mut config: WalletConfig = serde_json::from_value(first_row.wallet_cfg)?;
         for row in iter {
-            let keychain: WalletKeyChainConfig = serde_json::from_value(row.config)?;
+            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)?;
             keychains.push((KeychainId::from(row.keychain_id), keychain));
             config = serde_json::from_value(row.wallet_cfg)?;
         }
@@ -93,7 +94,7 @@ impl Wallets {
 
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, config
+            r#"SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
                  FROM wallets w
                  JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
                  WHERE w.id = $1 ORDER BY w.version DESC"#,
@@ -106,21 +107,52 @@ impl Wallets {
         }
         let mut iter = rows.into_iter();
         let first_row = iter.next().expect("There is always 1 row here");
-        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.config)?;
-        let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
-        let mut config: WalletConfig = serde_json::from_value(first_row.wallet_cfg)?;
-        for row in iter {
-            let keychain: WalletKeyChainConfig = serde_json::from_value(row.config)?;
-            keychains.push((KeychainId::from(row.keychain_id), keychain));
-            config = serde_json::from_value(row.wallet_cfg)?;
-        }
-        Ok(Wallet {
+        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.keychain_cfg)?;
+        let keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
+        let config: WalletConfig = serde_json::from_value(first_row.wallet_cfg)?;
+        let mut wallet = Wallet {
             id: first_row.id.into(),
             journal_id: first_row.journal_id.into(),
             ledger_account_id: first_row.ledger_account_id.into(),
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
             config,
-        })
+        };
+        for row in iter {
+            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)?;
+            wallet.previous_keychain(KeychainId::from(row.keychain_id), keychain);
+        }
+        Ok(wallet)
+    }
+
+    pub async fn list_by_ids(
+        &self,
+        ids: HashSet<WalletId>,
+    ) -> Result<HashMap<WalletId, Wallet>, BriaError> {
+        let uuids = ids.into_iter().map(|id| Uuid::from(id)).collect::<Vec<_>>();
+        let rows = sqlx::query!(r#"
+           SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
+             FROM wallets w
+             JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
+             WHERE w.id = ANY($1) ORDER BY w.version DESC"#,
+            &uuids[..]
+      ).fetch_all(&self.pool).await?;
+        let mut wallets = HashMap::new();
+        for row in rows {
+            let keychain_id = KeychainId::from(row.keychain_id);
+            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)
+                .expect("Couldn't deserialize keychain_cfg");
+            let wallet = wallets.entry(row.id).or_insert_with(|| Wallet {
+                id: row.id.into(),
+                journal_id: row.journal_id.into(),
+                ledger_account_id: row.ledger_account_id.into(),
+                dust_ledger_account_id: row.dust_ledger_account_id.into(),
+                keychains: vec![(keychain_id, keychain.clone())],
+                config: serde_json::from_value(row.wallet_cfg)
+                    .expect("Couldn't deserialize wallet config"),
+            });
+            wallet.previous_keychain(keychain_id, keychain);
+        }
+        unimplemented!()
     }
 }

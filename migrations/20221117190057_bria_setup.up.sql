@@ -44,19 +44,19 @@ CREATE TABLE xpubs (
 CREATE TABLE keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES accounts(id) NOT NULL,
-  config JSONB NOT NULL,
+  keychain_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE wallets (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
+  version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES accounts(id) NOT NULL,
   ledger_account_id UUID NOT NULL,
   dust_ledger_account_id UUID NOT NULL,
   keychain_id UUID REFERENCES keychains(id) NOT NULL,
   name VARCHAR NOT NULL,
-  version INT NOT NULL DEFAULT 1,
   wallet_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -65,11 +65,11 @@ CREATE TABLE wallets (
 );
 
 CREATE TABLE batch_groups (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
+  version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
   description VARCHAR,
-  version INT NOT NULL DEFAULT 1,
   batch_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -77,14 +77,20 @@ CREATE TABLE batch_groups (
   UNIQUE(account_id, name, version)
 );
 
+CREATE TABLE batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
+);
+
 CREATE TABLE payouts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
   version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES accounts(id) NOT NULL,
   wallet_id UUID NOT NULL,
   batch_group_id UUID NOT NULL,
   destination_data JSONB NOT NULL,
   satoshis BIGINT NOT NULL,
+  batch_id UUID REFERENCES batches(id) DEFAULT NULL,
+  priority INT NOT NULL DEFAULT 100,
   external_id VARCHAR NOT NULL,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -92,3 +98,5 @@ CREATE TABLE payouts (
   UNIQUE(id, version),
   UNIQUE(account_id, external_id, version)
 );
+
+CREATE INDEX ON payouts (batch_group_id) WHERE batch_id IS NULL;

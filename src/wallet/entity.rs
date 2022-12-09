@@ -16,6 +16,15 @@ pub struct Wallet {
 }
 
 impl Wallet {
+    pub(super) fn previous_keychain(&mut self, id: KeychainId, cfg: WalletKeyChainConfig) {
+        let last_id = self.keychains[self.keychains.len() - 1].0;
+        if id != last_id {
+            self.keychains.push((id, cfg));
+        }
+    }
+}
+
+impl Wallet {
     pub fn current_keychain(&self) -> (KeychainId, &WalletKeyChainConfig) {
         let (id, cfg) = &self.keychains[0];
         (*id, cfg)
