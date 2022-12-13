@@ -25,9 +25,9 @@ impl XPubs {
     ) -> Result<XPubId, BriaError> {
         let id = xpub.id();
         sqlx::query!(
-            r#"INSERT INTO xpubs
+            r#"INSERT INTO bria_xpubs
             (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)
-            VALUES ((SELECT id FROM accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"#,
+            VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"#,
             Uuid::from(account_id),
             key_name,
             xpub.original,
@@ -52,7 +52,7 @@ impl XPubs {
         ) {
             (Ok(fp), _) => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND fingerprint = $2"#,
+                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
@@ -63,7 +63,7 @@ impl XPubs {
 
             (_, Ok(key)) => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND xpub = $2"#,
+                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"#,
                     Uuid::from(account_id),
                     &key.encode()
                 )
@@ -73,7 +73,7 @@ impl XPubs {
             }
             _ => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM xpubs WHERE account_id = $1 AND name = $2"#,
+                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
                     xpub_ref
                 )

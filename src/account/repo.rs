@@ -24,7 +24,7 @@ impl Accounts {
     ) -> Result<Account, AdminApiError> {
         let id = Uuid::new_v4();
         let record = sqlx::query!(
-            r#"INSERT INTO accounts (id, name, journal_id)
+            r#"INSERT INTO bria_accounts (id, name, journal_id)
             VALUES ($1, $2, $1)
             RETURNING (id)"#,
             id,

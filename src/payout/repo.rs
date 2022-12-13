@@ -34,7 +34,7 @@ impl Payouts {
             metadata,
         } = new_payout;
         sqlx::query!(
-            r#"INSERT INTO payouts (id, account_id, batch_group_id, wallet_id, satoshis, destination_data, external_id, metadata)
+            r#"INSERT INTO bria_payouts (id, account_id, batch_group_id, wallet_id, satoshis, destination_data, external_id, metadata)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
             Uuid::from(id),
             Uuid::from(account_id),
@@ -57,8 +57,8 @@ impl Payouts {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
-                 FROM payouts WHERE batch_group_id = $1 AND batch_id IS NULL
-               ) SELECT id, wallet_id, destination_data, satoshis FROM payouts
+                 FROM bria_payouts WHERE batch_group_id = $1
+               ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts
                  WHERE (id, version) IN (SELECT * FROM latest)
                  ORDER BY priority, created_at"#,
             Uuid::from(batch_group_id),

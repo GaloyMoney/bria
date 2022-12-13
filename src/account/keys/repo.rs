@@ -23,8 +23,8 @@ impl AccountApiKeys {
         let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
         let key = format!("bria_{}", code);
         let record = sqlx::query!(
-            r#"INSERT INTO account_api_keys (name, encrypted_key, account_id)
-            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM accounts WHERE id = $3)) RETURNING (id)"#,
+            r#"INSERT INTO bria_account_api_keys (name, encrypted_key, account_id)
+            VALUES ($1, crypt($2, gen_salt('bf')), (SELECT id FROM bria_accounts WHERE id = $3)) RETURNING (id)"#,
             name,
             key,
             Uuid::from(account_id),
@@ -41,7 +41,7 @@ impl AccountApiKeys {
 
     pub async fn find_by_key(&self, key: &str) -> Result<AccountApiKey, BriaError> {
         let record = sqlx::query!(
-            r#"SELECT id, account_id, name FROM account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"#,
+            r#"SELECT id, account_id, name FROM bria_account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"#,
             key
         )
         .fetch_one(&self.pool)

@@ -26,7 +26,7 @@ impl BatchGroups {
         } = group;
         sqlx::query!(
             r#"
-            INSERT INTO batch_groups (id, account_id, name, description, batch_cfg)
+            INSERT INTO bria_batch_groups (id, account_id, name, description, batch_cfg)
             VALUES ($1, $2, $3, $4, $5)
             "#,
             Uuid::from(id),
@@ -47,7 +47,7 @@ impl BatchGroups {
     ) -> Result<BatchGroupId, BriaError> {
         let record = sqlx::query!(
             r#"SElECT id
-                 FROM batch_groups
+                 FROM bria_batch_groups
                  WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"#,
             Uuid::from(account_id),
             name
@@ -65,8 +65,8 @@ impl BatchGroups {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
-                 FROM batch_groups
-               ) SELECT id, batch_cfg FROM batch_groups
+                 FROM bria_batch_groups
+               ) SELECT id, batch_cfg FROM bria_batch_groups
                  WHERE (id, version) IN (SELECT * FROM latest)"#
         )
         .fetch_all(&self.pool)

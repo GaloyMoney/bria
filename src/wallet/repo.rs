@@ -22,7 +22,7 @@ impl Wallets {
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
         let record = sqlx::query!(
-            r#"INSERT INTO keychains (account_id, keychain_cfg)
+            r#"INSERT INTO bria_keychains (account_id, keychain_cfg)
             VALUES ($1, $2)
             RETURNING (id)"#,
             Uuid::from(account_id),
@@ -31,7 +31,7 @@ impl Wallets {
         .fetch_one(&mut *tx)
         .await?;
         let record = sqlx::query!(
-            r#"INSERT INTO wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)
+            r#"INSERT INTO bria_wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING (id)"#,
             Uuid::from(new_wallet.id),
@@ -54,8 +54,8 @@ impl Wallets {
     ) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
             r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-                 FROM wallets w
-                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
+                 FROM bria_wallets w
+                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
                  WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
             Uuid::from(account_id),
             name
@@ -86,7 +86,7 @@ impl Wallets {
     }
 
     pub async fn all_ids(&self) -> Result<impl Iterator<Item = WalletId>, BriaError> {
-        let rows = sqlx::query!(r#"SELECT distinct(id) FROM wallets"#,)
+        let rows = sqlx::query!(r#"SELECT distinct(id) FROM bria_wallets"#,)
             .fetch_all(&self.pool)
             .await?;
         Ok(rows.into_iter().map(|row| WalletId::from(row.id)))
@@ -95,8 +95,8 @@ impl Wallets {
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
             r#"SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-                 FROM wallets w
-                 JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
+                 FROM bria_wallets w
+                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
                  WHERE w.id = $1 ORDER BY w.version DESC"#,
             Uuid::from(id)
         )
@@ -132,8 +132,8 @@ impl Wallets {
         let uuids = ids.into_iter().map(|id| Uuid::from(id)).collect::<Vec<_>>();
         let rows = sqlx::query!(r#"
            SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-             FROM wallets w
-             JOIN keychains k ON w.keychain_id = k.id JOIN accounts a ON w.account_id = a.id
+             FROM bria_wallets w
+             JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
              WHERE w.id = ANY($1) ORDER BY w.version DESC"#,
             &uuids[..]
       ).fetch_all(&self.pool).await?;
