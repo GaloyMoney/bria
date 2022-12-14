@@ -12,6 +12,7 @@ use crate::{
 };
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
+use process_batch_group::ProcessBatchGroupData;
 
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 const PROCESS_ALL_BATCH_GROUPS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
@@ -48,7 +49,7 @@ pub async fn start_job_runner(
     Ok(registry.runner(pool).run().await?)
 }
 
-#[job(name = "sync_all_wallets", channel_name = "wallet", retries = 20)]
+#[job(name = "sync_all_wallets", channel_name = "wallet_sync")]
 async fn sync_all_wallets(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -69,11 +70,7 @@ async fn sync_all_wallets(
     Ok(())
 }
 
-#[job(
-    name = "process_all_batch_groups",
-    channel_name = "wallet",
-    retries = 20
-)]
+#[job(name = "process_all_batch_groups", channel_name = "wallet_sync")]
 async fn process_all_batch_groups(
     mut current_job: CurrentJob,
     batch_groups: BatchGroups,
@@ -86,7 +83,12 @@ async fn process_all_batch_groups(
         .execute(|_| async move {
             for group in batch_groups.all().await? {
                 if let Some(delay) = group.spawn_in() {
-                    let _ = spawn_process_batch_group(&pool, group.id, delay).await;
+                    let _ = spawn_process_batch_group(
+                        &pool,
+                        ProcessBatchGroupData::new(group.id, group.account_id),
+                        delay,
+                    )
+                    .await;
                 }
             }
             Ok::<(), BriaError>(())
@@ -96,7 +98,7 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(name = "sync_wallet", channel_name = "wallet", retries = 20)]
+#[job(name = "sync_wallet", channel_name = "wallet_sync")]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -115,20 +117,20 @@ async fn sync_wallet(
     Ok(())
 }
 
-#[job(name = "process_batch_group", channel_name = "wallet", retries = 20)]
+#[job(name = "process_batch_group", channel_name = "batch_group")]
 async fn process_batch_group(
     mut current_job: CurrentJob,
     payouts: Payouts,
     wallets: Wallets,
     batch_groups: BatchGroups,
 ) -> Result<(), BriaError> {
-    let batch_group_id = BatchGroupId::from(current_job.id());
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
-        .execute(|_| async move {
-            process_batch_group::execute(pool, payouts, wallets, batch_groups, batch_group_id).await
+        .execute(|data| async move {
+            let data: ProcessBatchGroupData = data.expect("no ProcessBatchGroupData available");
+            process_batch_group::execute(pool, payouts, wallets, batch_groups, data).await
         })
         .await?;
     Ok(())
@@ -140,6 +142,7 @@ pub async fn spawn_sync_all_wallets(
     duration: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(SYNC_ALL_WALLETS_ID, "sync_all_wallets")
+        .set_channel_name("wallet_sync")
         .set_delay(duration)
         .spawn(pool)
         .await
@@ -156,6 +159,7 @@ pub async fn spawn_sync_all_wallets(
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(Uuid::from(id), "sync_wallet")
+        .set_channel_name("wallet_sync")
         .spawn(pool)
         .await
     {
@@ -174,6 +178,7 @@ pub async fn spawn_process_all_batch_groups(
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batch_groups")
+        .set_channel_name("batch_group")
         .set_delay(delay)
         .spawn(pool)
         .await
@@ -190,11 +195,16 @@ pub async fn spawn_process_all_batch_groups(
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_process_batch_group(
     pool: &sqlx::PgPool,
-    id: BatchGroupId,
+    data: ProcessBatchGroupData,
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(id), "process_batch_group")
+    match JobBuilder::new_with_id(Uuid::from(data.batch_group_id), "process_batch_group")
         .set_delay(delay)
+        .set_channel_name("batch_group")
+        .set_channel_args(&data.account_id.to_string())
+        .set_ordered(true)
+        .set_json(&data)
+        .expect("Couldn't set json")
         .spawn(pool)
         .await
     {

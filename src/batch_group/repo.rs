@@ -66,13 +66,14 @@ impl BatchGroups {
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
                  FROM bria_batch_groups
-               ) SELECT id, batch_cfg FROM bria_batch_groups
+               ) SELECT id, account_id, batch_cfg FROM bria_batch_groups
                  WHERE (id, version) IN (SELECT * FROM latest)"#
         )
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.into_iter().map(|row| BatchGroup {
             id: BatchGroupId::from(row.id),
+            account_id: AccountId::from(row.account_id),
             config: serde_json::from_value(row.batch_cfg)
                 .expect("Couldn't deserialize batch config"),
         }))
