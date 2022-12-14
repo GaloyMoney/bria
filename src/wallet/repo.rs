@@ -22,24 +22,24 @@ impl Wallets {
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
         let record = sqlx::query!(
-            r#"INSERT INTO bria_wallet_keychains (account_id, keychain_cfg)
-            VALUES ($1, $2)
+            r#"INSERT INTO bria_wallet_keychains (account_id, wallet_id, keychain_cfg)
+            VALUES ($1, $2, $3)
             RETURNING (id)"#,
             Uuid::from(account_id),
+            Uuid::from(new_wallet.id),
             serde_json::to_value(new_wallet.keychain)?
         )
         .fetch_one(&mut *tx)
         .await?;
         let record = sqlx::query!(
-            r#"INSERT INTO bria_wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, keychain_id, name)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            r#"INSERT INTO bria_wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, name)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING (id)"#,
             Uuid::from(new_wallet.id),
             serde_json::to_value(new_wallet.config).expect("Couldn't serialize wallet config"),
             Uuid::from(account_id),
             Uuid::from(new_wallet.id),
             Uuid::from(new_wallet.dust_account_id),
-            record.id,
             new_wallet.name
         )
         .fetch_one(&mut *tx)
@@ -53,10 +53,14 @@ impl Wallets {
         name: String,
     ) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-                 FROM bria_wallets w
-                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
-                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
+            r#"WITH latest AS (
+              SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
+              WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1
+            )
+            SElECT l.id, l.wallet_cfg, l.ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+                 FROM bria_wallet_keychains k
+                 JOIN latest l ON k.wallet_id = l.id
+                 ORDER BY sequence DESC"#,
             Uuid::from(account_id),
             name
         )
@@ -94,11 +98,15 @@ impl Wallets {
 
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-                 FROM bria_wallets w
-                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
-                 WHERE w.id = $1 ORDER BY w.version DESC"#,
-            Uuid::from(id)
+            r#"WITH latest AS (
+              SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
+              WHERE w.id = $1 ORDER BY version DESC LIMIT 1
+            )
+            SElECT l.id, l.wallet_cfg, l.ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+                 FROM bria_wallet_keychains k
+                 JOIN latest l ON k.wallet_id = l.id
+                 ORDER BY sequence DESC"#,
+            Uuid::from(id),
         )
         .fetch_all(&self.pool)
         .await?;
@@ -130,11 +138,15 @@ impl Wallets {
         ids: HashSet<WalletId>,
     ) -> Result<HashMap<WalletId, Wallet>, BriaError> {
         let uuids = ids.into_iter().map(|id| Uuid::from(id)).collect::<Vec<_>>();
-        let rows = sqlx::query!(r#"
-           SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
-             FROM bria_wallets w
-             JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
-             WHERE w.id = ANY($1) ORDER BY w.version DESC"#,
+        let rows = sqlx::query!(
+            r#"WITH latest AS (
+              SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
+              WHERE w.id = ANY($1) ORDER BY version DESC LIMIT 1
+            )
+            SElECT l.id, l.wallet_cfg, l.ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+                 FROM bria_wallet_keychains k
+                 JOIN latest l ON k.wallet_id = l.id
+                 ORDER BY sequence DESC"#,
             &uuids[..]
       ).fetch_all(&self.pool).await?;
         let mut wallets = HashMap::new();

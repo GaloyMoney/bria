@@ -41,27 +41,29 @@ CREATE TABLE bria_xpubs (
   UNIQUE(account_id, name)
 );
 
-CREATE TABLE bria_wallet_keychains (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  keychain_cfg JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 CREATE TABLE bria_wallets (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   ledger_account_id UUID NOT NULL,
   dust_ledger_account_id UUID NOT NULL,
-  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   name VARCHAR NOT NULL,
   wallet_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(id, version),
   UNIQUE(account_id, name, version)
+);
+
+CREATE TABLE bria_wallet_keychains (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id UUID NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  sequence INT NOT NULL DEFAULT 0,
+  keychain_cfg JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(wallet_id, sequence)
 );
 
 CREATE TABLE bria_batch_groups (
