@@ -150,12 +150,23 @@ impl ApiClient {
 
     pub async fn queue_payout(
         &self,
-        wallet: String,
+        wallet_name: String,
         group: String,
         destination: String,
         amount: u64,
     ) -> anyhoyw::Result<()> {
-        // TODO
+        let request = tonic::Request::new(proto::QueuePayoutRequest {
+            wallet_name,
+            group,
+            destination,
+            amount,
+        });
+        let response = self
+            .connect()
+            .await?
+            .queue_payout(self.inject_auth_token(request)?)
+            .await?;
+        println!("Queue Payout created - {}", response.into_inner().id);
         Ok(())
     }
 }
