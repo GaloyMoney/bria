@@ -22,7 +22,7 @@ impl Wallets {
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
         let record = sqlx::query!(
-            r#"INSERT INTO bria_keychains (account_id, keychain_cfg)
+            r#"INSERT INTO bria_wallet_keychains (account_id, keychain_cfg)
             VALUES ($1, $2)
             RETURNING (id)"#,
             Uuid::from(account_id),
@@ -55,7 +55,7 @@ impl Wallets {
         let rows = sqlx::query!(
             r#"SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
                  FROM bria_wallets w
-                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
+                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
                  WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"#,
             Uuid::from(account_id),
             name
@@ -96,7 +96,7 @@ impl Wallets {
         let rows = sqlx::query!(
             r#"SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
                  FROM bria_wallets w
-                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
+                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
                  WHERE w.id = $1 ORDER BY w.version DESC"#,
             Uuid::from(id)
         )
@@ -133,7 +133,7 @@ impl Wallets {
         let rows = sqlx::query!(r#"
            SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg
              FROM bria_wallets w
-             JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
+             JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id
              WHERE w.id = ANY($1) ORDER BY w.version DESC"#,
             &uuids[..]
       ).fetch_all(&self.pool).await?;

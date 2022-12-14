@@ -41,7 +41,7 @@ CREATE TABLE bria_xpubs (
   UNIQUE(account_id, name)
 );
 
-CREATE TABLE bria_keychains (
+CREATE TABLE bria_wallet_keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   keychain_cfg JSONB NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE bria_wallets (
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   ledger_account_id UUID NOT NULL,
   dust_ledger_account_id UUID NOT NULL,
-  keychain_id UUID REFERENCES bria_keychains(id) NOT NULL,
+  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   name VARCHAR NOT NULL,
   wallet_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

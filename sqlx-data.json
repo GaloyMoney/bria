@@ -31,63 +31,6 @@
     },
     "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
   },
-  "2188f84e8430009b53102001b37438c72ff99e84b5dd8caf64f39ddbcc561ae0": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_cfg",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "ledger_account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "journal_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_cfg",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n                 FROM bria_wallets w\n                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"
-  },
   "21c35cd4838115e99cd93bf33a4c427bb7084fdb39ef9e12923d5e69ef75e2be": {
     "describe": {
       "columns": [
@@ -352,27 +295,6 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
   },
-  "6241f5e596c8888a00ff500728daeab1b6d33d8462b1e8360d9b4ce314f982e5": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_keychains (account_id, keychain_cfg)\n            VALUES ($1, $2)\n            RETURNING (id)"
-  },
   "686b60d4112f0c9ff21a69b79b520a2da9fff0fc4539dba12ae687c8f141c426": {
     "describe": {
       "columns": [],
@@ -555,6 +477,63 @@
     },
     "query": "SELECT script, keychain_kind as \"keychain_kind: BdkKeychainKind\" FROM bdk_script_pubkeys\n            WHERE keychain_id = $1"
   },
+  "8d2c8442e11edc69d637af97730eff5af53161efc5446908d751f417419fcfea": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_cfg",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "journal_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_cfg",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SElECT k.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n                 FROM bria_wallets w\n                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n                 WHERE w.account_id = $1 AND w.name = $2 ORDER BY w.version DESC"
+  },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
       "columns": [],
@@ -677,6 +656,62 @@
     },
     "query": "INSERT INTO bria_payouts (id, account_id, batch_group_id, wallet_id, satoshis, destination_data, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
   },
+  "b1b9fab4e544835a89eacba5a68385960bf20e3b7e31e9c328890808ffdabc3e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_cfg",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "journal_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_cfg",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n           SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n             FROM bria_wallets w\n             JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n             WHERE w.id = ANY($1) ORDER BY w.version DESC"
+  },
   "b3aa6d827a9e8f2681a14f272cb8d64ea23acbc135d03bbb5b45f6b9df133982": {
     "describe": {
       "columns": [],
@@ -747,6 +782,62 @@
       }
     },
     "query": "SELECT id, account_id, name FROM bria_account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
+  },
+  "bc5555cbadce5f9dfe678ef38497499ba348107983300fce8167e94aa9ab5ee2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_cfg",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "dust_ledger_account_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "journal_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_cfg",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n                 FROM bria_wallets w\n                 JOIN bria_wallet_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n                 WHERE w.id = $1 ORDER BY w.version DESC"
   },
   "d0b8f6b6da3cecfbb1d4131ca99ce6709ed52b7ee437f55876857d686a28009b": {
     "describe": {
@@ -863,6 +954,27 @@
     },
     "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_pending_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT tx_id, vout FROM bdk_utxos\n                   WHERE keychain_id = $2 AND ledger_tx_pending_id IS NULL LIMIT 1)\n                 RETURNING tx_id, utxo_json\n                 )\n               SELECT u.tx_id, utxo_json, details_json\n                 FROM utxo u\n                 JOIN bdk_transactions t ON u.tx_id = t.tx_id"
   },
+  "ee696e90755fc14bca559a4728445aabb9efb4d067c29713ac66a1d32ef25e0a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_wallet_keychains (account_id, keychain_cfg)\n            VALUES ($1, $2)\n            RETURNING (id)"
+  },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {
       "columns": [
@@ -888,62 +1000,6 @@
       }
     },
     "query": "SELECT id, name FROM bria_admin_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
-  },
-  "f61d4cc1a0e92ace7396c945e46d139668acb1188cf178e7f0584849645e1475": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_cfg",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "ledger_account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "journal_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_cfg",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SElECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n                 FROM bria_wallets w\n                 JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n                 WHERE w.id = $1 ORDER BY w.version DESC"
   },
   "f6273d55a9ef0ab5746064b4064346c2789b6db97251e49d99d82d5e49dfd174": {
     "describe": {
@@ -1002,61 +1058,5 @@
       }
     },
     "query": "SELECT script FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND keychain_kind = $2 AND path = $3"
-  },
-  "ff0e642caa89ef3e29a745ff5d5fb75b361c1c6fde0e9bb44faba0a256c6e007": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_cfg",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "ledger_account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "journal_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_cfg",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "UuidArray"
-        ]
-      }
-    },
-    "query": "\n           SELECT w.id, wallet_cfg, ledger_account_id, dust_ledger_account_id, a.journal_id, keychain_id, keychain_cfg\n             FROM bria_wallets w\n             JOIN bria_keychains k ON w.keychain_id = k.id JOIN bria_accounts a ON w.account_id = a.id\n             WHERE w.id = ANY($1) ORDER BY w.version DESC"
   }
 }
