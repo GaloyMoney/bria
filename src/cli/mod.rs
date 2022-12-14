@@ -145,6 +145,16 @@ enum Command {
         #[clap(short, long)]
         name: String,
     },
+    QueuePayout {
+        #[clap(short, long)]
+        wallet: String,
+        #[clap(short, long)]
+        group: String,
+        #[clap(short, long)]
+        destination: String,
+        #[clap(short, long)]
+        amount: u64,
+    },
 }
 
 #[derive(Subcommand)]
@@ -273,6 +283,17 @@ pub async fn run() -> anyhow::Result<()> {
         Command::CreateBatchGroup { url, api_key, name } => {
             let client = api_client(url, api_key);
             client.create_batch_group(name).await?;
+        }
+        Command::QueuePayout {
+            wallet,
+            group,
+            destination,
+            amount,
+        } => {
+            let client = api_client(url, api_key);
+            client
+                .queue_payout(wallet, group, destination, amount)
+                .await?;
         }
     }
     Ok(())

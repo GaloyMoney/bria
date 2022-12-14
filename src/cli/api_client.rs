@@ -147,4 +147,15 @@ impl ApiClient {
         println!("BatchGroup created - {}", response.into_inner().id);
         Ok(())
     }
+
+    pub async fn queue_payout(
+        &self,
+        wallet: String,
+        group: String,
+        destination: String,
+        amount: u64,
+    ) -> anyhoyw::Result<()> {
+        // TODO
+        Ok(())
+    }
 }
