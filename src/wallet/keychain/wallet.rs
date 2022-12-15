@@ -1,6 +1,6 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
-    wallet::AddressIndex,
+    wallet::{signer::SignOptions, tx_builder::TxOrdering, AddressIndex},
     FeeRate, TransactionDetails, Wallet,
 };
 use bitcoin::{util::psbt, Address, Network};
@@ -46,11 +46,30 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
                 let mut builder = wallet.build_tx();
                 builder.fee_rate(fee_rate);
                 builder.add_recipient(recipients[0].0.script_pubkey(), recipients[0].1);
+                builder.ordering(TxOrdering::Bip69Lexicographic);
+                builder.sighash(bitcoin::EcdsaSighashType::All.into());
                 builder.finish()
             })
             .await
         {
             Ok(Ok(r)) => Ok(Some(r)),
+            Ok(Err(e)) => Err(e.into()),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn finalize_psbt(
+        &self,
+        mut psbt: psbt::PartiallySignedTransaction,
+    ) -> Result<psbt::PartiallySignedTransaction, BriaError> {
+        match self
+            .with_wallet(move |wallet| {
+                wallet.finalize_psbt(&mut psbt, SignOptions::default())?;
+                Ok::<_, BriaError>(psbt)
+            })
+            .await
+        {
+            Ok(Ok(r)) => Ok(r),
             Ok(Err(e)) => Err(e.into()),
             Err(e) => Err(e.into()),
         }

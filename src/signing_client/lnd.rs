@@ -43,6 +43,8 @@ impl RemoteSigningClient for LndRemoteSigner {
             .map_err(|e| {
                 SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {}", e))
             })?;
-        Ok(encode::deserialize(&response.into_inner().signed_psbt)?)
+        let signed_psbt = response.into_inner().signed_psbt;
+        // dgb!(base64::encode(&signed_psbt));
+        Ok(encode::deserialize(&signed_psbt)?)
     }
 }

@@ -10,6 +10,9 @@ services:
   bitcoind:
     ports:
       - "18443:18443"
+  lnd:
+    ports:
+      - "10009:10009"
   fulcrum:
     ports:
       - "50001:50001"

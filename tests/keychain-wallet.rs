@@ -1,9 +1,14 @@
 mod helpers;
 
-use bdk::{bitcoin::Network, blockchain::ElectrumBlockchain, electrum_client::Client, FeeRate};
+use bdk::{
+    bitcoin::Network,
+    blockchain::{Blockchain, ElectrumBlockchain},
+    electrum_client::Client,
+    FeeRate,
+};
 use uuid::Uuid;
 
-use bria::{wallet::*, xpub::*};
+use bria::{signing_client::*, wallet::*, xpub::*};
 
 #[tokio::test]
 async fn end_to_end() -> anyhow::Result<()> {
@@ -49,13 +54,38 @@ async fn end_to_end() -> anyhow::Result<()> {
     }
     let balance = wallet.balance().await?;
     assert_eq!(balance.untrusted_pending, 0);
+    let previous_spendable = balance.get_spendable();
+    let send_amount = 100_000;
 
     let fee = FeeRate::from_sat_per_vb(1.0);
     let destinations = vec![(
         "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-        balance.get_spendable() - 1000,
+        send_amount,
     )];
     let res = wallet.prep_psbt(destinations, fee).await;
     assert!(res.is_ok());
+    let unsigned_psbt = res.unwrap().unwrap().0;
+
+    let mut lnd_client = helpers::lnd_signing_client().await?;
+    let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
+    let tx = wallet.finalize_psbt(signed_psbt).await?.extract_tx();
+    let electrum = ElectrumBlockchain::from(Client::new(&electrum_url)?);
+    electrum.broadcast(&tx)?;
+    helpers::gen_blocks(&bitcoind, 6)?;
+
+    for _ in 0..10 {
+        let blockchain = ElectrumBlockchain::from(Client::new(&electrum_url)?);
+        wallet.sync(blockchain).await?;
+        let balance = wallet.balance().await?;
+        if balance.get_spendable() < previous_spendable - send_amount {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+
+    let balance = wallet.balance().await?;
+    assert!(balance.get_spendable() < previous_spendable - send_amount);
+    assert!(balance.get_spendable() > previous_spendable - send_amount - 1000);
+
     Ok(())
 }

@@ -47,9 +47,9 @@ pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
 
 pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
     let cfg = LndRemoteSignerConfig {
-        endpoint: "localhost:10009".to_string(),
-        macaroon_file: "admin.macaroon".to_string(),
-        cert_file: "tls.cert".to_string(),
+        endpoint: "https://localhost:10009".to_string(),
+        macaroon_file: "./dev/lnd/regtest/lnd.admin.macaroon".to_string(),
+        cert_file: "./dev/lnd/tls.cert".to_string(),
     };
     Ok(LndRemoteSigner::connect(cfg).await?)
 }
