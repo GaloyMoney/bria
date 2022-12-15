@@ -1,13 +1,13 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
     wallet::AddressIndex,
-    Wallet,
+    FeeRate, TransactionDetails, Wallet,
 };
-use bitcoin::{util::psbt, Network};
+use bitcoin::{util::psbt, Address, Network};
 use sqlx::PgPool;
 use tracing::instrument;
 
-use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*};
+use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*, wallet::psbt_builder::PsbtBuilder};
 
 pub trait ToExternalDescriptor {
     fn to_external_descriptor(&self) -> String;
@@ -36,12 +36,24 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         }
     }
 
-    pub async fn prep_psbt(&self) -> Result<(), BriaError> {
-        self.with_wallet(|wallet| {
-            let builder = wallet.build_tx();
-        })
-        .await?;
-        Ok(())
+    pub async fn prep_psbt<'a, 'b>(
+        &'a self,
+        recipients: Vec<(Address, u64)>,
+        fee_rate: FeeRate,
+    ) -> Result<Option<(psbt::PartiallySignedTransaction, TransactionDetails)>, BriaError> {
+        match self
+            .with_wallet(move |wallet| {
+                let mut builder = wallet.build_tx();
+                builder.fee_rate(fee_rate);
+                builder.add_recipient(recipients[0].0.script_pubkey(), recipients[0].1);
+                builder.finish()
+            })
+            .await
+        {
+            Ok(Ok(r)) => Ok(Some(r)),
+            Ok(Err(e)) => Err(e.into()),
+            Err(e) => Err(e.into()),
+        }
     }
 
     #[instrument(name = "keychain_wallet.new_external_address", skip_all)]

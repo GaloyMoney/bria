@@ -7,9 +7,9 @@ use super::{error::*, r#trait::*};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct LndRemoteSignerConfig {
-    endpoint: String,
-    cert_file: String,
-    macaroon_file: String,
+    pub endpoint: String,
+    pub cert_file: String,
+    pub macaroon_file: String,
 }
 
 pub struct LndRemoteSigner {

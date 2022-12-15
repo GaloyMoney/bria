@@ -47,10 +47,7 @@ pub async fn execute(
         collect_deprecated_utxos(&mut deprecated_utxos, &unbatched_payouts).await?;
     }
 
-    // find 'reserved' UTXOs
-    // collect all "old" UTXOs
-    //
-    // tokio::time::sleep(std::time::Duration::from_secs(4)).await;
+    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
     if let Some(payout) = unbatched_payouts.into_iter().next() {
         let wallet = wallets.remove(&payout.wallet_id).expect("Wallet not found");
         let keychain_wallet = wallet.current_keychain_wallet(&pool);

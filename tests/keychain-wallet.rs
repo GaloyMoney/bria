@@ -1,12 +1,12 @@
 mod helpers;
 
-use bdk::{bitcoin::Network, blockchain::ElectrumBlockchain, electrum_client::Client};
+use bdk::{bitcoin::Network, blockchain::ElectrumBlockchain, electrum_client::Client, FeeRate};
 use uuid::Uuid;
 
 use bria::{wallet::*, xpub::*};
 
 #[tokio::test]
-async fn sync_wallet() -> anyhow::Result<()> {
+async fn end_to_end() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let keychain_id = Uuid::new_v4();
@@ -35,5 +35,27 @@ async fn sync_wallet() -> anyhow::Result<()> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     assert_eq!(wallet.balance().await?.untrusted_pending, 100_000_000);
+
+    helpers::gen_blocks(&bitcoind, 6)?;
+
+    for _ in 0..10 {
+        let blockchain = ElectrumBlockchain::from(Client::new(&electrum_url)?);
+        wallet.sync(blockchain).await?;
+        let balance = wallet.balance().await?;
+        if balance.untrusted_pending == 0 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    }
+    let balance = wallet.balance().await?;
+    assert_eq!(balance.untrusted_pending, 0);
+
+    let fee = FeeRate::from_sat_per_vb(1.0);
+    let destinations = vec![(
+        "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+        balance.get_spendable() - 1000,
+    )];
+    let res = wallet.prep_psbt(destinations, fee).await;
+    assert!(res.is_ok());
     Ok(())
 }

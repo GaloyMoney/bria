@@ -44,7 +44,7 @@ impl NewBatchGroup {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchGroupConfig {
-    pub target_confs: u32,
+    pub tx_priority: TxPriority,
     pub consolidate_deprecated_keychains: bool,
     pub trigger: BatchGroupTrigger,
 }
@@ -65,7 +65,7 @@ pub enum BatchGroupTrigger {
 impl Default for BatchGroupConfig {
     fn default() -> Self {
         Self {
-            target_confs: 1,
+            tx_priority: TxPriority::NextBlock,
             consolidate_deprecated_keychains: true,
             trigger: BatchGroupTrigger::Interval {
                 seconds: default_interval(),

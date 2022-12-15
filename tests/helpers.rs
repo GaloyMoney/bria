@@ -2,7 +2,7 @@
 
 use bdk::bitcoin::{Address, Amount};
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
-use bria::{admin::*, primitives::*};
+use bria::{admin::*, primitives::*, signing_client::*};
 use rand::distributions::{Alphanumeric, DistString};
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
@@ -45,6 +45,15 @@ pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
     Ok(client)
 }
 
+pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
+    let cfg = LndRemoteSignerConfig {
+        endpoint: "localhost:10009".to_string(),
+        macaroon_file: "admin.macaroon".to_string(),
+        cert_file: "tls.cert".to_string(),
+    };
+    Ok(LndRemoteSigner::connect(cfg).await?)
+}
+
 pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyhow::Result<()> {
     let fund = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(6, &fund)?;
@@ -58,5 +67,11 @@ pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyh
         None,
         None,
     )?;
+    Ok(())
+}
+
+pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
+    let addr = bitcoind.get_new_address(None, None)?;
+    bitcoind.generate_to_address(n, &addr)?;
     Ok(())
 }

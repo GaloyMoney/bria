@@ -25,6 +25,8 @@ pub enum BriaError {
     JoinError(#[from] tokio::task::JoinError),
     #[error("BriaError - BdkError: {0}")]
     BdkError(#[from] bdk::Error),
+    #[error("BriaError - FeeEstimationError: {0}")]
+    FeeEstimationError(reqwest::Error),
 }
 
 impl JobExecutionError for BriaError {}
