@@ -9,6 +9,7 @@ pub mod batch_group;
 pub mod bdk;
 pub mod cli;
 mod error;
+pub mod fee_estimation;
 mod job;
 pub mod ledger;
 mod macros;
