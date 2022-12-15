@@ -8,11 +8,15 @@ use crate::{error::*, primitives::*};
 #[derive(Debug, Clone)]
 pub struct Wallets {
     pool: Pool<Postgres>,
+    network: bitcoin::Network,
 }
 
 impl Wallets {
-    pub fn new(pool: &Pool<Postgres>) -> Self {
-        Self { pool: pool.clone() }
+    pub fn new(pool: &Pool<Postgres>, network: bitcoin::Network) -> Self {
+        Self {
+            pool: pool.clone(),
+            network,
+        }
     }
 
     pub async fn create_in_tx(
@@ -21,15 +25,14 @@ impl Wallets {
         account_id: AccountId,
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
-        let record = sqlx::query!(
+        sqlx::query!(
             r#"INSERT INTO bria_wallet_keychains (account_id, wallet_id, keychain_cfg)
-            VALUES ($1, $2, $3)
-            RETURNING (id)"#,
+            VALUES ($1, $2, $3)"#,
             Uuid::from(account_id),
             Uuid::from(new_wallet.id),
             serde_json::to_value(new_wallet.keychain)?
         )
-        .fetch_one(&mut *tx)
+        .execute(&mut *tx)
         .await?;
         let record = sqlx::query!(
             r#"INSERT INTO bria_wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, name)
@@ -86,6 +89,7 @@ impl Wallets {
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
             config,
+            network: self.network,
         })
     }
 
@@ -125,6 +129,7 @@ impl Wallets {
             dust_ledger_account_id: first_row.dust_ledger_account_id.into(),
             keychains,
             config,
+            network: self.network,
         };
         for row in iter {
             let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)?;
@@ -133,11 +138,11 @@ impl Wallets {
         Ok(wallet)
     }
 
-    pub async fn list_by_ids(
+    pub async fn find_by_ids(
         &self,
         ids: HashSet<WalletId>,
     ) -> Result<HashMap<WalletId, Wallet>, BriaError> {
-        let uuids = ids.into_iter().map(|id| Uuid::from(id)).collect::<Vec<_>>();
+        let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
         let rows = sqlx::query!(
             r#"WITH latest AS (
               SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
@@ -162,6 +167,7 @@ impl Wallets {
                 keychains: vec![(keychain_id, keychain.clone())],
                 config: serde_json::from_value(row.wallet_cfg)
                     .expect("Couldn't deserialize wallet config"),
+                network: self.network,
             });
             wallet.previous_keychain(keychain_id, keychain);
         }

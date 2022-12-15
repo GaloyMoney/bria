@@ -45,6 +45,7 @@ impl NewBatchGroup {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchGroupConfig {
     pub target_confs: u32,
+    pub consolidate_deprecated_keychains: bool,
     pub trigger: BatchGroupTrigger,
 }
 
@@ -65,6 +66,7 @@ impl Default for BatchGroupConfig {
     fn default() -> Self {
         Self {
             target_confs: 1,
+            consolidate_deprecated_keychains: true,
             trigger: BatchGroupTrigger::Interval {
                 seconds: default_interval(),
             },

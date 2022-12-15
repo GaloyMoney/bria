@@ -61,6 +61,26 @@ impl BatchGroups {
         Ok(BatchGroupId::from(record.unwrap().id))
     }
 
+    pub async fn find_by_id(&self, id: BatchGroupId) -> Result<BatchGroup, BriaError> {
+        let record = sqlx::query!(
+            r#"SElECT id, account_id, batch_cfg
+                 FROM bria_batch_groups
+                 WHERE id = $1 ORDER BY version DESC LIMIT 1"#,
+            Uuid::from(id),
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        record
+            .map(|row| BatchGroup {
+                id: BatchGroupId::from(row.id),
+                account_id: AccountId::from(row.account_id),
+                config: serde_json::from_value(row.batch_cfg)
+                    .expect("Couldn't deserialize batch config"),
+            })
+            .ok_or(BriaError::BatchGroupNotFound)
+    }
+
     pub async fn all(&self) -> Result<impl Iterator<Item = BatchGroup>, BriaError> {
         let rows = sqlx::query!(
             r#"WITH latest AS (

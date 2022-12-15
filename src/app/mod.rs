@@ -29,7 +29,7 @@ impl App {
         blockchain_cfg: BlockchainConfig,
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
-        let wallets = Wallets::new(&pool);
+        let wallets = Wallets::new(&pool, blockchain_cfg.network);
         let batch_groups = BatchGroups::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
@@ -140,13 +140,7 @@ impl App {
         wallet_name: String,
     ) -> Result<String, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
-        let (keychain_id, cfg) = wallet.current_keychain();
-        let keychain_wallet = KeychainWallet::new(
-            self.pool.clone(),
-            self.blockchain_cfg.network,
-            keychain_id,
-            cfg.clone(),
-        );
+        let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
         Ok(addr.to_string())
     }

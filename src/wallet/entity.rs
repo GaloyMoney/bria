@@ -13,6 +13,7 @@ pub struct Wallet {
     pub journal_id: JournalId,
     pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
     pub config: WalletConfig,
+    pub network: bitcoin::Network,
 }
 
 impl Wallet {
@@ -25,9 +26,12 @@ impl Wallet {
 }
 
 impl Wallet {
-    pub fn current_keychain(&self) -> (KeychainId, &WalletKeyChainConfig) {
+    pub fn current_keychain_wallet(
+        &self,
+        pool: &sqlx::PgPool,
+    ) -> KeychainWallet<WalletKeyChainConfig> {
         let (id, cfg) = &self.keychains[0];
-        (*id, cfg)
+        KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone())
     }
 
     pub fn ledger_account_id_for_utxo(&self, utxo: &LocalUtxo) -> LedgerAccountId {

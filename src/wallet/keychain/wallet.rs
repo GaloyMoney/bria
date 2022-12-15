@@ -3,7 +3,7 @@ use bdk::{
     wallet::AddressIndex,
     Wallet,
 };
-use bitcoin::Network;
+use bitcoin::{util::psbt, Network};
 use sqlx::PgPool;
 use tracing::instrument;
 
@@ -34,6 +34,14 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
             keychain_id,
             descriptor,
         }
+    }
+
+    pub async fn prep_psbt(&self) -> Result<(), BriaError> {
+        self.with_wallet(|wallet| {
+            let builder = wallet.build_tx();
+        })
+        .await?;
+        Ok(())
     }
 
     #[instrument(name = "keychain_wallet.new_external_address", skip_all)]

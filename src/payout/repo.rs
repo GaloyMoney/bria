@@ -7,14 +7,12 @@ use crate::{error::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Payouts {
-    _pool: Pool<Postgres>,
+    pool: Pool<Postgres>,
 }
 
 impl Payouts {
     pub fn new(pool: &Pool<Postgres>) -> Self {
-        Self {
-            _pool: pool.clone(),
-        }
+        Self { pool: pool.clone() }
     }
 
     #[instrument(name = "payouts.create", skip(self, tx))]
@@ -51,19 +49,19 @@ impl Payouts {
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
         batch_group_id: BatchGroupId,
     ) -> Result<Vec<Payout>, BriaError> {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
-                 FROM bria_payouts WHERE batch_group_id = $1
+                 FROM bria_payouts JOIN bria_batch_payouts ON id = payout_id
+                 WHERE batch_group_id = $1 AND payout_id IS NULL
                ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts
                  WHERE (id, version) IN (SELECT * FROM latest)
                  ORDER BY priority, created_at"#,
             Uuid::from(batch_group_id),
         )
-        .fetch_all(&mut *tx)
+        .fetch_all(&self.pool)
         .await?;
         Ok(rows
             .into_iter()

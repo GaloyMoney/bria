@@ -79,10 +79,6 @@ CREATE TABLE bria_batch_groups (
   UNIQUE(account_id, name, version)
 );
 
-CREATE TABLE bria_batches (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid()
-);
-
 CREATE TABLE bria_payouts (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   version INT NOT NULL DEFAULT 1,
@@ -98,4 +94,26 @@ CREATE TABLE bria_payouts (
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(id, version),
   UNIQUE(account_id, external_id, version)
+);
+
+CREATE TABLE bria_batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_group_id UUID NOT NULL,
+  job_data JSONB NOT NULL,
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE bria_batch_payouts (
+  batch_id UUID NOT NULL,
+  payout_id UUID UNIQUE NOT NULL,
+  UNIQUE(batch_id, payout_id)
+);
+
+CREATE TABLE bria_batch_utxos (
+  batch_id UUID NOT NULL,
+  keychain_id UUID NOT NULL,
+  tx_id VARCHAR NOT NULL,
+  vout INTEGER NOT NULL,
+  UNIQUE(keychain_id, tx_id, vout)
 );
