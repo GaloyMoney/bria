@@ -3,6 +3,7 @@ package services.bria.v1;
 
 service BriaService {
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
+  rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
@@ -18,6 +19,21 @@ message ImportXpubRequest {
 message ImportXpubResponse {
   string id = 1;
 }
+
+message SetSignerConfigRequest {
+  string xpub_ref = 1;
+  oneof config {
+    LndSignerConfig lnd = 2;
+  }
+}
+
+message LndSignerConfig {
+  string endpoint = 1;
+  string cert_base64 = 2;
+  string macaroon_base64 = 3;
+}
+
+message SetSignerConfigResponse {}
 
 message CreateWalletRequest {
   string name = 1;

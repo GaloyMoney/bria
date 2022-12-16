@@ -8,7 +8,7 @@ use bdk::{
 };
 use uuid::Uuid;
 
-use bria::{signing_client::*, wallet::*, xpub::*};
+use bria::{signer::*, wallet::*, xpub::*};
 
 #[tokio::test]
 async fn end_to_end() -> anyhow::Result<()> {
@@ -54,6 +54,7 @@ async fn end_to_end() -> anyhow::Result<()> {
     }
     let balance = wallet.balance().await?;
     assert_eq!(balance.untrusted_pending, 0);
+
     let previous_spendable = balance.get_spendable();
     let send_amount = 100_000;
 

@@ -3,13 +3,15 @@ use bitcoin::{consensus::encode, util::psbt::PartiallySignedTransaction};
 use serde::{Deserialize, Serialize};
 use tonic_lnd::walletrpc::SignPsbtRequest;
 
+use std::fs;
+
 use super::{error::*, r#trait::*};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct LndRemoteSignerConfig {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LndSignerConfig {
     pub endpoint: String,
-    pub cert_file: String,
-    pub macaroon_file: String,
+    pub cert_base64: String,
+    pub macaroon_base64: String,
 }
 
 pub struct LndRemoteSigner {
@@ -17,8 +19,25 @@ pub struct LndRemoteSigner {
 }
 
 impl LndRemoteSigner {
-    pub async fn connect(cfg: LndRemoteSignerConfig) -> Result<Self, SigningClientError> {
-        let client = tonic_lnd::connect(cfg.endpoint, cfg.cert_file, cfg.macaroon_file)
+    pub async fn connect(cfg: LndSignerConfig) -> Result<Self, SigningClientError> {
+        use std::{io::Write, os::unix::fs::OpenOptionsExt};
+        let tmpdir = tempfile::tempdir()?;
+        let cert_file = tmpdir.path().join("cert");
+
+        let mut cert = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .mode(0o600)
+            .open(&cert_file)?;
+        cert.write_all(&base64::decode(&cfg.cert_base64)?)?;
+        let macaroon_file = tmpdir.path().join("macaroon");
+        let mut macaroon = fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .mode(0o600)
+            .open(&macaroon_file)?;
+        macaroon.write_all(&base64::decode(&cfg.macaroon_base64)?)?;
+        let client = tonic_lnd::connect(cfg.endpoint, cert_file, macaroon_file)
             .await
             .map_err(|e| {
                 SigningClientError::CouldNotConnect(format!("Failed to connect to lnd: {}", e))
@@ -44,7 +63,6 @@ impl RemoteSigningClient for LndRemoteSigner {
                 SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {}", e))
             })?;
         let signed_psbt = response.into_inner().signed_psbt;
-        // dgb!(base64::encode(&signed_psbt));
         Ok(encode::deserialize(&signed_psbt)?)
     }
 }

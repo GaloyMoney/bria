@@ -43,11 +43,12 @@ CREATE TABLE bria_xpubs (
 
 CREATE TABLE bria_signers (
   id UUID PRIMARY KEY NOT NULL,
+  version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   xpub_name VARCHAR NOT NULL,
   type VARCHAR NOT NULL,
   signer_cfg JSONB NOT NULL,
-  UNIQUE(account_id, xpub_name)
+  UNIQUE(account_id, xpub_name, version)
 );
 
 CREATE TABLE bria_wallets (

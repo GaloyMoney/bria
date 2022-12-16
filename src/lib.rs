@@ -16,7 +16,6 @@ mod macros;
 pub mod payout;
 pub mod primitives;
 pub mod signer;
-pub mod signing_client;
 mod tracing;
 pub mod wallet;
 pub mod xpub;

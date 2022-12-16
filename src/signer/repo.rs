@@ -1,5 +1,4 @@
 use sqlx::{Pool, Postgres, Transaction};
-use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use super::entity::*;
@@ -11,7 +10,7 @@ pub struct Signers {
 }
 
 impl Signers {
-    pub fn new(pool: &Pool<Postgres>, network: bitcoin::Network) -> Self {
+    pub fn new(pool: &Pool<Postgres>) -> Self {
         Self { pool: pool.clone() }
     }
 

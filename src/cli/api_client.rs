@@ -77,6 +77,24 @@ impl ApiClient {
         Ok(())
     }
 
+    pub async fn set_signer_config(
+        &self,
+        xpub_ref: String,
+        config: impl Into<proto::LndSignerConfig>,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::SetSignerConfigRequest {
+            xpub_ref,
+            config: Some(proto::set_signer_config_request::Config::Lnd(config.into())),
+        });
+        let response = self
+            .connect()
+            .await?
+            .set_signer_config(self.inject_auth_token(request)?)
+            .await?;
+        println!("Done");
+        Ok(())
+    }
+
     pub async fn create_wallet(&self, name: String, xpubs: Vec<String>) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::CreateWalletRequest {
             name,

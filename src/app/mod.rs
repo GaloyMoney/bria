@@ -8,13 +8,14 @@ pub use config::*;
 
 use crate::{
     account::keys::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
-    wallet::*, xpub::*,
+    signer::*, wallet::*, xpub::*,
 };
 
 pub struct App {
     _runner: OwnedHandle,
     keys: AccountApiKeys,
     xpubs: XPubs,
+    signers: Signers,
     wallets: Wallets,
     batch_groups: BatchGroups,
     payouts: Payouts,
@@ -31,6 +32,7 @@ impl App {
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
         let batch_groups = BatchGroups::new(&pool);
+        let signers = Signers::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let runner = job::start_job_runner(
@@ -53,6 +55,7 @@ impl App {
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
+            signers,
             wallets,
             batch_groups,
             payouts,
@@ -80,6 +83,18 @@ impl App {
         let xpub = XPub::try_from((xpub, derivation))?;
         let id = self.xpubs.persist(account_id, key_name, xpub).await?;
         Ok(id)
+    }
+
+    #[instrument(name = "app.set_signer_config", skip(self), err)]
+    pub async fn set_signer_config(
+        &self,
+        account_id: AccountId,
+        xpub_name: String,
+        config: SignerConfig,
+    ) -> Result<(), BriaError> {
+        // let xpub = self.xpubs.find_by_name(account_id, xpub_name).await?;
+        // self.xpubs.set_signer_config(xpub.id, config).await?;
+        Ok(())
     }
 
     #[instrument(name = "app.create_wallet", skip(self), err)]

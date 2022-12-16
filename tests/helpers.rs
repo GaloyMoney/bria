@@ -2,7 +2,7 @@
 
 use bdk::bitcoin::{Address, Amount};
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
-use bria::{admin::*, primitives::*, signing_client::*};
+use bria::{admin::*, primitives::*, signer::*};
 use rand::distributions::{Alphanumeric, DistString};
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
@@ -46,10 +46,12 @@ pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
 }
 
 pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
-    let cfg = LndRemoteSignerConfig {
+    let macaroon_base64 = read_to_base64("./dev/lnd/regtest/lnd.admin.macaroon")?;
+    let cert_base64 = read_to_base64("./dev/lnd/tls.cert")?;
+    let cfg = LndSignerConfig {
         endpoint: "https://localhost:10009".to_string(),
-        macaroon_file: "./dev/lnd/regtest/lnd.admin.macaroon".to_string(),
-        cert_file: "./dev/lnd/tls.cert".to_string(),
+        macaroon_base64,
+        cert_base64,
     };
     Ok(LndRemoteSigner::connect(cfg).await?)
 }
@@ -74,4 +76,15 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     let addr = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(n, &addr)?;
     Ok(())
+}
+
+fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String> {
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::io::Read;
+    let f = File::open(path.into())?;
+    let mut reader = BufReader::new(f);
+    let mut buffer = Vec::new();
+    reader.read_to_end(&mut buffer)?;
+    Ok(base64::encode(buffer))
 }

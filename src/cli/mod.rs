@@ -68,6 +68,22 @@ enum Command {
         #[clap(short, long)]
         derivation: Option<String>,
     },
+    SetSignerConfig {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        xpub: String,
+        #[clap(subcommand)]
+        command: SetSignerConfigCommand,
+    },
     /// Create a wallet from imported xpubs
     CreateWallet {
         #[clap(
@@ -140,6 +156,18 @@ enum AdminCommand {
     },
 }
 
+#[derive(Subcommand)]
+enum SetSignerConfigCommand {
+    Lnd {
+        #[clap(short, long)]
+        endpoint: String,
+        #[clap(short, long)]
+        macaroon_file: PathBuf,
+        #[clap(short, long)]
+        cert_file: PathBuf,
+    },
+}
+
 pub async fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
@@ -188,6 +216,34 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(url, api_key);
             client.import_xpub(name, xpub, derivation).await?;
+        }
+        Command::SetSignerConfig {
+            url,
+            api_key,
+            xpub,
+            command,
+        } => {
+            let client = api_client(url, api_key);
+            match command {
+                SetSignerConfigCommand::Lnd {
+                    endpoint,
+                    macaroon_file,
+                    cert_file,
+                } => {
+                    let macaroon_base64 = read_to_base64(macaroon_file)?;
+                    let cert_base64 = read_to_base64(cert_file)?;
+                    client
+                        .set_signer_config(
+                            xpub,
+                            crate::api::proto::LndSignerConfig {
+                                endpoint,
+                                macaroon_base64,
+                                cert_base64,
+                            },
+                        )
+                        .await?;
+                }
+            };
         }
         Command::CreateWallet {
             url,
@@ -267,4 +323,15 @@ async fn run_cmd(
         handle.abort();
     }
     reason
+}
+
+fn read_to_base64(path: PathBuf) -> anyhow::Result<String> {
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::io::Read;
+    let f = File::open(path)?;
+    let mut reader = BufReader::new(f);
+    let mut buffer = Vec::new();
+    reader.read_to_end(&mut buffer)?;
+    Ok(base64::encode(buffer))
 }

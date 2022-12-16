@@ -1,6 +1,7 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
+use super::client::LndSignerConfig;
 use crate::primitives::*;
 
 #[derive(Builder, Debug, Clone)]
@@ -22,11 +23,4 @@ impl NewSigner {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SignerConfig {
     Lnd(LndSignerConfig),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct LndSignerConfig {
-    endpoint: String,
-    cert: String,
-    macaroon: String,
 }

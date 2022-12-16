@@ -46,6 +46,20 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn set_signer_config(
+        &self,
+        request: Request<SetSignerConfigRequest>,
+    ) -> Result<Response<SetSignerConfigResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let SetSignerConfigRequest { xpub_ref, config } = request.into_inner();
+        self.app
+            .set_signer_config(account_id, xpub_ref, config.try_into()?)
+            .await?;
+        Ok(Response::new(SetSignerConfigResponse {}))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_wallet(
         &self,
         request: Request<CreateWalletRequest>,
