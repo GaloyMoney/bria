@@ -45,48 +45,66 @@ impl XPubs {
         &self,
         account_id: AccountId,
         xpub_ref: String,
-    ) -> Result<XPub, BriaError> {
-        let (derivation_path, original, bytes) = match (
+    ) -> Result<(String, XPub), BriaError> {
+        let (name, derivation_path, original, bytes) = match (
             Fingerprint::from_str(&xpub_ref),
             ExtendedPubKey::from_str(&xpub_ref),
         ) {
             (Ok(fp), _) => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
+                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
                 .fetch_one(&self.pool)
                 .await?;
-                (record.derivation_path, record.original, record.xpub)
+                (
+                    record.name,
+                    record.derivation_path,
+                    record.original,
+                    record.xpub,
+                )
             }
 
             (_, Ok(key)) => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"#,
+                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"#,
                     Uuid::from(account_id),
                     &key.encode()
                 )
                 .fetch_one(&self.pool)
                 .await?;
-                (record.derivation_path, record.original, record.xpub)
+                (
+                    record.name,
+                    record.derivation_path,
+                    record.original,
+                    record.xpub,
+                )
             }
             _ => {
                 let record = sqlx::query!(
-                    r#"SELECT derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
+                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
                     xpub_ref
                 )
                 .fetch_one(&self.pool)
                 .await?;
-                (record.derivation_path, record.original, record.xpub)
+                (
+                    record.name,
+                    record.derivation_path,
+                    record.original,
+                    record.xpub,
+                )
             }
         };
-        Ok(XPub {
-            derivation: derivation_path
-                .map(|d| d.parse().expect("Couldn't decode derivation path")),
-            original,
-            inner: ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
-        })
+        Ok((
+            name,
+            XPub {
+                derivation: derivation_path
+                    .map(|d| d.parse().expect("Couldn't decode derivation path")),
+                original,
+                inner: ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
+            },
+        ))
     }
 }

@@ -89,11 +89,16 @@ impl App {
     pub async fn set_signer_config(
         &self,
         account_id: AccountId,
-        xpub_name: String,
+        xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), BriaError> {
-        // let xpub = self.xpubs.find_by_name(account_id, xpub_name).await?;
-        // self.xpubs.set_signer_config(xpub.id, config).await?;
+        let xpub = self.xpubs.find_from_ref(account_id, xpub_ref).await?;
+        let new_signer = NewSigner::builder()
+            .xpub_name(xpub.0)
+            .config(config)
+            .build()
+            .expect("Couldn't build signer");
+        self.signers.create(account_id, new_signer).await?;
         Ok(())
     }
 
@@ -109,7 +114,7 @@ impl App {
             xpubs.push(self.xpubs.find_from_ref(account_id, xpub_ref).await?);
         }
 
-        if xpubs.len() > 1 {
+        if xpubs.len() != 1 {
             unimplemented!()
         }
 
@@ -122,7 +127,9 @@ impl App {
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
             .name(wallet_name.clone())
-            .keychain(WpkhKeyChainConfig::new(xpubs.into_iter().next().unwrap()))
+            .keychain(WpkhKeyChainConfig::new(
+                xpubs.into_iter().next().expect("xpubs is empty").1,
+            ))
             .dust_account_id(dust_account_id)
             .build()
             .expect("Couldn't build NewWallet");

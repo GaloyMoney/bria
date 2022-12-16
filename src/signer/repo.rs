@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::entity::*;
@@ -14,9 +14,8 @@ impl Signers {
         Self { pool: pool.clone() }
     }
 
-    pub async fn create_in_tx(
+    pub async fn create(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         signer: NewSigner,
     ) -> Result<SignerId, BriaError> {
@@ -30,7 +29,7 @@ impl Signers {
             signer.xpub_name,
             serde_json::to_value(signer.config)?,
         )
-        .execute(&mut *tx)
+        .execute(&self.pool)
         .await?;
 
         Ok(signer.id)
