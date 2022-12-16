@@ -20,7 +20,7 @@ CREATE TABLE bria_accounts (
 CREATE TABLE bria_account_api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  name VARCHAR UNIQUE NOT NULL,
+  name VARCHAR NOT NULL,
   encrypted_key VARCHAR NOT NULL,
   active BOOL NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -39,6 +39,15 @@ CREATE TABLE bria_xpubs (
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(account_id, xpub),
   UNIQUE(account_id, name)
+);
+
+CREATE TABLE bria_signers (
+  id UUID PRIMARY KEY NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  xpub_name VARCHAR NOT NULL,
+  type VARCHAR NOT NULL,
+  signer_cfg JSONB NOT NULL,
+  UNIQUE(account_id, xpub_name)
 );
 
 CREATE TABLE bria_wallets (
