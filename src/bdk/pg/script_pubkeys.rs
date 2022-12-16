@@ -25,7 +25,7 @@ impl ScriptPubkeys {
         sqlx::query!(
             r#"INSERT INTO bdk_script_pubkeys
             (keychain_id, keychain_kind, path, script, script_fmt)
-            VALUES ($1, $2, $3, $4, $5)"#,
+            VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"#,
             Uuid::from(self.keychain_id),
             kind as BdkKeychainKind,
             path as i32,

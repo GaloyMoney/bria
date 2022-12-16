@@ -53,3 +53,4 @@ tonic-build = { version = "0.8", features = ["prost"] }
 
 [dev-dependencies]
 bitcoincore-rpc = "0.16.0"
+serial_test = "0.9.0"

@@ -5,4 +5,5 @@ mod repo;
 
 pub use entity::*;
 pub use keychain::*;
+pub use psbt_builder::*;
 pub use repo::*;

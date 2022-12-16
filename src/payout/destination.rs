@@ -6,3 +6,11 @@ use serde::{Deserialize, Serialize};
 pub enum PayoutDestination {
     OnchainAddress { value: Address },
 }
+
+impl PayoutDestination {
+    pub fn onchain_address(&self) -> Option<Address> {
+        match self {
+            Self::OnchainAddress { value } => Some(value.clone()),
+        }
+    }
+}

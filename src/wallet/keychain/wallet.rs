@@ -7,7 +7,7 @@ use bitcoin::{util::psbt, Address, Network};
 use sqlx::PgPool;
 use tracing::instrument;
 
-use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*, wallet::psbt_builder::PsbtBuilder};
+use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*};
 
 pub trait ToExternalDescriptor {
     fn to_external_descriptor(&self) -> String;
@@ -15,6 +15,14 @@ pub trait ToExternalDescriptor {
 
 pub trait ToInternalDescriptor {
     fn to_internal_descriptor(&self) -> String;
+}
+
+pub trait BdkWalletVisitor: Sized + Send + 'static {
+    fn visit_bdk_wallet(
+        self,
+        keychain_id: KeychainId,
+        wallet: &Wallet<SqlxWalletDb>,
+    ) -> Result<Self, BriaError>;
 }
 
 pub struct KeychainWallet<T> {
@@ -33,28 +41,6 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
             network,
             keychain_id,
             descriptor,
-        }
-    }
-
-    pub async fn prep_psbt<'a, 'b>(
-        &'a self,
-        recipients: Vec<(Address, u64)>,
-        fee_rate: FeeRate,
-    ) -> Result<Option<(psbt::PartiallySignedTransaction, TransactionDetails)>, BriaError> {
-        match self
-            .with_wallet(move |wallet| {
-                let mut builder = wallet.build_tx();
-                builder.fee_rate(fee_rate);
-                builder.add_recipient(recipients[0].0.script_pubkey(), recipients[0].1);
-                builder.ordering(TxOrdering::Bip69Lexicographic);
-                builder.sighash(bitcoin::EcdsaSighashType::All.into());
-                builder.finish()
-            })
-            .await
-        {
-            Ok(Ok(r)) => Ok(Some(r)),
-            Ok(Err(e)) => Err(e.into()),
-            Err(e) => Err(e.into()),
         }
     }
 
@@ -136,5 +122,17 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         })
         .await?;
         Ok(res)
+    }
+
+    pub async fn dispatch_bdk_wallet<V: BdkWalletVisitor>(&self, v: V) -> Result<V, BriaError> {
+        let keychain_id = self.keychain_id;
+        match self
+            .with_wallet(move |wallet| v.visit_bdk_wallet(keychain_id, &wallet))
+            .await
+        {
+            Ok(Ok(r)) => Ok(r),
+            Ok(Err(e)) => Err(e.into()),
+            Err(e) => Err(e.into()),
+        }
     }
 }

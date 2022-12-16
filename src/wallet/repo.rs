@@ -159,18 +159,20 @@ impl Wallets {
             let keychain_id = KeychainId::from(row.keychain_id);
             let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)
                 .expect("Couldn't deserialize keychain_cfg");
-            let wallet = wallets.entry(row.id).or_insert_with(|| Wallet {
-                id: row.id.into(),
-                journal_id: row.journal_id.into(),
-                ledger_account_id: row.ledger_account_id.into(),
-                dust_ledger_account_id: row.dust_ledger_account_id.into(),
-                keychains: vec![(keychain_id, keychain.clone())],
-                config: serde_json::from_value(row.wallet_cfg)
-                    .expect("Couldn't deserialize wallet config"),
-                network: self.network,
-            });
+            let wallet = wallets
+                .entry(WalletId::from(row.id))
+                .or_insert_with(|| Wallet {
+                    id: row.id.into(),
+                    journal_id: row.journal_id.into(),
+                    ledger_account_id: row.ledger_account_id.into(),
+                    dust_ledger_account_id: row.dust_ledger_account_id.into(),
+                    keychains: vec![(keychain_id, keychain.clone())],
+                    config: serde_json::from_value(row.wallet_cfg)
+                        .expect("Couldn't deserialize wallet config"),
+                    network: self.network,
+                });
             wallet.previous_keychain(keychain_id, keychain);
         }
-        unimplemented!()
+        Ok(wallets)
     }
 }

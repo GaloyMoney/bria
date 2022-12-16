@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 
-use bdk::bitcoin::{Address, Amount};
+use bdk::{
+    bitcoin::{Address, Amount},
+    blockchain::ElectrumBlockchain,
+    electrum_client::Client,
+};
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, primitives::*, signer::*};
 use rand::distributions::{Alphanumeric, DistString};
@@ -24,6 +28,12 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<AccountI
 
 const BITCOIND_WALLET_NAME: &str = "bria";
 pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
+    match bitcoind_client_inner() {
+        Err(e) => bitcoind_client_inner(),
+        Ok(c) => Ok(c),
+    }
+}
+pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     use bitcoincore_rpc::Auth;
 
     let bitcoind_host = std::env::var("BITCIOND_HOST").unwrap_or("localhost".to_string());
@@ -76,6 +86,12 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     let addr = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(n, &addr)?;
     Ok(())
+}
+
+pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
+    let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
+    let electrum_url = format!("{electrum_host}:50001");
+    Ok(ElectrumBlockchain::from(Client::new(&electrum_url)?))
 }
 
 fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String> {

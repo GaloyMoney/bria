@@ -39,19 +39,23 @@ pub async fn execute(
     let BatchGroup { config: bg_cfg, .. } = batch_groups.find_by_id(data.batch_group_id).await?;
 
     let unbatched_payouts = payouts.list_unbatched(data.batch_group_id).await?;
-    let wallet_ids = unbatched_payouts.iter().map(|p| p.wallet_id).collect();
+    let wallet_ids = unbatched_payouts.keys().copied().collect();
     let mut wallets = wallets.find_by_ids(wallet_ids).await?;
 
-    let mut deprecated_utxos = HashMap::new();
-    if bg_cfg.consolidate_deprecated_keychains {
-        collect_deprecated_utxos(&mut deprecated_utxos, &unbatched_payouts).await?;
+    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
+
+    let builder = PsbtBuilder::new()
+        .consolidate_deprecated_keychains(bg_cfg.consolidate_deprecated_keychains)
+        .fee_rate(fee_rate)
+        .begin_wallets();
+
+    for (wallet_id, payouts) in unbatched_payouts {
+        let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
+        // wallet_section.add_wallet(wallet);
+        // builder -> wallet , wallet -> keychain, keychain -> wallet
     }
 
-    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
-    if let Some(payout) = unbatched_payouts.into_iter().next() {
-        let wallet = wallets.remove(&payout.wallet_id).expect("Wallet not found");
-        let keychain_wallet = wallet.current_keychain_wallet(&pool);
-    }
+    // persist Batch
 
     Ok(data)
 }

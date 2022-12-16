@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::entity::*;
 use crate::{error::*, primitives::*};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Payouts {
@@ -50,7 +51,7 @@ impl Payouts {
     pub async fn list_unbatched(
         &self,
         batch_group_id: BatchGroupId,
-    ) -> Result<Vec<Payout>, BriaError> {
+    ) -> Result<HashMap<WalletId, Vec<Payout>>, BriaError> {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
@@ -63,15 +64,18 @@ impl Payouts {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows
-            .into_iter()
-            .map(|row| Payout {
+        let mut payouts = HashMap::new();
+        for row in rows {
+            let wallet_id = WalletId::from(row.wallet_id);
+            let payouts = payouts.entry(wallet_id).or_insert_with(Vec::new);
+            payouts.push(Payout {
                 id: PayoutId::from(row.id),
-                wallet_id: WalletId::from(row.wallet_id),
+                wallet_id,
                 destination: serde_json::from_value(row.destination_data)
                     .expect("Couldn't deserialize destination"),
                 satoshis: row.satoshis as u64,
-            })
-            .collect())
+            });
+        }
+        Ok(payouts)
     }
 }
