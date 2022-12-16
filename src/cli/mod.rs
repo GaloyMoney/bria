@@ -146,6 +146,16 @@ enum Command {
         name: String,
     },
     QueuePayout {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
         #[clap(short, long)]
         wallet: String,
         #[clap(short, long)]
@@ -285,6 +295,8 @@ pub async fn run() -> anyhow::Result<()> {
             client.create_batch_group(name).await?;
         }
         Command::QueuePayout {
+            url,
+            api_key,
             wallet,
             group,
             destination,

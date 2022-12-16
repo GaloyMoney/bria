@@ -11,7 +11,7 @@ use tracing::instrument;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*, primitives::*};
+use crate::{app::*, error::*, payout::*, primitives::*};
 
 pub const ACCOUNT_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -143,10 +143,15 @@ impl BriaService for Bria {
         let key = extract_api_token(&request)?;
         let account_id = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let wallet_name = request.wallet_name;
-        let group = request.group;
-        let destination = request.destination;
-        let amount = request.amount;
+        let QueuePayoutRequest {
+            wallet_name,
+            group,
+            destination,
+            satoshis,
+        } = request;
+        let destination = PayoutDestination::OnchainAddress {
+            value: destination.parse().unwrap(),
+        };
         let id = self
             .app
             .queue_payout(
@@ -154,7 +159,7 @@ impl BriaService for Bria {
                 wallet_name,
                 group,
                 destination,
-                amount,
+                satoshis,
                 None,
                 None,
             )
