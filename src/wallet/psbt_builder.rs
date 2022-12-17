@@ -109,7 +109,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingKeychainState> {
                 self.current_wallet_psbt = Some(psbt);
                 Ok(self)
             }
-            Err(e) => {
+            Err(_) => {
                 unimplemented!()
             }
         }
@@ -133,10 +133,11 @@ impl PsbtBuilder<AcceptingKeychainState> {
 
     pub fn finish(self) -> FinishedPsbtBuild {
         FinishedPsbtBuild {
-            psbt: Some(
-                self.final_psbt
-                    .unwrap_or_else(|| self.current_wallet_psbt.expect("psbt must be set")),
-            ),
+            psbt: self.current_wallet_psbt,
+            // Some(
+            //     self.final_psbt
+            //         .unwrap_or_else(|| self.current_wallet_psbt.expect("psbt must be set")),
+            // ),
         }
     }
 }
