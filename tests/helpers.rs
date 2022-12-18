@@ -1,9 +1,17 @@
 #![allow(dead_code)]
 
+use bdk::descriptor::IntoWalletDescriptor;
+use bdk::miniscript::Tap;
 use bdk::{
     bitcoin::{Address, Amount},
     blockchain::ElectrumBlockchain,
+    database::MemoryDatabase,
     electrum_client::Client,
+    keys::{GeneratableKey, GeneratedKey, PrivateKeyGenerateOptions},
+};
+use bitcoin::{
+    secp256k1::{rand, Secp256k1},
+    Network, PrivateKey,
 };
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, primitives::*, signer::*};
@@ -29,7 +37,7 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<AccountI
 const BITCOIND_WALLET_NAME: &str = "bria";
 pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
     match bitcoind_client_inner() {
-        Err(e) => bitcoind_client_inner(),
+        Err(_) => bitcoind_client_inner(),
         Ok(c) => Ok(c),
     }
 }
@@ -92,6 +100,21 @@ pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
     Ok(ElectrumBlockchain::from(Client::new(&electrum_url)?))
+}
+
+pub fn random_bdk_wallet() -> anyhow::Result<()> {
+    let secp = Secp256k1::new();
+    let sk: GeneratedKey<PrivateKey, Tap> =
+        PrivateKey::generate(PrivateKeyGenerateOptions::default())?;
+    let pubkey = sk.public_key(&secp);
+    let wallet = bdk::Wallet::new(
+        format!("wpkh({})", pubkey).into_wallet_descriptor(&secp, Network::Regtest)?,
+        None,
+        bitcoin::Network::Regtest,
+        MemoryDatabase::new(),
+    );
+    // Ok(wallet)
+    Ok(())
 }
 
 fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String> {
