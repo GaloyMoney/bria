@@ -1,9 +1,9 @@
-use bdk::{wallet::tx_builder::TxOrdering, FeeRate, LocalUtxo, Wallet};
+use bdk::{database::BatchDatabase, wallet::tx_builder::TxOrdering, FeeRate, LocalUtxo, Wallet};
 use bitcoin::util::psbt;
 use std::{collections::HashMap, marker::PhantomData};
 
 use super::keychain::*;
-use crate::{bdk::pg::SqlxWalletDb, error::*, payout::Payout, primitives::*};
+use crate::{error::*, payout::Payout, primitives::*};
 
 pub struct PsbtBuilder<T> {
     consolidate_deprecated_keychains: Option<bool>,
@@ -87,10 +87,10 @@ impl PsbtBuilder<AcceptingWalletState> {
 pub struct AcceptingKeychainState;
 
 impl BdkWalletVisitor for PsbtBuilder<AcceptingKeychainState> {
-    fn visit_bdk_wallet(
+    fn visit_bdk_wallet<D: BatchDatabase>(
         mut self,
         _keychain_id: KeychainId,
-        wallet: &Wallet<SqlxWalletDb>,
+        wallet: &Wallet<D>,
     ) -> Result<Self, BriaError> {
         let next_payout = &self.current_payouts[0];
         let destination = next_payout
@@ -103,7 +103,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingKeychainState> {
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.add_recipient(destination.script_pubkey(), amount);
         builder.ordering(TxOrdering::Bip69Lexicographic);
-        builder.sighash(bitcoin::EcdsaSighashType::All.into());
+        // builder.sighash(bitcoin::EcdsaSighashType::All.into());
+        builder.sighash(bitcoin::SchnorrSighashType::All.into());
         match builder.finish() {
             Ok((psbt, _details)) => {
                 self.current_wallet_psbt = Some(psbt);

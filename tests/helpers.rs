@@ -102,19 +102,17 @@ pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     Ok(ElectrumBlockchain::from(Client::new(&electrum_url)?))
 }
 
-pub fn random_bdk_wallet() -> anyhow::Result<()> {
+pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
     let secp = Secp256k1::new();
     let sk: GeneratedKey<PrivateKey, Tap> =
         PrivateKey::generate(PrivateKeyGenerateOptions::default())?;
-    let pubkey = sk.public_key(&secp);
     let wallet = bdk::Wallet::new(
-        format!("wpkh({})", pubkey).into_wallet_descriptor(&secp, Network::Regtest)?,
+        format!("tr({})", sk.into_key()).into_wallet_descriptor(&secp, Network::Regtest)?,
         None,
         bitcoin::Network::Regtest,
         MemoryDatabase::new(),
-    );
-    // Ok(wallet)
-    Ok(())
+    )?;
+    Ok(wallet)
 }
 
 fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String> {

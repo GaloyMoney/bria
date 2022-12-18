@@ -1,5 +1,6 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
+    database::BatchDatabase,
     wallet::{signer::SignOptions, tx_builder::TxOrdering, AddressIndex},
     FeeRate, TransactionDetails, Wallet,
 };
@@ -18,10 +19,10 @@ pub trait ToInternalDescriptor {
 }
 
 pub trait BdkWalletVisitor: Sized + Send + 'static {
-    fn visit_bdk_wallet(
+    fn visit_bdk_wallet<D: BatchDatabase>(
         self,
         keychain_id: KeychainId,
-        wallet: &Wallet<SqlxWalletDb>,
+        wallet: &Wallet<D>,
     ) -> Result<Self, BriaError>;
 }
 

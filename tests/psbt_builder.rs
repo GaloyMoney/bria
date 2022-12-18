@@ -4,7 +4,8 @@ use bdk::{
     bitcoin::Network,
     blockchain::{Blockchain, ElectrumBlockchain},
     electrum_client::Client,
-    FeeRate,
+    wallet::AddressIndex,
+    FeeRate, SignOptions,
 };
 use uuid::Uuid;
 
@@ -31,17 +32,25 @@ async fn build_psbt() -> anyhow::Result<()> {
     );
 
     let bitcoind = helpers::bitcoind_client()?;
+    let other_wallet = helpers::random_bdk_wallet()?;
+    let other_addr = other_wallet.get_address(AddressIndex::New)?;
     helpers::fund_addr(&bitcoind, &addr, 1)?;
+    helpers::fund_addr(&bitcoind, &other_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 6)?;
 
+    let blockchain = helpers::electrum_blockchain()?;
     for _ in 0..5 {
-        wallet_one.sync(helpers::electrum_blockchain()?).await?;
-        if wallet_one.balance().await?.get_spendable() > 0 {
+        other_wallet.sync(&blockchain, Default::default())?;
+        if other_wallet.get_balance()?.get_spendable() > 0 {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
+    wallet_one.sync(blockchain).await?;
     let previous_spendable_one = wallet_one.balance().await?.get_spendable();
+    let other_previous_spendable = other_wallet.get_balance()?.get_spendable();
+    assert!(previous_spendable_one > 0);
+    assert!(other_previous_spendable > 0);
 
     let fee = FeeRate::from_sat_per_vb(1.0);
     let builder = PsbtBuilder::new()
@@ -69,26 +78,38 @@ async fn build_psbt() -> anyhow::Result<()> {
         satoshis: send_amount,
     }];
     let builder = builder.wallet_payouts(first_wallet_id, payouts_one);
-    let builder = wallet_one.dispatch_bdk_wallet(builder).await?;
+    let builder = wallet_one.dispatch_bdk_wallet(builder).await?; //.next_wallet();
+                                                                  // let builder = builder.wallet_payouts(second_wallet_id, payouts_two);
+    let other_keychain_id = KeychainId::new();
+    // let builder = builder.visit_bdk_wallet(other_keychain_id, &other_wallet)?;
     let FinishedPsbtBuild {
         psbt: unsigned_psbt,
     } = builder.finish();
 
+    let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
+    dbg!(&unsigned_psbt);
+    // assert!(other_wallet.sign(&mut unsigned_psbt, SignOptions::default())?);
     let mut lnd_client = helpers::lnd_signing_client().await?;
-    let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt.unwrap()).await?;
+    let mut signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
     let tx = wallet_one.finalize_psbt(signed_psbt).await?.extract_tx();
+    // other_wallet.finalize_psbt(&mut signed_psbt, SignOptions::default())?;
+    // let tx = unsigned_psbt.extract_tx();
     helpers::electrum_blockchain()?.broadcast(&tx)?;
     helpers::gen_blocks(&bitcoind, 6)?;
+    let blockchain = helpers::electrum_blockchain()?;
     for _ in 0..10 {
-        wallet_one.sync(helpers::electrum_blockchain()?).await?;
-        let balance = wallet_one.balance().await?;
-        if balance.get_spendable() < previous_spendable_one - send_amount {
+        other_wallet.sync(&blockchain, Default::default())?;
+        let balance = other_wallet.get_balance()?;
+        if balance.get_spendable() < other_previous_spendable - send_amount {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
+    wallet_one.sync(blockchain).await?;
     let balance = wallet_one.balance().await?;
     assert!(balance.get_spendable() < previous_spendable_one - send_amount);
+    let balance = other_wallet.get_balance()?;
+    assert!(balance.get_spendable() < other_previous_spendable - send_amount);
 
     Ok(())
 }
