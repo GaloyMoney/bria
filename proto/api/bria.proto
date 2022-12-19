@@ -72,8 +72,10 @@ message CreateBatchGroupResponse {
 
 message QueuePayoutRequest {
   string wallet_name = 1;
-  string group = 2;
-  string destination = 3;
+  string batch_group_name = 2;
+  oneof destination { 
+    string onchain_address = 3;
+  };
   uint64 satoshis = 4;
 }
 

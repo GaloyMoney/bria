@@ -151,14 +151,16 @@ impl ApiClient {
     pub async fn queue_payout(
         &self,
         wallet_name: String,
-        group: String,
-        destination: String,
+        batch_group_name: String,
+        on_chain_address: String,
         satoshis: u64,
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::QueuePayoutRequest {
             wallet_name,
-            group,
-            destination,
+            batch_group_name,
+            destination: Some(proto::queue_payout_request::Destination::OnchainAddress(
+                on_chain_address,
+            )),
             satoshis,
         });
         let response = self
