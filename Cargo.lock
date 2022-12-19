@@ -194,8 +194,8 @@ dependencies = [
 
 [[package]]
 name = "bdk"
-version = "0.24.0"
-source = "git+https://github.com/bodymindarts/bdk?branch=fix-electrum-tx-order#37c2eb4d7f589b26b6892e61caa3c188b6b960b2"
+version = "0.25.0"
+source = "git+https://github.com/bodymindarts/bdk?branch=fix-electrum-tx-order#d72aa7ebc071cb418ce53efa8da7447bac8161f7"
 dependencies = [
  "async-trait",
  "bdk-macros",

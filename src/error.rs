@@ -25,8 +25,10 @@ pub enum BriaError {
     JoinError(#[from] tokio::task::JoinError),
     #[error("BriaError - BdkError: {0}")]
     BdkError(#[from] bdk::Error),
-    #[error("BriaError - FeeEstimationError: {0}")]
-    FeeEstimationError(reqwest::Error),
+    #[error("BriaError - FeeEstimation: {0}")]
+    FeeEstimation(reqwest::Error),
+    #[error("BriaError - CouldNotCombinePsbts: {0}")]
+    CouldNotCombinePsbts(bitcoin::psbt::Error),
 }
 
 impl JobExecutionError for BriaError {}

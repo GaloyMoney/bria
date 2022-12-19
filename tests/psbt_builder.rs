@@ -78,22 +78,20 @@ async fn build_psbt() -> anyhow::Result<()> {
         satoshis: send_amount,
     }];
     let builder = builder.wallet_payouts(first_wallet_id, payouts_one);
-    let builder = wallet_one.dispatch_bdk_wallet(builder).await?; //.next_wallet();
-                                                                  // let builder = builder.wallet_payouts(second_wallet_id, payouts_two);
+    let builder = wallet_one.dispatch_bdk_wallet(builder).await?.next_wallet();
+    let builder = builder.wallet_payouts(second_wallet_id, payouts_two);
     let other_keychain_id = KeychainId::new();
-    // let builder = builder.visit_bdk_wallet(other_keychain_id, &other_wallet)?;
+    let builder = builder.visit_bdk_wallet(other_keychain_id, &other_wallet)?;
     let FinishedPsbtBuild {
         psbt: unsigned_psbt,
-    } = builder.finish();
+    } = builder.finish()?;
 
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
-    dbg!(&unsigned_psbt);
-    // assert!(other_wallet.sign(&mut unsigned_psbt, SignOptions::default())?);
+    assert_eq!(unsigned_psbt.inputs.len(), 2);
+    other_wallet.sign(&mut unsigned_psbt, SignOptions::default())?;
     let mut lnd_client = helpers::lnd_signing_client().await?;
-    let mut signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
+    let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
     let tx = wallet_one.finalize_psbt(signed_psbt).await?.extract_tx();
-    // other_wallet.finalize_psbt(&mut signed_psbt, SignOptions::default())?;
-    // let tx = unsigned_psbt.extract_tx();
     helpers::electrum_blockchain()?.broadcast(&tx)?;
     helpers::gen_blocks(&bitcoind, 6)?;
     let blockchain = helpers::electrum_blockchain()?;
