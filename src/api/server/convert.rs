@@ -39,7 +39,12 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
         match destination {
             Some(super::proto::queue_payout_request::Destination::OnchainAddress(destination)) => {
                 Ok(PayoutDestination::OnchainAddress {
-                    value: destination.parse()?,
+                    value: destination.parse().map_err(|_| {
+                        tonic::Status::new(
+                            tonic::Code::InvalidArgument,
+                            format!("on chain address couldn't be parsed"),
+                        )
+                    })?,
                 })
             }
             None => Err(tonic::Status::new(
