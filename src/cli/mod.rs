@@ -159,9 +159,9 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
         #[clap(short, long)]
-        batch_group_name: String,
+        group_name: String,
         #[clap(short, long)]
-        on_chain_address: String,
+        destination: String,
         #[clap(short, long)]
         amount: u64,
     },
@@ -298,13 +298,13 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
-            batch_group_name,
-            on_chain_address,
+            group_name,
+            destination,
             amount,
         } => {
             let client = api_client(url, api_key);
             client
-                .queue_payout(wallet, batch_group_name, on_chain_address, amount)
+                .queue_payout(wallet, group_name, destination, amount)
                 .await?;
         }
     }
