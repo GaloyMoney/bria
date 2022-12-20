@@ -134,6 +134,36 @@ impl BriaService for Bria {
             id: id.to_string(),
         }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn queue_payout(
+        &self,
+        request: Request<QueuePayoutRequest>,
+    ) -> Result<Response<QueuePayoutResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let QueuePayoutRequest {
+            wallet_name,
+            batch_group_name,
+            destination,
+            satoshis,
+        } = request;
+
+        let id = self
+            .app
+            .queue_payout(
+                account_id,
+                wallet_name,
+                batch_group_name,
+                destination.try_into()?,
+                satoshis,
+                None,
+                None,
+            )
+            .await?;
+        Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {

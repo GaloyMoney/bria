@@ -147,4 +147,28 @@ impl ApiClient {
         println!("BatchGroup created - {}", response.into_inner().id);
         Ok(())
     }
+
+    pub async fn queue_payout(
+        &self,
+        wallet_name: String,
+        batch_group_name: String,
+        on_chain_address: String,
+        satoshis: u64,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::QueuePayoutRequest {
+            wallet_name,
+            batch_group_name,
+            destination: Some(proto::queue_payout_request::Destination::OnchainAddress(
+                on_chain_address,
+            )),
+            satoshis,
+        });
+        let response = self
+            .connect()
+            .await?
+            .queue_payout(self.inject_auth_token(request)?)
+            .await?;
+        println!("Payout enqueued - {}", response.into_inner().id);
+        Ok(())
+    }
 }

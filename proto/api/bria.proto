@@ -8,6 +8,7 @@ service BriaService {
   rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
+  rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
 }
 
 message ImportXpubRequest {
@@ -66,5 +67,18 @@ message CreateBatchGroupRequest {
 }
 
 message CreateBatchGroupResponse {
+  string id = 1;
+}
+
+message QueuePayoutRequest {
+  string wallet_name = 1;
+  string batch_group_name = 2;
+  oneof destination { 
+    string onchain_address = 3;
+  };
+  uint64 satoshis = 4;
+}
+
+message QueuePayoutResponse {
   string id = 1;
 }
