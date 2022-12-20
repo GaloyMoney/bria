@@ -47,7 +47,7 @@ pub async fn execute(
     let builder = PsbtBuilder::new()
         .consolidate_deprecated_keychains(bg_cfg.consolidate_deprecated_keychains)
         .fee_rate(fee_rate)
-        .begin_wallets();
+        .accept_wallets();
 
     for (wallet_id, payouts) in unbatched_payouts {
         let wallet = wallets.remove(&wallet_id).expect("Wallet not found");

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use bdk::descriptor::IntoWalletDescriptor;
-use bdk::miniscript::Tap;
+use bdk::miniscript::Segwitv0;
 use bdk::{
     bitcoin::{Address, Amount},
     blockchain::ElectrumBlockchain,
@@ -104,10 +104,10 @@ pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
 
 pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
     let secp = Secp256k1::new();
-    let sk: GeneratedKey<PrivateKey, Tap> =
+    let sk: GeneratedKey<PrivateKey, Segwitv0> =
         PrivateKey::generate(PrivateKeyGenerateOptions::default())?;
     let wallet = bdk::Wallet::new(
-        format!("tr({})", sk.into_key()).into_wallet_descriptor(&secp, Network::Regtest)?,
+        format!("wpkh({})", sk.into_key()).into_wallet_descriptor(&secp, Network::Regtest)?,
         None,
         bitcoin::Network::Regtest,
         MemoryDatabase::new(),
