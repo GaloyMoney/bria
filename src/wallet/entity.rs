@@ -34,6 +34,16 @@ impl Wallet {
         KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone())
     }
 
+    pub fn deprecated_keychain_wallets(
+        &self,
+        pool: sqlx::PgPool,
+    ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
+        self.keychains
+            .iter()
+            .skip(1)
+            .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
+    }
+
     pub fn ledger_account_id_for_utxo(&self, utxo: &LocalUtxo) -> LedgerAccountId {
         if utxo.txout.value >= self.config.dust_threshold_sats {
             self.ledger_account_id

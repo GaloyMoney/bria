@@ -11,6 +11,12 @@ use std::{
 use super::keychain::*;
 use crate::{error::*, payout::Payout, primitives::*};
 
+pub struct FinishedPsbtBuild {
+    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
+    pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    pub psbt: Option<psbt::PartiallySignedTransaction>,
+}
+
 pub struct PsbtBuilder<T> {
     consolidate_deprecated_keychains: Option<bool>,
     fee_rate: Option<FeeRate>,
@@ -29,6 +35,16 @@ pub struct InitialPsbtBuilderState;
 pub struct AcceptingWalletState;
 pub struct AcceptingDeprecatedKeychainState;
 pub struct AcceptingCurrentKeychainState;
+
+impl<T> PsbtBuilder<T> {
+    fn finish_inner(self) -> Result<FinishedPsbtBuild, BriaError> {
+        Ok(FinishedPsbtBuild {
+            included_payouts: self.included_payouts,
+            included_utxos: self.included_utxos,
+            psbt: self.result_psbt,
+        })
+    }
+}
 
 impl PsbtBuilder<InitialPsbtBuilderState> {
     pub fn new() -> Self {
@@ -97,6 +113,10 @@ impl PsbtBuilder<AcceptingWalletState> {
             result_psbt: self.result_psbt,
             _phantom: PhantomData,
         }
+    }
+
+    pub fn finish(self) -> Result<FinishedPsbtBuild, BriaError> {
+        self.finish_inner()
     }
 }
 
@@ -278,11 +298,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
     }
 
     pub fn finish(self) -> Result<FinishedPsbtBuild, BriaError> {
-        Ok(FinishedPsbtBuild {
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
-            psbt: self.result_psbt,
-        })
+        self.finish_inner()
     }
 
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
@@ -321,10 +337,4 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             Err(e) => Err(e.into()),
         }
     }
-}
-
-pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
-    pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
-    pub psbt: Option<psbt::PartiallySignedTransaction>,
 }

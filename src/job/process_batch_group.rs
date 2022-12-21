@@ -44,37 +44,29 @@ pub async fn execute(
 
     let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
 
-    let builder = PsbtBuilder::new()
+    let mut outer_builder = PsbtBuilder::new()
         .consolidate_deprecated_keychains(bg_cfg.consolidate_deprecated_keychains)
         .fee_rate(fee_rate)
         .accept_wallets();
 
     for (wallet_id, payouts) in unbatched_payouts {
         let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
-        // wallet_section.add_wallet(wallet);
-        // builder -> wallet , wallet -> keychain, keychain -> wallet
+        let mut builder = outer_builder.wallet_payouts(wallet.id, payouts);
+        for keychain in wallet.deprecated_keychain_wallets(pool.clone()) {
+            builder = keychain.dispatch_bdk_wallet(builder).await?;
+        }
+        outer_builder = wallet
+            .current_keychain_wallet(&pool)
+            .dispatch_bdk_wallet(builder.accept_current_keychain())
+            .await?
+            .next_wallet();
     }
 
-    // persist Batch
+    let FinishedPsbtBuild {
+        psbt,
+        included_payouts,
+        included_utxos,
+    } = outer_builder.finish()?;
 
     Ok(data)
-}
-
-async fn collect_deprecated_utxos(
-    deprecated_utxos: &mut HashMap<WalletId, Vec<LocalUtxo>>,
-    payouts: &Vec<Payout>,
-) -> Result<(), BriaError> {
-    for payout in payouts {
-        let utxos = deprecated_utxos
-            .entry(payout.wallet_id)
-            .or_insert_with(|| Vec::<LocalUtxo>::new());
-        // let mut old_keychain_inputs = HashMap::new();
-        //for (_, wallet) in wallets {
-        //    for (keychain_id, keychain) in wallet.keychains[1..].iter() {
-        //        //
-        //    }
-        //}
-    }
-
-    Ok(())
 }
