@@ -118,7 +118,10 @@ async fn build_psbt() -> anyhow::Result<()> {
         psbt: unsigned_psbt,
         included_payouts,
         included_utxos,
-    } = builder.finish()?;
+        wallet_totals,
+        fee_satoshis,
+        ..
+    } = builder.finish();
     assert_eq!(
         included_payouts
             .get(&domain_wallet_id)
@@ -147,7 +150,28 @@ async fn build_psbt() -> anyhow::Result<()> {
             .len(),
         1
     );
+    assert_eq!(wallet_totals.len(), 2);
+    let wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
+    assert_eq!(wallet_total.output_satoshis, send_amount);
+    assert_eq!(
+        wallet_total.output_satoshis + wallet_total.change_satoshis + wallet_total.fee_satoshis,
+        wallet_total.input_satoshis
+    );
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
+    let total_tx_outs = unsigned_psbt
+        .unsigned_tx
+        .output
+        .iter()
+        .fold(0, |acc, out| acc + out.value);
+    let total_summary_outs = wallet_totals.values().fold(0, |acc, total| {
+        acc + total.output_satoshis + total.change_satoshis
+    });
+    assert_eq!(total_tx_outs, total_summary_outs);
+    assert_eq!(total_tx_outs, total_summary_outs);
+    let total_summary_fees = wallet_totals
+        .values()
+        .fold(0, |acc, total| acc + total.fee_satoshis);
+    assert_eq!(total_summary_fees, fee_satoshis);
     assert!(unsigned_psbt.inputs.len() >= 3);
     assert_eq!(unsigned_psbt.outputs.len(), 5);
 

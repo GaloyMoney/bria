@@ -1,6 +1,8 @@
 use bdk::{
-    database::BatchDatabase, wallet::tx_builder::TxOrdering, wallet::AddressIndex, FeeRate,
-    KeychainKind, Wallet,
+    database::BatchDatabase,
+    wallet::tx_builder::TxOrdering,
+    wallet::{AddressIndex, AddressInfo},
+    FeeRate, KeychainKind, Wallet,
 };
 use bitcoin::{blockdata::transaction::OutPoint, util::psbt};
 use std::{
@@ -11,9 +13,21 @@ use std::{
 use super::keychain::*;
 use crate::{error::*, payout::Payout, primitives::*};
 
+pub struct WalletTotals {
+    pub wallet_id: WalletId,
+    pub input_satoshis: u64,
+    pub output_satoshis: u64,
+    pub fee_satoshis: u64,
+    pub change_satoshis: u64,
+    pub change_address: AddressInfo,
+}
+
 pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    pub wallet_totals: HashMap<WalletId, WalletTotals>,
+    pub tx_id: Option<bitcoin::Txid>,
+    pub fee_satoshis: u64,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
 }
 
@@ -23,11 +37,9 @@ pub struct PsbtBuilder<T> {
     current_wallet: Option<WalletId>,
     current_payouts: Vec<Payout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
+    result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
-    included_payouts: HashMap<WalletId, Vec<Payout>>,
-    included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
     all_included_utxos: HashSet<OutPoint>,
-    result_psbt: Option<psbt::PartiallySignedTransaction>,
     _phantom: PhantomData<T>,
 }
 
@@ -37,12 +49,8 @@ pub struct AcceptingDeprecatedKeychainState;
 pub struct AcceptingCurrentKeychainState;
 
 impl<T> PsbtBuilder<T> {
-    fn finish_inner(self) -> Result<FinishedPsbtBuild, BriaError> {
-        Ok(FinishedPsbtBuild {
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
-            psbt: self.result_psbt,
-        })
+    fn finish_inner(self) -> FinishedPsbtBuild {
+        self.result
     }
 }
 
@@ -54,11 +62,16 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: vec![],
-            included_payouts: HashMap::new(),
-            included_utxos: HashMap::new(),
             all_included_utxos: HashSet::new(),
             input_weights: HashMap::new(),
-            result_psbt: None,
+            result: FinishedPsbtBuild {
+                included_payouts: HashMap::new(),
+                included_utxos: HashMap::new(),
+                wallet_totals: HashMap::new(),
+                fee_satoshis: 0,
+                tx_id: None,
+                psbt: None,
+            },
             _phantom: PhantomData,
         }
     }
@@ -83,11 +96,9 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
-            result_psbt: self.result_psbt,
+            result: self.result,
             _phantom: PhantomData,
         }
     }
@@ -106,16 +117,14 @@ impl PsbtBuilder<AcceptingWalletState> {
             current_wallet: Some(wallet_id),
             current_payouts: payouts,
             current_wallet_psbts: self.current_wallet_psbts,
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
-            result_psbt: self.result_psbt,
+            result: self.result,
             _phantom: PhantomData,
         }
     }
 
-    pub fn finish(self) -> Result<FinishedPsbtBuild, BriaError> {
+    pub fn finish(self) -> FinishedPsbtBuild {
         self.finish_inner()
     }
 }
@@ -168,11 +177,9 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             current_wallet: self.current_wallet,
             current_payouts: self.current_payouts,
             current_wallet_psbts: self.current_wallet_psbts,
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
-            result_psbt: self.result_psbt,
+            result: self.result,
             _phantom: PhantomData,
         }
     }
@@ -188,6 +195,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             .get_descriptor_for_keychain(KeychainKind::External)
             .max_satisfaction_weight()
             .expect("Unsupported descriptor");
+        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
 
         let mut max_payout = 0;
         while max_payout < self.current_payouts.len()
@@ -201,16 +209,20 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+        builder.drain_to(change_address.script_pubkey());
         builder.sighash(bitcoin::EcdsaSighashType::All.into());
 
+        let mut total_output_satoshis = 0;
         for next_payout in self.current_payouts.drain(..max_payout) {
             let destination = next_payout
                 .destination
                 .onchain_address()
                 .expect("No onchain address");
 
+            total_output_satoshis += next_payout.satoshis;
             builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
-            self.included_payouts
+            self.result
+                .included_payouts
                 .entry(self.current_wallet.expect("current wallet must be set"))
                 .or_default()
                 .push(next_payout);
@@ -226,7 +238,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                         .get(&input.previous_output)
                         .expect("weight should always be present"),
                 )?;
-                self.included_utxos
+                self.result
+                    .included_utxos
                     .entry(keychain_id)
                     .or_default()
                     .push(input.previous_output);
@@ -234,7 +247,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             }
         }
 
-        if let Some(result_psbt) = self.result_psbt {
+        if let Some(result_psbt) = self.result.psbt {
             for (input, psbt_input) in result_psbt
                 .unsigned_tx
                 .input
@@ -258,18 +271,45 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 
         builder.ordering(TxOrdering::Bip69Lexicographic);
         match builder.finish() {
-            Ok((psbt, _details)) => {
+            Ok((psbt, details)) => {
+                let fee_satoshis = details.fee.expect("fee must be present");
+                let current_wallet_fee = fee_satoshis - self.result.fee_satoshis;
+                let wallet_id = self.current_wallet.expect("current wallet must be set");
+                let change_satoshis = psbt
+                    .unsigned_tx
+                    .output
+                    .iter()
+                    .find(|out| out.script_pubkey == change_address.script_pubkey())
+                    .map(|out| out.value)
+                    .unwrap_or(0);
+                self.result.wallet_totals.insert(
+                    wallet_id,
+                    WalletTotals {
+                        wallet_id,
+                        input_satoshis: total_output_satoshis
+                            + current_wallet_fee
+                            + change_satoshis,
+                        output_satoshis: total_output_satoshis,
+                        fee_satoshis: current_wallet_fee,
+                        change_satoshis,
+                        change_address,
+                    },
+                );
+                self.result.fee_satoshis = fee_satoshis;
+
                 for input in psbt.unsigned_tx.input.iter() {
                     self.input_weights
                         .insert(input.previous_output, keychain_satisfaction_weight);
                     if self.all_included_utxos.insert(input.previous_output) {
-                        self.included_utxos
+                        self.result
+                            .included_utxos
                             .entry(keychain_id)
                             .or_default()
                             .push(input.previous_output);
                     }
                 }
-                self.result_psbt = Some(psbt);
+                self.result.psbt = Some(psbt);
+                self.result.tx_id = Some(details.txid);
                 Ok(self)
             }
             Err(e) => {
@@ -288,16 +328,14 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
-            included_payouts: self.included_payouts,
-            included_utxos: self.included_utxos,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
-            result_psbt: self.result_psbt,
+            result: self.result,
             _phantom: PhantomData,
         }
     }
 
-    pub fn finish(self) -> Result<FinishedPsbtBuild, BriaError> {
+    pub fn finish(self) -> FinishedPsbtBuild {
         self.finish_inner()
     }
 

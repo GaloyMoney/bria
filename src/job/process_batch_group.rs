@@ -66,7 +66,10 @@ pub async fn execute(
         psbt,
         included_payouts,
         included_utxos,
-    } = outer_builder.finish()?;
+        wallet_totals,
+        tx_id,
+        ..
+    } = outer_builder.finish();
 
     Ok(data)
 }
