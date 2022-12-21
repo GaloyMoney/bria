@@ -5,6 +5,7 @@ pub mod account;
 pub mod admin;
 mod api;
 pub mod app;
+pub mod batch;
 pub mod batch_group;
 pub mod bdk;
 pub mod cli;

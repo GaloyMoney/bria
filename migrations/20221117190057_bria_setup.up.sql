@@ -108,19 +108,35 @@ CREATE TABLE bria_payouts (
 CREATE TABLE bria_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   batch_group_id UUID NOT NULL,
-  job_data JSONB NOT NULL,
+  total_fee_sats BIGINT NOT NULL,
+  bitcoin_tx_id BYTEA NOT NULL,
+  psbt BYTEA NOT NULL,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE bria_batch_wallet_summaries (
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
+  wallet_id UUID NOT NULL,
+  total_in_sats BIGINT NOT NULL,
+  total_out_sats BIGINT NOT NULL,
+  change_sats BIGINT NOT NULL,
+  change_address BYTEA NOT NULL,
+  fee_sats BIGINT NOT NULL,
+  ledger_tx_id UUID NOT NULL,
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(batch_id, wallet_id)
+);
+
 CREATE TABLE bria_batch_payouts (
-  batch_id UUID NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   payout_id UUID UNIQUE NOT NULL,
   UNIQUE(batch_id, payout_id)
 );
 
 CREATE TABLE bria_batch_utxos (
-  batch_id UUID NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   keychain_id UUID NOT NULL,
   tx_id VARCHAR NOT NULL,
   vout INTEGER NOT NULL,
