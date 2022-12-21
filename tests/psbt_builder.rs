@@ -65,14 +65,32 @@ async fn build_psbt() -> anyhow::Result<()> {
     let domain_wallet_id = WalletId::new();
     let other_wallet_id = WalletId::new();
     let send_amount = 300_000_000;
-    let payouts_one = vec![Payout {
-        id: PayoutId::new(),
-        wallet_id: domain_wallet_id,
-        destination: PayoutDestination::OnchainAddress {
-            value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+    let payouts_one = vec![
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: domain_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount,
         },
-        satoshis: send_amount,
-    }];
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: domain_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount,
+        },
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: domain_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount,
+        },
+    ];
     let payouts_two = vec![Payout {
         id: PayoutId::new(),
         wallet_id: other_wallet_id,
@@ -110,7 +128,7 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
     assert_eq!(unsigned_psbt.inputs.len(), 3);
-    assert_eq!(unsigned_psbt.outputs.len(), 4);
+    assert_eq!(unsigned_psbt.outputs.len(), 5);
 
     other_wallet_current_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
     other_wallet_deprecated_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
