@@ -3,7 +3,10 @@ use bdk::{
     KeychainKind, Wallet,
 };
 use bitcoin::{blockdata::transaction::OutPoint, util::psbt};
-use std::{collections::HashMap, marker::PhantomData};
+use std::{
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+};
 
 use super::keychain::*;
 use crate::{error::*, payout::Payout, primitives::*};
@@ -13,10 +16,11 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     current_wallet: Option<WalletId>,
     current_payouts: Vec<Payout>,
-    current_wallet_psbts: Vec<psbt::PartiallySignedTransaction>,
+    current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
     input_weights: HashMap<OutPoint, usize>,
-    included_payouts: HashMap<WalletId, Payout>,
+    included_payouts: HashMap<WalletId, Vec<Payout>>,
     included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    all_included_utxos: HashSet<OutPoint>,
     result_psbt: Option<psbt::PartiallySignedTransaction>,
     _phantom: PhantomData<T>,
 }
@@ -36,6 +40,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet_psbts: vec![],
             included_payouts: HashMap::new(),
             included_utxos: HashMap::new(),
+            all_included_utxos: HashSet::new(),
             input_weights: HashMap::new(),
             result_psbt: None,
             _phantom: PhantomData,
@@ -64,6 +69,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet_psbts: self.current_wallet_psbts,
             included_payouts: self.included_payouts,
             included_utxos: self.included_utxos,
+            all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result_psbt: self.result_psbt,
             _phantom: PhantomData,
@@ -86,6 +92,7 @@ impl PsbtBuilder<AcceptingWalletState> {
             current_wallet_psbts: self.current_wallet_psbts,
             included_payouts: self.included_payouts,
             included_utxos: self.included_utxos,
+            all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result_psbt: self.result_psbt,
             _phantom: PhantomData,
@@ -121,12 +128,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
                 for input in psbt.unsigned_tx.input.iter() {
                     self.input_weights
                         .insert(input.previous_output, keychain_satisfaction_weight);
-                    self.included_utxos
-                        .entry(keychain_id)
-                        .or_default()
-                        .push(input.previous_output);
                 }
-                self.current_wallet_psbts.push(psbt);
+                self.current_wallet_psbts.push((keychain_id, psbt));
                 Ok(self)
             }
             Err(e) => {
@@ -147,6 +150,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             current_wallet_psbts: self.current_wallet_psbts,
             included_payouts: self.included_payouts,
             included_utxos: self.included_utxos,
+            all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result_psbt: self.result_psbt,
             _phantom: PhantomData,
@@ -165,19 +169,34 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             .max_satisfaction_weight()
             .expect("Unsupported descriptor");
 
-        let next_payout = &self.current_payouts[0];
-        let destination = next_payout
-            .destination
-            .onchain_address()
-            .expect("No onchain address");
-        let amount = next_payout.satoshis;
+        let mut max_payout = 0;
+        while max_payout < self.current_payouts.len()
+            && self.try_build_current_wallet_psbt(&self.current_payouts[..=max_payout], wallet)?
+        {
+            max_payout += 1;
+        }
+        if max_payout == 0 {
+            return Ok(self);
+        }
 
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
-        builder.add_recipient(destination.script_pubkey(), amount);
         builder.sighash(bitcoin::EcdsaSighashType::All.into());
 
-        for psbt in self.current_wallet_psbts.drain(..) {
+        for next_payout in self.current_payouts.drain(..max_payout) {
+            let destination = next_payout
+                .destination
+                .onchain_address()
+                .expect("No onchain address");
+
+            builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
+            self.included_payouts
+                .entry(self.current_wallet.expect("current wallet must be set"))
+                .or_default()
+                .push(next_payout);
+        }
+
+        for (keychain_id, psbt) in self.current_wallet_psbts.drain(..) {
             for (input, psbt_input) in psbt.unsigned_tx.input.into_iter().zip(psbt.inputs) {
                 builder.add_foreign_utxo(
                     input.previous_output,
@@ -187,6 +206,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                         .get(&input.previous_output)
                         .expect("weight should always be present"),
                 )?;
+                self.included_utxos
+                    .entry(keychain_id)
+                    .or_default()
+                    .push(input.previous_output);
+                self.all_included_utxos.insert(input.previous_output);
             }
         }
 
@@ -218,10 +242,12 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 for input in psbt.unsigned_tx.input.iter() {
                     self.input_weights
                         .insert(input.previous_output, keychain_satisfaction_weight);
-                    self.included_utxos
-                        .entry(keychain_id)
-                        .or_default()
-                        .push(input.previous_output);
+                    if self.all_included_utxos.insert(input.previous_output) {
+                        self.included_utxos
+                            .entry(keychain_id)
+                            .or_default()
+                            .push(input.previous_output);
+                    }
                 }
                 self.result_psbt = Some(psbt);
                 Ok(self)
@@ -244,6 +270,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             current_wallet_psbts: self.current_wallet_psbts,
             included_payouts: self.included_payouts,
             included_utxos: self.included_utxos,
+            all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result_psbt: self.result_psbt,
             _phantom: PhantomData,
@@ -257,10 +284,47 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             psbt: self.result_psbt,
         })
     }
+
+    fn try_build_current_wallet_psbt<D: BatchDatabase>(
+        &self,
+        payouts: &[Payout],
+        wallet: &Wallet<D>,
+    ) -> Result<bool, BriaError> {
+        let mut builder = wallet.build_tx();
+        builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+
+        for next_payout in payouts.iter() {
+            let destination = next_payout
+                .destination
+                .onchain_address()
+                .expect("No onchain address");
+
+            builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
+        }
+
+        for (_, psbt) in self.current_wallet_psbts.iter() {
+            for (input, psbt_input) in psbt.unsigned_tx.input.iter().zip(psbt.inputs.iter()) {
+                builder.add_foreign_utxo(
+                    input.previous_output,
+                    psbt_input.clone(),
+                    *self
+                        .input_weights
+                        .get(&input.previous_output)
+                        .expect("weight should always be present"),
+                )?;
+            }
+        }
+
+        match builder.finish() {
+            Ok(_) => Ok(true),
+            Err(bdk::Error::InsufficientFunds { .. }) => Ok(false),
+            Err(e) => Err(e.into()),
+        }
+    }
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Payout>,
+    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
 }

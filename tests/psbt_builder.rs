@@ -1,12 +1,6 @@
 mod helpers;
 
-use bdk::{
-    bitcoin::Network,
-    blockchain::{Blockchain, ElectrumBlockchain},
-    electrum_client::Client,
-    wallet::AddressIndex,
-    FeeRate, SignOptions,
-};
+use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
 
 use bria::{payout::*, primitives::*, signer::*, wallet::*, xpub::*};
@@ -34,26 +28,25 @@ async fn build_psbt() -> anyhow::Result<()> {
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
 
     let bitcoind = helpers::bitcoind_client()?;
-    helpers::fund_addr(&bitcoind, &domain_addr, 5)?;
+    helpers::fund_addr(&bitcoind, &domain_addr, 7)?;
     helpers::fund_addr(&bitcoind, &other_current_addr, 5)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
-    helpers::gen_blocks(&bitcoind, 6)?;
+    helpers::gen_blocks(&bitcoind, 10)?;
 
     let blockchain = helpers::electrum_blockchain()?;
     for _ in 0..5 {
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
-        if other_wallet_current_keychain.get_balance()?.get_spendable() > 0 {
+        other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
+        if other_wallet_current_keychain.get_balance()?.get_spendable() > 0
+            && other_wallet_deprecated_keychain
+                .get_balance()?
+                .get_spendable()
+                > 0
+        {
             break;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
-    other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
-    assert!(
-        other_wallet_deprecated_keychain
-            .get_balance()?
-            .get_spendable()
-            > 150_000_000
-    );
     domain_current_keychain.sync(blockchain).await?;
 
     let fee = FeeRate::from_sat_per_vb(1.0);
@@ -64,41 +57,41 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let domain_wallet_id = WalletId::new();
     let other_wallet_id = WalletId::new();
-    let send_amount = 300_000_000;
-    let payouts_one = vec![
-        Payout {
-            id: PayoutId::new(),
-            wallet_id: domain_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount,
-        },
-        Payout {
-            id: PayoutId::new(),
-            wallet_id: domain_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount,
-        },
-        Payout {
-            id: PayoutId::new(),
-            wallet_id: domain_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount,
-        },
-    ];
-    let payouts_two = vec![Payout {
+    let send_amount = 100_000_000;
+    let payouts_one = vec![Payout {
         id: PayoutId::new(),
-        wallet_id: other_wallet_id,
+        wallet_id: domain_wallet_id,
         destination: PayoutDestination::OnchainAddress {
             value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
         },
-        satoshis: 300_000_000,
+        satoshis: send_amount,
     }];
+    let payouts_two = vec![
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: other_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount,
+        },
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: domain_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount,
+        },
+        Payout {
+            id: PayoutId::new(),
+            wallet_id: domain_wallet_id,
+            destination: PayoutDestination::OnchainAddress {
+                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
+            },
+            satoshis: send_amount * 10,
+        },
+    ];
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)
         .accept_current_keychain();
@@ -123,11 +116,39 @@ async fn build_psbt() -> anyhow::Result<()> {
         )?;
     let FinishedPsbtBuild {
         psbt: unsigned_psbt,
-        ..
+        included_payouts,
+        included_utxos,
     } = builder.finish()?;
-
+    assert_eq!(
+        included_payouts
+            .get(&domain_wallet_id)
+            .expect("wallet not included in payouts")
+            .len(),
+        1
+    );
+    assert_eq!(
+        included_payouts
+            .get(&other_wallet_id)
+            .expect("wallet not included in payouts")
+            .len(),
+        2
+    );
+    assert_eq!(
+        included_utxos
+            .get(&other_wallet_deprecated_keychain_id)
+            .expect("keychain not included in utxos")
+            .len(),
+        1
+    );
+    assert_eq!(
+        included_utxos
+            .get(&other_wallet_current_keychain_id)
+            .expect("keychain not included in utxos")
+            .len(),
+        1
+    );
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
-    assert_eq!(unsigned_psbt.inputs.len(), 3);
+    assert!(unsigned_psbt.inputs.len() >= 3);
     assert_eq!(unsigned_psbt.outputs.len(), 5);
 
     other_wallet_current_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
