@@ -23,7 +23,7 @@ pub struct ConfirmedUtxoMeta {
 #[derive(Debug)]
 pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
-    pub recipient_account_id: LedgerAccountId,
+    pub recipient_ledger_account_id: LedgerAccountId,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -75,7 +75,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
     fn from(
         ConfirmedUtxoParams {
             journal_id,
-            recipient_account_id,
+            recipient_ledger_account_id,
             pending_id,
             settled_id,
             meta,
@@ -89,7 +89,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("recipient_account_id", recipient_account_id);
+        params.insert("recipient_account_id", recipient_ledger_account_id);
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
