@@ -23,7 +23,7 @@ pub struct IncomingUtxoMeta {
 #[derive(Debug)]
 pub struct IncomingUtxoParams {
     pub journal_id: JournalId,
-    pub recipient_account_id: LedgerAccountId,
+    pub recipient_ledger_account_id: LedgerAccountId,
     pub pending_id: Uuid,
     pub meta: IncomingUtxoMeta,
 }
@@ -74,7 +74,7 @@ impl From<IncomingUtxoParams> for TxParams {
     fn from(
         IncomingUtxoParams {
             journal_id,
-            recipient_account_id,
+            recipient_ledger_account_id,
             pending_id,
             meta,
         }: IncomingUtxoParams,
@@ -92,7 +92,7 @@ impl From<IncomingUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("recipient_account_id", recipient_account_id);
+        params.insert("recipient_account_id", recipient_ledger_account_id);
         params.insert("amount", amount);
         params.insert("external_id", pending_id.to_string());
         params.insert("correlation_id", pending_id);

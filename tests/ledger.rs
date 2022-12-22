@@ -45,7 +45,7 @@ async fn test_ledger() -> anyhow::Result<()> {
             tx,
             IncomingUtxoParams {
                 journal_id,
-                recipient_account_id: ledger_account_id,
+                recipient_ledger_account_id: ledger_account_id,
                 pending_id,
                 meta: IncomingUtxoMeta {
                     wallet_id,
@@ -72,7 +72,7 @@ async fn test_ledger() -> anyhow::Result<()> {
             tx,
             ConfirmedUtxoParams {
                 journal_id,
-                recipient_account_id: ledger_account_id,
+                recipient_ledger_account_id: ledger_account_id,
                 pending_id,
                 settled_id,
                 meta: ConfirmedUtxoMeta {
