@@ -45,7 +45,8 @@ pub async fn execute(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_account_id: wallet.ledger_account_id_for_utxo(&local_utxo),
+                            recipient_ledger_account_id: wallet
+                                .ledger_account_id_for_utxo(&local_utxo),
                             pending_id,
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
