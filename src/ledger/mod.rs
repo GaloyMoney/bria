@@ -31,6 +31,9 @@ impl Ledger {
     pub async fn init(pool: &PgPool) -> Result<Self, BriaError> {
         let inner = SqlxLedger::new(pool);
         Self::onchain_income_account(&inner).await?;
+        Self::onchain_at_rest_account(&inner).await?;
+        Self::onchain_fee_account(&inner).await?;
+        Self::onchain_outgoing_account(&inner).await?;
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
@@ -135,15 +138,66 @@ impl Ledger {
     #[instrument(name = "ledger.onchain_income_account", skip_all)]
     async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(ONCHAIN_INCOME_CODE)
+            .code(ONCHAIN_INCOMING_CODE)
             .id(ONCHAIN_INCOMING_ID)
-            .name(ONCHAIN_INCOME_CODE)
-            .description("Account for settlement of onchain".to_string())
+            .name(ONCHAIN_INCOMING_CODE)
+            .description("Account for onchain incoming unconfirmed funds".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
-            .expect("Couldn't create ONCHAIN_INCOME");
+            .expect("Couldn't create onchain incoming account");
         match ledger.accounts().create(new_account).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_INCOMING_ID)),
+            Err(e) => Err(e.into()),
+            Ok(id) => Ok(id),
+        }
+    }
+
+    #[instrument(name = "ledger.onchain_at_rest_account", skip_all)]
+    async fn onchain_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+        let new_account = NewLedgerAccount::builder()
+            .code(ONCHAIN_AT_REST_CODE)
+            .id(ONCHAIN_AT_REST_ID)
+            .name(ONCHAIN_AT_REST_CODE)
+            .description("Account for settlement of onchain funds".to_string())
+            .normal_balance_type(DebitOrCredit::Debit)
+            .build()
+            .expect("Couldn't create onchain at rest account");
+        match ledger.accounts().create(new_account).await {
+            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_AT_REST_ID)),
+            Err(e) => Err(e.into()),
+            Ok(id) => Ok(id),
+        }
+    }
+
+    #[instrument(name = "ledger.onchain_fee_account", skip_all)]
+    async fn onchain_fee_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+        let new_account = NewLedgerAccount::builder()
+            .code(ONCHAIN_FEE_CODE)
+            .id(ONCHAIN_FEE_ID)
+            .name(ONCHAIN_FEE_CODE)
+            .description("Account for provisioning of onchain fees".to_string())
+            .normal_balance_type(DebitOrCredit::Debit)
+            .build()
+            .expect("Couldn't create onchain fee account");
+        match ledger.accounts().create(new_account).await {
+            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_FEE_ID)),
+            Err(e) => Err(e.into()),
+            Ok(id) => Ok(id),
+        }
+    }
+
+    #[instrument(name = "ledger.onchain_outgoing_account", skip_all)]
+    async fn onchain_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+        let new_account = NewLedgerAccount::builder()
+            .code(ONCHAIN_OUTGOING_CODE)
+            .id(ONCHAIN_OUTGOING_ID)
+            .name(ONCHAIN_OUTGOING_CODE)
+            .description("Account for outgoing onchain funds".to_string())
+            .normal_balance_type(DebitOrCredit::Debit)
+            .build()
+            .expect("Couldn't create onchain outgoing account");
+        match ledger.accounts().create(new_account).await {
+            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_OUTGOING_ID)),
             Err(e) => Err(e.into()),
             Ok(id) => Ok(id),
         }
