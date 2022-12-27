@@ -35,7 +35,7 @@ uuid = { version = "1.2.1", features = ["serde", "v4"] }
 futures = "0.3.25"
 url = "2.3.1"
 rand = "0.8.5"
-bdk = { git = "https://github.com/bodymindarts/bdk", branch = "fix-electrum-tx-order" }
+bdk = "0.25.0"
 bitcoin = { version = "0.29.2", features = ["serde", "rand"] }
 lazy_static = "1.4.0"
 opentelemetry = "0.18.0"
