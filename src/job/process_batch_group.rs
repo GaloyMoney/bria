@@ -51,6 +51,7 @@ pub async fn execute(
 
     for (wallet_id, payouts) in unbatched_payouts {
         let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
+
         let mut builder = outer_builder.wallet_payouts(wallet.id, payouts);
         for keychain in wallet.deprecated_keychain_wallets(pool.clone()) {
             builder = keychain.dispatch_bdk_wallet(builder).await?;

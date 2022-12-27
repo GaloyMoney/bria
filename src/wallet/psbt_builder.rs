@@ -26,8 +26,8 @@ pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
-    pub tx_id: Option<bitcoin::Txid>,
     pub fee_satoshis: u64,
+    pub tx_id: Option<bitcoin::Txid>,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
 }
 

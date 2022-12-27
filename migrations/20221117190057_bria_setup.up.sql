@@ -110,7 +110,7 @@ CREATE TABLE bria_batches (
   batch_group_id UUID NOT NULL,
   total_fee_sats BIGINT NOT NULL,
   bitcoin_tx_id BYTEA NOT NULL,
-  psbt BYTEA NOT NULL,
+  unsigned_psbt BYTEA NOT NULL,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -123,7 +123,8 @@ CREATE TABLE bria_batch_wallet_summaries (
   change_sats BIGINT NOT NULL,
   change_address BYTEA NOT NULL,
   fee_sats BIGINT NOT NULL,
-  ledger_tx_id UUID NOT NULL,
+  ledger_tx_pending_id UUID,
+  ledger_tx_settled_id UUID,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(batch_id, wallet_id)
