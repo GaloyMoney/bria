@@ -35,8 +35,9 @@ CREATE TABLE bdk_utxos (
   tx_id VARCHAR NOT NULL,
   vout INTEGER NOT NULL,
   utxo_json JSONB NOT NULL,
-  ledger_tx_pending_id UUID,
-  ledger_tx_settled_id UUID,
+  ledger_tx_pending_id UUID DEFAULT NULL,
+  ledger_tx_settled_id UUID DEFAULT NULL,
+  spending_batch_id UUID DEFAULT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(keychain_id, tx_id, vout)

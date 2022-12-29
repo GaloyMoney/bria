@@ -1,5 +1,6 @@
-use bdk::{BlockTime, LocalUtxo, TransactionDetails};
+use bdk::{bitcoin::blockdata::transaction::OutPoint, BlockTime, LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, Transaction};
+use std::collections::{HashMap, HashSet};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -129,5 +130,33 @@ impl Utxos {
                 .confirmation_time
                 .expect("Query should only return confirmed transactions"),
         }))
+    }
+
+    #[instrument(name = "utxos.list_reserved_unspent_utxos", skip(self, tx))]
+    pub async fn list_reserved_unspent_utxos(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: HashSet<KeychainId>,
+    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
+        let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
+        let rows = sqlx::query!(
+            r#"SELECT keychain_id, utxo_json
+                          FROM bdk_utxos
+                          WHERE keychain_id = ANY($1)
+                            AND (utxo_json->'is_spent')::BOOLEAN = false
+                            AND spending_batch_id IS NOT NULL FOR UPDATE"#,
+            &uuids[..]
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+        let mut utxos = HashMap::new();
+        for row in rows {
+            let keychain_id = KeychainId::from(row.keychain_id);
+            let utxos: &mut Vec<_> = utxos.entry(keychain_id).or_default();
+            let details: LocalUtxo =
+                serde_json::from_value(row.utxo_json).expect("Couldn't deserialize utxo_details");
+            utxos.push(details.outpoint);
+        }
+        Ok(utxos)
     }
 }

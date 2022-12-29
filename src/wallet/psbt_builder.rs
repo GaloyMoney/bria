@@ -34,6 +34,7 @@ pub struct FinishedPsbtBuild {
 pub struct PsbtBuilder<T> {
     consolidate_deprecated_keychains: Option<bool>,
     fee_rate: Option<FeeRate>,
+    reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     current_wallet: Option<WalletId>,
     current_payouts: Vec<Payout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
@@ -59,6 +60,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         Self {
             consolidate_deprecated_keychains: None,
             fee_rate: None,
+            reserved_utxos: None,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: vec![],
@@ -84,6 +86,11 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         self
     }
 
+    pub fn reserved_utxos(mut self, reserved_utxos: HashMap<KeychainId, Vec<OutPoint>>) -> Self {
+        self.reserved_utxos = Some(reserved_utxos);
+        self
+    }
+
     pub fn fee_rate(mut self, fee_rate: FeeRate) -> Self {
         self.fee_rate = Some(fee_rate);
         self
@@ -93,6 +100,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         PsbtBuilder::<AcceptingWalletState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
+            reserved_utxos: self.reserved_utxos,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
@@ -114,6 +122,7 @@ impl PsbtBuilder<AcceptingWalletState> {
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
+            reserved_utxos: self.reserved_utxos,
             current_wallet: Some(wallet_id),
             current_payouts: payouts,
             current_wallet_psbts: self.current_wallet_psbts,
@@ -147,6 +156,15 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
         let drain_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
 
         let mut builder = wallet.build_tx();
+        if let Some(reserved_utxos) = self
+            .reserved_utxos
+            .as_ref()
+            .and_then(|m| m.get(&keychain_id))
+        {
+            for out in reserved_utxos {
+                builder.add_unspendable(*out);
+            }
+        }
         builder
             .fee_rate(self.fee_rate.expect("fee rate must be set"))
             .sighash(bitcoin::EcdsaSighashType::All.into())
@@ -174,6 +192,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
         PsbtBuilder::<AcceptingCurrentKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
+            reserved_utxos: self.reserved_utxos,
             current_wallet: self.current_wallet,
             current_payouts: self.current_payouts,
             current_wallet_psbts: self.current_wallet_psbts,
@@ -199,7 +218,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 
         let mut max_payout = 0;
         while max_payout < self.current_payouts.len()
-            && self.try_build_current_wallet_psbt(&self.current_payouts[..=max_payout], wallet)?
+            && self.try_build_current_wallet_psbt(
+                keychain_id,
+                &self.current_payouts[..=max_payout],
+                wallet,
+            )?
         {
             max_payout += 1;
         }
@@ -208,6 +231,15 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         }
 
         let mut builder = wallet.build_tx();
+        if let Some(reserved_utxos) = self
+            .reserved_utxos
+            .as_ref()
+            .and_then(|m| m.get(&keychain_id))
+        {
+            for out in reserved_utxos {
+                builder.add_unspendable(*out);
+            }
+        }
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.drain_to(change_address.script_pubkey());
         builder.sighash(bitcoin::EcdsaSighashType::All.into());
@@ -325,6 +357,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         PsbtBuilder::<AcceptingWalletState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
+            reserved_utxos: self.reserved_utxos,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
@@ -341,6 +374,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
 
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
         &self,
+        keychain_id: KeychainId,
         payouts: &[Payout],
         wallet: &Wallet<D>,
     ) -> Result<bool, BriaError> {
@@ -354,6 +388,16 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                 .expect("No onchain address");
 
             builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
+        }
+
+        if let Some(reserved_utxos) = self
+            .reserved_utxos
+            .as_ref()
+            .and_then(|m| m.get(&keychain_id))
+        {
+            for out in reserved_utxos {
+                builder.add_unspendable(*out);
+            }
         }
 
         for (_, psbt) in self.current_wallet_psbts.iter() {
