@@ -11,9 +11,9 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessBatchGroupData {
-    pub batch_group_id: BatchGroupId,
-    pub account_id: AccountId,
-    batch_id: BatchId,
+    pub(super) batch_group_id: BatchGroupId,
+    pub(super) account_id: AccountId,
+    pub(super) batch_id: BatchId,
 }
 
 impl ProcessBatchGroupData {
@@ -31,14 +31,20 @@ impl ProcessBatchGroupData {
     skip(pool, payouts, wallets, batch_groups),
     err
 )]
-pub async fn execute(
+pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
     batch_groups: BatchGroups,
     data: ProcessBatchGroupData,
-) -> Result<ProcessBatchGroupData, BriaError> {
+) -> Result<
+    (
+        ProcessBatchGroupData,
+        Option<sqlx::Transaction<'a, sqlx::Postgres>>,
+    ),
+    BriaError,
+> {
     let BatchGroup { config: bg_cfg, .. } = batch_groups.find_by_id(data.batch_group_id).await?;
 
     let unbatched_payouts = payouts.list_unbatched(data.batch_group_id).await?;
@@ -84,5 +90,13 @@ pub async fn execute(
         ..
     } = outer_builder.finish();
 
-    Ok(data)
+    // construct new Batch entity
+    // -> persist in transaction
+    // -> kick off Batch process job
+
+    if psbt.is_some() {
+        Ok((data, Some(tx)))
+    } else {
+        Ok((data, None))
+    }
 }
