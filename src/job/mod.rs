@@ -8,8 +8,8 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    app::BlockchainConfig, batch_group::*, error::*, ledger::Ledger, payout::*, primitives::*,
-    wallet::*,
+    app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
+    primitives::*, wallet::*,
 };
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
@@ -28,6 +28,7 @@ pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
     batch_groups: BatchGroups,
+    batches: Batches,
     payouts: Payouts,
     ledger: Ledger,
     sync_all_wallets_delay: std::time::Duration,
@@ -46,6 +47,7 @@ pub async fn start_job_runner(
     registry.set_context(blockchain_cfg);
     registry.set_context(wallets);
     registry.set_context(batch_groups);
+    registry.set_context(batches);
     registry.set_context(payouts);
     registry.set_context(ledger);
 
@@ -127,6 +129,7 @@ async fn process_batch_group(
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
     batch_groups: BatchGroups,
+    batches: Batches,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -140,6 +143,7 @@ async fn process_batch_group(
                 wallets,
                 blockchain_cfg,
                 batch_groups,
+                batches,
                 data,
             )
             .await?;

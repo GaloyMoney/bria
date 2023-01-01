@@ -18,5 +18,9 @@ pub async fn execute(
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
 ) -> Result<ProcessBatchData, BriaError> {
+    // load psbt
+    // for each keychain
+    // for each xpub
+    // load signer
     Ok(data)
 }

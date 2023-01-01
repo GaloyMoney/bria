@@ -7,7 +7,7 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
-    account::keys::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
+    account::keys::*, batch::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
     signer::*, wallet::*, xpub::*,
 };
 
@@ -32,6 +32,7 @@ impl App {
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
         let batch_groups = BatchGroups::new(&pool);
+        let batches = Batches::new(&pool);
         let signers = Signers::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
@@ -39,6 +40,7 @@ impl App {
             &pool,
             wallets.clone(),
             batch_groups.clone(),
+            batches,
             payouts.clone(),
             ledger.clone(),
             wallets_cfg.sync_all_wallets_delay,

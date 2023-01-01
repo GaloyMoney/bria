@@ -5,8 +5,8 @@ use tracing::instrument;
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    app::BlockchainConfig, batch_group::*, bdk::pg::Utxos, error::*, payout::*, primitives::*,
-    wallet::*,
+    app::BlockchainConfig, batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*,
+    primitives::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +37,7 @@ pub async fn execute<'a>(
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
     batch_groups: BatchGroups,
+    batches: Batches,
     data: ProcessBatchGroupData,
 ) -> Result<
     (
@@ -56,7 +57,8 @@ pub async fn execute<'a>(
         .collect();
 
     let mut tx = pool.begin().await?;
-    let reserved_utxos = Utxos::new(KeychainId::new(), pool.clone())
+    let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
+    let reserved_utxos = all_utxos
         .list_reserved_unspent_utxos(&mut tx, keychain_ids)
         .await?;
     let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
@@ -87,16 +89,55 @@ pub async fn execute<'a>(
         included_utxos,
         wallet_totals,
         tx_id,
-        ..
+        fee_satoshis,
     } = outer_builder.finish();
 
-    // construct new Batch entity
-    // -> persist in transaction
-    // -> kick off Batch process job
+    if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
+        let batch = NewBatch::builder()
+            .id(data.batch_id)
+            .tx_id(tx_id)
+            .unsigned_psbt(psbt)
+            .total_fee_sats(fee_satoshis)
+            .included_payouts(
+                included_payouts
+                    .into_iter()
+                    .map(|(wallet_id, payouts)| {
+                        (wallet_id, payouts.into_iter().map(|p| p.id).collect())
+                    })
+                    .collect(),
+            )
+            .included_utxos(included_utxos)
+            .wallet_summaries(
+                wallet_totals
+                    .into_iter()
+                    .map(|(wallet_id, total)| (wallet_id, total.into()))
+                    .collect(),
+            )
+            .build()
+            .expect("Couldn't build batch");
 
-    if psbt.is_some() {
+        all_utxos
+            .reserve_utxos(&mut tx, batch.id, &batch.included_utxos)
+            .await?;
+        batches.create_in_tx(&mut tx, batch).await?;
+
         Ok((data, Some(tx)))
     } else {
         Ok((data, None))
+    }
+}
+
+impl From<WalletTotals> for WalletSummary {
+    fn from(wt: WalletTotals) -> Self {
+        Self {
+            wallet_id: wt.wallet_id,
+            total_in_sats: wt.input_satoshis,
+            total_out_sats: wt.output_satoshis,
+            fee_sats: wt.fee_satoshis,
+            change_sats: wt.change_satoshis,
+            change_address: wt.change_address.address,
+            ledger_tx_pending_id: sqlx_ledger::TransactionId::new(),
+            ledger_tx_settled_id: sqlx_ledger::TransactionId::new(),
+        }
     }
 }
