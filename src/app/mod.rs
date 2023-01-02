@@ -102,7 +102,7 @@ impl App {
     ) -> Result<(), BriaError> {
         let xpub = self.xpubs.find_from_ref(account_id, xpub_ref).await?;
         let new_signer = NewSigner::builder()
-            .xpub_name(xpub.0)
+            .xpub_name(xpub.key_name)
             .config(config)
             .build()
             .expect("Couldn't build signer");
@@ -136,7 +136,7 @@ impl App {
             .id(wallet_id)
             .name(wallet_name.clone())
             .keychain(WpkhKeyChainConfig::new(
-                xpubs.into_iter().next().expect("xpubs is empty").1,
+                xpubs.into_iter().next().expect("xpubs is empty").value,
             ))
             .dust_account_id(dust_account_id)
             .build()

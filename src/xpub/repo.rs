@@ -40,7 +40,7 @@ impl XPubs {
         &self,
         account_id: AccountId,
         xpub_ref: String,
-    ) -> Result<(String, XPub), BriaError> {
+    ) -> Result<AccountXPub, BriaError> {
         let (name, derivation_path, original, bytes) = match (
             Fingerprint::from_str(&xpub_ref),
             ExtendedPubKey::from_str(&xpub_ref),
@@ -92,14 +92,15 @@ impl XPubs {
                 )
             }
         };
-        Ok((
-            name,
-            XPub {
+        Ok(AccountXPub {
+            account_id,
+            key_name: name,
+            value: XPub {
                 derivation: derivation_path
                     .map(|d| d.parse().expect("Couldn't decode derivation path")),
                 original,
                 inner: ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
-        ))
+        })
     }
 }
