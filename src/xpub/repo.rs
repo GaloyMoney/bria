@@ -4,7 +4,7 @@ use std::str::FromStr;
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::value::*;
+use super::{entity::*, value::*};
 use crate::{error::*, primitives::*};
 
 pub struct XPubs {
@@ -17,24 +17,19 @@ impl XPubs {
     }
 
     #[instrument(name = "xpubs.persist", skip(self))]
-    pub async fn persist(
-        &self,
-        account_id: AccountId,
-        key_name: String,
-        xpub: XPub,
-    ) -> Result<XPubId, BriaError> {
+    pub async fn persist(&self, xpub: NewXPub) -> Result<XPubId, BriaError> {
         let id = xpub.id();
         sqlx::query!(
             r#"INSERT INTO bria_xpubs
             (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)
             VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"#,
-            Uuid::from(account_id),
-            key_name,
-            xpub.original,
-            &xpub.inner.encode(),
-            xpub.derivation.map(|d| d.to_string()),
+            Uuid::from(xpub.account_id),
+            xpub.key_name,
+            xpub.value.original,
+            &xpub.value.inner.encode(),
+            xpub.value.derivation.map(|d| d.to_string()),
             id.as_bytes(),
-            xpub.inner.parent_fingerprint.as_bytes(),
+            xpub.value.inner.parent_fingerprint.as_bytes(),
         )
         .execute(&self.pool)
         .await?;

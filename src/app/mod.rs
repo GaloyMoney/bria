@@ -82,8 +82,14 @@ impl App {
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
-        let xpub = XPub::try_from((xpub, derivation))?;
-        let id = self.xpubs.persist(account_id, key_name, xpub).await?;
+        let value = XPub::try_from((xpub, derivation))?;
+        let xpub = NewXPub::builder()
+            .account_id(account_id)
+            .key_name(key_name)
+            .value(value)
+            .build()
+            .expect("Couldn't build xpub");
+        let id = self.xpubs.persist(xpub).await?;
         Ok(id)
     }
 

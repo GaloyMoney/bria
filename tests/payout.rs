@@ -13,7 +13,16 @@ async fn test_payout() -> anyhow::Result<()> {
     let wallet_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let repo = XPubs::new(&pool);
 
-    let id = repo.persist(account_id, wallet_name.clone(), xpub).await?;
+    let id = repo
+        .persist(
+            NewXPub::builder()
+                .account_id(account_id)
+                .key_name(wallet_name.clone())
+                .value(xpub)
+                .build()
+                .unwrap(),
+        )
+        .await?;
 
     let app = App::run(pool, BlockchainConfig::default(), WalletsConfig::default()).await?;
     app.create_wallet(account_id, wallet_name.clone(), vec![id.to_string()])
