@@ -25,36 +25,6 @@
     },
     "query": "INSERT INTO bria_wallets (id, wallet_cfg, account_id, ledger_account_id, dust_ledger_account_id, name)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING (id)"
   },
-  "0f3464403b871faf9bfc5b0d9b6d0ba30613c638f3fe1345f33cc0626fb36d8c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_cfg",
-          "ordinal": 2,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_batch_groups\n               ) SELECT id, account_id, batch_cfg FROM bria_batch_groups\n                 WHERE (id, version) IN (SELECT * FROM latest)"
-  },
   "115999f874d3397311d1ebc501e47eef0a01993a7f573873b6d0a5d87cbb0866": {
     "describe": {
       "columns": [
@@ -143,6 +113,44 @@
     },
     "query": "SELECT distinct(id) FROM bria_wallets"
   },
+  "316920ab6db6dd6b3aa325b40c6908d1e166792781dde5289f0d26113bb76428": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "destination_data",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "satoshis",
+          "ordinal": 3,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_payouts LEFT JOIN bria_batch_payouts ON id = payout_id\n                 WHERE batch_group_id = $1 AND payout_id IS NULL\n               ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts\n                 WHERE (id, version) IN (SELECT * FROM latest)\n                 ORDER BY priority, created_at"
+  },
   "318f82b3188e528f94254ecea21adae1cd19d9af02599f538234a0811089853f": {
     "describe": {
       "columns": [],
@@ -156,6 +164,32 @@
       }
     },
     "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json)\n        VALUES ($1, $2, $3) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json"
+  },
+  "319ee8ffea91d73d47e75321fdfd1e4fee4534344636e2948ee1b82f9ac3edfa": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          },
+          "Int4",
+          "Bytea",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_fmt)\n            VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"
   },
   "323bf243d28db3a7f6810a2e640a8339e41793a7982e9ed6dc7175570f1d921d": {
     "describe": {
@@ -338,31 +372,43 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
   },
-  "686b60d4112f0c9ff21a69b79b520a2da9fff0fc4539dba12ae687c8f141c426": {
+  "62b0c9c4929adb7809f679ef6e64bbf0b043f243ec882429b82ca8292a8bc902": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "batch_cfg",
+          "ordinal": 3,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
       "parameters": {
         "Left": [
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          },
-          "Int4",
-          "Bytea",
-          "Varchar"
+          "Uuid"
         ]
       }
     },
-    "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_fmt)\n            VALUES ($1, $2, $3, $4, $5)"
+    "query": "SElECT id, account_id, name, batch_cfg\n                 FROM bria_batch_groups\n                 WHERE id = $1 ORDER BY version DESC LIMIT 1"
   },
   "6be0e1f0b1e056688e4e276b13a40d5b6423b960df7dbff0b2a2f5e1bec3dc33": {
     "describe": {
@@ -502,43 +548,20 @@
     },
     "query": "SELECT script, keychain_kind as \"keychain_kind: BdkKeychainKind\" FROM bdk_script_pubkeys\n            WHERE keychain_id = $1"
   },
-  "89cc1ae6e85dc435b221b1b1cddb487166df80481841819280907099586ba442": {
+  "7ffd870c69bda78f7d81488e6f10e9e06be55fe817f433644fd07566148b20ff": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "destination_data",
-          "ordinal": 2,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "satoshis",
-          "ordinal": 3,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
-          "Uuid"
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Jsonb"
         ]
       }
     },
-    "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_payouts JOIN bria_batch_payouts ON id = payout_id\n                 WHERE batch_group_id = $1 AND payout_id IS NULL\n               ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts\n                 WHERE (id, version) IN (SELECT * FROM latest)\n                 ORDER BY priority, created_at"
+    "query": "\n            INSERT INTO bria_xpub_signers (id, account_id, xpub_name, signer_cfg)\n            VALUES ($1, $2, (SELECT name FROM bria_xpubs WHERE account_id = $2 AND name = $3), $4)\n            "
   },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
@@ -609,6 +632,22 @@
       }
     },
     "query": "WITH latest AS (\n              SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id\n              WHERE w.id = $1 ORDER BY version DESC LIMIT 1\n            )\n            SElECT l.id, l.wallet_cfg, l.ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg\n                 FROM bria_wallet_keychains k\n                 JOIN latest l ON k.wallet_id = l.id\n                 ORDER BY sequence DESC"
+  },
+  "9e38db9fbc99cd77dd9df1ac60513d37e2c31bef5876113dff5842f3daa9c308": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Int8",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_batches (id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5)"
   },
   "a17c30ab0f4af264c0239ee4f9aee7dbc3d1c90901d0a21c6682131ba5a7742e": {
     "describe": {
@@ -731,6 +770,32 @@
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
   },
+  "b6c853c92a6311318359ba2eb72a51f68317473c9235469388f94226f3716f8d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "keychain_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "SELECT keychain_id, utxo_json\n                          FROM bdk_utxos\n                          WHERE keychain_id = ANY($1)\n                            AND (utxo_json->'is_spent')::BOOLEAN = false\n                            AND spending_batch_id IS NOT NULL FOR UPDATE"
+  },
   "bba0456ebcbee4145b3954bd2f6147b0734202900a5ed8496e6f720dcd16601d": {
     "describe": {
       "columns": [
@@ -820,7 +885,7 @@
     },
     "query": "WITH latest AS (\n              SELECT w.id, w.wallet_cfg, w.ledger_account_id, w.dust_ledger_account_id, a.journal_id FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id\n              WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1\n            )\n            SElECT l.id, l.wallet_cfg, l.ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg\n                 FROM bria_wallet_keychains k\n                 JOIN latest l ON k.wallet_id = l.id\n                 ORDER BY sequence DESC"
   },
-  "ce76d574f8b2ed54dc0fbbdabd7a9d9cc6c9e5af095744fc186bdb05d7f15caf": {
+  "cea08e173999feced38d8c3d7039b2d2ea3bf7a26f7df74d33da7b2c0b772117": {
     "describe": {
       "columns": [
         {
@@ -834,23 +899,27 @@
           "type_info": "Uuid"
         },
         {
-          "name": "batch_cfg",
+          "name": "name",
           "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "batch_cfg",
+          "ordinal": 3,
           "type_info": "Jsonb"
         }
       ],
       "nullable": [
         false,
         false,
+        false,
         false
       ],
       "parameters": {
-        "Left": [
-          "Uuid"
-        ]
+        "Left": []
       }
     },
-    "query": "SElECT id, account_id, batch_cfg\n                 FROM bria_batch_groups\n                 WHERE id = $1 ORDER BY version DESC LIMIT 1"
+    "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_batch_groups\n               ) SELECT id, account_id, name, batch_cfg FROM bria_batch_groups\n                 WHERE (id, version) IN (SELECT * FROM latest)"
   },
   "d0b8f6b6da3cecfbb1d4131ca99ce6709ed52b7ee437f55876857d686a28009b": {
     "describe": {
@@ -992,21 +1061,6 @@
       }
     },
     "query": "SELECT id, name FROM bria_admin_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
-  },
-  "f453e6a6a5d55334a17ca2a122f8d5a502880d03d69c602585182c910f7c59c0": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Text",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO bria_signers (id, account_id, xpub_name, signer_cfg)\n            VALUES ($1, $2, (SELECT name FROM bria_xpubs WHERE account_id = $2 AND name = $3), $4)\n            "
   },
   "f6273d55a9ef0ab5746064b4064346c2789b6db97251e49d99d82d5e49dfd174": {
     "describe": {
