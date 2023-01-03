@@ -122,7 +122,7 @@ CREATE TABLE bria_batch_wallet_summaries (
   total_in_sats BIGINT NOT NULL,
   total_out_sats BIGINT NOT NULL,
   change_sats BIGINT NOT NULL,
-  change_address BYTEA NOT NULL,
+  change_address VARCHAR NOT NULL,
   fee_sats BIGINT NOT NULL,
   ledger_tx_pending_id UUID,
   ledger_tx_settled_id UUID,

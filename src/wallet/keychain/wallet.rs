@@ -1,10 +1,10 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
     database::BatchDatabase,
-    wallet::{signer::SignOptions, tx_builder::TxOrdering, AddressIndex},
-    FeeRate, TransactionDetails, Wallet,
+    wallet::{signer::SignOptions, AddressIndex},
+    Wallet,
 };
-use bitcoin::{util::psbt, Address, Network};
+use bitcoin::{util::psbt, Network};
 use sqlx::PgPool;
 use tracing::instrument;
 

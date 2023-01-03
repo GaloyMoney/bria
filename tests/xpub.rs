@@ -11,7 +11,7 @@ async fn test_xpub() -> anyhow::Result<()> {
     let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
 
     let repo = XPubs::new(&pool);
-    let id = repo
+    let _ = repo
         .persist(
             NewXPub::builder()
                 .account_id(account_id)

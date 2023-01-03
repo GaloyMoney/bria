@@ -1,5 +1,6 @@
 use bitcoin::consensus::encode;
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::entity::*;
@@ -15,6 +16,7 @@ impl Batches {
         Self { pool: pool.clone() }
     }
 
+    #[instrument(name = "batches.create_in_tx", skip_all)]
     pub async fn create_in_tx<'a>(
         &self,
         tx: &mut Transaction<'a, Postgres>,
@@ -74,7 +76,7 @@ impl Batches {
         query_builder.push_values(utxos, |mut builder, (keychain_id, utxo)| {
             builder.push_bind(Uuid::from(batch.id));
             builder.push_bind(Uuid::from(keychain_id));
-            builder.push_bind(utxo.txid.to_vec());
+            builder.push_bind(utxo.txid.to_string());
             builder.push_bind(utxo.vout as i32);
         });
         let query = query_builder.build();

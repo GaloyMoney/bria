@@ -1,8 +1,7 @@
-use bdk::LocalUtxo;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*,
@@ -28,14 +27,22 @@ impl ProcessBatchGroupData {
 
 #[instrument(
     name = "job.process_batch_group",
-    skip(pool, payouts, wallets, batch_groups),
+    skip_all,
+    fields(
+        n_unbatched_payouts,
+        batch_group_name,
+        n_reserved_utxos,
+        txid,
+        psbt,
+        batch_id,
+        batch_group_id
+    ),
     err
 )]
 pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
-    blockchain_cfg: BlockchainConfig,
     batch_groups: BatchGroups,
     batches: Batches,
     data: ProcessBatchGroupData,
@@ -46,9 +53,25 @@ pub async fn execute<'a>(
     ),
     BriaError,
 > {
-    let BatchGroup { config: bg_cfg, .. } = batch_groups.find_by_id(data.batch_group_id).await?;
+    let span = tracing::Span::current();
+    let BatchGroup {
+        config: bg_cfg,
+        name,
+        ..
+    } = batch_groups.find_by_id(data.batch_group_id).await?;
+    span.record("batch_group_name", name);
+    span.record(
+        "batch_group_id",
+        &tracing::field::display(data.batch_group_id),
+    );
+    span.record("batch_id", &tracing::field::display(data.batch_id));
 
     let unbatched_payouts = payouts.list_unbatched(data.batch_group_id).await?;
+    span.record(
+        "n_unbatched_payouts",
+        unbatched_payouts.values().fold(0, |acc, v| acc + v.len()),
+    );
+
     let wallet_ids = unbatched_payouts.keys().copied().collect();
     let mut wallets = wallets.find_by_ids(wallet_ids).await?;
     let keychain_ids: HashSet<KeychainId> = wallets
@@ -61,6 +84,10 @@ pub async fn execute<'a>(
     let reserved_utxos = all_utxos
         .list_reserved_unspent_utxos(&mut tx, keychain_ids)
         .await?;
+    span.record(
+        "n_reserved_utxos",
+        reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
+    );
     let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
 
     let mut outer_builder = PsbtBuilder::new()
@@ -93,8 +120,12 @@ pub async fn execute<'a>(
     } = outer_builder.finish();
 
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
+        span.record("txid", &tracing::field::display(tx_id));
+        span.record("psbt", &tracing::field::display(&psbt));
+
         let batch = NewBatch::builder()
             .id(data.batch_id)
+            .batch_group_id(data.batch_group_id)
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)

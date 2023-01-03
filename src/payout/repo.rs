@@ -55,7 +55,7 @@ impl Payouts {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
-                 FROM bria_payouts JOIN bria_batch_payouts ON id = payout_id
+                 FROM bria_payouts LEFT JOIN bria_batch_payouts ON id = payout_id
                  WHERE batch_group_id = $1 AND payout_id IS NULL
                ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts
                  WHERE (id, version) IN (SELECT * FROM latest)

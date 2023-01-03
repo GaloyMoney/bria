@@ -169,23 +169,23 @@ impl Utxos {
     ) -> Result<(), BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"UPDATE bdk_utxos
-            SET spending_batch_id"#,
+            SET spending_batch_id = "#,
         );
         query_builder.push_bind(Uuid::from(batch_id));
-        query_builder.push("WHERE (keychain, tx_id, vout) IN");
+        query_builder.push("WHERE (keychain_id, tx_id, vout) IN");
         query_builder.push_tuples(
             utxos.iter().flat_map(|(keychain_id, utxos)| {
                 utxos.iter().map(move |utxo| {
                     (
                         Uuid::from(*keychain_id),
-                        utxo.txid.to_vec(),
+                        utxo.txid.to_string(),
                         utxo.vout as i32,
                     )
                 })
             }),
             |mut builder, (keychain_id, tx_id, vout)| {
                 builder.push_bind(keychain_id);
-                builder.push_bind(tx_id);
+                builder.push_bind(tx_id.to_string());
                 builder.push_bind(vout);
             },
         );

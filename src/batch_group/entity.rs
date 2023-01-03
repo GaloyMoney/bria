@@ -7,6 +7,7 @@ use crate::primitives::*;
 pub struct BatchGroup {
     pub id: BatchGroupId,
     pub account_id: AccountId,
+    pub name: String,
     pub config: BatchGroupConfig,
 }
 
