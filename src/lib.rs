@@ -16,7 +16,6 @@ pub mod ledger;
 mod macros;
 pub mod payout;
 pub mod primitives;
-pub mod signer;
 mod tracing;
 pub mod wallet;
 pub mod xpub;

@@ -3,7 +3,7 @@ mod helpers;
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
 
-use bria::{payout::*, primitives::*, signer::*, wallet::*, xpub::*};
+use bria::{payout::*, primitives::*, wallet::*, xpub::*};
 
 #[tokio::test]
 #[serial_test::serial]

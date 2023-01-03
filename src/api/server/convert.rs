@@ -1,6 +1,6 @@
 use crate::error::BriaError;
 use crate::payout::*;
-use crate::signer::*;
+use crate::xpub::*;
 
 impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {

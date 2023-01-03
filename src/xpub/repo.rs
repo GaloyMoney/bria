@@ -4,7 +4,7 @@ use std::str::FromStr;
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::{entity::*, value::*};
+use super::{entity::*, signer::*, value::*};
 use crate::{error::*, primitives::*};
 
 pub struct XPubs {
@@ -102,5 +102,27 @@ impl XPubs {
                 inner: ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
         })
+    }
+
+    #[instrument(name = "xpubs.set_signer_for_xpub", skip(self))]
+    pub async fn set_signer_for_xpub(
+        &self,
+        account_id: AccountId,
+        signer: NewSigner,
+    ) -> Result<SignerId, BriaError> {
+        sqlx::query!(
+            r#"
+            INSERT INTO bria_xpub_signers (id, account_id, xpub_name, signer_cfg)
+            VALUES ($1, $2, (SELECT name FROM bria_xpubs WHERE account_id = $2 AND name = $3), $4)
+            "#,
+            Uuid::from(signer.id),
+            Uuid::from(account_id),
+            signer.xpub_name,
+            serde_json::to_value(signer.config)?,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(signer.id)
     }
 }

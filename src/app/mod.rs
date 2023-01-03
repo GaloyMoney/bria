@@ -8,14 +8,13 @@ pub use config::*;
 
 use crate::{
     account::keys::*, batch::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
-    signer::*, wallet::*, xpub::*,
+    wallet::*, xpub::*,
 };
 
 pub struct App {
     _runner: OwnedHandle,
     keys: AccountApiKeys,
     xpubs: XPubs,
-    signers: Signers,
     wallets: Wallets,
     batch_groups: BatchGroups,
     payouts: Payouts,
@@ -33,7 +32,6 @@ impl App {
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);
-        let signers = Signers::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let runner = job::start_job_runner(
@@ -57,7 +55,6 @@ impl App {
         Ok(Self {
             keys: AccountApiKeys::new(&pool),
             xpubs: XPubs::new(&pool),
-            signers,
             wallets,
             batch_groups,
             payouts,
@@ -106,7 +103,9 @@ impl App {
             .config(config)
             .build()
             .expect("Couldn't build signer");
-        self.signers.create(account_id, new_signer).await?;
+        self.xpubs
+            .set_signer_for_xpub(account_id, new_signer)
+            .await?;
         Ok(())
     }
 

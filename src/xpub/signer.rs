@@ -1,7 +1,7 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use super::client::LndSignerConfig;
+use super::signing_client::LndSignerConfig;
 use crate::primitives::*;
 
 #[derive(Builder, Debug, Clone)]

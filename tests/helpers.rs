@@ -14,7 +14,7 @@ use bitcoin::{
     Network, PrivateKey,
 };
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
-use bria::{admin::*, primitives::*, signer::*};
+use bria::{admin::*, primitives::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
