@@ -139,9 +139,30 @@ impl Ledger {
                     format!("{}-incoming", wallet_id),
                 )
                 .await?,
-            at_rest_id: LedgerAccountId::new(),
-            fee_id: LedgerAccountId::new(),
-            outgoing_id: LedgerAccountId::new(),
+            at_rest_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{}_AT_REST", wallet_id),
+                    format!("{}-at-rest", wallet_id),
+                )
+                .await?,
+            fee_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{}_FEE", wallet_id),
+                    format!("{}-fee", wallet_id),
+                )
+                .await?,
+            outgoing_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{}_OUTGOING", wallet_id),
+                    format!("{}-outgoing", wallet_id),
+                )
+                .await?,
             dust_id: self
                 .create_account_for_wallet(
                     tx,

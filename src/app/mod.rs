@@ -158,7 +158,7 @@ impl App {
     ) -> Result<Option<LedgerAccountBalance>, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         self.ledger
-            .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id) // FIXME: Should Show All Accounts
+            .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id)
             .await
     }
 
