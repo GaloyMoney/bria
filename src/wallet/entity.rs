@@ -4,12 +4,11 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use super::keychain::*;
-use crate::primitives::*;
+use crate::{ledger::LedgerAccountIdsForWallet, primitives::*};
 
 pub struct Wallet {
     pub id: WalletId,
-    pub ledger_account_id: LedgerAccountId,
-    pub dust_ledger_account_id: LedgerAccountId,
+    pub ledger_accounts: LedgerAccountIdsForWallet,
     pub journal_id: JournalId,
     pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
     pub config: WalletConfig,
@@ -44,11 +43,15 @@ impl Wallet {
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
     }
 
-    pub fn ledger_account_id_for_utxo(&self, utxo: &LocalUtxo) -> LedgerAccountId {
+    pub fn pick_dust_or_ledger_account(
+        &self,
+        utxo: &LocalUtxo,
+        account: LedgerAccountId,
+    ) -> LedgerAccountId {
         if utxo.txout.value >= self.config.dust_threshold_sats {
-            self.ledger_account_id
+            self.ledger_accounts.dust_id
         } else {
-            self.dust_ledger_account_id
+            account
         }
     }
 }
@@ -60,7 +63,7 @@ pub struct NewWallet {
     pub(super) name: String,
     #[builder(setter(into))]
     pub(super) keychain: WalletKeyChainConfig,
-    pub(super) dust_account_id: LedgerAccountId,
+    pub(super) ledger_accounts: LedgerAccountIdsForWallet,
     #[builder(default)]
     pub(super) config: WalletConfig,
 }

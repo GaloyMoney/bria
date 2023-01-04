@@ -20,6 +20,15 @@ pub struct Ledger {
     btc: Currency,
 }
 
+#[derive(Debug, Clone)]
+pub struct LedgerAccountIdsForWallet {
+    pub incoming_id: LedgerAccountId,
+    pub at_rest_id: LedgerAccountId,
+    pub fee_id: LedgerAccountId,
+    pub outgoing_id: LedgerAccountId,
+    pub dust_id: LedgerAccountId,
+}
+
 impl Ledger {
     pub fn new(pool: &PgPool) -> Self {
         Self {
@@ -30,59 +39,21 @@ impl Ledger {
 
     pub async fn init(pool: &PgPool) -> Result<Self, BriaError> {
         let inner = SqlxLedger::new(pool);
+
+        // Create onchain accounts
         Self::onchain_income_account(&inner).await?;
         Self::onchain_at_rest_account(&inner).await?;
         Self::onchain_fee_account(&inner).await?;
         Self::onchain_outgoing_account(&inner).await?;
+
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
+
         Ok(Self {
             inner,
             btc: "BTC".parse().unwrap(),
         })
-    }
-
-    #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
-    pub async fn create_journal_for_account(
-        &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        id: AccountId,
-        account_name: String,
-    ) -> Result<JournalId, BriaError> {
-        let new_journal = NewJournal::builder()
-            .id(Uuid::from(id))
-            .description(format!("Journal for account '{}'", account_name))
-            .name(account_name)
-            .build()
-            .expect("Couldn't build NewJournal");
-        let id = self.inner.journals().create_in_tx(tx, new_journal).await?;
-        Ok(id)
-    }
-
-    #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, tx))]
-    pub async fn create_ledger_accounts_for_wallet(
-        &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        wallet_id: WalletId,
-        wallet_name: &str,
-    ) -> Result<LedgerAccountId, BriaError> {
-        let dust_account = NewLedgerAccount::builder()
-            .name(format!("{}-dust", wallet_id))
-            .code(format!("WALLET_{}_DUST", wallet_id))
-            .description(format!("Dust account for wallet '{}'", wallet_name))
-            .build()
-            .expect("Couldn't build NewLedgerAccount");
-        let dust_account_id = self.inner.accounts().create_in_tx(tx, dust_account).await?;
-        let new_account = NewLedgerAccount::builder()
-            .id(Uuid::from(wallet_id))
-            .name(wallet_id.to_string())
-            .code(format!("WALLET_{}", wallet_id))
-            .description(format!("Account for wallet '{}'", wallet_name))
-            .build()
-            .expect("Couldn't build NewLedgerAccount");
-        self.inner.accounts().create_in_tx(tx, new_account).await?;
-        Ok(dust_account_id)
     }
 
     #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
@@ -133,6 +104,72 @@ impl Ledger {
             .find(journal_id, account_id, self.btc)
             .await?;
         Ok(balance)
+    }
+
+    #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
+    pub async fn create_journal_for_account(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        id: AccountId,
+        account_name: String,
+    ) -> Result<JournalId, BriaError> {
+        let new_journal = NewJournal::builder()
+            .id(Uuid::from(id))
+            .description(format!("Journal for account '{}'", account_name))
+            .name(account_name)
+            .build()
+            .expect("Couldn't build NewJournal");
+        let id = self.inner.journals().create_in_tx(tx, new_journal).await?;
+        Ok(id)
+    }
+
+    #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, tx))]
+    pub async fn create_ledger_accounts_for_wallet(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        wallet_id: WalletId,
+        wallet_name: &str,
+    ) -> Result<LedgerAccountIdsForWallet, BriaError> {
+        let account_ids = LedgerAccountIdsForWallet {
+            incoming_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{}_INCOMING", wallet_id),
+                    format!("{}-incoming", wallet_id),
+                )
+                .await?,
+            at_rest_id: LedgerAccountId::new(),
+            fee_id: LedgerAccountId::new(),
+            outgoing_id: LedgerAccountId::new(),
+            dust_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{}_DUST", wallet_id),
+                    format!("{}-dust", wallet_id),
+                )
+                .await?,
+        };
+        Ok(account_ids)
+    }
+
+    #[instrument(name = "ledger.create_account_for_wallet", skip(self, tx))]
+    async fn create_account_for_wallet(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        wallet_id: WalletId,
+        wallet_code: String,
+        wallet_name: String,
+    ) -> Result<LedgerAccountId, BriaError> {
+        let account = NewLedgerAccount::builder()
+            .name(&wallet_name)
+            .code(wallet_code)
+            .description(format!("Account for wallet '{}'", &wallet_id))
+            .build()
+            .expect("Couldn't build NewLedgerAccount");
+        let account_id = self.inner.accounts().create_in_tx(tx, account).await?;
+        Ok(account_id)
     }
 
     #[instrument(name = "ledger.onchain_income_account", skip_all)]
@@ -195,7 +232,7 @@ impl Ledger {
             .description("Account for outgoing onchain funds".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
-            .expect("Couldn't create onchain outgoing account");
+            .expect("Couldn't create onchain  account");
         match ledger.accounts().create(new_account).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(ONCHAIN_OUTGOING_ID)),
             Err(e) => Err(e.into()),

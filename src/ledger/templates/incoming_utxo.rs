@@ -23,7 +23,7 @@ pub struct IncomingUtxoMeta {
 #[derive(Debug)]
 pub struct IncomingUtxoParams {
     pub journal_id: JournalId,
-    pub recipient_ledger_account_id: LedgerAccountId,
+    pub ledger_account_incoming_id: LedgerAccountId,
     pub pending_id: Uuid,
     pub meta: IncomingUtxoMeta,
 }
@@ -37,7 +37,7 @@ impl IncomingUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("recipient_account_id")
+                .name("ledger_account_incoming_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -74,7 +74,7 @@ impl From<IncomingUtxoParams> for TxParams {
     fn from(
         IncomingUtxoParams {
             journal_id,
-            recipient_ledger_account_id,
+            ledger_account_incoming_id,
             pending_id,
             meta,
         }: IncomingUtxoParams,
@@ -92,7 +92,7 @@ impl From<IncomingUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("recipient_account_id", recipient_ledger_account_id);
+        params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
         params.insert("amount", amount);
         params.insert("external_id", pending_id.to_string());
         params.insert("correlation_id", pending_id);
@@ -129,7 +129,7 @@ impl IncomingUtxo {
             EntryInput::builder()
                 .entry_type("'PENDING_ONCHAIN_CR'")
                 .currency("'BTC'")
-                .account_id("params.recipient_account_id")
+                .account_id("params.ledger_account_incoming_id")
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")

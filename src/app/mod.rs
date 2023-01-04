@@ -127,7 +127,7 @@ impl App {
 
         let wallet_id = WalletId::new();
         let mut tx = self.pool.begin().await?;
-        let dust_account_id = self
+        let wallet_ledger_accounts = self
             .ledger
             .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
             .await?;
@@ -137,7 +137,7 @@ impl App {
             .keychain(WpkhKeyChainConfig::new(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
             ))
-            .dust_account_id(dust_account_id)
+            .ledger_accounts(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
         let wallet_id = self
@@ -158,7 +158,7 @@ impl App {
     ) -> Result<Option<LedgerAccountBalance>, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         self.ledger
-            .get_balance(wallet.journal_id, wallet.ledger_account_id)
+            .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id) // FIXME: Should Show All Accounts
             .await
     }
 
@@ -227,7 +227,7 @@ impl App {
                 tx,
                 QueuedPayoutParams {
                     journal_id: wallet.journal_id,
-                    sender_account_id: wallet.ledger_account_id,
+                    ledger_account_outgoing_id: wallet.ledger_accounts.outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     satoshis: sats,
                     meta: QueuedPayoutMeta {
