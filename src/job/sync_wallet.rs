@@ -47,7 +47,7 @@ pub async fn execute(
                             journal_id: wallet.journal_id,
                             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
-                                wallet.ledger_accounts.incoming_id,
+                                wallet.ledger_account_ids.incoming_id,
                             ),
                             pending_id,
                             meta: IncomingUtxoMeta {
@@ -86,11 +86,11 @@ pub async fn execute(
                             journal_id: wallet.journal_id,
                             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
-                                wallet.ledger_accounts.incoming_id,
+                                wallet.ledger_account_ids.incoming_id,
                             ),
                             ledger_account_at_rest_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
-                                wallet.ledger_accounts.at_rest_id,
+                                wallet.ledger_account_ids.at_rest_id,
                             ),
                             pending_id,
                             settled_id,

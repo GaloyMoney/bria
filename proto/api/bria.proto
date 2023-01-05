@@ -5,7 +5,7 @@ service BriaService {
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
-  rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse) {}
+  rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
@@ -53,22 +53,16 @@ message NewAddressResponse {
   string address = 1;
 }
 
-message GetWalletBalanceRequest {
+message GetWalletBalanceSummaryRequest {
   string wallet_name = 1;
 }
 
-message WalletBalance {
-  uint64 pending = 1;
-  uint64 settled = 2;
-  uint64 encumbered = 3;
-}
-
-message GetWalletBalanceResponse {
-  WalletBalance incoming = 1;
-  WalletBalance at_rest = 2;
-  WalletBalance fee = 3;
-  WalletBalance outgoing = 4;
-  WalletBalance dust = 5;
+message GetWalletBalanceSummaryResponse {
+  uint64 current_settled = 1;
+  uint64 pending_incoming = 3;
+  uint64 pending_outgoing = 5;
+  uint64 encumbered_fees = 2;
+  uint64 encumbered_outgoing = 4;
 }
 
 message CreateBatchGroupRequest {

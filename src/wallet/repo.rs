@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use super::{entity::*, keychain::*};
+use super::{balance::*, entity::*, keychain::*};
 use crate::{error::*, primitives::*};
 
 #[derive(Debug, Clone)]
@@ -41,11 +41,11 @@ impl Wallets {
             Uuid::from(new_wallet.id),
             serde_json::to_value(new_wallet.config).expect("Couldn't serialize wallet config"),
             Uuid::from(account_id),
-            Uuid::from(new_wallet.ledger_accounts.incoming_id),
-            Uuid::from(new_wallet.ledger_accounts.at_rest_id),
-            Uuid::from(new_wallet.ledger_accounts.fee_id),
-            Uuid::from(new_wallet.ledger_accounts.outgoing_id),
-            Uuid::from(new_wallet.ledger_accounts.dust_id),
+            Uuid::from(new_wallet.ledger_account_ids.incoming_id),
+            Uuid::from(new_wallet.ledger_account_ids.at_rest_id),
+            Uuid::from(new_wallet.ledger_account_ids.fee_id),
+            Uuid::from(new_wallet.ledger_account_ids.outgoing_id),
+            Uuid::from(new_wallet.ledger_account_ids.dust_id),
             new_wallet.name
         )
         .fetch_one(&mut *tx)
@@ -89,7 +89,7 @@ impl Wallets {
         Ok(Wallet {
             id: first_row.id.into(),
             journal_id: first_row.journal_id.into(),
-            ledger_accounts: WalletLedgerAccountIds {
+            ledger_account_ids: WalletLedgerAccountIds {
                 incoming_id: first_row.incoming_ledger_account_id.into(),
                 at_rest_id: first_row.at_rest_ledger_account_id.into(),
                 fee_id: first_row.fee_ledger_account_id.into(),
@@ -135,7 +135,7 @@ impl Wallets {
         let mut wallet = Wallet {
             id: first_row.id.into(),
             journal_id: first_row.journal_id.into(),
-            ledger_accounts: WalletLedgerAccountIds {
+            ledger_account_ids: WalletLedgerAccountIds {
                 incoming_id: first_row.incoming_ledger_account_id.into(),
                 at_rest_id: first_row.at_rest_ledger_account_id.into(),
                 fee_id: first_row.fee_ledger_account_id.into(),
@@ -180,7 +180,7 @@ impl Wallets {
                 .or_insert_with(|| Wallet {
                     id: row.id.into(),
                     journal_id: row.journal_id.into(),
-                    ledger_accounts: WalletLedgerAccountIds {
+                    ledger_account_ids: WalletLedgerAccountIds {
                         incoming_id: row.incoming_ledger_account_id.into(),
                         at_rest_id: row.at_rest_ledger_account_id.into(),
                         fee_id: row.fee_ledger_account_id.into(),

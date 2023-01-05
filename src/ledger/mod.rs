@@ -3,13 +3,15 @@ mod templates;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, journal::*, AccountId as LedgerAccountId, Currency,
-    DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, balance::AccountBalance, journal::*,
+    AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::*, primitives::*, wallet::WalletLedgerAccountIds};
+use std::collections::HashMap;
+
+use crate::{error::*, primitives::*, wallet::balance::*};
 use constants::*;
 pub use templates::*;
 
@@ -17,13 +19,6 @@ pub use templates::*;
 pub struct Ledger {
     inner: SqlxLedger,
     btc: Currency,
-}
-
-#[derive(Debug, Clone)]
-pub struct LedgerAccountBalance {
-    pub pending: u64,
-    pub settled: u64,
-    pub encumbered: u64,
 }
 
 impl Ledger {
@@ -89,31 +84,52 @@ impl Ledger {
         Ok(())
     }
 
+    #[instrument(name = "ledger.get_wallet_ledger_account_balances")]
+    pub async fn get_wallet_ledger_account_balances(
+        &self,
+        journal_id: JournalId,
+        WalletLedgerAccountIds {
+            incoming_id,
+            at_rest_id,
+            fee_id,
+            outgoing_id,
+            dust_id,
+        }: WalletLedgerAccountIds,
+    ) -> Result<WalletLedgerAccountBalances, BriaError> {
+        let mut balances = HashMap::new();
+        for id in [incoming_id, at_rest_id, fee_id, outgoing_id, dust_id] {
+            if let Some(balance) = self.inner.balances().find(journal_id, id, self.btc).await? {
+                balances.insert(id, balance);
+            } else {
+                return Err(BriaError::CouldNotRetreiveWalletBalance);
+            }
+        }
+        Ok(WalletLedgerAccountBalances {
+            incoming: balances
+                .remove(&incoming_id)
+                .expect("Incoming balance not present"),
+            at_rest: balances
+                .remove(&at_rest_id)
+                .expect("At rest balance not present"),
+            fee: balances.remove(&fee_id).expect("Fee balance not present"),
+            outgoing: balances
+                .remove(&outgoing_id)
+                .expect("Outgoing balance not present"),
+            dust: balances.remove(&dust_id).expect("Dust balance not present"),
+        })
+    }
+
     #[instrument(name = "ledger.get_balance")]
     pub async fn get_balance(
         &self,
         journal_id: JournalId,
         account_id: LedgerAccountId,
-    ) -> Result<LedgerAccountBalance, BriaError> {
-        let balance = self
+    ) -> Result<Option<AccountBalance>, BriaError> {
+        Ok(self
             .inner
             .balances()
             .find(journal_id, account_id, self.btc)
-            .await?
-            .map(|balance| LedgerAccountBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                encumbered: u64::try_from(balance.encumbered() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(LedgerAccountBalance {
-                pending: 0,
-                settled: 0,
-                encumbered: 0,
-            });
-        Ok(balance)
+            .await?)
     }
 
     #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
