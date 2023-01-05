@@ -116,11 +116,45 @@ impl ApiClient {
             .await?
             .get_wallet_balance(self.inject_auth_token(request)?)
             .await?;
-        let proto::GetWalletBalanceResponse { pending, settled } = response.into_inner();
+        let proto::GetWalletBalanceResponse {
+            incoming,
+            at_rest,
+            fee,
+            outgoing,
+            dust,
+        } = response.into_inner();
+
+        let incoming = incoming.expect("incoming not present");
+        let at_rest = at_rest.expect("at_rest not present");
+        let fee = fee.expect("fee not present");
+        let outgoing = outgoing.expect("outgoing not present");
+        let dust = dust.expect("dust not present");
+
         println!(
-            "Wallet balance:\npending: {}\nsettled: {}",
-            pending, settled
+            "{0: <10} | {1: <10} | {2: <10}",
+            "STATE", "PENDING", "SETTLED"
         );
+        println!(
+            "{0: <10} | {1: <10} | {2: <10}",
+            "Incoming", incoming.pending, incoming.settled
+        );
+        println!(
+            "{0: <10} | {1: <10} | {2: <10}",
+            "At Rest", at_rest.pending, at_rest.settled
+        );
+        println!(
+            "{0: <10} | {1: <10} | {2: <10}",
+            "Fee", fee.pending, fee.settled
+        );
+        println!(
+            "{0: <10} | {1: <10} | {2: <10}",
+            "Outgoing", outgoing.pending, outgoing.settled
+        );
+        println!(
+            "{0: <10} | {1: <10} | {2: <10}",
+            "Dust", dust.pending, dust.settled
+        );
+
         Ok(())
     }
 

@@ -57,9 +57,17 @@ message GetWalletBalanceRequest {
   string wallet_name = 1;
 }
 
-message GetWalletBalanceResponse {
+message WalletBalance {
   uint64 pending = 1;
   uint64 settled = 2;
+}
+
+message GetWalletBalanceResponse {
+  WalletBalance incoming = 1;
+  WalletBalance at_rest = 2;
+  WalletBalance fee = 3;
+  WalletBalance outgoing = 4;
+  WalletBalance dust = 5;
 }
 
 message CreateBatchGroupRequest {

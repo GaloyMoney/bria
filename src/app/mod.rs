@@ -23,6 +23,15 @@ pub struct App {
     blockchain_cfg: BlockchainConfig,
 }
 
+#[derive(Debug)]
+pub struct LedgerAccountBalancesForWallet {
+    pub incoming: Result<Option<LedgerAccountBalance>, BriaError>,
+    pub at_rest: Result<Option<LedgerAccountBalance>, BriaError>,
+    pub fee: Result<Option<LedgerAccountBalance>, BriaError>,
+    pub outgoing: Result<Option<LedgerAccountBalance>, BriaError>,
+    pub dust: Result<Option<LedgerAccountBalance>, BriaError>,
+}
+
 impl App {
     pub async fn run(
         pool: sqlx::PgPool,
@@ -155,11 +164,33 @@ impl App {
         &self,
         account_id: AccountId,
         wallet_name: String,
-    ) -> Result<Option<LedgerAccountBalance>, BriaError> {
+    ) -> Result<LedgerAccountBalancesForWallet, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
-        self.ledger
-            .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id)
-            .await
+
+        let balances = LedgerAccountBalancesForWallet {
+            incoming: self
+                .ledger
+                .get_balance(wallet.journal_id, wallet.ledger_accounts.incoming_id)
+                .await,
+            at_rest: self
+                .ledger
+                .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id)
+                .await,
+            fee: self
+                .ledger
+                .get_balance(wallet.journal_id, wallet.ledger_accounts.fee_id)
+                .await,
+            outgoing: self
+                .ledger
+                .get_balance(wallet.journal_id, wallet.ledger_accounts.outgoing_id)
+                .await,
+            dust: self
+                .ledger
+                .get_balance(wallet.journal_id, wallet.ledger_accounts.dust_id)
+                .await,
+        };
+
+        Ok(balances)
     }
 
     #[instrument(name = "app.new_address", skip(self), err)]
