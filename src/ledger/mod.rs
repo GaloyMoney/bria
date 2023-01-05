@@ -10,7 +10,7 @@ use sqlx_ledger::{
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::*, primitives::*};
+use crate::{error::*, primitives::*, wallet::WalletLedgerAccountIds};
 use constants::*;
 pub use templates::*;
 
@@ -18,15 +18,6 @@ pub use templates::*;
 pub struct Ledger {
     inner: SqlxLedger,
     btc: Currency,
-}
-
-#[derive(Debug, Clone)]
-pub struct LedgerAccountIdsForWallet {
-    pub incoming_id: LedgerAccountId,
-    pub at_rest_id: LedgerAccountId,
-    pub fee_id: LedgerAccountId,
-    pub outgoing_id: LedgerAccountId,
-    pub dust_id: LedgerAccountId,
 }
 
 impl Ledger {
@@ -129,8 +120,8 @@ impl Ledger {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         wallet_id: WalletId,
         wallet_name: &str,
-    ) -> Result<LedgerAccountIdsForWallet, BriaError> {
-        let account_ids = LedgerAccountIdsForWallet {
+    ) -> Result<WalletLedgerAccountIds, BriaError> {
+        let account_ids = WalletLedgerAccountIds {
             incoming_id: self
                 .create_account_for_wallet(
                     tx,

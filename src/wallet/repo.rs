@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use super::{entity::*, keychain::*};
-use crate::{error::*, ledger::LedgerAccountIdsForWallet, primitives::*};
+use crate::{error::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Wallets {
@@ -89,7 +89,7 @@ impl Wallets {
         Ok(Wallet {
             id: first_row.id.into(),
             journal_id: first_row.journal_id.into(),
-            ledger_accounts: LedgerAccountIdsForWallet {
+            ledger_accounts: WalletLedgerAccountIds {
                 incoming_id: first_row.incoming_ledger_account_id.into(),
                 at_rest_id: first_row.at_rest_ledger_account_id.into(),
                 fee_id: first_row.fee_ledger_account_id.into(),
@@ -135,7 +135,7 @@ impl Wallets {
         let mut wallet = Wallet {
             id: first_row.id.into(),
             journal_id: first_row.journal_id.into(),
-            ledger_accounts: LedgerAccountIdsForWallet {
+            ledger_accounts: WalletLedgerAccountIds {
                 incoming_id: first_row.incoming_ledger_account_id.into(),
                 at_rest_id: first_row.at_rest_ledger_account_id.into(),
                 fee_id: first_row.fee_ledger_account_id.into(),
@@ -180,7 +180,7 @@ impl Wallets {
                 .or_insert_with(|| Wallet {
                     id: row.id.into(),
                     journal_id: row.journal_id.into(),
-                    ledger_accounts: LedgerAccountIdsForWallet {
+                    ledger_accounts: WalletLedgerAccountIds {
                         incoming_id: row.incoming_ledger_account_id.into(),
                         at_rest_id: row.at_rest_ledger_account_id.into(),
                         fee_id: row.fee_ledger_account_id.into(),

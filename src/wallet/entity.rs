@@ -4,15 +4,24 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use super::keychain::*;
-use crate::{ledger::LedgerAccountIdsForWallet, primitives::*};
+use crate::primitives::*;
 
 pub struct Wallet {
     pub id: WalletId,
-    pub ledger_accounts: LedgerAccountIdsForWallet,
+    pub ledger_accounts: WalletLedgerAccountIds,
     pub journal_id: JournalId,
     pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
     pub config: WalletConfig,
     pub network: bitcoin::Network,
+}
+
+#[derive(Debug, Clone)]
+pub struct WalletLedgerAccountIds {
+    pub incoming_id: LedgerAccountId,
+    pub at_rest_id: LedgerAccountId,
+    pub fee_id: LedgerAccountId,
+    pub outgoing_id: LedgerAccountId,
+    pub dust_id: LedgerAccountId,
 }
 
 impl Wallet {
@@ -63,7 +72,7 @@ pub struct NewWallet {
     pub(super) name: String,
     #[builder(setter(into))]
     pub(super) keychain: WalletKeyChainConfig,
-    pub(super) ledger_accounts: LedgerAccountIdsForWallet,
+    pub(super) ledger_accounts: WalletLedgerAccountIds,
     #[builder(default)]
     pub(super) config: WalletConfig,
 }
