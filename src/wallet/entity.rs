@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use super::keychain::*;
-use crate::primitives::*;
+use crate::{ledger::LedgerAccountBalance, primitives::*};
 
 pub struct Wallet {
     pub id: WalletId,
@@ -22,6 +22,15 @@ pub struct WalletLedgerAccountIds {
     pub fee_id: LedgerAccountId,
     pub outgoing_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
+}
+
+#[derive(Debug)]
+pub struct WalletLedgerAccountBalances {
+    pub incoming: LedgerAccountBalance,
+    pub at_rest: LedgerAccountBalance,
+    pub fee: LedgerAccountBalance,
+    pub outgoing: LedgerAccountBalance,
+    pub dust: LedgerAccountBalance,
 }
 
 impl Wallet {

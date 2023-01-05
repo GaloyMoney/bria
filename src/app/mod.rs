@@ -22,15 +22,6 @@ pub struct App {
     blockchain_cfg: BlockchainConfig,
 }
 
-#[derive(Debug)]
-pub struct LedgerAccountBalancesForWallet {
-    pub incoming: LedgerAccountBalance,
-    pub at_rest: LedgerAccountBalance,
-    pub fee: LedgerAccountBalance,
-    pub outgoing: LedgerAccountBalance,
-    pub dust: LedgerAccountBalance,
-}
-
 impl App {
     pub async fn run(
         pool: sqlx::PgPool,
@@ -163,10 +154,10 @@ impl App {
         &self,
         account_id: AccountId,
         wallet_name: String,
-    ) -> Result<LedgerAccountBalancesForWallet, BriaError> {
+    ) -> Result<WalletLedgerAccountBalances, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
 
-        let balances = LedgerAccountBalancesForWallet {
+        let balances = WalletLedgerAccountBalances {
             incoming: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.incoming_id)
