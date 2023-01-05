@@ -60,6 +60,7 @@ message GetWalletBalanceRequest {
 message WalletBalance {
   uint64 pending = 1;
   uint64 settled = 2;
+  uint64 encumbered = 3;
 }
 
 message GetWalletBalanceResponse {

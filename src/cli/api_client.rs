@@ -131,28 +131,28 @@ impl ApiClient {
         let dust = dust.expect("dust not present");
 
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "STATE", "PENDING", "SETTLED"
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "STATE", "PENDING", "SETTLED", "ENCUMBERED"
         );
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "Incoming", incoming.pending, incoming.settled
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "Incoming", incoming.pending, incoming.settled, incoming.encumbered
         );
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "At Rest", at_rest.pending, at_rest.settled
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "At Rest", at_rest.pending, at_rest.settled, at_rest.encumbered
         );
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "Fee", fee.pending, fee.settled
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "Fee", fee.pending, fee.settled, fee.encumbered
         );
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "Outgoing", outgoing.pending, outgoing.settled
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "Outgoing", outgoing.pending, outgoing.settled, outgoing.encumbered
         );
         println!(
-            "{0: <10} | {1: <10} | {2: <10}",
-            "Dust", dust.pending, dust.settled
+            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+            "Dust", dust.pending, dust.settled, dust.encumbered
         );
 
         Ok(())

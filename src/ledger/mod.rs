@@ -3,9 +3,8 @@ mod templates;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, balance::AccountBalance as LedgerAccountBalance,
-    journal::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger,
-    SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, journal::*, AccountId as LedgerAccountId, Currency,
+    DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tracing::instrument;
 use uuid::Uuid;
@@ -18,6 +17,13 @@ pub use templates::*;
 pub struct Ledger {
     inner: SqlxLedger,
     btc: Currency,
+}
+
+#[derive(Debug, Clone)]
+pub struct LedgerAccountBalance {
+    pub pending: u64,
+    pub settled: u64,
+    pub encumbered: u64,
 }
 
 impl Ledger {
@@ -88,12 +94,25 @@ impl Ledger {
         &self,
         journal_id: JournalId,
         account_id: LedgerAccountId,
-    ) -> Result<Option<LedgerAccountBalance>, BriaError> {
+    ) -> Result<LedgerAccountBalance, BriaError> {
         let balance = self
             .inner
             .balances()
             .find(journal_id, account_id, self.btc)
-            .await?;
+            .await?
+            .map(|balance| LedgerAccountBalance {
+                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
+                    .expect("Too many satoshis"),
+                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
+                    .expect("Too many satoshis"),
+                encumbered: u64::try_from(balance.encumbered() * SATS_PER_BTC)
+                    .expect("Too many satoshis"),
+            })
+            .unwrap_or(LedgerAccountBalance {
+                pending: 0,
+                settled: 0,
+                encumbered: 0,
+            });
         Ok(balance)
     }
 

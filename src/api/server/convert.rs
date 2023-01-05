@@ -1,4 +1,5 @@
 use crate::error::BriaError;
+use crate::ledger::*;
 use crate::payout::*;
 use crate::xpub::*;
 
@@ -51,6 +52,16 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
                 tonic::Code::InvalidArgument,
                 format!("missing destination"),
             )),
+        }
+    }
+}
+
+impl From<LedgerAccountBalance> for super::proto::WalletBalance {
+    fn from(balance: LedgerAccountBalance) -> Self {
+        super::proto::WalletBalance {
+            pending: balance.pending,
+            settled: balance.settled,
+            encumbered: balance.encumbered,
         }
     }
 }

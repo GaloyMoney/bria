@@ -37,9 +37,9 @@ setup-db:
 
 ready:
 	bria admin bootstrap
-	bria admin create-account -n test
+	bria admin create-account -n default
 	bria import-xpub -x tpubDDEGUyCLufbxAfQruPHkhUcu55UdhXy7otfcEQG4wqYNnMfq9DbHPxWCqpEQQAJUDi8Bq45DjcukdDAXasKJ2G27iLsvpdoEL5nTRy5TJ2B -n key1 -d m/64h/1h/0
-	bria create-wallet -n mywallet -x key1
+	bria create-wallet -n default -x key1
 	docker compose exec bitcoind bitcoin-cli createwallet "default"
 	docker compose exec bitcoind bitcoin-cli -generate 500
 	# docker compose exec bitcoind bitcoin-cli -regtest sendtoaddress bcrt1q0k9yhm4jpqz9srfggvjsqt8f2gjcqu794h0sww 50

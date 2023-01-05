@@ -445,7 +445,7 @@ checksum = "a20104e2335ce8a659d6dd92a51a767a0c062599c73b343fd152cb401e828c3d"
 [[package]]
 name = "cel-interpreter"
 version = "0.1.0"
-source = "git+https://github.com/bodymindarts/sqlx-ledger#e3a4eb839729d82cbbcd057b758f0e4c0a649949"
+source = "git+https://github.com/bodymindarts/sqlx-ledger#39c57743a78c96ded8c769d7504af1833981fce1"
 dependencies = [
  "cel-parser",
  "chrono",
@@ -459,7 +459,7 @@ dependencies = [
 [[package]]
 name = "cel-parser"
 version = "0.1.0"
-source = "git+https://github.com/bodymindarts/sqlx-ledger#e3a4eb839729d82cbbcd057b758f0e4c0a649949"
+source = "git+https://github.com/bodymindarts/sqlx-ledger#39c57743a78c96ded8c769d7504af1833981fce1"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
@@ -2819,7 +2819,7 @@ dependencies = [
 [[package]]
 name = "sqlx-ledger"
 version = "0.1.0"
-source = "git+https://github.com/bodymindarts/sqlx-ledger#e3a4eb839729d82cbbcd057b758f0e4c0a649949"
+source = "git+https://github.com/bodymindarts/sqlx-ledger#39c57743a78c96ded8c769d7504af1833981fce1"
 dependencies = [
  "cel-interpreter",
  "chrono",

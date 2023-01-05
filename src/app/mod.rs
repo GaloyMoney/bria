@@ -1,6 +1,5 @@
 mod config;
 
-use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
@@ -25,11 +24,11 @@ pub struct App {
 
 #[derive(Debug)]
 pub struct LedgerAccountBalancesForWallet {
-    pub incoming: Result<Option<LedgerAccountBalance>, BriaError>,
-    pub at_rest: Result<Option<LedgerAccountBalance>, BriaError>,
-    pub fee: Result<Option<LedgerAccountBalance>, BriaError>,
-    pub outgoing: Result<Option<LedgerAccountBalance>, BriaError>,
-    pub dust: Result<Option<LedgerAccountBalance>, BriaError>,
+    pub incoming: LedgerAccountBalance,
+    pub at_rest: LedgerAccountBalance,
+    pub fee: LedgerAccountBalance,
+    pub outgoing: LedgerAccountBalance,
+    pub dust: LedgerAccountBalance,
 }
 
 impl App {
@@ -171,23 +170,23 @@ impl App {
             incoming: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.incoming_id)
-                .await,
+                .await?,
             at_rest: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.at_rest_id)
-                .await,
+                .await?,
             fee: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.fee_id)
-                .await,
+                .await?,
             outgoing: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.outgoing_id)
-                .await,
+                .await?,
             dust: self
                 .ledger
                 .get_balance(wallet.journal_id, wallet.ledger_accounts.dust_id)
-                .await,
+                .await?,
         };
 
         Ok(balances)

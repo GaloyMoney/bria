@@ -87,118 +87,13 @@ impl BriaService for Bria {
             .get_wallet_balance(account_id, request.wallet_name)
             .await?;
 
-        let incoming = balance
-            .incoming?
-            .map(|balance| WalletBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(WalletBalance {
-                pending: 0,
-                settled: 0,
-            });
-
-        let at_rest = balance
-            .at_rest?
-            .map(|balance| WalletBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(WalletBalance {
-                pending: 0,
-                settled: 0,
-            });
-
-        let fee = balance
-            .fee?
-            .map(|balance| WalletBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(WalletBalance {
-                pending: 0,
-                settled: 0,
-            });
-
-        let outgoing = balance
-            .outgoing?
-            .map(|balance| WalletBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(WalletBalance {
-                pending: 0,
-                settled: 0,
-            });
-
-        let dust = balance
-            .dust?
-            .map(|balance| WalletBalance {
-                pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-                settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                    .expect("Too many satoshis"),
-            })
-            .unwrap_or(WalletBalance {
-                pending: 0,
-                settled: 0,
-            });
-
         Ok(Response::new(GetWalletBalanceResponse {
-            incoming: Some(incoming),
-            at_rest: Some(at_rest),
-            fee: Some(fee),
-            outgoing: Some(outgoing),
-            dust: Some(dust),
+            incoming: Some(balance.incoming.into()),
+            at_rest: Some(balance.at_rest.into()),
+            fee: Some(balance.fee.into()),
+            outgoing: Some(balance.outgoing.into()),
+            dust: Some(balance.dust.into()),
         }))
-
-        // Ok(balance
-        //     .map(|balance| {
-        //         Response::new(GetWalletBalanceResponse {
-        //             incoming_pending: u64::try_from(balance.incoming.pending() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             incoming_settled: u64::try_from(balance.incoming.settled() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             at_rest_pending: u64::try_from(balance.at_rest.pending() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             at_rest_settled: u64::try_from(balance.at_rest.settled() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             fee_pending: u64::try_from(balance.fee.pending() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             fee_settled: u64::try_from(balance.fee.settled() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             outgoing_pending: u64::try_from(balance.outgoing.pending() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             outgoing_settled: u64::try_from(balance.outgoing.settled() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             dust_pending: u64::try_from(balance.dust.pending() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //             dust_settled: u64::try_from(balance.dust.settled() * SATS_PER_BTC)
-        //                 .expect("To many satoshis"),
-        //         })
-        //     })
-        //     .unwrap_or_else(|| {
-        //         Response::new(GetWalletBalanceResponse {
-        //             incoming_pending: 0,
-        //             incoming_settled: 0,
-        //             at_rest_pending: 0,
-        //             at_rest_settled: 0,
-        //             fee_pending: 0,
-        //             fee_settled: 0,
-        //             outgoing_pending: 0,
-        //             outgoing_settled: 0,
-        //             dust_pending: 0,
-        //             dust_settled: 0,
-        //         })
-        //     }))
     }
 
     #[instrument(skip_all, err)]
