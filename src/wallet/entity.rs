@@ -48,7 +48,7 @@ impl Wallet {
         utxo: &LocalUtxo,
         account: LedgerAccountId,
     ) -> LedgerAccountId {
-        if utxo.txout.value >= self.config.dust_threshold_sats {
+        if utxo.txout.value <= self.config.dust_threshold_sats {
             self.ledger_accounts.dust_id
         } else {
             account
