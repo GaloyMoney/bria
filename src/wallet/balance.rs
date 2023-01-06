@@ -14,11 +14,11 @@ pub struct WalletLedgerAccountIds {
 
 #[derive(Debug)]
 pub struct WalletLedgerAccountBalances {
-    pub incoming: AccountBalance,
-    pub at_rest: AccountBalance,
-    pub fee: AccountBalance,
-    pub outgoing: AccountBalance,
-    pub dust: AccountBalance,
+    pub incoming: Option<AccountBalance>,
+    pub at_rest: Option<AccountBalance>,
+    pub fee: Option<AccountBalance>,
+    pub outgoing: Option<AccountBalance>,
+    pub dust: Option<AccountBalance>,
 }
 
 pub struct WalletBalanceSummary {
@@ -32,11 +32,31 @@ pub struct WalletBalanceSummary {
 impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
     fn from(balances: WalletLedgerAccountBalances) -> Self {
         Self {
-            current_settled: balances.at_rest.settled() * SATS_PER_BTC,
-            pending_incoming: balances.incoming.pending() * SATS_PER_BTC,
-            pending_outgoing: balances.outgoing.pending() * SATS_PER_BTC,
-            encumbered_fees: balances.fee.encumbered() * SATS_PER_BTC,
-            encumbered_outgoing: balances.dust.encumbered() * SATS_PER_BTC,
+            current_settled: balances
+                .at_rest
+                .map(|b| b.settled())
+                .unwrap_or(Decimal::ZERO)
+                * SATS_PER_BTC,
+            pending_incoming: balances
+                .incoming
+                .map(|b| b.pending())
+                .unwrap_or(Decimal::ZERO)
+                * SATS_PER_BTC,
+            pending_outgoing: balances
+                .outgoing
+                .map(|b| b.pending())
+                .unwrap_or(Decimal::ZERO)
+                * SATS_PER_BTC,
+            encumbered_fees: balances
+                .fee
+                .map(|b| b.encumbered())
+                .unwrap_or(Decimal::ZERO)
+                * SATS_PER_BTC,
+            encumbered_outgoing: balances
+                .dust
+                .map(|b| b.encumbered())
+                .unwrap_or(Decimal::ZERO)
+                * SATS_PER_BTC,
         }
     }
 }

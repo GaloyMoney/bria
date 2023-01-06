@@ -96,26 +96,32 @@ impl Ledger {
             dust_id,
         }: WalletLedgerAccountIds,
     ) -> Result<WalletLedgerAccountBalances, BriaError> {
-        let mut balances = HashMap::new();
-        for id in [incoming_id, at_rest_id, fee_id, outgoing_id, dust_id] {
-            if let Some(balance) = self.inner.balances().find(journal_id, id, self.btc).await? {
-                balances.insert(id, balance);
-            } else {
-                return Err(BriaError::CouldNotRetreiveWalletBalance);
-            }
-        }
         Ok(WalletLedgerAccountBalances {
-            incoming: balances
-                .remove(&incoming_id)
-                .expect("Incoming balance not present"),
-            at_rest: balances
-                .remove(&at_rest_id)
-                .expect("At rest balance not present"),
-            fee: balances.remove(&fee_id).expect("Fee balance not present"),
-            outgoing: balances
-                .remove(&outgoing_id)
-                .expect("Outgoing balance not present"),
-            dust: balances.remove(&dust_id).expect("Dust balance not present"),
+            incoming: self
+                .inner
+                .balances()
+                .find(journal_id, incoming_id, self.btc)
+                .await?,
+            at_rest: self
+                .inner
+                .balances()
+                .find(journal_id, at_rest_id, self.btc)
+                .await?,
+            fee: self
+                .inner
+                .balances()
+                .find(journal_id, fee_id, self.btc)
+                .await?,
+            outgoing: self
+                .inner
+                .balances()
+                .find(journal_id, outgoing_id, self.btc)
+                .await?,
+            dust: self
+                .inner
+                .balances()
+                .find(journal_id, dust_id, self.btc)
+                .await?,
         })
     }
 
