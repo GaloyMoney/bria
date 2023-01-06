@@ -55,13 +55,3 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
         }
     }
 }
-
-impl From<LedgerAccountBalance> for super::proto::WalletBalance {
-    fn from(balance: LedgerAccountBalance) -> Self {
-        super::proto::WalletBalance {
-            pending: balance.pending,
-            settled: balance.settled,
-            encumbered: balance.encumbered,
-        }
-    }
-}

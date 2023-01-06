@@ -60,11 +60,11 @@ async fn test_ledger() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_balance(journal_id, wallet_ledger_accounts.incoming_id)
-        .await
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.incoming_id)
+        .await?
         .expect("No balance");
 
-    assert_eq!(balance.pending, one_btc);
+    assert_eq!(balance.pending(), Decimal::ONE);
 
     let tx = pool.begin().await?;
     let settled_id = Uuid::new_v4();
@@ -93,12 +93,12 @@ async fn test_ledger() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_balance(journal_id, wallet_ledger_accounts.at_rest_id)
-        .await
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.at_rest_id)
+        .await?
         .expect("No balance");
 
-    assert_eq!(balance.pending, 0);
-    assert_eq!(balance.settled, one_btc);
+    assert_eq!(balance.pending(), Decimal::ZERO);
+    assert_eq!(balance.settled(), Decimal::ONE);
 
     Ok(())
 }

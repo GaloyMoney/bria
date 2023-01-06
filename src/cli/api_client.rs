@@ -109,51 +109,45 @@ impl ApiClient {
         Ok(())
     }
 
-    pub async fn get_wallet_balance(&self, wallet_name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::GetWalletBalanceRequest { wallet_name });
+    pub async fn get_wallet_balance_summary(&self, wallet_name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::GetWalletBalanceSummaryRequest { wallet_name });
         let response = self
             .connect()
             .await?
-            .get_wallet_balance(self.inject_auth_token(request)?)
+            .get_wallet_balance_summary(self.inject_auth_token(request)?)
             .await?;
-        let proto::GetWalletBalanceResponse {
-            incoming,
-            at_rest,
-            fee,
-            outgoing,
-            dust,
+        let proto::GetWalletBalanceSummaryResponse {
+            current_settled,
+            pending_incoming,
+            pending_outgoing,
+            encumbered_fees,
+            encumbered_outgoing,
         } = response.into_inner();
 
-        let incoming = incoming.expect("incoming not present");
-        let at_rest = at_rest.expect("at_rest not present");
-        let fee = fee.expect("fee not present");
-        let outgoing = outgoing.expect("outgoing not present");
-        let dust = dust.expect("dust not present");
-
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "STATE", "PENDING", "SETTLED", "ENCUMBERED"
-        );
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "Incoming", incoming.pending, incoming.settled, incoming.encumbered
-        );
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "At Rest", at_rest.pending, at_rest.settled, at_rest.encumbered
-        );
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "Fee", fee.pending, fee.settled, fee.encumbered
-        );
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "Outgoing", outgoing.pending, outgoing.settled, outgoing.encumbered
-        );
-        println!(
-            "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-            "Dust", dust.pending, dust.settled, dust.encumbered
-        );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "STATE", "PENDING", "SETTLED", "ENCUMBERED"
+        // );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "Incoming", incoming.pending, incoming.settled, incoming.encumbered
+        // );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "At Rest", at_rest.pending, at_rest.settled, at_rest.encumbered
+        // );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "Fee", fee.pending, fee.settled, fee.encumbered
+        // );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "Outgoing", outgoing.pending, outgoing.settled, outgoing.encumbered
+        // );
+        // println!(
+        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
+        //     "Dust", dust.pending, dust.settled, dust.encumbered
+        // );
 
         Ok(())
     }

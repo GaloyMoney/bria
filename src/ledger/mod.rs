@@ -119,8 +119,8 @@ impl Ledger {
         })
     }
 
-    #[instrument(name = "ledger.get_balance")]
-    pub async fn get_balance(
+    #[instrument(name = "ledger.get_ledger_account_balance")]
+    pub async fn get_ledger_account_balance(
         &self,
         journal_id: JournalId,
         account_id: LedgerAccountId,

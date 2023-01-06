@@ -170,7 +170,7 @@ impl App {
             .await?;
         let summary = WalletBalanceSummary::from(wallet_ledger_account_balances);
 
-        Ok(balances)
+        Ok(summary)
     }
 
     #[instrument(name = "app.new_address", skip(self), err)]
