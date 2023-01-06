@@ -1,14 +1,21 @@
 mod config;
 
-use sqlx_ledger::balance::AccountBalance as LedgerAccountBalance;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
 pub use config::*;
 
 use crate::{
-    account::keys::*, batch::*, batch_group::*, error::*, job, ledger::*, payout::*, primitives::*,
-    wallet::*, xpub::*,
+    account::keys::*,
+    batch::*,
+    batch_group::*,
+    error::*,
+    job,
+    ledger::*,
+    payout::*,
+    primitives::*,
+    wallet::{balance::*, *},
+    xpub::*,
 };
 
 pub struct App {
@@ -127,7 +134,7 @@ impl App {
 
         let wallet_id = WalletId::new();
         let mut tx = self.pool.begin().await?;
-        let dust_account_id = self
+        let wallet_ledger_accounts = self
             .ledger
             .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
             .await?;
@@ -137,7 +144,7 @@ impl App {
             .keychain(WpkhKeyChainConfig::new(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
             ))
-            .dust_account_id(dust_account_id)
+            .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
         let wallet_id = self
@@ -150,16 +157,20 @@ impl App {
         Ok(wallet_id)
     }
 
-    #[instrument(name = "app.get_wallet_balance", skip(self), err)]
-    pub async fn get_wallet_balance(
+    #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]
+    pub async fn get_wallet_balance_summary(
         &self,
         account_id: AccountId,
         wallet_name: String,
-    ) -> Result<Option<LedgerAccountBalance>, BriaError> {
+    ) -> Result<WalletBalanceSummary, BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
-        self.ledger
-            .get_balance(wallet.journal_id, wallet.ledger_account_id)
-            .await
+        let wallet_ledger_account_balances = self
+            .ledger
+            .get_wallet_ledger_account_balances(wallet.journal_id, wallet.ledger_account_ids)
+            .await?;
+        let summary = WalletBalanceSummary::from(wallet_ledger_account_balances);
+
+        Ok(summary)
     }
 
     #[instrument(name = "app.new_address", skip(self), err)]
@@ -227,7 +238,7 @@ impl App {
                 tx,
                 QueuedPayoutParams {
                     journal_id: wallet.journal_id,
-                    sender_account_id: wallet.ledger_account_id,
+                    ledger_account_outgoing_id: wallet.ledger_account_ids.outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     satoshis: sats,
                     meta: QueuedPayoutMeta {

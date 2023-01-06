@@ -280,7 +280,7 @@ pub async fn run() -> anyhow::Result<()> {
             wallet: name,
         } => {
             let client = api_client(url, api_key);
-            client.get_wallet_balance(name).await?;
+            client.get_wallet_balance_summary(name).await?;
         }
         Command::NewAddress {
             url,

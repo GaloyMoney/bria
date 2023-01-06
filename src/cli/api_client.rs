@@ -109,18 +109,27 @@ impl ApiClient {
         Ok(())
     }
 
-    pub async fn get_wallet_balance(&self, wallet_name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::GetWalletBalanceRequest { wallet_name });
+    pub async fn get_wallet_balance_summary(&self, wallet_name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::GetWalletBalanceSummaryRequest { wallet_name });
         let response = self
             .connect()
             .await?
-            .get_wallet_balance(self.inject_auth_token(request)?)
+            .get_wallet_balance_summary(self.inject_auth_token(request)?)
             .await?;
-        let proto::GetWalletBalanceResponse { pending, settled } = response.into_inner();
-        println!(
-            "Wallet balance:\npending: {}\nsettled: {}",
-            pending, settled
-        );
+        let proto::GetWalletBalanceSummaryResponse {
+            current_settled,
+            pending_incoming,
+            pending_outgoing,
+            encumbered_fees,
+            encumbered_outgoing,
+        } = response.into_inner();
+
+        println!("Pending Incoming: {}", pending_incoming);
+        println!("Current Settled: {}", current_settled);
+        println!("Encumbered Fees: {}", encumbered_fees);
+        println!("Encumbered Outgoing: {}", encumbered_outgoing);
+        println!("Pending Outgoing: {}", pending_outgoing);
+
         Ok(())
     }
 

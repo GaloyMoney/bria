@@ -23,7 +23,8 @@ pub struct ConfirmedUtxoMeta {
 #[derive(Debug)]
 pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
-    pub recipient_ledger_account_id: LedgerAccountId,
+    pub ledger_account_incoming_id: LedgerAccountId,
+    pub ledger_account_at_rest_id: LedgerAccountId,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -38,7 +39,12 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("recipient_account_id")
+                .name("ledger_account_incoming_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("ledger_account_at_rest_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -75,7 +81,8 @@ impl From<ConfirmedUtxoParams> for TxParams {
     fn from(
         ConfirmedUtxoParams {
             journal_id,
-            recipient_ledger_account_id,
+            ledger_account_incoming_id,
+            ledger_account_at_rest_id,
             pending_id,
             settled_id,
             meta,
@@ -89,7 +96,8 @@ impl From<ConfirmedUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("recipient_account_id", recipient_ledger_account_id);
+        params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
+        params.insert("ledger_account_at_rest_id", ledger_account_at_rest_id);
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
@@ -115,6 +123,15 @@ impl ConfirmedUtxo {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
+                .entry_type("'PENDING_ONCHAIN_DR'")
+                .currency("'BTC'")
+                .account_id("params.ledger_account_incoming_id")
+                .direction("DEBIT")
+                .layer("PENDING")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
+            EntryInput::builder()
                 .entry_type("'PENDING_ONCHAIN_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
@@ -122,7 +139,7 @@ impl ConfirmedUtxo {
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+                .expect("Couldn't build PENDING_ONCHAIN_CR entry"),
             EntryInput::builder()
                 .entry_type("'SETTLED_ONCHAIN_DR'")
                 .currency("'BTC'")
@@ -135,21 +152,12 @@ impl ConfirmedUtxo {
             EntryInput::builder()
                 .entry_type("'SETTLED_ONCHAIN_CR'")
                 .currency("'BTC'")
-                .account_id("params.recipient_account_id")
+                .account_id("params.ledger_account_at_rest_id")
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
-            EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
-                .currency("'BTC'")
-                .account_id("params.recipient_account_id")
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
         ];
 
         let params = ConfirmedUtxoParams::defs();

@@ -75,32 +75,25 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn get_wallet_balance(
+    async fn get_wallet_balance_summary(
         &self,
-        request: Request<GetWalletBalanceRequest>,
-    ) -> Result<Response<GetWalletBalanceResponse>, Status> {
+        request: Request<GetWalletBalanceSummaryRequest>,
+    ) -> Result<Response<GetWalletBalanceSummaryResponse>, Status> {
         let key = extract_api_token(&request)?;
         let account_id = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let balance = self
             .app
-            .get_wallet_balance(account_id, request.wallet_name)
+            .get_wallet_balance_summary(account_id, request.wallet_name)
             .await?;
-        Ok(balance
-            .map(|balance| {
-                Response::new(GetWalletBalanceResponse {
-                    pending: u64::try_from(balance.pending() * SATS_PER_BTC)
-                        .expect("To many satoshis"),
-                    settled: u64::try_from(balance.settled() * SATS_PER_BTC)
-                        .expect("To many satoshis"),
-                })
-            })
-            .unwrap_or_else(|| {
-                Response::new(GetWalletBalanceResponse {
-                    pending: 0,
-                    settled: 0,
-                })
-            }))
+
+        Ok(Response::new(GetWalletBalanceSummaryResponse {
+            current_settled: u64::try_from(balance.current_settled).expect("Too many sats"),
+            pending_incoming: u64::try_from(balance.pending_incoming).expect("Too many sats"),
+            pending_outgoing: u64::try_from(balance.pending_outgoing).expect("Too many sats"),
+            encumbered_fees: u64::try_from(balance.encumbered_fees).expect("Too many sats"),
+            encumbered_outgoing: u64::try_from(balance.encumbered_outgoing).expect("Too many sats"),
+        }))
     }
 
     #[instrument(skip_all, err)]

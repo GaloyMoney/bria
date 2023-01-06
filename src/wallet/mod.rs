@@ -1,3 +1,4 @@
+pub mod balance;
 mod entity;
 mod keychain;
 mod psbt_builder;

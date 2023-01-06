@@ -19,7 +19,7 @@ pub struct QueuedPayoutMeta {
 #[derive(Debug)]
 pub struct QueuedPayoutParams {
     pub journal_id: JournalId,
-    pub sender_account_id: LedgerAccountId,
+    pub ledger_account_outgoing_id: LedgerAccountId,
     pub external_id: String,
     pub satoshis: u64,
     pub meta: QueuedPayoutMeta,
@@ -34,7 +34,7 @@ impl QueuedPayoutParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("sender_account_id")
+                .name("ledger_account_outgoing_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -66,7 +66,7 @@ impl From<QueuedPayoutParams> for TxParams {
     fn from(
         QueuedPayoutParams {
             journal_id,
-            sender_account_id,
+            ledger_account_outgoing_id,
             external_id,
             satoshis,
             meta,
@@ -76,7 +76,7 @@ impl From<QueuedPayoutParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("sender_account_id", sender_account_id);
+        params.insert("ledger_account_outgoing_id", ledger_account_outgoing_id);
         params.insert("amount", Decimal::from(satoshis) / SATS_PER_BTC);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
@@ -102,7 +102,7 @@ impl QueuedPayout {
             EntryInput::builder()
                 .entry_type("'ENQUEUED_PAYOUT_DR'")
                 .currency("'BTC'")
-                .account_id("params.sender_account_id")
+                .account_id("params.ledger_account_outgoing_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")

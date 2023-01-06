@@ -45,8 +45,10 @@ pub async fn execute(
                         tx,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_ledger_account_id: wallet
-                                .ledger_account_id_for_utxo(&local_utxo),
+                            ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
+                                &local_utxo,
+                                wallet.ledger_account_ids.incoming_id,
+                            ),
                             pending_id,
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
@@ -82,8 +84,14 @@ pub async fn execute(
                         tx,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
-                            recipient_ledger_account_id: wallet
-                                .ledger_account_id_for_utxo(&local_utxo),
+                            ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
+                                &local_utxo,
+                                wallet.ledger_account_ids.incoming_id,
+                            ),
+                            ledger_account_at_rest_id: wallet.pick_dust_or_ledger_account(
+                                &local_utxo,
+                                wallet.ledger_account_ids.at_rest_id,
+                            ),
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {

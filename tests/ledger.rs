@@ -20,11 +20,11 @@ async fn test_ledger() -> anyhow::Result<()> {
         .create_journal_for_account(&mut tx, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
-    let ledger_account_id = ledger
+    let wallet_ledger_accounts = ledger
         .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
         .await?;
 
-    let satoshis = 100_000_000;
+    let one_btc = 100_000_000;
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -32,7 +32,7 @@ async fn test_ledger() -> anyhow::Result<()> {
         vout: 0,
     };
     let txout = TxOut {
-        value: satoshis,
+        value: one_btc,
         script_pubkey: "76a914c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e888ac"
             .parse()
             .unwrap(),
@@ -40,12 +40,13 @@ async fn test_ledger() -> anyhow::Result<()> {
 
     let keychain_id = KeychainId::new();
     let pending_id = Uuid::new_v4();
+
     ledger
         .incoming_utxo(
             tx,
             IncomingUtxoParams {
                 journal_id,
-                recipient_ledger_account_id: ledger_account_id,
+                ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
                 pending_id,
                 meta: IncomingUtxoMeta {
                     wallet_id,
@@ -59,7 +60,7 @@ async fn test_ledger() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_balance(journal_id, ledger_account_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.incoming_id)
         .await?
         .expect("No balance");
 
@@ -67,12 +68,14 @@ async fn test_ledger() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     let settled_id = Uuid::new_v4();
+
     ledger
         .confirmed_utxo(
             tx,
             ConfirmedUtxoParams {
                 journal_id,
-                recipient_ledger_account_id: ledger_account_id,
+                ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
+                ledger_account_at_rest_id: wallet_ledger_accounts.at_rest_id,
                 pending_id,
                 settled_id,
                 meta: ConfirmedUtxoMeta {
@@ -90,9 +93,10 @@ async fn test_ledger() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_balance(journal_id, ledger_account_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.at_rest_id)
         .await?
         .expect("No balance");
+
     assert_eq!(balance.pending(), Decimal::ZERO);
     assert_eq!(balance.settled(), Decimal::ONE);
 
