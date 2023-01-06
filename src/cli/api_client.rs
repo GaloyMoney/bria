@@ -124,30 +124,11 @@ impl ApiClient {
             encumbered_outgoing,
         } = response.into_inner();
 
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "STATE", "PENDING", "SETTLED", "ENCUMBERED"
-        // );
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "Incoming", incoming.pending, incoming.settled, incoming.encumbered
-        // );
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "At Rest", at_rest.pending, at_rest.settled, at_rest.encumbered
-        // );
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "Fee", fee.pending, fee.settled, fee.encumbered
-        // );
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "Outgoing", outgoing.pending, outgoing.settled, outgoing.encumbered
-        // );
-        // println!(
-        //     "{0: <10} | {1: <12} | {2: <12} | {3: <12}",
-        //     "Dust", dust.pending, dust.settled, dust.encumbered
-        // );
+        println!("Pending Incoming: {}", pending_incoming);
+        println!("Current Settled: {}", current_settled);
+        println!("Encumbered Fees: {}", encumbered_fees);
+        println!("Encumbered Outgoing: {}", encumbered_outgoing);
+        println!("Pending Outgoing: {}", pending_outgoing);
 
         Ok(())
     }
