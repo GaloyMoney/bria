@@ -79,6 +79,10 @@ pub async fn execute(
                 )
                 .await
             {
+                let fee_rate =
+                    crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
+                        .await?;
+
                 ledger
                     .confirmed_utxo(
                         tx,
@@ -92,6 +96,8 @@ pub async fn execute(
                                 &local_utxo,
                                 wallet.ledger_account_ids.at_rest_id,
                             ),
+                            ledger_account_fee_id: wallet.ledger_account_ids.fee_id,
+                            fees: (fee_rate.as_sat_per_vb() as i64).into(), // WIP
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {

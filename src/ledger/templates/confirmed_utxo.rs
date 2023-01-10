@@ -25,6 +25,8 @@ pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
     pub ledger_account_incoming_id: LedgerAccountId,
     pub ledger_account_at_rest_id: LedgerAccountId,
+    pub ledger_account_fee_id: LedgerAccountId,
+    pub fees: Decimal,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -49,7 +51,17 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("ledger_account_fee_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("amount")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("fees")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -83,6 +95,8 @@ impl From<ConfirmedUtxoParams> for TxParams {
             journal_id,
             ledger_account_incoming_id,
             ledger_account_at_rest_id,
+            ledger_account_fee_id,
+            fees,
             pending_id,
             settled_id,
             meta,
@@ -98,6 +112,8 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
         params.insert("ledger_account_at_rest_id", ledger_account_at_rest_id);
+        params.insert("ledger_account_fee_id", ledger_account_fee_id);
+        params.insert("fees", fees);
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
@@ -158,6 +174,24 @@ impl ConfirmedUtxo {
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_FEE_RESERVE_DR'")
+                .currency("'BTC'")
+                .account_id("params.ledger_account_fee_id")
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.fees")
+                .build()
+                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_DR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_FEE_RESERVE_CR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_OUTGOING_ID))
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.fees")
+                .build()
+                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_CR entry"),
         ];
 
         let params = ConfirmedUtxoParams::defs();
