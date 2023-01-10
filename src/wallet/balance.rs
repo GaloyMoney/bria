@@ -44,6 +44,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                 * SATS_PER_BTC,
             pending_outgoing: balances
                 .outgoing
+                .as_ref()
                 .map(|b| b.pending())
                 .unwrap_or(Decimal::ZERO)
                 * SATS_PER_BTC,
@@ -53,7 +54,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                 .unwrap_or(Decimal::ZERO)
                 * SATS_PER_BTC,
             encumbered_outgoing: balances
-                .dust
+                .outgoing
                 .map(|b| b.encumbered())
                 .unwrap_or(Decimal::ZERO)
                 * SATS_PER_BTC,
