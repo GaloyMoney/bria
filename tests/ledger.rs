@@ -76,6 +76,8 @@ async fn test_ledger() -> anyhow::Result<()> {
                 journal_id,
                 ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
                 ledger_account_at_rest_id: wallet_ledger_accounts.at_rest_id,
+                ledger_account_fee_id: wallet_ledger_accounts.fee_id,
+                fees: Decimal::ONE,
                 pending_id,
                 settled_id,
                 meta: ConfirmedUtxoMeta {
@@ -99,6 +101,13 @@ async fn test_ledger() -> anyhow::Result<()> {
 
     assert_eq!(balance.pending(), Decimal::ZERO);
     assert_eq!(balance.settled(), Decimal::ONE);
+
+    let balance = ledger
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.fee_id)
+        .await?
+        .expect("No balance");
+
+    assert_eq!(-balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
 
     Ok(())
 }

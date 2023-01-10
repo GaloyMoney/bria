@@ -50,7 +50,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                 * SATS_PER_BTC,
             encumbered_fees: balances
                 .fee
-                .map(|b| b.encumbered())
+                .map(|b| b.encumbered().abs())
                 .unwrap_or(Decimal::ZERO)
                 * SATS_PER_BTC,
             encumbered_outgoing: balances

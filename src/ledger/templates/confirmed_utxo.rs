@@ -103,6 +103,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
         }: ConfirmedUtxoParams,
     ) -> Self {
         let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
+        let fees = fees / SATS_PER_BTC;
         let effective =
             NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
                 .expect("Couldn't convert blocktime to NaiveDateTime")
