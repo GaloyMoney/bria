@@ -107,7 +107,7 @@ async fn test_ledger() -> anyhow::Result<()> {
         .await?
         .expect("No balance");
 
-    assert_eq!(-balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
+    assert_eq!(balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
 
     Ok(())
 }
