@@ -92,16 +92,16 @@ pub async fn execute(
                         tx,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
-                            ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
+                            incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
                                 wallet.ledger_account_ids.incoming_id,
                             ),
-                            ledger_account_at_rest_id: wallet.pick_dust_or_ledger_account(
+                            at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
                                 wallet.ledger_account_ids.at_rest_id,
                             ),
-                            ledger_account_fee_id: wallet.ledger_account_ids.fee_id,
-                            fees: Decimal::from(fees),
+                            fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
+                            spending_fee_satoshis: Decimal::from(fees),
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {

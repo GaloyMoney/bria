@@ -74,10 +74,10 @@ async fn test_ledger() -> anyhow::Result<()> {
             tx,
             ConfirmedUtxoParams {
                 journal_id,
-                ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
-                ledger_account_at_rest_id: wallet_ledger_accounts.at_rest_id,
-                ledger_account_fee_id: wallet_ledger_accounts.fee_id,
-                fees: Decimal::ONE,
+                incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
+                at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
+                fee_ledger_account_id: wallet_ledger_accounts.fee_id,
+                spending_fee_satoshis: Decimal::ONE,
                 pending_id,
                 settled_id,
                 meta: ConfirmedUtxoMeta {

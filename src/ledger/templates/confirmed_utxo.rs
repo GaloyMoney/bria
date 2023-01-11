@@ -23,10 +23,10 @@ pub struct ConfirmedUtxoMeta {
 #[derive(Debug)]
 pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
-    pub ledger_account_incoming_id: LedgerAccountId,
-    pub ledger_account_at_rest_id: LedgerAccountId,
-    pub ledger_account_fee_id: LedgerAccountId,
-    pub fees: Decimal,
+    pub incoming_ledger_account_id: LedgerAccountId,
+    pub at_rest_ledger_account_id: LedgerAccountId,
+    pub fee_ledger_account_id: LedgerAccountId,
+    pub spending_fee_satoshis: Decimal,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -93,10 +93,10 @@ impl From<ConfirmedUtxoParams> for TxParams {
     fn from(
         ConfirmedUtxoParams {
             journal_id,
-            ledger_account_incoming_id,
-            ledger_account_at_rest_id,
-            ledger_account_fee_id,
-            fees,
+            incoming_ledger_account_id,
+            at_rest_ledger_account_id,
+            fee_ledger_account_id,
+            spending_fee_satoshis: fees,
             pending_id,
             settled_id,
             meta,
@@ -111,9 +111,9 @@ impl From<ConfirmedUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
-        params.insert("ledger_account_at_rest_id", ledger_account_at_rest_id);
-        params.insert("ledger_account_fee_id", ledger_account_fee_id);
+        params.insert("ledger_account_incoming_id", incoming_ledger_account_id);
+        params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
+        params.insert("ledger_account_fee_id", fee_ledger_account_id);
         params.insert("fees", fees);
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
