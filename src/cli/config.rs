@@ -8,6 +8,8 @@ use crate::{admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfi
 pub struct Config {
     #[serde(default)]
     pub db_con: String,
+    #[serde(default = "bool_true")]
+    pub migrate_on_start: bool,
     #[serde(default)]
     pub blockchain: BlockchainConfig,
     #[serde(default)]
@@ -37,4 +39,8 @@ impl Config {
 
         Ok(config)
     }
+}
+
+fn bool_true() -> bool {
+    true
 }

@@ -24,7 +24,13 @@ async fn test_payout() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app = App::run(pool, BlockchainConfig::default(), WalletsConfig::default()).await?;
+    let app = App::run(
+        pool,
+        true,
+        BlockchainConfig::default(),
+        WalletsConfig::default(),
+    )
+    .await?;
     app.create_wallet(account_id, wallet_name.clone(), vec![id.to_string()])
         .await?;
 

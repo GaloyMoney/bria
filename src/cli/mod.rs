@@ -322,6 +322,7 @@ async fn run_cmd(
     Config {
         tracing,
         db_con,
+        migrate_on_start,
         admin,
         api,
         blockchain,
@@ -346,7 +347,7 @@ async fn run_cmd(
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
         let _ = api_send.try_send(
-            super::api::run(pool, api, blockchain, wallets)
+            super::api::run(pool, api, migrate_on_start, blockchain, wallets)
                 .await
                 .context("Api server error"),
         );

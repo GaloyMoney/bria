@@ -33,9 +33,13 @@ pub struct App {
 impl App {
     pub async fn run(
         pool: sqlx::PgPool,
+        migrate_on_start: bool,
         blockchain_cfg: BlockchainConfig,
         wallets_cfg: WalletsConfig,
     ) -> Result<Self, BriaError> {
+        if migrate_on_start {
+            sqlx::migrate!().run(&pool).await?;
+        }
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);
