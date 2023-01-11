@@ -102,6 +102,18 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         Ok(balance)
     }
 
+    #[instrument(name = "keychain_wallet.max_satisfaction_weight", skip_all)]
+    pub async fn max_satisfaction_weight(&self) -> Result<usize, BriaError> {
+        let weight = self
+            .with_wallet(|wallet| {
+                wallet
+                    .get_descriptor_for_keychain(bdk::KeychainKind::External)
+                    .max_satisfaction_weight()
+            })
+            .await??;
+        Ok(weight)
+    }
+
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>
     where
         F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> R,

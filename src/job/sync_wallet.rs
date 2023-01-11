@@ -1,5 +1,6 @@
 use bdk::blockchain::{ElectrumBlockchain, GetHeight};
 use electrum_client::Client;
+use rust_decimal::Decimal;
 use tracing::instrument;
 
 use crate::{
@@ -79,19 +80,28 @@ pub async fn execute(
                 )
                 .await
             {
+                let fee_rate =
+                    crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
+                        .await?
+                        .as_sat_per_vb();
+                let weight = keychain_wallet.max_satisfaction_weight().await?;
+                let fees = (fee_rate as u64) * (weight as u64);
+
                 ledger
                     .confirmed_utxo(
                         tx,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
-                            ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
+                            incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
                                 wallet.ledger_account_ids.incoming_id,
                             ),
-                            ledger_account_at_rest_id: wallet.pick_dust_or_ledger_account(
+                            at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
                                 wallet.ledger_account_ids.at_rest_id,
                             ),
+                            fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
+                            spending_fee_satoshis: Decimal::from(fees),
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {

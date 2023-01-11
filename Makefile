@@ -43,3 +43,4 @@ ready:
 	docker compose exec bitcoind bitcoin-cli createwallet "default"
 	docker compose exec bitcoind bitcoin-cli -generate 500
 	# docker compose exec bitcoind bitcoin-cli -regtest sendtoaddress bcrt1q0k9yhm4jpqz9srfggvjsqt8f2gjcqu794h0sww 50
+	# docker compose exec bitcoind bitcoin-cli -regtest -generate 5

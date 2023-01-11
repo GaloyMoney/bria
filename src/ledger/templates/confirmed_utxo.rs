@@ -23,8 +23,10 @@ pub struct ConfirmedUtxoMeta {
 #[derive(Debug)]
 pub struct ConfirmedUtxoParams {
     pub journal_id: JournalId,
-    pub ledger_account_incoming_id: LedgerAccountId,
-    pub ledger_account_at_rest_id: LedgerAccountId,
+    pub incoming_ledger_account_id: LedgerAccountId,
+    pub at_rest_ledger_account_id: LedgerAccountId,
+    pub fee_ledger_account_id: LedgerAccountId,
+    pub spending_fee_satoshis: Decimal,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -49,7 +51,17 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("ledger_account_fee_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("amount")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("fees")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -81,14 +93,17 @@ impl From<ConfirmedUtxoParams> for TxParams {
     fn from(
         ConfirmedUtxoParams {
             journal_id,
-            ledger_account_incoming_id,
-            ledger_account_at_rest_id,
+            incoming_ledger_account_id,
+            at_rest_ledger_account_id,
+            fee_ledger_account_id,
+            spending_fee_satoshis: fees,
             pending_id,
             settled_id,
             meta,
         }: ConfirmedUtxoParams,
     ) -> Self {
         let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
+        let fees = fees / SATS_PER_BTC;
         let effective =
             NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
                 .expect("Couldn't convert blocktime to NaiveDateTime")
@@ -96,8 +111,10 @@ impl From<ConfirmedUtxoParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
-        params.insert("ledger_account_at_rest_id", ledger_account_at_rest_id);
+        params.insert("ledger_account_incoming_id", incoming_ledger_account_id);
+        params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
+        params.insert("ledger_account_fee_id", fee_ledger_account_id);
+        params.insert("fees", fees);
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
@@ -158,6 +175,24 @@ impl ConfirmedUtxo {
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_FEE_RESERVE_CR'")
+                .currency("'BTC'")
+                .account_id("params.ledger_account_fee_id")
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.fees")
+                .build()
+                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_DR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_FEE_RESERVE_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_OUTGOING_ID))
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.fees")
+                .build()
+                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_CR entry"),
         ];
 
         let params = ConfirmedUtxoParams::defs();
