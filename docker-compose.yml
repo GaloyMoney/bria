@@ -20,6 +20,7 @@ services:
     - integration-deps
     command: ["make", "test-in-ci"]
     environment:
+    - DATABASE_URL=postgres://user:password@postgres:5432/pg
     - PG_HOST=postgres
     - BITCOIND_HOST=bitcoind
     working_dir: /repo
