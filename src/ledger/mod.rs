@@ -9,8 +9,6 @@ use sqlx_ledger::{
 use tracing::instrument;
 use uuid::Uuid;
 
-use std::collections::HashMap;
-
 use crate::{error::*, primitives::*, wallet::balance::*};
 use constants::*;
 pub use templates::*;
@@ -169,6 +167,7 @@ impl Ledger {
                     wallet_id,
                     format!("WALLET_{}_INCOMING", wallet_id),
                     format!("{}-incoming", wallet_id),
+                    DebitOrCredit::Credit,
                 )
                 .await?,
             at_rest_id: self
@@ -177,6 +176,7 @@ impl Ledger {
                     wallet_id,
                     format!("WALLET_{}_AT_REST", wallet_id),
                     format!("{}-at-rest", wallet_id),
+                    DebitOrCredit::Credit,
                 )
                 .await?,
             fee_id: self
@@ -185,6 +185,7 @@ impl Ledger {
                     wallet_id,
                     format!("WALLET_{}_FEE", wallet_id),
                     format!("{}-fee", wallet_id),
+                    DebitOrCredit::Debit,
                 )
                 .await?,
             outgoing_id: self
@@ -193,6 +194,7 @@ impl Ledger {
                     wallet_id,
                     format!("WALLET_{}_OUTGOING", wallet_id),
                     format!("{}-outgoing", wallet_id),
+                    DebitOrCredit::Credit,
                 )
                 .await?,
             dust_id: self
@@ -201,6 +203,7 @@ impl Ledger {
                     wallet_id,
                     format!("WALLET_{}_DUST", wallet_id),
                     format!("{}-dust", wallet_id),
+                    DebitOrCredit::Credit,
                 )
                 .await?,
         };
@@ -214,11 +217,13 @@ impl Ledger {
         wallet_id: WalletId,
         wallet_code: String,
         wallet_name: String,
+        balance_type: DebitOrCredit,
     ) -> Result<LedgerAccountId, BriaError> {
         let account = NewLedgerAccount::builder()
             .name(&wallet_name)
             .code(wallet_code)
             .description(format!("Account for wallet '{}'", &wallet_id))
+            .normal_balance_type(balance_type)
             .build()
             .expect("Couldn't build NewLedgerAccount");
         let account_id = self.inner.accounts().create_in_tx(tx, account).await?;
