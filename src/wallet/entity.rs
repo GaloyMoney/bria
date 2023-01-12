@@ -43,12 +43,16 @@ impl Wallet {
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
     }
 
+    pub fn is_dust_utxo(&self, utxo: &LocalUtxo) -> bool {
+        utxo.txout.value <= self.config.dust_threshold_sats
+    }
+
     pub fn pick_dust_or_ledger_account(
         &self,
         utxo: &LocalUtxo,
         account: LedgerAccountId,
     ) -> LedgerAccountId {
-        if utxo.txout.value <= self.config.dust_threshold_sats {
+        if self.is_dust_utxo(&utxo) {
             self.ledger_account_ids.dust_id
         } else {
             account
