@@ -22,7 +22,6 @@ services:
     environment:
     - DATABASE_URL=postgres://user:password@postgres:5432/pg
     - PG_HOST=postgres
-    - BITCOIND_HOST=bitcoind
     - BITCOIND_HOST=lnd
     - ELECTRUM_HOST=fulcrum
     working_dir: /repo
