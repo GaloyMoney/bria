@@ -101,7 +101,10 @@ pub async fn execute(
                                 wallet.ledger_account_ids.at_rest_id,
                             ),
                             fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
-                            spending_fee_satoshis: Decimal::from(fees),
+                            spending_fee_satoshis: match wallet.is_dust_utxo(&local_utxo) {
+                                true => Decimal::ZERO,
+                                false => Decimal::from(fees),
+                            },
                             pending_id,
                             settled_id,
                             meta: ConfirmedUtxoMeta {
