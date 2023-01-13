@@ -39,6 +39,7 @@ impl Ledger {
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
+        templates::CreateBatch::init(&inner).await?;
 
         Ok(Self {
             inner,
@@ -78,6 +79,18 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, QUEUED_PAYOUT_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.create_batch", skip(self, tx))]
+    pub async fn create_batch(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        params: CreateBatchParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, CREATE_BATCH_CODE, Some(params))
             .await?;
         Ok(())
     }
