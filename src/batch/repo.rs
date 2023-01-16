@@ -1,5 +1,8 @@
-use bitcoin::consensus::encode;
+use std::{collections::HashMap, str::FromStr};
+
+use bitcoin::{consensus::encode, Address};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
+use sqlx_ledger::TransactionId;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -83,5 +86,51 @@ impl Batches {
         query.execute(&mut *tx).await?;
 
         Ok(batch.id)
+    }
+
+    #[instrument(name = "batches.find_by_id", skip_all)]
+    pub async fn find_by_id<'a>(&self, id: BatchId) -> Result<Batch, BriaError> {
+        let rows = sqlx::query!(
+            r#"SELECT batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
+            FROM bria_batch_wallet_summaries
+            LEFT JOIN bria_batches ON id = batch_id
+            WHERE batch_id = $1"#,
+            Uuid::from(id)
+        ).fetch_all(&self.pool).await?;
+
+        let mut wallet_summaries = HashMap::new();
+
+        for row in rows.iter() {
+            let wallet_id = WalletId::from(row.wallet_id);
+            wallet_summaries.insert(
+                wallet_id,
+                WalletSummary {
+                    wallet_id,
+                    total_in_sats: u64::try_from(row.total_in_sats)
+                        .expect("Couldn't convert total_in_sats to u64"),
+                    total_out_sats: u64::try_from(row.total_out_sats)
+                        .expect("Couldn't convert total_out_sats to u64"),
+                    fee_sats: u64::try_from(row.fee_sats)
+                        .expect("Couldn't convert fee_sats to u64"),
+                    change_sats: u64::try_from(row.change_sats)
+                        .expect("Couldn't convert change_sats to u64"),
+                    change_address: Address::from_str(&row.change_address)
+                        .expect("Couldn't convert change_address"),
+                    ledger_tx_pending_id: row
+                        .ledger_tx_pending_id
+                        .map(|id| Some(TransactionId::from(id)))
+                        .unwrap_or(None),
+                    ledger_tx_settled_id: row
+                        .ledger_tx_settled_id
+                        .map(|id| Some(TransactionId::from(id)))
+                        .unwrap_or(None),
+                },
+            );
+        }
+
+        Ok(Batch {
+            id,
+            wallet_summaries,
+        })
     }
 }
