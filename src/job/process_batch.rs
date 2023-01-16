@@ -43,7 +43,7 @@ pub async fn execute(
                     outgoing_ledger_account_id: wallet.ledger_account_ids.outgoing_id,
                     at_rest_ledger_account_id: wallet.ledger_account_ids.at_rest_id,
                     satoshis: wallet_summary.total_out_sats,
-                    external_id: Uuid::new_v4(), // TODO: Some hash of format!("{}-{}", bitcoin_tx_id, wallet_id)
+                    external_id: Uuid::from(wallet_summary.ledger_tx_pending_id),
                     meta: CreateBatchMeta {
                         batch_id: id,
                         batch_group_id,

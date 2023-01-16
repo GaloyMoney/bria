@@ -167,8 +167,8 @@ impl From<WalletTotals> for WalletSummary {
             fee_sats: wt.fee_satoshis,
             change_sats: wt.change_satoshis,
             change_address: wt.change_address.address,
-            ledger_tx_pending_id: None,
-            ledger_tx_settled_id: None,
+            ledger_tx_pending_id: sqlx_ledger::TransactionId::new(),
+            ledger_tx_settled_id: sqlx_ledger::TransactionId::new(),
         }
     }
 }

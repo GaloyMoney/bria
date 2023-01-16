@@ -39,6 +39,6 @@ pub struct WalletSummary {
     pub fee_sats: u64,
     pub change_sats: u64,
     pub change_address: Address,
-    pub ledger_tx_pending_id: Option<TransactionId>,
-    pub ledger_tx_settled_id: Option<TransactionId>,
+    pub ledger_tx_pending_id: TransactionId,
+    pub ledger_tx_settled_id: TransactionId,
 }

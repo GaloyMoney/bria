@@ -106,24 +106,13 @@ impl Batches {
                 wallet_id,
                 WalletSummary {
                     wallet_id,
-                    total_in_sats: u64::try_from(row.total_in_sats)
-                        .expect("Couldn't convert total_in_sats to u64"),
-                    total_out_sats: u64::try_from(row.total_out_sats)
-                        .expect("Couldn't convert total_out_sats to u64"),
-                    fee_sats: u64::try_from(row.fee_sats)
-                        .expect("Couldn't convert fee_sats to u64"),
-                    change_sats: u64::try_from(row.change_sats)
-                        .expect("Couldn't convert change_sats to u64"),
-                    change_address: Address::from_str(&row.change_address)
-                        .expect("Couldn't convert change_address"),
-                    ledger_tx_pending_id: row
-                        .ledger_tx_pending_id
-                        .map(|id| Some(TransactionId::from(id)))
-                        .unwrap_or(None),
-                    ledger_tx_settled_id: row
-                        .ledger_tx_settled_id
-                        .map(|id| Some(TransactionId::from(id)))
-                        .unwrap_or(None),
+                    total_in_sats: u64::try_from(row.total_in_sats)?,
+                    total_out_sats: u64::try_from(row.total_out_sats)?,
+                    fee_sats: u64::try_from(row.fee_sats)?,
+                    change_sats: u64::try_from(row.change_sats)?,
+                    change_address: Address::from_str(&row.change_address)?,
+                    ledger_tx_pending_id: TransactionId::from(row.ledger_tx_pending_id),
+                    ledger_tx_settled_id: TransactionId::from(row.ledger_tx_settled_id),
                 },
             );
         }
