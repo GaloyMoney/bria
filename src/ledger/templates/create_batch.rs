@@ -1,3 +1,4 @@
+use bitcoin::Txid;
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -13,7 +14,7 @@ use crate::{error::*, ledger::constants::*, primitives::*};
 pub struct CreateBatchMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
-    pub bitcoin_tx_id: String,
+    pub bitcoin_tx_id: Txid,
 }
 
 #[derive(Debug)]

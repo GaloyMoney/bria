@@ -1,6 +1,6 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str, str::FromStr};
 
-use bitcoin::{consensus::encode, Address};
+use bitcoin::{consensus::encode, Address, Txid};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use sqlx_ledger::TransactionId;
 use tracing::instrument;
@@ -129,7 +129,7 @@ impl Batches {
         }
 
         let record = sqlx::query!(
-            "SELECT batch_group_id FROM bria_batches WHERE id = $1",
+            "SELECT batch_group_id, bitcoin_tx_id FROM bria_batches WHERE id = $1",
             Uuid::from(id)
         )
         .fetch_optional(&self.pool)
@@ -139,6 +139,11 @@ impl Batches {
             .map(|row| Batch {
                 id,
                 batch_group_id: BatchGroupId::from(row.batch_group_id),
+                bitcoin_tx_id: Txid::from_str(
+                    str::from_utf8(&row.bitcoin_tx_id)
+                        .expect("Couldn't convert bitcoin tx id to string"),
+                )
+                .expect("Couldn't parse bitcoin tx id"),
                 wallet_summaries,
             })
             .ok_or(BriaError::BatchNotFound)
