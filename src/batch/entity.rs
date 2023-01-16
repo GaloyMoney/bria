@@ -8,6 +8,7 @@ use crate::primitives::*;
 
 pub struct Batch {
     pub id: BatchId,
+    pub batch_group_id: BatchGroupId,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
 }
 

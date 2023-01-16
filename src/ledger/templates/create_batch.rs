@@ -1,6 +1,4 @@
-use bdk::BlockTime;
-use bitcoin::blockdata::transaction::{OutPoint, TxOut};
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
@@ -13,9 +11,9 @@ use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateBatchMeta {
-    pub wallet_id: WalletId,
-    pub keychain_id: KeychainId,
     pub batch_id: BatchId,
+    pub batch_group_id: BatchGroupId,
+    pub bitcoin_tx_id: String,
 }
 
 #[derive(Debug)]

@@ -128,9 +128,19 @@ impl Batches {
             );
         }
 
-        Ok(Batch {
-            id,
-            wallet_summaries,
-        })
+        let record = sqlx::query!(
+            "SELECT batch_group_id FROM bria_batches WHERE id = $1",
+            Uuid::from(id)
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        record
+            .map(|row| Batch {
+                id,
+                batch_group_id: BatchGroupId::from(row.batch_group_id),
+                wallet_summaries,
+            })
+            .ok_or(BriaError::BatchNotFound)
     }
 }

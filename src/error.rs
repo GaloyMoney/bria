@@ -21,6 +21,8 @@ pub enum BriaError {
     CouldNotRetreiveWalletBalance,
     #[error("BriaError - BatchGroupNotFound")]
     BatchGroupNotFound,
+    #[error("BriaError - BatchNotFound")]
+    BatchNotFound,
     #[error("BriaError - XPubDepthMissmatch: expected depth {0}, got {1}")]
     XPubDepthMissmatch(u8, usize),
     #[error("BriaError - JoinError: {0}")]
