@@ -39,6 +39,8 @@ pub async fn execute(
                 journal_id: wallet.journal_id,
                 outgoing_ledger_account_id: wallet.ledger_account_ids.outgoing_id,
                 at_rest_ledger_account_id: wallet.ledger_account_ids.at_rest_id,
+                fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
+                batch_true_fee_sats: wallet_summary.fee_sats,
                 satoshis: wallet_summary.total_out_sats,
                 external_id: Uuid::from(wallet_summary.ledger_tx_pending_id),
                 meta: CreateBatchMeta {

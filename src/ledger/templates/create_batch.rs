@@ -22,7 +22,9 @@ pub struct CreateBatchParams {
     pub journal_id: JournalId,
     pub outgoing_ledger_account_id: LedgerAccountId,
     pub at_rest_ledger_account_id: LedgerAccountId,
+    pub fee_ledger_account_id: LedgerAccountId,
     pub satoshis: u64,
+    pub batch_true_fee_sats: u64,
     pub external_id: Uuid,
     pub meta: CreateBatchMeta,
 }
@@ -46,7 +48,17 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("ledger_account_fee_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("amount")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("batch_true_fee")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -80,19 +92,24 @@ impl From<CreateBatchParams> for TxParams {
             journal_id,
             outgoing_ledger_account_id,
             at_rest_ledger_account_id,
+            fee_ledger_account_id,
             satoshis,
+            batch_true_fee_sats,
             external_id,
             meta,
         }: CreateBatchParams,
     ) -> Self {
         let amount = Decimal::from(satoshis) / SATS_PER_BTC;
+        let batch_true_fee = Decimal::from(batch_true_fee_sats) / SATS_PER_BTC;
         let effective = Utc::now().date_naive();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert("ledger_account_outgoing_id", outgoing_ledger_account_id);
         params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
+        params.insert("ledger_account_fee_id", fee_ledger_account_id);
         params.insert("amount", amount);
+        params.insert("batch_true_fee", batch_true_fee);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
@@ -167,6 +184,24 @@ impl CreateBatch {
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.amount")
+                .build()
+                .expect("Couldn't build PENDING_TX_OUTGOING_CR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_BATCH_TRUE_FEE_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_FEE_ID))
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.batch_true_fee")
+                .build()
+                .expect("Couldn't build PENDING_TX_OUTGOING_DR entry"),
+            EntryInput::builder()
+                .entry_type("'ENCUMBERED_BATCH_TRUE_FEE_CR'")
+                .currency("'BTC'")
+                .account_id("params.ledger_account_fee_id")
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.batch_true_fee")
                 .build()
                 .expect("Couldn't build PENDING_TX_OUTGOING_CR entry"),
         ];
