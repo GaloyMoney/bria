@@ -34,7 +34,7 @@ services:
     volumes:
       - ./dev/otel-agent-config.yaml:/etc/otel-agent-config.yaml
   bitcoind:
-    image: lncm/bitcoind:v23.0
+    image: lncm/bitcoind:v24.0.1
     volumes:
       - ${PWD}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
   lnd:
