@@ -91,15 +91,18 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id<'a>(&self, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
+            r#"SELECT batch_group_id, bitcoin_tx_id, batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
             FROM bria_batch_wallet_summaries
             LEFT JOIN bria_batches ON id = batch_id
             WHERE batch_id = $1"#,
             Uuid::from(id)
         ).fetch_all(&self.pool).await?;
 
-        let mut wallet_summaries = HashMap::new();
+        if rows.len() == 0 {
+            return Err(BriaError::BatchNotFound);
+        }
 
+        let mut wallet_summaries = HashMap::new();
         for row in rows.iter() {
             let wallet_id = WalletId::from(row.wallet_id);
             wallet_summaries.insert(
@@ -117,24 +120,15 @@ impl Batches {
             );
         }
 
-        let record = sqlx::query!(
-            "SELECT batch_group_id, bitcoin_tx_id FROM bria_batches WHERE id = $1",
-            Uuid::from(id)
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        record
-            .map(|row| Batch {
-                id,
-                batch_group_id: BatchGroupId::from(row.batch_group_id),
-                bitcoin_tx_id: Txid::from_str(
-                    str::from_utf8(&row.bitcoin_tx_id)
-                        .expect("Couldn't convert bitcoin tx id to string"),
-                )
-                .expect("Couldn't parse bitcoin tx id"),
-                wallet_summaries,
-            })
-            .ok_or(BriaError::BatchNotFound)
+        Ok(Batch {
+            id,
+            batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
+            bitcoin_tx_id: Txid::from_str(
+                str::from_utf8(&rows[0].bitcoin_tx_id)
+                    .expect("Couldn't convert bitcoin tx id to string"),
+            )
+            .expect("Couldn't parse bitcoin tx id"),
+            wallet_summaries,
+        })
     }
 }

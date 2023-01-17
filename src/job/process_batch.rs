@@ -32,26 +32,27 @@ pub async fn execute(
     } = batches.find_by_id(data.batch_id).await?;
 
     for (wallet_id, wallet_summary) in wallet_summaries.into_iter() {
-        let tx = pool.begin().await?;
         let wallet = wallets.find_by_id(wallet_id).await?;
 
-        ledger
-            .create_batch(
-                tx,
-                CreateBatchParams {
-                    journal_id: wallet.journal_id,
-                    outgoing_ledger_account_id: wallet.ledger_account_ids.outgoing_id,
-                    at_rest_ledger_account_id: wallet.ledger_account_ids.at_rest_id,
-                    satoshis: wallet_summary.total_out_sats,
-                    external_id: Uuid::from(wallet_summary.ledger_tx_pending_id),
-                    meta: CreateBatchMeta {
-                        batch_id: id,
-                        batch_group_id,
-                        bitcoin_tx_id,
-                    },
+        match ledger
+            .create_batch(CreateBatchParams {
+                journal_id: wallet.journal_id,
+                outgoing_ledger_account_id: wallet.ledger_account_ids.outgoing_id,
+                at_rest_ledger_account_id: wallet.ledger_account_ids.at_rest_id,
+                satoshis: wallet_summary.total_out_sats,
+                external_id: Uuid::from(wallet_summary.ledger_tx_pending_id),
+                meta: CreateBatchMeta {
+                    batch_id: id,
+                    batch_group_id,
+                    bitcoin_tx_id,
                 },
-            )
-            .await?;
+            })
+            .await
+        {
+            Err(BriaError::SqlxLedger(sqlx_ledger::SqlxLedgerError::DuplicateKey(_))) => continue,
+            Err(e) => return Err(e.into()),
+            Ok(_) => continue,
+        };
     }
 
     Ok(data)

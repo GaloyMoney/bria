@@ -83,14 +83,10 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.create_batch", skip(self, tx))]
-    pub async fn create_batch(
-        &self,
-        tx: Transaction<'_, Postgres>,
-        params: CreateBatchParams,
-    ) -> Result<(), BriaError> {
+    #[instrument(name = "ledger.create_batch", skip(self))]
+    pub async fn create_batch(&self, params: CreateBatchParams) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, CREATE_BATCH_CODE, Some(params))
+            .post_transaction(CREATE_BATCH_CODE, Some(params))
             .await?;
         Ok(())
     }
