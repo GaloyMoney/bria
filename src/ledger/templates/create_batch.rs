@@ -25,7 +25,8 @@ pub struct CreateBatchParams {
     pub fee_ledger_account_id: LedgerAccountId,
     pub satoshis: u64,
     pub batch_true_fee_sats: u64,
-    pub external_id: Uuid,
+    pub correlation_id: Uuid,
+    pub external_id: String,
     pub meta: CreateBatchMeta,
 }
 
@@ -95,6 +96,7 @@ impl From<CreateBatchParams> for TxParams {
             fee_ledger_account_id,
             satoshis,
             batch_true_fee_sats,
+            correlation_id,
             external_id,
             meta,
         }: CreateBatchParams,
@@ -110,6 +112,7 @@ impl From<CreateBatchParams> for TxParams {
         params.insert("ledger_account_fee_id", fee_ledger_account_id);
         params.insert("amount", amount);
         params.insert("batch_true_fee", batch_true_fee);
+        params.insert("correlation_id", correlation_id);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
