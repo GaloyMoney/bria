@@ -42,6 +42,16 @@ pub enum TxPriority {
 #[derive(Debug, Clone, Copy)]
 pub struct Satoshis(Decimal);
 
+impl Satoshis {
+    pub fn to_btc(self) -> Decimal {
+        self.0 / SATS_PER_BTC
+    }
+
+    pub fn from_btc(btc: Decimal) -> Self {
+        Self(btc * SATS_PER_BTC)
+    }
+}
+
 impl From<Decimal> for Satoshis {
     fn from(sats: Decimal) -> Self {
         Self(sats)

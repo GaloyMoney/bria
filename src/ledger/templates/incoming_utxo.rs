@@ -79,7 +79,7 @@ impl From<IncomingUtxoParams> for TxParams {
             meta,
         }: IncomingUtxoParams,
     ) -> Self {
-        let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
+        let amount = Satoshis::from(meta.txout.value).to_btc();
         let effective = meta
             .confirmation_time
             .as_ref()
