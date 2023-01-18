@@ -3,7 +3,7 @@ use sqlx_ledger::{balance::AccountBalance, AccountId as LedgerAccountId};
 
 use crate::primitives::SATS_PER_BTC;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {
     pub incoming_id: LedgerAccountId,
     pub at_rest_id: LedgerAccountId,

@@ -138,9 +138,7 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     ledger
         .create_batch(CreateBatchParams {
             journal_id,
-            outgoing_ledger_account_id: wallet_ledger_accounts.outgoing_id,
-            at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
-            fee_ledger_account_id: wallet_ledger_accounts.fee_id,
+            ledger_account_ids: wallet_ledger_accounts,
             batch_true_fee_sats,
             satoshis,
             correlation_id: Uuid::from(batch_id),

@@ -8,7 +8,9 @@ use sqlx_ledger::{
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::*, ledger::constants::*, primitives::*};
+use crate::{
+    error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateBatchMeta {
@@ -20,9 +22,7 @@ pub struct CreateBatchMeta {
 #[derive(Debug)]
 pub struct CreateBatchParams {
     pub journal_id: JournalId,
-    pub outgoing_ledger_account_id: LedgerAccountId,
-    pub at_rest_ledger_account_id: LedgerAccountId,
-    pub fee_ledger_account_id: LedgerAccountId,
+    pub ledger_account_ids: WalletLedgerAccountIds,
     pub satoshis: u64,
     pub batch_true_fee_sats: u64,
     pub correlation_id: Uuid,
@@ -91,9 +91,7 @@ impl From<CreateBatchParams> for TxParams {
     fn from(
         CreateBatchParams {
             journal_id,
-            outgoing_ledger_account_id,
-            at_rest_ledger_account_id,
-            fee_ledger_account_id,
+            ledger_account_ids,
             satoshis,
             batch_true_fee_sats,
             correlation_id,
@@ -107,9 +105,9 @@ impl From<CreateBatchParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("ledger_account_outgoing_id", outgoing_ledger_account_id);
-        params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
-        params.insert("ledger_account_fee_id", fee_ledger_account_id);
+        params.insert("ledger_account_outgoing_id", ledger_account_ids.outgoing_id);
+        params.insert("ledger_account_at_rest_id", ledger_account_ids.at_rest_id);
+        params.insert("ledger_account_fee_id", ledger_account_ids.fee_id);
         params.insert("amount", amount);
         params.insert("batch_true_fee", batch_true_fee);
         params.insert("correlation_id", correlation_id);

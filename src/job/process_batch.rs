@@ -19,11 +19,6 @@ pub async fn execute(
     wallets: Wallets,
     batches: Batches,
 ) -> Result<ProcessBatchData, BriaError> {
-    // load psbt
-    // for each keychain
-    // for each xpub
-    // load signer
-
     let Batch {
         id,
         bitcoin_tx_id,
@@ -37,9 +32,7 @@ pub async fn execute(
         match ledger
             .create_batch(CreateBatchParams {
                 journal_id: wallet.journal_id,
-                outgoing_ledger_account_id: wallet.ledger_account_ids.outgoing_id,
-                at_rest_ledger_account_id: wallet.ledger_account_ids.at_rest_id,
-                fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
+                ledger_account_ids: wallet.ledger_account_ids,
                 batch_true_fee_sats: wallet_summary.fee_sats,
                 satoshis: wallet_summary.total_out_sats,
                 correlation_id: Uuid::from(data.batch_id),
