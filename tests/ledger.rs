@@ -132,15 +132,15 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     tx.commit().await?;
 
     let batch_id = BatchId::new();
-    let batch_true_fee_sats = 12_345;
-    let satoshis = 100_000_000;
+    let batch_true_fee_sats = Satoshis::from(12_345);
+    let batch_satoshis = Satoshis::from(100_000_000);
 
     ledger
         .create_batch(CreateBatchParams {
             journal_id,
             ledger_account_ids: wallet_ledger_accounts,
             batch_true_fee_sats,
-            satoshis,
+            batch_satoshis: Satoshis::from(batch_satoshis),
             correlation_id: Uuid::from(batch_id),
             external_id: sqlx_ledger::TransactionId::new().to_string(),
             meta: CreateBatchMeta {
@@ -167,7 +167,7 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
 
     assert_eq!(
         -wallet_fee_balance.encumbered(),
-        Decimal::from(batch_true_fee_sats) / SATS_PER_BTC
+        batch_true_fee_sats.to_btc()
     );
 
     Ok(())
