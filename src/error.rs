@@ -23,6 +23,8 @@ pub enum BriaError {
     BatchGroupNotFound,
     #[error("BriaError - BatchNotFound")]
     BatchNotFound,
+    #[error("BriaError - BitcoinConsensusEncodeError: {0}")]
+    BitcoinConsensusEncodeError(#[from] bitcoin::consensus::encode::Error),
     #[error("BriaError - TryFromIntError")]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("BriaError - BitcoinAddressParseError")]

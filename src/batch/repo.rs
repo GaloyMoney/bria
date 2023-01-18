@@ -1,8 +1,8 @@
-use std::{collections::HashMap, str, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
-use bitcoin::{consensus::encode, Address, Txid};
+use bitcoin::{consensus::encode, Address};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
-use sqlx_ledger::TransactionId;
+use sqlx_ledger::TransactionId as LedgerTxId;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -114,8 +114,8 @@ impl Batches {
                     fee_sats: u64::try_from(row.fee_sats)?,
                     change_sats: u64::try_from(row.change_sats)?,
                     change_address: Address::from_str(&row.change_address)?,
-                    ledger_tx_pending_id: TransactionId::from(row.ledger_tx_pending_id),
-                    ledger_tx_settled_id: TransactionId::from(row.ledger_tx_settled_id),
+                    ledger_tx_pending_id: LedgerTxId::from(row.ledger_tx_pending_id),
+                    ledger_tx_settled_id: LedgerTxId::from(row.ledger_tx_settled_id),
                 },
             );
         }
@@ -123,11 +123,7 @@ impl Batches {
         Ok(Batch {
             id,
             batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
-            bitcoin_tx_id: Txid::from_str(
-                str::from_utf8(&rows[0].bitcoin_tx_id)
-                    .expect("Couldn't convert bitcoin tx id to string"),
-            )
-            .expect("Couldn't parse bitcoin tx id"),
+            bitcoin_tx_id: bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?,
             wallet_summaries,
         })
     }
