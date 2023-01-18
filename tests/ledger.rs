@@ -77,7 +77,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                 incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
                 at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
                 fee_ledger_account_id: wallet_ledger_accounts.fee_id,
-                spending_fee_satoshis: Decimal::ONE,
+                spending_fee_satoshis: Satoshis::from(Decimal::ONE),
                 pending_id,
                 settled_id,
                 meta: ConfirmedUtxoMeta {
