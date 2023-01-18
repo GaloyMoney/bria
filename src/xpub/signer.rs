@@ -24,3 +24,11 @@ impl NewSigner {
 pub enum SignerConfig {
     Lnd(LndSignerConfig),
 }
+
+impl SignerConfig {
+    pub fn is_auto_signable(&self) -> bool {
+        match self {
+            SignerConfig::Lnd(_) => true,
+        }
+    }
+}
