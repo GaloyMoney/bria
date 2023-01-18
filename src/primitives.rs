@@ -38,3 +38,46 @@ pub enum TxPriority {
     OneHour,
     Economy,
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Satoshis(Decimal);
+
+impl From<Decimal> for Satoshis {
+    fn from(sats: Decimal) -> Self {
+        Self(sats)
+    }
+}
+
+impl From<u64> for Satoshis {
+    fn from(sats: u64) -> Self {
+        Self(Decimal::from(sats))
+    }
+}
+
+impl std::ops::Add<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn add(self, rhs: Satoshis) -> Self {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Sub<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn sub(self, rhs: Satoshis) -> Self {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Mul<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn mul(self, rhs: Satoshis) -> Self {
+        Self(self.0 * rhs.0)
+    }
+}
+
+impl std::ops::Div<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn div(self, rhs: Satoshis) -> Self {
+        Self(self.0 / rhs.0)
+    }
+}
