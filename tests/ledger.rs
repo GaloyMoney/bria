@@ -129,6 +129,8 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
         .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
         .await?;
 
+    tx.commit().await?;
+
     let batch_id = BatchId::new();
     let batch_true_fee_sats = 12_345;
     let satoshis = 100_000_000;
@@ -166,7 +168,7 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
         .expect("No balance");
 
     assert_eq!(
-        wallet_fee_balance.encumbered(),
+        -wallet_fee_balance.encumbered(),
         Decimal::from(batch_true_fee_sats) / SATS_PER_BTC
     );
 
