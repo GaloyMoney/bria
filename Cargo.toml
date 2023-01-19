@@ -8,8 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = { git = "https://github.com/bodymindarts/sqlx-ledger" }
-# sqlx-ledger = { path = "../../bodymindarts/sqlx-ledger/ledger" }
+sqlx-ledger = { git = "https://github.com/GaloyMoney/sqlx-ledger" }
 
 anyhow = "1.0.66"
 clap = { version = "4.0", features = ["derive", "env"] }
