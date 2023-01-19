@@ -208,7 +208,7 @@ impl App {
         wallet_name: String,
         group_name: String,
         destination: PayoutDestination,
-        sats: u64,
+        sats: Satoshis,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<PayoutId, BriaError> {
@@ -240,7 +240,7 @@ impl App {
                     journal_id: wallet.journal_id,
                     ledger_account_outgoing_id: wallet.ledger_account_ids.outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
-                    satoshis: sats,
+                    payout_satoshis: sats,
                     meta: QueuedPayoutMeta {
                         payout_id: id,
                         batch_group_id: group_id,

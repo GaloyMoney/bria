@@ -39,7 +39,7 @@ impl Payouts {
             Uuid::from(account_id),
             Uuid::from(batch_group_id),
             Uuid::from(wallet_id),
-            satoshis as i64,
+            i64::from(satoshis),
             serde_json::to_value(destination)?,
             external_id,
             metadata
@@ -73,7 +73,7 @@ impl Payouts {
                 wallet_id,
                 destination: serde_json::from_value(row.destination_data)
                     .expect("Couldn't deserialize destination"),
-                satoshis: row.satoshis as u64,
+                satoshis: Satoshis::from(row.satoshis),
             });
         }
         Ok(payouts)

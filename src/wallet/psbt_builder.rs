@@ -15,10 +15,10 @@ use crate::{error::*, payout::Payout, primitives::*};
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
-    pub input_satoshis: u64,
-    pub output_satoshis: u64,
-    pub fee_satoshis: u64,
-    pub change_satoshis: u64,
+    pub input_satoshis: Satoshis,
+    pub output_satoshis: Satoshis,
+    pub fee_satoshis: Satoshis,
+    pub change_satoshis: Satoshis,
     pub change_address: AddressInfo,
 }
 
@@ -26,7 +26,7 @@ pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
-    pub fee_satoshis: u64,
+    pub fee_satoshis: Satoshis,
     pub tx_id: Option<bitcoin::Txid>,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
 }
@@ -70,7 +70,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                 included_payouts: HashMap::new(),
                 included_utxos: HashMap::new(),
                 wallet_totals: HashMap::new(),
-                fee_satoshis: 0,
+                fee_satoshis: Satoshis::from(0),
                 tx_id: None,
                 psbt: None,
             },
@@ -244,7 +244,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         builder.drain_to(change_address.script_pubkey());
         builder.sighash(bitcoin::EcdsaSighashType::All.into());
 
-        let mut total_output_satoshis = 0;
+        let mut total_output_satoshis = Satoshis::from(0);
         for next_payout in self.current_payouts.drain(..max_payout) {
             let destination = next_payout
                 .destination
@@ -252,7 +252,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 .expect("No onchain address");
 
             total_output_satoshis += next_payout.satoshis;
-            builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
+            builder.add_recipient(destination.script_pubkey(), u64::from(next_payout.satoshis));
             self.result
                 .included_payouts
                 .entry(self.current_wallet.expect("current wallet must be set"))
@@ -304,16 +304,17 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         builder.ordering(TxOrdering::Bip69Lexicographic);
         match builder.finish() {
             Ok((psbt, details)) => {
-                let fee_satoshis = details.fee.expect("fee must be present");
+                let fee_satoshis = Satoshis::from(details.fee.expect("fee must be present"));
                 let current_wallet_fee = fee_satoshis - self.result.fee_satoshis;
                 let wallet_id = self.current_wallet.expect("current wallet must be set");
-                let change_satoshis = psbt
-                    .unsigned_tx
-                    .output
-                    .iter()
-                    .find(|out| out.script_pubkey == change_address.script_pubkey())
-                    .map(|out| out.value)
-                    .unwrap_or(0);
+                let change_satoshis = Satoshis::from(
+                    psbt.unsigned_tx
+                        .output
+                        .iter()
+                        .find(|out| out.script_pubkey == change_address.script_pubkey())
+                        .map(|out| out.value)
+                        .unwrap_or(0),
+                );
                 self.result.wallet_totals.insert(
                     wallet_id,
                     WalletTotals {
@@ -387,7 +388,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                 .onchain_address()
                 .expect("No onchain address");
 
-            builder.add_recipient(destination.script_pubkey(), next_payout.satoshis);
+            builder.add_recipient(destination.script_pubkey(), u64::from(next_payout.satoshis));
         }
 
         if let Some(reserved_utxos) = self

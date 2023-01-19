@@ -34,7 +34,7 @@ pub async fn execute(
                 journal_id: wallet.journal_id,
                 ledger_account_ids: wallet.ledger_account_ids,
                 batch_true_fee_sats: wallet_summary.fee_sats,
-                satoshis: wallet_summary.total_out_sats,
+                batch_satoshis: wallet_summary.total_out_sats,
                 correlation_id: Uuid::from(data.batch_id),
                 external_id: wallet_summary.ledger_tx_pending_id.to_string(),
                 meta: CreateBatchMeta {

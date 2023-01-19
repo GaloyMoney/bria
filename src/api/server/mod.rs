@@ -150,7 +150,7 @@ impl BriaService for Bria {
                 wallet_name,
                 batch_group_name,
                 destination.try_into()?,
-                satoshis,
+                Satoshis::from(satoshis),
                 None,
                 None,
             )

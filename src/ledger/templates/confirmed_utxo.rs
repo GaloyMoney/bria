@@ -1,7 +1,6 @@
 use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::NaiveDateTime;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
     tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
@@ -26,7 +25,7 @@ pub struct ConfirmedUtxoParams {
     pub incoming_ledger_account_id: LedgerAccountId,
     pub at_rest_ledger_account_id: LedgerAccountId,
     pub fee_ledger_account_id: LedgerAccountId,
-    pub spending_fee_satoshis: Decimal,
+    pub spending_fee_satoshis: Satoshis,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
     pub meta: ConfirmedUtxoMeta,
@@ -102,8 +101,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
             meta,
         }: ConfirmedUtxoParams,
     ) -> Self {
-        let amount = Decimal::from(meta.txout.value) / SATS_PER_BTC;
-        let fees = fees / SATS_PER_BTC;
+        let amount = Satoshis::from(meta.txout.value).to_btc();
         let effective =
             NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
                 .expect("Couldn't convert blocktime to NaiveDateTime")
@@ -114,7 +112,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("ledger_account_incoming_id", incoming_ledger_account_id);
         params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
         params.insert("ledger_account_fee_id", fee_ledger_account_id);
-        params.insert("fees", fees);
+        params.insert("fees", fees.to_btc());
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);

@@ -1,6 +1,5 @@
 use bitcoin::Txid;
 use chrono::Utc;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
     tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
@@ -23,8 +22,8 @@ pub struct CreateBatchMeta {
 pub struct CreateBatchParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
-    pub satoshis: u64,
-    pub batch_true_fee_sats: u64,
+    pub batch_satoshis: Satoshis,
+    pub batch_true_fee_sats: Satoshis,
     pub correlation_id: Uuid,
     pub external_id: String,
     pub meta: CreateBatchMeta,
@@ -92,15 +91,15 @@ impl From<CreateBatchParams> for TxParams {
         CreateBatchParams {
             journal_id,
             ledger_account_ids,
-            satoshis,
+            batch_satoshis,
             batch_true_fee_sats,
             correlation_id,
             external_id,
             meta,
         }: CreateBatchParams,
     ) -> Self {
-        let amount = Decimal::from(satoshis) / SATS_PER_BTC;
-        let batch_true_fee = Decimal::from(batch_true_fee_sats) / SATS_PER_BTC;
+        let amount = batch_satoshis.to_btc();
+        let batch_true_fee = batch_true_fee_sats.to_btc();
         let effective = Utc::now().date_naive();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
