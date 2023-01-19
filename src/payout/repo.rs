@@ -73,7 +73,7 @@ impl Payouts {
                 wallet_id,
                 destination: serde_json::from_value(row.destination_data)
                     .expect("Couldn't deserialize destination"),
-                satoshis: row.satoshis as u64,
+                satoshis: Satoshis::from(row.satoshis),
             });
         }
         Ok(payouts)

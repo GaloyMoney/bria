@@ -57,7 +57,7 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let domain_wallet_id = WalletId::new();
     let other_wallet_id = WalletId::new();
-    let send_amount = 100_000_000;
+    let send_amount = Satoshis::from(100_000_000);
     let payouts_one = vec![Payout {
         id: PayoutId::new(),
         wallet_id: domain_wallet_id,
@@ -163,14 +163,16 @@ async fn build_psbt() -> anyhow::Result<()> {
         .output
         .iter()
         .fold(0, |acc, out| acc + out.value);
-    let total_summary_outs = wallet_totals.values().fold(0, |acc, total| {
-        acc + total.output_satoshis + total.change_satoshis
-    });
-    assert_eq!(total_tx_outs, total_summary_outs);
-    assert_eq!(total_tx_outs, total_summary_outs);
+    let total_summary_outs = wallet_totals
+        .values()
+        .fold(Satoshis::from(0), |acc, total| {
+            acc + total.output_satoshis + total.change_satoshis
+        });
+    assert_eq!(total_tx_outs, u64::from(total_summary_outs));
+    assert_eq!(total_tx_outs, u64::from(total_summary_outs));
     let total_summary_fees = wallet_totals
         .values()
-        .fold(0, |acc, total| acc + total.fee_satoshis);
+        .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
     assert_eq!(total_summary_fees, fee_satoshis);
     assert!(unsigned_psbt.inputs.len() >= 3);
     assert_eq!(unsigned_psbt.outputs.len(), 5);

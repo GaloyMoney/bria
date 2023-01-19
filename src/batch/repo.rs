@@ -30,7 +30,7 @@ impl Batches {
             VALUES ($1, $2, $3, $4, $5)"#,
             Uuid::from(batch.id),
             Uuid::from(batch.batch_group_id),
-            batch.total_fee_sats as i64,
+            i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
             encode::serialize(&batch.unsigned_psbt)
         ).execute(&mut *tx).await?;
@@ -44,11 +44,11 @@ impl Batches {
             |mut builder, (wallet_id, summary)| {
                 builder.push_bind(Uuid::from(batch.id));
                 builder.push_bind(Uuid::from(wallet_id));
-                builder.push_bind(summary.total_in_sats as i64);
-                builder.push_bind(summary.total_out_sats as i64);
-                builder.push_bind(summary.change_sats as i64);
+                builder.push_bind(i64::from(summary.total_in_sats));
+                builder.push_bind(i64::from(summary.total_out_sats));
+                builder.push_bind(i64::from(summary.change_sats));
                 builder.push_bind(summary.change_address.to_string());
-                builder.push_bind(summary.fee_sats as i64);
+                builder.push_bind(i64::from(summary.fee_sats));
             },
         );
         let query = query_builder.build();
@@ -109,10 +109,10 @@ impl Batches {
                 wallet_id,
                 WalletSummary {
                     wallet_id,
-                    total_in_sats: u64::try_from(row.total_in_sats)?,
-                    total_out_sats: u64::try_from(row.total_out_sats)?,
-                    fee_sats: u64::try_from(row.fee_sats)?,
-                    change_sats: u64::try_from(row.change_sats)?,
+                    total_in_sats: Satoshis::from(row.total_in_sats),
+                    total_out_sats: Satoshis::from(row.total_out_sats),
+                    fee_sats: Satoshis::from(row.fee_sats),
+                    change_sats: Satoshis::from(row.change_sats),
                     change_address: Address::from_str(&row.change_address)?,
                     ledger_tx_pending_id: LedgerTxId::from(row.ledger_tx_pending_id),
                     ledger_tx_settled_id: LedgerTxId::from(row.ledger_tx_settled_id),
