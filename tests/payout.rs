@@ -2,7 +2,7 @@ mod helpers;
 
 use rand::distributions::{Alphanumeric, DistString};
 
-use bria::{app::*, payout::*, xpub::*};
+use bria::{app::*, payout::*, primitives::*, xpub::*};
 
 #[tokio::test]
 async fn test_payout() -> anyhow::Result<()> {
@@ -42,7 +42,7 @@ async fn test_payout() -> anyhow::Result<()> {
             wallet_name,
             group_name,
             destination,
-            10000,
+            Satoshis::from(10000),
             None,
             None,
         )

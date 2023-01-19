@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use sqlx_ledger::{balance::AccountBalance, AccountId as LedgerAccountId};
 
-use crate::primitives::SATS_PER_BTC;
+use crate::primitives::{Satoshis, SATS_PER_BTC};
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {
@@ -22,42 +22,47 @@ pub struct WalletLedgerAccountBalances {
 }
 
 pub struct WalletBalanceSummary {
-    pub current_settled: Decimal,
-    pub pending_incoming: Decimal,
-    pub pending_outgoing: Decimal,
-    pub encumbered_fees: Decimal,
-    pub encumbered_outgoing: Decimal,
+    pub current_settled: Satoshis,
+    pub pending_incoming: Satoshis,
+    pub pending_outgoing: Satoshis,
+    pub encumbered_fees: Satoshis,
+    pub encumbered_outgoing: Satoshis,
 }
 
 impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
     fn from(balances: WalletLedgerAccountBalances) -> Self {
         Self {
-            current_settled: balances
-                .at_rest
-                .map(|b| b.settled())
-                .unwrap_or(Decimal::ZERO)
-                * SATS_PER_BTC,
-            pending_incoming: balances
-                .incoming
-                .map(|b| b.pending())
-                .unwrap_or(Decimal::ZERO)
-                * SATS_PER_BTC,
-            pending_outgoing: balances
-                .outgoing
-                .as_ref()
-                .map(|b| b.pending())
-                .unwrap_or(Decimal::ZERO)
-                * SATS_PER_BTC,
-            encumbered_fees: balances
-                .fee
-                .map(|b| b.encumbered())
-                .unwrap_or(Decimal::ZERO)
-                * SATS_PER_BTC,
-            encumbered_outgoing: balances
-                .outgoing
-                .map(|b| b.encumbered())
-                .unwrap_or(Decimal::ZERO)
-                * SATS_PER_BTC,
+            current_settled: Satoshis::from_btc(
+                balances
+                    .at_rest
+                    .map(|b| b.settled())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            pending_incoming: Satoshis::from_btc(
+                balances
+                    .incoming
+                    .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            pending_outgoing: Satoshis::from_btc(
+                balances
+                    .outgoing
+                    .as_ref()
+                    .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            encumbered_fees: Satoshis::from_btc(
+                balances
+                    .fee
+                    .map(|b| b.encumbered())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            encumbered_outgoing: Satoshis::from_btc(
+                balances
+                    .outgoing
+                    .map(|b| b.encumbered())
+                    .unwrap_or(Decimal::ZERO),
+            ),
         }
     }
 }
