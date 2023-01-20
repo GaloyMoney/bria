@@ -1,9 +1,8 @@
-use crate::{
-    app::BlockchainConfig, batch_group::*, bdk::pg::Utxos, error::*, ledger::*, payout::*,
-    primitives::*, wallet::*,
-};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
+use uuid::Uuid;
+
+use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessBatchData {
@@ -17,10 +16,40 @@ pub async fn execute(
     data: ProcessBatchData,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
+    wallets: Wallets,
+    batches: Batches,
 ) -> Result<ProcessBatchData, BriaError> {
-    // load psbt
-    // for each keychain
-    // for each xpub
-    // load signer
+    let Batch {
+        id,
+        bitcoin_tx_id,
+        batch_group_id,
+        wallet_summaries,
+    } = batches.find_by_id(data.batch_id).await?;
+
+    for (wallet_id, wallet_summary) in wallet_summaries.into_iter() {
+        let wallet = wallets.find_by_id(wallet_id).await?;
+
+        match ledger
+            .create_batch(CreateBatchParams {
+                journal_id: wallet.journal_id,
+                ledger_account_ids: wallet.ledger_account_ids,
+                batch_true_fee_sats: wallet_summary.fee_sats,
+                batch_satoshis: wallet_summary.total_out_sats,
+                correlation_id: Uuid::from(data.batch_id),
+                external_id: wallet_summary.ledger_tx_pending_id.to_string(),
+                meta: CreateBatchMeta {
+                    batch_id: id,
+                    batch_group_id,
+                    bitcoin_tx_id,
+                },
+            })
+            .await
+        {
+            Err(BriaError::SqlxLedger(sqlx_ledger::SqlxLedgerError::DuplicateKey(_))) => continue,
+            Err(e) => return Err(e.into()),
+            Ok(_) => continue,
+        };
+    }
+
     Ok(data)
 }

@@ -8,7 +8,7 @@ pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
     pub destination: PayoutDestination,
-    pub satoshis: u64,
+    pub satoshis: Satoshis,
 }
 
 #[derive(Debug, Builder, Clone)]
@@ -19,7 +19,7 @@ pub struct NewPayout {
     pub(super) wallet_id: WalletId,
     #[builder(setter(into))]
     pub(super) batch_group_id: BatchGroupId,
-    pub(super) satoshis: u64,
+    pub(super) satoshis: Satoshis,
     pub(super) destination: PayoutDestination,
     #[builder(setter(into))]
     pub(super) external_id: String,

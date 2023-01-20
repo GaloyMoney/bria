@@ -1,5 +1,8 @@
-use bitcoin::consensus::encode;
+use std::{collections::HashMap, str::FromStr};
+
+use bitcoin::{consensus::encode, Address};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
+use sqlx_ledger::TransactionId as LedgerTxId;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -27,7 +30,7 @@ impl Batches {
             VALUES ($1, $2, $3, $4, $5)"#,
             Uuid::from(batch.id),
             Uuid::from(batch.batch_group_id),
-            batch.total_fee_sats as i64,
+            i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
             encode::serialize(&batch.unsigned_psbt)
         ).execute(&mut *tx).await?;
@@ -41,11 +44,11 @@ impl Batches {
             |mut builder, (wallet_id, summary)| {
                 builder.push_bind(Uuid::from(batch.id));
                 builder.push_bind(Uuid::from(wallet_id));
-                builder.push_bind(summary.total_in_sats as i64);
-                builder.push_bind(summary.total_out_sats as i64);
-                builder.push_bind(summary.change_sats as i64);
+                builder.push_bind(i64::from(summary.total_in_sats));
+                builder.push_bind(i64::from(summary.total_out_sats));
+                builder.push_bind(i64::from(summary.change_sats));
                 builder.push_bind(summary.change_address.to_string());
-                builder.push_bind(summary.fee_sats as i64);
+                builder.push_bind(i64::from(summary.fee_sats));
             },
         );
         let query = query_builder.build();
@@ -83,5 +86,45 @@ impl Batches {
         query.execute(&mut *tx).await?;
 
         Ok(batch.id)
+    }
+
+    #[instrument(name = "batches.find_by_id", skip_all)]
+    pub async fn find_by_id<'a>(&self, id: BatchId) -> Result<Batch, BriaError> {
+        let rows = sqlx::query!(
+            r#"SELECT batch_group_id, bitcoin_tx_id, batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
+            FROM bria_batch_wallet_summaries
+            LEFT JOIN bria_batches ON id = batch_id
+            WHERE batch_id = $1"#,
+            Uuid::from(id)
+        ).fetch_all(&self.pool).await?;
+
+        if rows.len() == 0 {
+            return Err(BriaError::BatchNotFound);
+        }
+
+        let mut wallet_summaries = HashMap::new();
+        for row in rows.iter() {
+            let wallet_id = WalletId::from(row.wallet_id);
+            wallet_summaries.insert(
+                wallet_id,
+                WalletSummary {
+                    wallet_id,
+                    total_in_sats: Satoshis::from(row.total_in_sats),
+                    total_out_sats: Satoshis::from(row.total_out_sats),
+                    fee_sats: Satoshis::from(row.fee_sats),
+                    change_sats: Satoshis::from(row.change_sats),
+                    change_address: Address::from_str(&row.change_address)?,
+                    ledger_tx_pending_id: LedgerTxId::from(row.ledger_tx_pending_id),
+                    ledger_tx_settled_id: LedgerTxId::from(row.ledger_tx_settled_id),
+                },
+            );
+        }
+
+        Ok(Batch {
+            id,
+            batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
+            bitcoin_tx_id: bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?,
+            wallet_summaries,
+        })
     }
 }

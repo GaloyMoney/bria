@@ -21,7 +21,7 @@ pub struct QueuedPayoutParams {
     pub journal_id: JournalId,
     pub ledger_account_outgoing_id: LedgerAccountId,
     pub external_id: String,
-    pub satoshis: u64,
+    pub payout_satoshis: Satoshis,
     pub meta: QueuedPayoutMeta,
 }
 
@@ -68,7 +68,7 @@ impl From<QueuedPayoutParams> for TxParams {
             journal_id,
             ledger_account_outgoing_id,
             external_id,
-            satoshis,
+            payout_satoshis,
             meta,
         }: QueuedPayoutParams,
     ) -> Self {
@@ -77,7 +77,7 @@ impl From<QueuedPayoutParams> for TxParams {
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert("ledger_account_outgoing_id", ledger_account_outgoing_id);
-        params.insert("amount", Decimal::from(satoshis) / SATS_PER_BTC);
+        params.insert("amount", payout_satoshis.to_btc());
         params.insert("external_id", external_id);
         params.insert("meta", meta);
         params.insert("effective", effective);

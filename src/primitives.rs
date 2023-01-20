@@ -1,5 +1,5 @@
 use bitcoin::util::bip32::Fingerprint;
-use rust_decimal::Decimal;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 
@@ -37,4 +37,100 @@ pub enum TxPriority {
     NextBlock,
     OneHour,
     Economy,
+}
+
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+pub struct Satoshis(Decimal);
+
+impl Satoshis {
+    pub fn to_btc(self) -> Decimal {
+        self.0 / SATS_PER_BTC
+    }
+
+    pub fn from_btc(btc: Decimal) -> Self {
+        Self(btc * SATS_PER_BTC)
+    }
+}
+
+impl From<Decimal> for Satoshis {
+    fn from(sats: Decimal) -> Self {
+        Self(sats)
+    }
+}
+
+impl From<u64> for Satoshis {
+    fn from(sats: u64) -> Self {
+        Self(Decimal::from(sats))
+    }
+}
+
+impl From<Satoshis> for u64 {
+    fn from(sats: Satoshis) -> u64 {
+        sats.0
+            .to_u64()
+            .expect("Couldn't convert Satoshis (possibly msats)")
+    }
+}
+
+impl From<i32> for Satoshis {
+    fn from(sats: i32) -> Self {
+        Self(Decimal::from(sats as i32))
+    }
+}
+
+impl From<i64> for Satoshis {
+    fn from(sats: i64) -> Self {
+        Self(Decimal::from(sats as u64))
+    }
+}
+
+impl From<Satoshis> for i64 {
+    fn from(sats: Satoshis) -> i64 {
+        sats.0
+            .to_i64()
+            .expect("Couldn't convert Satoshis (possibly msats)")
+    }
+}
+
+impl std::ops::Add<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn add(self, rhs: Satoshis) -> Self {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl std::ops::Sub<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn sub(self, rhs: Satoshis) -> Self {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Mul<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn mul(self, rhs: Satoshis) -> Self {
+        Self(self.0 * rhs.0)
+    }
+}
+
+impl std::ops::Mul<i32> for Satoshis {
+    type Output = Satoshis;
+    fn mul(self, rhs: i32) -> Self {
+        self * Satoshis::from(rhs)
+    }
+}
+
+impl std::ops::Div<Satoshis> for Satoshis {
+    type Output = Satoshis;
+    fn div(self, rhs: Satoshis) -> Self {
+        Self(self.0 / rhs.0)
+    }
+}
+
+impl std::ops::AddAssign<Satoshis> for Satoshis {
+    fn add_assign(&mut self, rhs: Satoshis) {
+        *self = Self(self.0 + rhs.0)
+    }
 }
