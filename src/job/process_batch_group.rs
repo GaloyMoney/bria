@@ -49,7 +49,7 @@ pub async fn execute<'a>(
 ) -> Result<
     (
         ProcessBatchGroupData,
-        Option<sqlx::Transaction<'a, sqlx::Postgres>>,
+        Option<(sqlx::Transaction<'a, sqlx::Postgres>, Vec<WalletId>)>,
     ),
     BriaError,
 > {
@@ -123,6 +123,7 @@ pub async fn execute<'a>(
         span.record("txid", &tracing::field::display(tx_id));
         span.record("psbt", &tracing::field::display(&psbt));
 
+        let wallet_ids = wallet_totals.keys().copied().collect();
         let batch = NewBatch::builder()
             .id(data.batch_id)
             .batch_group_id(data.batch_group_id)
@@ -152,7 +153,7 @@ pub async fn execute<'a>(
             .await?;
         batches.create_in_tx(&mut tx, batch).await?;
 
-        Ok((data, Some(tx)))
+        Ok((data, Some((tx, wallet_ids))))
     } else {
         Ok((data, None))
     }
