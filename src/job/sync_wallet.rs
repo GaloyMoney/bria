@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use crate::{
     app::BlockchainConfig,
-    bdk::pg::{NewPendingTx, NewSettledTx, Utxos},
+    bdk::pg::{NewPendingTx, NewSettledTx, NewSettledTxPersistedInBatch, Utxos},
     error::*,
     ledger::*,
     primitives::*,
@@ -57,6 +57,49 @@ pub async fn execute(
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,
                                 confirmation_time,
+                            },
+                        },
+                    )
+                    .await?;
+            } else {
+                break;
+            }
+        }
+
+        loop {
+            let mut tx = pool.begin().await?;
+            if let Ok(Some(NewSettledTxPersistedInBatch {
+                batch_id,
+                settled_id,
+                pending_id,
+                confirmation_time,
+                local_utxo,
+            })) = utxos
+                .find_new_settled_tx_persisted_in_batch(&mut tx, current_height + 1)
+                .await
+            {
+                ledger
+                    .confirmed_utxo_without_fee_reserve(
+                        tx,
+                        ConfirmedUtxoWithoutFeeReserveParams {
+                            journal_id: wallet.journal_id,
+                            incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                                &local_utxo,
+                                wallet.ledger_account_ids.incoming_id,
+                            ),
+                            at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                                &local_utxo,
+                                wallet.ledger_account_ids.at_rest_id,
+                            ),
+                            pending_id,
+                            settled_id,
+                            meta: ConfirmedUtxoWithoutFeeReserveMeta {
+                                wallet_id: id,
+                                keychain_id: *keychain_id,
+                                batch_id,
+                                confirmation_time,
+                                outpoint: local_utxo.outpoint,
+                                txout: local_utxo.txout,
                             },
                         },
                     )

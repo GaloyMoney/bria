@@ -12,6 +12,7 @@ use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfirmedUtxoWithoutFeeReserveMeta {
+    pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
