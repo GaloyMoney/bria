@@ -12,7 +12,7 @@ use crate::{
     wallet::*,
 };
 
-#[instrument(name = "job.sync_wallet", skip(pool, wallets, ledger), err)]
+#[instrument(name = "job.sync_bdk_wallet", skip(pool, wallets, ledger), err)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
@@ -32,6 +32,8 @@ pub async fn execute(
             ElectrumBlockchain::from(Client::new(&blockchain_cfg.electrum_url).unwrap());
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
+        // finished
+        // record_utxos_in_ledger
         let utxos = Utxos::new(*keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
@@ -109,6 +111,7 @@ pub async fn execute(
             }
         }
 
+        let mut utxos_to_skip = Vec::new();
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some(NewSettledTx {
@@ -116,13 +119,13 @@ pub async fn execute(
                 pending_id,
                 confirmation_time,
                 local_utxo,
-            })) = utxos
-                .find_new_settled_tx(
-                    &mut tx,
-                    current_height - wallet.config.mark_settled_after_n_confs + 1,
-                )
-                .await
+            })) = utxos.find_new_settled_tx(&mut tx, &utxos_to_skip).await
             {
+                if let Some(batch_id) = batches
+                    .find_containing_utxo(&mut tx, &local_utxo.outpoint)
+                    .await?
+                {}
+
                 let fee_rate =
                     crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
                         .await?

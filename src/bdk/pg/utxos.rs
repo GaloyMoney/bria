@@ -102,8 +102,12 @@ impl Utxos {
     pub async fn find_new_settled_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        confirmed_at_or_before: u32,
+        utxos_to_skip: &Vec<OutPoint>,
     ) -> Result<Option<NewSettledTx>, BriaError> {
+        let skip_utxos = utxos_to_skip
+            .iter()
+            .map(|OutPoint { txid, vout }| format!("{txid}:{vout}"))
+            .collect::<Vec<_>>();
         let settled_id = Uuid::new_v4();
         let utxos = sqlx::query!(
             r#"WITH utxo AS (
@@ -117,7 +121,8 @@ impl Utxos {
                    WHERE u.keychain_id = $2
                    AND ledger_tx_settled_id IS NULL
                    AND ledger_tx_pending_id IS NOT NULL
-                   AND (details_json->'confirmation_time'->'height')::INTEGER <= $3
+                   AND (details_json->'confirmation_time'->'height')::INTEGER > 0
+                   AND NOT (u.tx_id || ':' || vout::TEXT = ANY($3))
                    LIMIT 1)
                  RETURNING tx_id, utxo_json, ledger_tx_pending_id
                )
@@ -125,7 +130,7 @@ impl Utxos {
                FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"#,
             settled_id,
             Uuid::from(self.keychain_id),
-            confirmed_at_or_before as i32
+            &skip_utxos[..],
         )
         .fetch_optional(&mut *tx)
         .await?;

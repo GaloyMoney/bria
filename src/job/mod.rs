@@ -117,6 +117,7 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
             sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg, ledger).await
+            // spawn record_utoxs in ledger
         })
         .await?;
     Ok(())
@@ -168,6 +169,7 @@ async fn process_batch(
         .execute(|data| async move {
             let data: ProcessBatchData = data.expect("no ProcessBatchData available");
             process_batch::execute(pool, data, blockchain_cfg, ledger, wallets, batches).await
+            // spawn record_utoxs in ledger
         })
         .await?;
     Ok(())
