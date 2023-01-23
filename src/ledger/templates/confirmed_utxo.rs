@@ -200,7 +200,7 @@ impl ConfirmedUtxo {
             .entries(entries)
             .params(params)
             .build()
-            .expect("Couldn't build PENDING_ONCHAIN_CREDIT_CODE");
+            .expect("Couldn't build CONFIRMED_UTXO_CODE");
         match ledger.tx_templates().create(template).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
             Err(e) => Err(e.into()),
