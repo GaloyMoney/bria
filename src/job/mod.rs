@@ -103,7 +103,12 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(name = "sync_wallet", channel_name = "wallet_sync")]
+#[job(
+    name = "sync_wallet",
+    channel_name = "wallet_sync",
+    retries = 20,
+    ordered = true
+)]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -196,8 +201,9 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(id), "sync_wallet")
-        .set_channel_name("wallet_sync")
+    match sync_wallet
+        .builder()
+        .set_channel_args(&id.to_string())
         .spawn(pool)
         .await
     {
