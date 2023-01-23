@@ -5,6 +5,7 @@ use tracing::instrument;
 
 use crate::{
     app::BlockchainConfig,
+    batch::*,
     bdk::pg::{NewPendingTx, NewSettledTx, NewSettledTxPersistedInBatch, Utxos},
     error::*,
     ledger::*,
@@ -12,10 +13,11 @@ use crate::{
     wallet::*,
 };
 
-#[instrument(name = "job.sync_wallet", skip(pool, wallets, ledger), err)]
+#[instrument(name = "job.sync_wallet", skip(pool, wallets, batches, ledger), err)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
+    batches: Batches,
     id: WalletId,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
@@ -66,49 +68,7 @@ pub async fn execute(
             }
         }
 
-        loop {
-            let mut tx = pool.begin().await?;
-            if let Ok(Some(NewSettledTxPersistedInBatch {
-                batch_id,
-                settled_id,
-                pending_id,
-                confirmation_time,
-                local_utxo,
-            })) = utxos
-                .find_new_settled_tx_persisted_in_batch(&mut tx, current_height + 1)
-                .await
-            {
-                ledger
-                    .confirmed_utxo_without_fee_reserve(
-                        tx,
-                        ConfirmedUtxoWithoutFeeReserveParams {
-                            journal_id: wallet.journal_id,
-                            incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                &local_utxo,
-                                wallet.ledger_account_ids.incoming_id,
-                            ),
-                            at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                &local_utxo,
-                                wallet.ledger_account_ids.at_rest_id,
-                            ),
-                            pending_id,
-                            settled_id,
-                            meta: ConfirmedUtxoWithoutFeeReserveMeta {
-                                wallet_id: id,
-                                keychain_id: *keychain_id,
-                                batch_id,
-                                confirmation_time,
-                                outpoint: local_utxo.outpoint,
-                                txout: local_utxo.txout,
-                            },
-                        },
-                    )
-                    .await?;
-            } else {
-                break;
-            }
-        }
-
+        let mut utxos_to_skip = Vec::new();
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some(NewSettledTx {
@@ -116,13 +76,48 @@ pub async fn execute(
                 pending_id,
                 confirmation_time,
                 local_utxo,
-            })) = utxos
-                .find_new_settled_tx(
-                    &mut tx,
-                    current_height - wallet.config.mark_settled_after_n_confs + 1,
-                )
-                .await
+            })) = utxos.find_new_settled_tx(&mut tx, &utxos_to_skip).await
             {
+                if let Some(batch_id) = batches
+                    .find_containing_utxo(*keychain_id, local_utxo.outpoint)
+                    .await?
+                {
+                    ledger
+                        .confirmed_utxo_without_fee_reserve(
+                            tx,
+                            ConfirmedUtxoWithoutFeeReserveParams {
+                                journal_id: wallet.journal_id,
+                                incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                                    &local_utxo,
+                                    wallet.ledger_account_ids.incoming_id,
+                                ),
+                                at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                                    &local_utxo,
+                                    wallet.ledger_account_ids.at_rest_id,
+                                ),
+                                pending_id,
+                                settled_id,
+                                meta: ConfirmedUtxoWithoutFeeReserveMeta {
+                                    wallet_id: id,
+                                    keychain_id: *keychain_id,
+                                    batch_id,
+                                    confirmation_time,
+                                    outpoint: local_utxo.outpoint,
+                                    txout: local_utxo.txout,
+                                },
+                            },
+                        )
+                        .await?;
+                    continue;
+                }
+
+                if confirmation_time.height
+                    >= current_height - wallet.config.mark_settled_after_n_confs
+                {
+                    utxos_to_skip.push(local_utxo.outpoint);
+                    continue;
+                }
+
                 let fee_rate =
                     crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
                         .await?

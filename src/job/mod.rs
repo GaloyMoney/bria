@@ -107,6 +107,7 @@ async fn process_all_batch_groups(
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
+    batches: Batches,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
 ) -> Result<(), BriaError> {
@@ -116,7 +117,7 @@ async fn sync_wallet(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg, ledger).await
+            sync_wallet::execute(pool, wallets, batches, wallet_id, blockchain_cfg, ledger).await
         })
         .await?;
     Ok(())

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use bitcoin::{consensus::encode, Address};
+use bitcoin::{blockdata::transaction::OutPoint, consensus::encode, Address};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use sqlx_ledger::TransactionId as LedgerTxId;
 use tracing::instrument;
@@ -89,7 +89,7 @@ impl Batches {
     }
 
     #[instrument(name = "batches.find_by_id", skip_all)]
-    pub async fn find_by_id<'a>(&self, id: BatchId) -> Result<Batch, BriaError> {
+    pub async fn find_by_id(&self, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
             r#"SELECT batch_group_id, bitcoin_tx_id, batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
             FROM bria_batch_wallet_summaries
@@ -126,5 +126,24 @@ impl Batches {
             bitcoin_tx_id: bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?,
             wallet_summaries,
         })
+    }
+
+    pub async fn find_containing_utxo(
+        &self,
+        keychain_id: KeychainId,
+        utxo: OutPoint,
+    ) -> Result<Option<BatchId>, BriaError> {
+        let row = sqlx::query!(
+            r#"SELECT batch_id
+            FROM bria_batch_utxos
+            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
+            Uuid::from(keychain_id),
+            utxo.txid.to_string(),
+            utxo.vout as i32
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(row.map(|row| BatchId::from(row.batch_id)))
     }
 }
