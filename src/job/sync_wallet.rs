@@ -6,7 +6,7 @@ use tracing::instrument;
 use crate::{
     app::BlockchainConfig,
     batch::*,
-    bdk::pg::{NewPendingTx, NewSettledTx, NewSettledTxPersistedInBatch, Utxos},
+    bdk::pg::{NewPendingTx, NewSettledTx, Utxos},
     error::*,
     ledger::*,
     primitives::*,

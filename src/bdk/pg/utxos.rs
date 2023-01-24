@@ -6,14 +6,6 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
-pub struct NewSettledTxPersistedInBatch {
-    pub batch_id: BatchId,
-    pub settled_id: Uuid,
-    pub pending_id: Uuid,
-    pub confirmation_time: BlockTime,
-    pub local_utxo: LocalUtxo,
-}
-
 pub struct NewSettledTx {
     pub settled_id: Uuid,
     pub pending_id: Uuid,
@@ -135,48 +127,6 @@ impl Utxos {
         .fetch_optional(&mut *tx)
         .await?;
         Ok(utxos.map(|utxo| NewSettledTx {
-            settled_id,
-            pending_id: utxo.ledger_tx_pending_id,
-            local_utxo: serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
-            confirmation_time: serde_json::from_value::<TransactionDetails>(utxo.details_json)
-                .expect("Could not deserialize tx details")
-                .confirmation_time
-                .expect("Query should only return confirmed transactions"),
-        }))
-    }
-
-    #[instrument(name = "utxos.find_new_settled_tx_persisted_in_batch", skip(self, tx))]
-    pub async fn find_new_settled_tx_persisted_in_batch(
-        &self,
-        tx: &mut Transaction<'_, Postgres>,
-        confirmed_at_or_before: u32,
-    ) -> Result<Option<NewSettledTxPersistedInBatch>, BriaError> {
-        let settled_id = Uuid::new_v4();
-        let utxos = sqlx::query!(
-            r#"WITH utxo AS (
-                 UPDATE bdk_utxos SET ledger_tx_settled_id = $1
-                 WHERE keychain_id = $2 AND (tx_id, vout) in (
-                   SELECT u.tx_id, vout
-                     FROM bdk_utxos u
-                     JOIN bdk_transactions t ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id
-                   WHERE u.keychain_id = $2
-                   AND ledger_tx_settled_id IS NULL
-                   AND ledger_tx_pending_id IS NOT NULL
-                   AND (details_json->'confirmation_time'->'height')::INTEGER <= $3
-                   LIMIT 1)
-                 RETURNING tx_id, utxo_json, ledger_tx_pending_id
-               )
-               SELECT u.tx_id, b.batch_id, utxo_json, ledger_tx_pending_id AS "ledger_tx_pending_id!", details_json
-               FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id
-               JOIN bria_batch_utxos b ON u.tx_id = b.tx_id"#,
-            settled_id,
-            Uuid::from(self.keychain_id),
-            confirmed_at_or_before as i32
-        )
-        .fetch_optional(&mut *tx)
-        .await?;
-        Ok(utxos.map(|utxo| NewSettledTxPersistedInBatch {
-            batch_id: BatchId::from(utxo.batch_id),
             settled_id,
             pending_id: utxo.ledger_tx_pending_id,
             local_utxo: serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
