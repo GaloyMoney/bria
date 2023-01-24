@@ -1,5 +1,5 @@
+mod batch_wallet_accounting;
 mod executor;
-mod process_batch;
 mod process_batch_group;
 mod sync_wallet;
 
@@ -11,9 +11,9 @@ use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
     primitives::*, wallet::*,
 };
+use batch_wallet_accounting::BatchWalletAccountingData;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
-use process_batch::ProcessBatchData;
 use process_batch_group::ProcessBatchGroupData;
 
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
@@ -40,7 +40,7 @@ pub async fn start_job_runner(
         sync_wallet,
         process_all_batch_groups,
         process_batch_group,
-        process_batch,
+        batch_wallet_accounting,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
@@ -103,10 +103,16 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(name = "sync_wallet", channel_name = "wallet_sync")]
+#[job(
+    name = "sync_wallet",
+    channel_name = "wallet_sync",
+    retries = 20,
+    ordered = true
+)]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
+    batches: Batches,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
 ) -> Result<(), BriaError> {
@@ -116,7 +122,7 @@ async fn sync_wallet(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            sync_wallet::execute(pool, wallets, wallet_id, blockchain_cfg, ledger).await
+            sync_wallet::execute(pool, wallets, batches, wallet_id, blockchain_cfg, ledger).await
         })
         .await?;
     Ok(())
@@ -136,11 +142,18 @@ async fn process_batch_group(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: ProcessBatchGroupData = data.expect("no ProcessBatchGroupData available");
-            let (data, tx) =
+            let (data, res) =
                 process_batch_group::execute(pool, payouts, wallets, batch_groups, batches, data)
                     .await?;
-            if let Some(tx) = tx {
-                spawn_process_batch(tx, ProcessBatchData::from(&data)).await?;
+            if let Some((mut tx, wallet_ids)) = res {
+                for id in wallet_ids {
+                    spawn_batch_wallet_accounting(
+                        &mut tx,
+                        BatchWalletAccountingData::from((&data, id)),
+                    )
+                    .await?;
+                }
+                tx.commit().await?;
             }
             Ok::<_, BriaError>(data)
         })
@@ -149,12 +162,12 @@ async fn process_batch_group(
 }
 
 #[job(
-    name = "process_batch",
-    channel_name = "batch",
+    name = "batch_wallet_accounting",
+    channel_name = "sync_wallet",
     retries = 20,
     ordered = true
 )]
-async fn process_batch(
+async fn batch_wallet_accounting(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
@@ -166,8 +179,10 @@ async fn process_batch(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
-            let data: ProcessBatchData = data.expect("no ProcessBatchData available");
-            process_batch::execute(pool, data, blockchain_cfg, ledger, wallets, batches).await
+            let data: BatchWalletAccountingData =
+                data.expect("no BatchWalletAccountingData available");
+            batch_wallet_accounting::execute(pool, data, blockchain_cfg, ledger, wallets, batches)
+                .await
         })
         .await?;
     Ok(())
@@ -195,8 +210,9 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(id), "sync_wallet")
-        .set_channel_name("wallet_sync")
+    match sync_wallet
+        .builder()
+        .set_channel_args(&id.to_string())
         .spawn(pool)
         .await
     {
@@ -255,34 +271,32 @@ async fn spawn_process_batch_group(
 }
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_process_batch(
-    mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
-    data: ProcessBatchData,
+async fn spawn_batch_wallet_accounting(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: BatchWalletAccountingData,
 ) -> Result<(), BriaError> {
-    match process_batch
+    match batch_wallet_accounting
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
-        .set_channel_args(&data.batch_id.to_string())
-        .spawn(&mut tx)
+        .set_channel_args(&data.wallet_id.to_string())
+        .spawn(&mut *tx)
         .await
     {
         Err(e) => {
             crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
             Err(e.into())
         }
-        Ok(_) => {
-            tx.commit().await?;
-            Ok(())
-        }
+        Ok(_) => Ok(()),
     }
 }
 
-impl From<&ProcessBatchGroupData> for ProcessBatchData {
-    fn from(data: &ProcessBatchGroupData) -> Self {
+impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
+    fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            wallet_id,
         }
     }
 }

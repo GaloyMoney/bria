@@ -11,7 +11,8 @@ use uuid::Uuid;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConfirmedUtxoMeta {
+pub struct ConfirmedUtxoWithoutFeeReserveMeta {
+    pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
@@ -20,18 +21,16 @@ pub struct ConfirmedUtxoMeta {
 }
 
 #[derive(Debug)]
-pub struct ConfirmedUtxoParams {
+pub struct ConfirmedUtxoWithoutFeeReserveParams {
     pub journal_id: JournalId,
     pub incoming_ledger_account_id: LedgerAccountId,
     pub at_rest_ledger_account_id: LedgerAccountId,
-    pub fee_ledger_account_id: LedgerAccountId,
-    pub spending_fee_satoshis: Satoshis,
     pub pending_id: Uuid,
     pub settled_id: Uuid,
-    pub meta: ConfirmedUtxoMeta,
+    pub meta: ConfirmedUtxoWithoutFeeReserveMeta,
 }
 
-impl ConfirmedUtxoParams {
+impl ConfirmedUtxoWithoutFeeReserveParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -50,17 +49,7 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("ledger_account_fee_id")
-                .r#type(ParamDataType::UUID)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
                 .name("amount")
-                .r#type(ParamDataType::DECIMAL)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
-                .name("fees")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -88,18 +77,16 @@ impl ConfirmedUtxoParams {
     }
 }
 
-impl From<ConfirmedUtxoParams> for TxParams {
+impl From<ConfirmedUtxoWithoutFeeReserveParams> for TxParams {
     fn from(
-        ConfirmedUtxoParams {
+        ConfirmedUtxoWithoutFeeReserveParams {
             journal_id,
             incoming_ledger_account_id,
             at_rest_ledger_account_id,
-            fee_ledger_account_id,
-            spending_fee_satoshis: fees,
             pending_id,
             settled_id,
             meta,
-        }: ConfirmedUtxoParams,
+        }: ConfirmedUtxoWithoutFeeReserveParams,
     ) -> Self {
         let amount = Satoshis::from(meta.txout.value).to_btc();
         let effective =
@@ -111,8 +98,6 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("ledger_account_incoming_id", incoming_ledger_account_id);
         params.insert("ledger_account_at_rest_id", at_rest_ledger_account_id);
-        params.insert("ledger_account_fee_id", fee_ledger_account_id);
-        params.insert("fees", fees.to_btc());
         params.insert("amount", amount);
         params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
@@ -122,10 +107,10 @@ impl From<ConfirmedUtxoParams> for TxParams {
     }
 }
 
-pub struct ConfirmedUtxo {}
+pub struct ConfirmedUtxoWithoutFeeReserve {}
 
-impl ConfirmedUtxo {
-    #[instrument(name = "ledger.confirmed_utxo.init", skip_all)]
+impl ConfirmedUtxoWithoutFeeReserve {
+    #[instrument(name = "ledger.confirmed_utxo_without_fee_reserve.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
@@ -173,34 +158,16 @@ impl ConfirmedUtxo {
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
-            EntryInput::builder()
-                .entry_type("'ENCUMBERED_FEE_RESERVE_DR'")
-                .currency("'BTC'")
-                .account_id("params.ledger_account_fee_id")
-                .direction("DEBIT")
-                .layer("ENCUMBERED")
-                .units("params.fees")
-                .build()
-                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_DR entry"),
-            EntryInput::builder()
-                .entry_type("'ENCUMBERED_FEE_RESERVE_CR'")
-                .currency("'BTC'")
-                .account_id(format!("uuid('{}')", ONCHAIN_OUTGOING_ID))
-                .direction("CREDIT")
-                .layer("ENCUMBERED")
-                .units("params.fees")
-                .build()
-                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_CR entry"),
         ];
 
-        let params = ConfirmedUtxoParams::defs();
+        let params = ConfirmedUtxoWithoutFeeReserveParams::defs();
         let template = NewTxTemplate::builder()
-            .code(CONFIRMED_UTXO_CODE)
+            .code(CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)
             .build()
-            .expect("Couldn't build CONFIRMED_UTXO_CODE");
+            .expect("Couldn't build CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE");
         match ledger.tx_templates().create(template).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
             Err(e) => Err(e.into()),

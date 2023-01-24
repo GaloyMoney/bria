@@ -40,6 +40,7 @@ impl Ledger {
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
+        templates::ConfirmedUtxoWithoutFeeReserve::init(&inner).await?;
 
         Ok(Self {
             inner,
@@ -67,6 +68,18 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, CONFIRMED_UTXO_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.confirmed_utxo_without_fee_reserve", skip(self, tx))]
+    pub async fn confirmed_utxo_without_fee_reserve(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        params: ConfirmedUtxoWithoutFeeReserveParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE, Some(params))
             .await?;
         Ok(())
     }
