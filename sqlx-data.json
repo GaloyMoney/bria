@@ -197,46 +197,6 @@
     },
     "query": "SELECT script_bytes\n            FROM bdk_descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"
   },
-  "32c6a990c175a8c612070a631c3edc2ed3195f8acdcf2c3eb75e59bd9b647d67": {
-    "describe": {
-      "columns": [
-        {
-          "name": "tx_id",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "utxo_json",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "ledger_tx_pending_id!",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "details_json",
-          "ordinal": 3,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Int4"
-        ]
-      }
-    },
-    "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_settled_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT u.tx_id, vout\n                     FROM bdk_utxos u\n                     JOIN bdk_transactions t\n                       ON u.keychain_id = t.keychain_id\n                       AND u.tx_id = t.tx_id\n                   WHERE u.keychain_id = $2\n                   AND ledger_tx_settled_id IS NULL\n                   AND ledger_tx_pending_id IS NOT NULL\n                   AND (details_json->'confirmation_time'->'height')::INTEGER <= $3\n                   LIMIT 1)\n                 RETURNING tx_id, utxo_json, ledger_tx_pending_id\n               )\n               SELECT u.tx_id, utxo_json, ledger_tx_pending_id AS \"ledger_tx_pending_id!\", details_json\n               FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
-  },
   "46b5eee37f84d1274f4d22a0ee26d4399fe629ea70f25d5974a4859fee6cd0fe": {
     "describe": {
       "columns": [
@@ -1196,6 +1156,28 @@
     },
     "query": "INSERT INTO bria_admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
   },
+  "e492936568320726f5268c75db719fb599ae2a0cd1ed55dad48726e0c8f9dd3d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "batch_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT batch_id\n            FROM bria_batch_utxos\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
+  },
   "eacda676458f587eb8578f8982101d007d9d1a42e6b3146250176a63e5d238c6": {
     "describe": {
       "columns": [
@@ -1228,6 +1210,46 @@
       }
     },
     "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_pending_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT tx_id, vout FROM bdk_utxos\n                   WHERE keychain_id = $2 AND ledger_tx_pending_id IS NULL LIMIT 1)\n                 RETURNING tx_id, utxo_json\n                 )\n               SELECT u.tx_id, utxo_json, details_json\n                 FROM utxo u\n                 JOIN bdk_transactions t ON u.tx_id = t.tx_id"
+  },
+  "ee265d202f419acf4715b077c2591278ac9274fa6b667dd4bf2a0bf44a3dd7eb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "ledger_tx_pending_id!",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 3,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_settled_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT u.tx_id, vout\n                     FROM bdk_utxos u\n                     JOIN bdk_transactions t\n                       ON u.keychain_id = t.keychain_id\n                       AND u.tx_id = t.tx_id\n                   WHERE u.keychain_id = $2\n                   AND ledger_tx_settled_id IS NULL\n                   AND ledger_tx_pending_id IS NOT NULL\n                   AND (details_json->'confirmation_time'->'height')::INTEGER > 0\n                   AND NOT (u.tx_id || ':' || vout::TEXT = ANY($3))\n                   LIMIT 1)\n                 RETURNING tx_id, utxo_json, ledger_tx_pending_id\n               )\n               SELECT u.tx_id, utxo_json, ledger_tx_pending_id AS \"ledger_tx_pending_id!\", details_json\n               FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
   },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {
