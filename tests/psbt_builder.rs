@@ -39,7 +39,9 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let blockchain = helpers::electrum_blockchain()?;
     for _ in 0..5 {
+        dbg!("Sync other wallet keychain");
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
+        dbg!("Sync other wallet deprecated keychain");
         other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
         if other_wallet_current_keychain.get_balance()?.get_spendable() > 0
             && other_wallet_deprecated_keychain
