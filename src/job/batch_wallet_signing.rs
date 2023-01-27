@@ -22,7 +22,7 @@ pub async fn execute(
     ledger: Ledger,
     wallets: Wallets,
     batches: Batches,
-) -> Result<BatchWalletAccountingData, BriaError> {
+) -> Result<BatchWalletSigningData, BriaError> {
     // load and sign psbt
     Ok(data)
 }

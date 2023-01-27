@@ -156,10 +156,9 @@ async fn process_batch_group(
                     )
                     .await?;
                 }
+                spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data));
                 tx.commit().await?;
             }
-
-            spawn_batch_wallet_signing(tx, BatchWalletSigningData::from(&data));
 
             Ok::<_, BriaError>(data)
         })
@@ -333,7 +332,6 @@ async fn spawn_batch_wallet_signing(
         .set_json(&data)
         .expect("Couldn't set json")
         .set_channel_name("batch")
-        .set_channel_args(&data.batch_id)
         .spawn(&mut *tx)
         .await
     {
