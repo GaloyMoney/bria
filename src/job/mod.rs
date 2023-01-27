@@ -1,4 +1,5 @@
 mod batch_wallet_accounting;
+mod batch_wallet_finalizing;
 mod batch_wallet_signing;
 mod executor;
 mod process_batch_group;
@@ -13,6 +14,7 @@ use crate::{
     primitives::*, wallet::*,
 };
 use batch_wallet_accounting::BatchWalletAccountingData;
+use batch_wallet_finalizing::BatchWalletFinalizingData;
 use batch_wallet_signing::BatchWalletSigningData;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
@@ -156,7 +158,7 @@ async fn process_batch_group(
                     )
                     .await?;
                 }
-                spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data));
+                spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data)).await?;
                 tx.commit().await?;
             }
 
@@ -193,12 +195,7 @@ async fn batch_wallet_accounting(
     Ok(())
 }
 
-#[job(
-    name = "batch_wallet_signing",
-    channel_name = "batch",
-    retries = 20,
-    ordered = true
-)]
+#[job(name = "batch_wallet_signing", channel_name = "batch", retries = 20)]
 async fn batch_wallet_signing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
@@ -212,7 +209,43 @@ async fn batch_wallet_signing(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchWalletSigningData = data.expect("no BatchWalletSigningData available");
-            batch_wallet_signing::execute(pool, data, blockchain_cfg, ledger, wallets, batches)
+            let data = batch_wallet_signing::execute(
+                pool.clone(),
+                data,
+                blockchain_cfg,
+                ledger,
+                wallets,
+                batches,
+            )
+            .await?;
+
+            let mut tx = pool.clone().begin().await?;
+            spawn_batch_wallet_finalizing(&mut tx, BatchWalletFinalizingData::from(data.clone()))
+                .await?;
+            tx.commit().await?;
+
+            Ok::<_, BriaError>(data)
+        })
+        .await?;
+    Ok(())
+}
+
+#[job(name = "batch_wallet_finalizing", channel_name = "batch", retries = 20)]
+async fn batch_wallet_finalizing(
+    mut current_job: CurrentJob,
+    blockchain_cfg: BlockchainConfig,
+    ledger: Ledger,
+    wallets: Wallets,
+    batches: Batches,
+) -> Result<(), BriaError> {
+    let pool = current_job.pool().clone();
+    JobExecutor::builder(&mut current_job)
+        .build()
+        .expect("couldn't build JobExecutor")
+        .execute(|data| async move {
+            let data: BatchWalletFinalizingData =
+                data.expect("no BatchWalletFinalizingData available");
+            batch_wallet_finalizing::execute(pool, data, blockchain_cfg, ledger, wallets, batches)
                 .await
         })
         .await?;
@@ -343,6 +376,27 @@ async fn spawn_batch_wallet_signing(
     }
 }
 
+#[instrument(skip_all, fields(error, error.level, error.message), err)]
+async fn spawn_batch_wallet_finalizing(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    data: BatchWalletFinalizingData,
+) -> Result<(), BriaError> {
+    match batch_wallet_finalizing
+        .builder()
+        .set_json(&data)
+        .expect("Couldn't set json")
+        .set_channel_name("batch")
+        .spawn(&mut *tx)
+        .await
+    {
+        Err(e) => {
+            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+            Err(e.into())
+        }
+        Ok(_) => Ok(()),
+    }
+}
+
 impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
     fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
         Self {
@@ -355,6 +409,15 @@ impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
 
 impl From<&ProcessBatchGroupData> for BatchWalletSigningData {
     fn from(data: &ProcessBatchGroupData) -> Self {
+        Self {
+            account_id: data.account_id,
+            batch_id: data.batch_id,
+        }
+    }
+}
+
+impl From<BatchWalletSigningData> for BatchWalletFinalizingData {
+    fn from(data: BatchWalletSigningData) -> Self {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
