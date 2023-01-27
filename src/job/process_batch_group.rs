@@ -114,6 +114,7 @@ pub async fn execute<'a>(
         psbt,
         included_payouts,
         included_utxos,
+        included_wallet_keychains,
         wallet_totals,
         tx_id,
         fee_satoshis,
@@ -130,6 +131,7 @@ pub async fn execute<'a>(
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)
+            .included_wallet_keychains(included_wallet_keychains)
             .included_payouts(
                 included_payouts
                     .into_iter()

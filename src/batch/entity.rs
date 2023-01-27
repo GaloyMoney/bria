@@ -22,6 +22,7 @@ pub struct NewBatch {
     pub(super) unsigned_psbt: psbt::PartiallySignedTransaction,
     pub(super) wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub(super) included_payouts: HashMap<WalletId, Vec<PayoutId>>,
+    pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
 }
 

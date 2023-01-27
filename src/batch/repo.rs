@@ -74,10 +74,16 @@ impl Batches {
             });
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_utxos
-            (batch_id, keychain_id, tx_id, vout)"#,
+            (batch_id, wallet_id, keychain_id, tx_id, vout)"#,
         );
         query_builder.push_values(utxos, |mut builder, (keychain_id, utxo)| {
             builder.push_bind(Uuid::from(batch.id));
+            builder.push_bind(Uuid::from(
+                *batch
+                    .included_wallet_keychains
+                    .get(&keychain_id)
+                    .expect("keychain's wallet id not found"),
+            ));
             builder.push_bind(Uuid::from(keychain_id));
             builder.push_bind(utxo.txid.to_string());
             builder.push_bind(utxo.vout as i32);
@@ -149,7 +155,11 @@ impl Batches {
     }
 
     #[instrument(name = "batches.get_included_utxos", skip_all)]
-    pub async fn get_included_utxos(&self, id: BatchId, keychain_id: KeychainId) -> Result<Vec<OutPoint>, BriaError> {
+    pub async fn get_included_utxos(
+        &self,
+        id: BatchId,
+        keychain_id: KeychainId,
+    ) -> Result<Vec<OutPoint>, BriaError> {
         let rows = sqlx::query!(
             r#"SELECT tx_id, vout
             FROM bria_batch_utxos

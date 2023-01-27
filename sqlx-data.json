@@ -307,6 +307,33 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
   },
+  "62940b4e7507cb0e7c073016343f9fbbac3d364a76c860575f1faf89b117db4a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "vout",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT tx_id, vout\n            FROM bria_batch_utxos\n            WHERE batch_id = $1 AND keychain_id = $2"
+  },
   "62b0c9c4929adb7809f679ef6e64bbf0b043f243ec882429b82ca8292a8bc902": {
     "describe": {
       "columns": [

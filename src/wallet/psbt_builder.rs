@@ -25,6 +25,7 @@ pub struct WalletTotals {
 pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
     pub fee_satoshis: Satoshis,
     pub tx_id: Option<bitcoin::Txid>,
@@ -69,6 +70,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             result: FinishedPsbtBuild {
                 included_payouts: HashMap::new(),
                 included_utxos: HashMap::new(),
+                included_wallet_keychains: HashMap::new(),
                 wallet_totals: HashMap::new(),
                 fee_satoshis: Satoshis::from(0),
                 tx_id: None,
@@ -275,6 +277,10 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                     .entry(keychain_id)
                     .or_default()
                     .push(input.previous_output);
+                self.result.included_wallet_keychains.insert(
+                    keychain_id,
+                    self.current_wallet.expect("current wallet shouyld be set"),
+                );
                 self.all_included_utxos.insert(input.previous_output);
             }
         }
@@ -339,6 +345,10 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                             .entry(keychain_id)
                             .or_default()
                             .push(input.previous_output);
+                        self.result.included_wallet_keychains.insert(
+                            keychain_id,
+                            self.current_wallet.expect("current wallet shouyld be set"),
+                        );
                     }
                 }
                 self.result.psbt = Some(psbt);

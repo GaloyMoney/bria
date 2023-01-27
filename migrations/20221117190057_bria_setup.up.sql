@@ -143,6 +143,7 @@ CREATE TABLE bria_batch_payouts (
 CREATE TABLE bria_batch_utxos (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   keychain_id UUID NOT NULL,
+  wallet_id UUID NOT NULL,
   tx_id VARCHAR NOT NULL,
   vout INTEGER NOT NULL,
   UNIQUE(keychain_id, tx_id, vout)
