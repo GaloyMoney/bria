@@ -128,6 +128,7 @@ impl Batches {
         })
     }
 
+    #[instrument(name = "batches.find_containing_utxo", skip_all)]
     pub async fn find_containing_utxo(
         &self,
         keychain_id: KeychainId,
@@ -145,5 +146,29 @@ impl Batches {
         .await?;
 
         Ok(row.map(|row| BatchId::from(row.batch_id)))
+    }
+
+    #[instrument(name = "batches.get_included_utxos", skip_all)]
+    pub async fn get_included_utxos(&self, id: BatchId, keychain_id: KeychainId) -> Result<Vec<OutPoint>, BriaError> {
+        let rows = sqlx::query!(
+            r#"SELECT tx_id, vout
+            FROM bria_batch_utxos
+            WHERE batch_id = $1 AND keychain_id = $2"#,
+            Uuid::from(id),
+            Uuid::from(keychain_id)
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| OutPoint {
+                txid: row
+                    .tx_id
+                    .parse()
+                    .expect("Couldn't parse txid in batch_utxos"),
+                vout: row.vout as u32,
+            })
+            .collect())
     }
 }
