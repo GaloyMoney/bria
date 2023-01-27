@@ -158,14 +158,14 @@ impl Batches {
     pub async fn get_included_utxos(
         &self,
         id: BatchId,
-        keychain_id: KeychainId,
+        wallet_id: WalletId,
     ) -> Result<Vec<OutPoint>, BriaError> {
         let rows = sqlx::query!(
             r#"SELECT tx_id, vout
             FROM bria_batch_utxos
-            WHERE batch_id = $1 AND keychain_id = $2"#,
+            WHERE batch_id = $1 AND wallet_id = $2"#,
             Uuid::from(id),
-            Uuid::from(keychain_id)
+            Uuid::from(wallet_id)
         )
         .fetch_all(&self.pool)
         .await?;
