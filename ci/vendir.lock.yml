@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: emptying out of existing gh actions files (#18)'
-      sha: 1e9d2b3a434f2d7d7675c0d3a88327ddbad25924
+      commitTitle: 'chore: upgrade deprecated action (#21)...'
+      sha: 55ad59ddfe6aa4487986d334f1388fd6e20bdce8
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: emptying out of existing gh actions files (#18)'
-      sha: 1e9d2b3a434f2d7d7675c0d3a88327ddbad25924
+      commitTitle: 'chore: upgrade deprecated action (#21)...'
+      sha: 55ad59ddfe6aa4487986d334f1388fd6e20bdce8
     path: .
   path: ./vendor
 kind: LockConfig
