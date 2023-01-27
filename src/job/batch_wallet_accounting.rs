@@ -57,5 +57,7 @@ pub async fn execute(
         Ok(_) => (),
     };
 
+    let utxos = batches.get_included_utxos(id, wallet.id).await?;
+
     Ok(data)
 }

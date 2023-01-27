@@ -159,9 +159,9 @@ impl Batches {
         &self,
         id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<Vec<OutPoint>, BriaError> {
+    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT tx_id, vout
+            r#"SELECT keychain_id, tx_id, vout
             FROM bria_batch_utxos
             WHERE batch_id = $1 AND wallet_id = $2"#,
             Uuid::from(id),
@@ -170,15 +170,19 @@ impl Batches {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|row| OutPoint {
+        let mut utxos: HashMap<KeychainId, Vec<OutPoint>> = HashMap::new();
+        for row in rows {
+            let keychain_id = KeychainId::from(row.keychain_id);
+            let utxo = OutPoint {
                 txid: row
                     .tx_id
                     .parse()
                     .expect("Couldn't parse txid in batch_utxos"),
                 vout: row.vout as u32,
-            })
-            .collect())
+            };
+            utxos.entry(keychain_id).or_default().push(utxo);
+        }
+
+        Ok(utxos)
     }
 }
