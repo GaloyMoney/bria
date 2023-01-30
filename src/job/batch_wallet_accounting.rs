@@ -62,7 +62,7 @@ pub async fn execute(
     let mut tx = pool.begin().await?;
 
     let utxos = batches.get_included_utxos(id, wallet.id).await?;
-    let settled_utxos = Utxos::get_settled_utxos_of(&mut tx, &utxos).await?;
+    let settled_utxos = Utxos::get_settled_utxos(&mut tx, &utxos).await?;
 
     Ok(data)
 }
