@@ -1,5 +1,5 @@
 use bdk::{bitcoin::blockdata::transaction::OutPoint, BlockTime, LocalUtxo, TransactionDetails};
-use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
+use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
 use std::collections::{HashMap, HashSet};
 use tracing::instrument;
 use uuid::Uuid;
@@ -231,20 +231,20 @@ impl Utxos {
         let query = query_builder.build();
         let rows = query.fetch_all(&mut *tx).await?;
 
-        Ok(vec![]) // TODO: Fix types
-
-        // Ok(rows
-        //     .into_iter()
-        //     .map(|row| SettledUtxo {
-        //         pending_id: row.ledger_tx_pending_id,
-        //         settled_id: row.ledger_tx_settled_id,
-        //         local_utxo: serde_json::from_value(row.utxo_json)
-        //             .expect("Could not deserialize utxo"),
-        //         confirmation_time: serde_json::from_value::<TransactionDetails>(row.details_json)
-        //             .expect("Could not deserialize tx details")
-        //             .confirmation_time
-        //             .expect("Query should only return confirmed transactions"),
-        //     })
-        //     .collect())
+        Ok(rows
+            .into_iter()
+            .map(|row| SettledUtxo {
+                pending_id: row.get::<Uuid, _>("ledger_tx_pending_id"),
+                settled_id: row.get::<Uuid, _>("ledger_tx_settled_id"),
+                local_utxo: serde_json::from_value(row.get("utxo_json"))
+                    .expect("Could not deserialize utxo"),
+                confirmation_time: serde_json::from_value::<TransactionDetails>(
+                    row.get("details_json"),
+                )
+                .expect("Could not deserialize tx details")
+                .confirmation_time
+                .expect("Query should only return confirmed transactions"),
+            })
+            .collect())
     }
 }
