@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*};
+use crate::{
+    app::BlockchainConfig, batch::*, bdk::pg::Utxos, error::*, ledger::*, primitives::*, wallet::*,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchWalletAccountingData {
@@ -13,11 +15,11 @@ pub struct BatchWalletAccountingData {
 
 #[instrument(
     name = "job.batch_wallet_accounting",
-    skip(_pool, wallets, batches, ledger),
+    skip(pool, wallets, batches, ledger),
     err
 )]
 pub async fn execute(
-    _pool: sqlx::PgPool,
+    pool: sqlx::PgPool,
     data: BatchWalletAccountingData,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
@@ -57,7 +59,10 @@ pub async fn execute(
         Ok(_) => (),
     };
 
+    let mut tx = pool.begin().await?;
+
     let utxos = batches.get_included_utxos(id, wallet.id).await?;
+    let settled_utxos = Utxos::get_settled_utxos_of(&mut tx, &utxos).await?;
 
     Ok(data)
 }

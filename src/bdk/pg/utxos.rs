@@ -200,9 +200,8 @@ impl Utxos {
         Ok(())
     }
 
-    #[instrument(name = "utxos.get_settled_utxos_of", skip(self, tx))]
+    #[instrument(name = "utxos.get_settled_utxos_of", skip(tx))]
     pub async fn get_settled_utxos_of(
-        &self,
         tx: &mut Transaction<'_, Postgres>,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<SettledUtxo>, BriaError> {
