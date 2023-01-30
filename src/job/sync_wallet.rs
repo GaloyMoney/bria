@@ -6,7 +6,7 @@ use tracing::instrument;
 use crate::{
     app::BlockchainConfig,
     batch::*,
-    bdk::pg::{NewPendingTx, NewSettledTx, Utxos},
+    bdk::pg::{PendingUtxo, SettledUtxo, Utxos},
     error::*,
     ledger::*,
     primitives::*,
@@ -37,7 +37,7 @@ pub async fn execute(
         let utxos = Utxos::new(*keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
-            if let Ok(Some(NewPendingTx {
+            if let Ok(Some(PendingUtxo {
                 pending_id,
                 local_utxo,
                 confirmation_time,
@@ -71,7 +71,7 @@ pub async fn execute(
         let mut utxos_to_skip = Vec::new();
         loop {
             let mut tx = pool.begin().await?;
-            if let Ok(Some(NewSettledTx {
+            if let Ok(Some(SettledUtxo {
                 settled_id,
                 pending_id,
                 confirmation_time,

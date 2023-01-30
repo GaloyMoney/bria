@@ -6,14 +6,14 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
-pub struct NewSettledTx {
+pub struct SettledUtxo {
     pub settled_id: Uuid,
     pub pending_id: Uuid,
     pub confirmation_time: BlockTime,
     pub local_utxo: LocalUtxo,
 }
 
-pub struct NewPendingTx {
+pub struct PendingUtxo {
     pub pending_id: Uuid,
     pub confirmation_time: Option<BlockTime>,
     pub local_utxo: LocalUtxo,
@@ -63,7 +63,7 @@ impl Utxos {
     pub async fn find_new_pending_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<Option<NewPendingTx>, BriaError> {
+    ) -> Result<Option<PendingUtxo>, BriaError> {
         let pending_id = Uuid::new_v4();
         let utxos = sqlx::query!(
             r#"WITH utxo AS (
@@ -81,7 +81,7 @@ impl Utxos {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        Ok(utxos.map(|utxo| NewPendingTx {
+        Ok(utxos.map(|utxo| PendingUtxo {
             pending_id,
             local_utxo: serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
             confirmation_time: serde_json::from_value::<TransactionDetails>(utxo.details_json)
@@ -95,7 +95,7 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         utxos_to_skip: &Vec<OutPoint>,
-    ) -> Result<Option<NewSettledTx>, BriaError> {
+    ) -> Result<Option<SettledUtxo>, BriaError> {
         let skip_utxos = utxos_to_skip
             .iter()
             .map(|OutPoint { txid, vout }| format!("{txid}:{vout}"))
@@ -126,7 +126,7 @@ impl Utxos {
         )
         .fetch_optional(&mut *tx)
         .await?;
-        Ok(utxos.map(|utxo| NewSettledTx {
+        Ok(utxos.map(|utxo| SettledUtxo {
             settled_id,
             pending_id: utxo.ledger_tx_pending_id,
             local_utxo: serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
@@ -198,5 +198,54 @@ impl Utxos {
         let query = query_builder.build();
         query.execute(&mut *tx).await?;
         Ok(())
+    }
+
+    #[instrument(name = "utxos.get_settled_utxos_of", skip(self, tx))]
+    pub async fn get_settled_utxos_of(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        utxos: &HashMap<KeychainId, Vec<OutPoint>>,
+    ) -> Result<Vec<SettledUtxo>, BriaError> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"SELECT ledger_tx_pending_id, ledger_tx_settled_id, utxo_json, details_json
+            FROM bdk_utxos
+            WHERE (keychain_id, tx_id, vout) IN"#,
+        );
+
+        query_builder.push_tuples(
+            utxos.iter().flat_map(|(keychain_id, utxos)| {
+                utxos.iter().map(move |utxo| {
+                    (
+                        Uuid::from(*keychain_id),
+                        utxo.txid.to_string(),
+                        utxo.vout as i32,
+                    )
+                })
+            }),
+            |mut builder, (keychain_id, tx_id, vout)| {
+                builder.push_bind(keychain_id);
+                builder.push_bind(tx_id.to_string());
+                builder.push_bind(vout);
+            },
+        );
+
+        let query = query_builder.build();
+        let rows = query.fetch_all(&mut *tx).await?;
+
+        Ok(vec![]) // TODO: Fix types
+
+        // Ok(rows
+        //     .into_iter()
+        //     .map(|row| SettledUtxo {
+        //         pending_id: row.ledger_tx_pending_id,
+        //         settled_id: row.ledger_tx_settled_id,
+        //         local_utxo: serde_json::from_value(row.utxo_json)
+        //             .expect("Could not deserialize utxo"),
+        //         confirmation_time: serde_json::from_value::<TransactionDetails>(row.details_json)
+        //             .expect("Could not deserialize tx details")
+        //             .confirmation_time
+        //             .expect("Query should only return confirmed transactions"),
+        //     })
+        //     .collect())
     }
 }
