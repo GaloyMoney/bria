@@ -165,12 +165,12 @@ impl Utxos {
         Ok(utxos)
     }
 
-    #[instrument(name = "utxos.reserve_utxos", skip(self, tx))]
+    #[instrument(name = "utxos.reserve_utxos", skip(self, tx, utxos))]
     pub async fn reserve_utxos(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         batch_id: BatchId,
-        utxos: &HashMap<KeychainId, Vec<OutPoint>>,
+        utxos: impl Iterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"UPDATE bdk_utxos
@@ -179,14 +179,12 @@ impl Utxos {
         query_builder.push_bind(Uuid::from(batch_id));
         query_builder.push("WHERE (keychain_id, tx_id, vout) IN");
         query_builder.push_tuples(
-            utxos.iter().flat_map(|(keychain_id, utxos)| {
-                utxos.iter().map(move |utxo| {
-                    (
-                        Uuid::from(*keychain_id),
-                        utxo.txid.to_string(),
-                        utxo.vout as i32,
-                    )
-                })
+            utxos.map(|(keychain_id, utxo)| {
+                (
+                    Uuid::from(keychain_id),
+                    utxo.txid.to_string(),
+                    utxo.vout as i32,
+                )
             }),
             |mut builder, (keychain_id, tx_id, vout)| {
                 builder.push_bind(keychain_id);
@@ -200,9 +198,9 @@ impl Utxos {
         Ok(())
     }
 
-    #[instrument(name = "utxos.get_settled_utxos", skip(tx))]
+    #[instrument(name = "utxos.get_settled_utxos", skip(self))]
     pub async fn get_settled_utxos(
-        tx: &mut Transaction<'_, Postgres>,
+        &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<SettledUtxo>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -229,7 +227,7 @@ impl Utxos {
         );
 
         let query = query_builder.build();
-        let rows = query.fetch_all(&mut *tx).await?;
+        let rows = query.fetch_all(&self.pool).await?;
 
         Ok(rows
             .into_iter()

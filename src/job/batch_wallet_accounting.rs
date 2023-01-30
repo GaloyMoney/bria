@@ -1,4 +1,3 @@
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 use uuid::Uuid;
@@ -32,6 +31,7 @@ pub async fn execute(
         bitcoin_tx_id,
         batch_group_id,
         wallet_summaries,
+        included_utxos,
     } = batches.find_by_id(data.batch_id).await?;
 
     let wallet_summary = wallet_summaries
@@ -39,10 +39,11 @@ pub async fn execute(
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
 
-    let mut tx = pool.begin().await?;
-
-    let utxos = batches.get_included_utxos(id, wallet.id).await?;
-    let settled_utxos = Utxos::get_settled_utxos(&mut tx, &utxos).await?;
+    let utxos = included_utxos
+        .get(&data.wallet_id)
+        .expect("utxos not found");
+    let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
+    let settled_utxos = all_utxos.get_settled_utxos(&utxos).await?;
     let settled_ids: Vec<Uuid> = settled_utxos.into_iter().map(|u| u.settled_id).collect();
     let settled_ledger_txn_entries = ledger
         .get_ledger_entries_for_txns_with_external_id(settled_ids)

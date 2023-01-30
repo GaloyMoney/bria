@@ -168,7 +168,7 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     tx.commit().await?;
 
     let batch_id = BatchId::new();
-    let fee_sats = Satoshis::from(12_345);
+    let fee_sats = Satoshis::from(12_346);
     let satoshis = Satoshis::from(100_000_000);
     let reserved_fees = Satoshis::from(12_346);
 

@@ -24,7 +24,7 @@ pub struct WalletTotals {
 
 pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
-    pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
     pub fee_satoshis: Satoshis,
@@ -274,6 +274,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 )?;
                 self.result
                     .included_utxos
+                    .entry(self.current_wallet.unwrap())
+                    .or_default()
                     .entry(keychain_id)
                     .or_default()
                     .push(input.previous_output);
@@ -342,6 +344,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                     if self.all_included_utxos.insert(input.previous_output) {
                         self.result
                             .included_utxos
+                            .entry(wallet_id)
+                            .or_default()
                             .entry(keychain_id)
                             .or_default()
                             .push(input.previous_output);

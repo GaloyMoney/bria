@@ -35,6 +35,21 @@ impl Batches {
             encode::serialize(&batch.unsigned_psbt)
         ).execute(&mut *tx).await?;
 
+        let utxos = batch.iter_utxos();
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"INSERT INTO bria_batch_utxos
+            (batch_id, wallet_id, keychain_id, tx_id, vout)"#,
+        );
+        query_builder.push_values(utxos, |mut builder, (wallet_id, keychain_id, utxo)| {
+            builder.push_bind(Uuid::from(batch.id));
+            builder.push_bind(Uuid::from(wallet_id));
+            builder.push_bind(Uuid::from(keychain_id));
+            builder.push_bind(utxo.txid.to_string());
+            builder.push_bind(utxo.vout as i32);
+        });
+        let query = query_builder.build();
+        query.execute(&mut *tx).await?;
+
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
             (batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats)"#,
@@ -66,41 +81,17 @@ impl Batches {
         let query = query_builder.build();
         query.execute(&mut *tx).await?;
 
-        let utxos = batch
-            .included_utxos
-            .into_iter()
-            .flat_map(|(keychain_id, utxos)| {
-                utxos.into_iter().map(move |utxo| (keychain_id, utxo))
-            });
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"INSERT INTO bria_batch_utxos
-            (batch_id, wallet_id, keychain_id, tx_id, vout)"#,
-        );
-        query_builder.push_values(utxos, |mut builder, (keychain_id, utxo)| {
-            builder.push_bind(Uuid::from(batch.id));
-            builder.push_bind(Uuid::from(
-                *batch
-                    .included_wallet_keychains
-                    .get(&keychain_id)
-                    .expect("keychain's wallet id not found"),
-            ));
-            builder.push_bind(Uuid::from(keychain_id));
-            builder.push_bind(utxo.txid.to_string());
-            builder.push_bind(utxo.vout as i32);
-        });
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
-
         Ok(batch.id)
     }
 
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, bitcoin_tx_id, batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id
-            FROM bria_batch_wallet_summaries
-            LEFT JOIN bria_batches ON id = batch_id
-            WHERE batch_id = $1"#,
+            r#"SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id
+            FROM bria_batch_utxos u
+            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
+            LEFT JOIN bria_batches b ON b.id = u.batch_id
+            WHERE u.batch_id = $1"#,
             Uuid::from(id)
         ).fetch_all(&self.pool).await?;
 
@@ -109,8 +100,20 @@ impl Batches {
         }
 
         let mut wallet_summaries = HashMap::new();
+        let mut included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>> =
+            HashMap::new();
         for row in rows.iter() {
             let wallet_id = WalletId::from(row.wallet_id);
+            let keychain_id = KeychainId::from(row.keychain_id);
+            included_utxos
+                .entry(wallet_id)
+                .or_default()
+                .entry(keychain_id)
+                .or_default()
+                .push(OutPoint {
+                    txid: row.tx_id.parse().expect("invalid txid"),
+                    vout: row.vout as u32,
+                });
             wallet_summaries.insert(
                 wallet_id,
                 WalletSummary {
@@ -131,6 +134,7 @@ impl Batches {
             batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
             bitcoin_tx_id: bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?,
             wallet_summaries,
+            included_utxos,
         })
     }
 
@@ -152,37 +156,5 @@ impl Batches {
         .await?;
 
         Ok(row.map(|row| BatchId::from(row.batch_id)))
-    }
-
-    #[instrument(name = "batches.get_included_utxos", skip_all)]
-    pub async fn get_included_utxos(
-        &self,
-        id: BatchId,
-        wallet_id: WalletId,
-    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
-        let rows = sqlx::query!(
-            r#"SELECT keychain_id, tx_id, vout
-            FROM bria_batch_utxos
-            WHERE batch_id = $1 AND wallet_id = $2"#,
-            Uuid::from(id),
-            Uuid::from(wallet_id)
-        )
-        .fetch_all(&self.pool)
-        .await?;
-
-        let mut utxos: HashMap<KeychainId, Vec<OutPoint>> = HashMap::new();
-        for row in rows {
-            let keychain_id = KeychainId::from(row.keychain_id);
-            let utxo = OutPoint {
-                txid: row
-                    .tx_id
-                    .parse()
-                    .expect("Couldn't parse txid in batch_utxos"),
-                vout: row.vout as u32,
-            };
-            utxos.entry(keychain_id).or_default().push(utxo);
-        }
-
-        Ok(utxos)
     }
 }
