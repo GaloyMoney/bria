@@ -39,6 +39,25 @@ pub async fn execute(
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
 
+    let mut tx = pool.begin().await?;
+
+    let utxos = batches.get_included_utxos(id, wallet.id).await?;
+    let settled_utxos = Utxos::get_settled_utxos(&mut tx, &utxos).await?;
+    let settled_ids: Vec<Uuid> = settled_utxos.into_iter().map(|u| u.settled_id).collect();
+    let settled_ledger_txn_entries = ledger
+        .get_ledger_entries_for_txns_with_external_id(settled_ids)
+        .await?;
+
+    let mut reserved_fees = Satoshis::from(0);
+    for entries in settled_ledger_txn_entries.values() {
+        if let Some(fee_entry) = entries
+            .into_iter()
+            .find(|entry| entry.entry_type == "ENCUMBERED_FEE_RESERVE_CR")
+        {
+            reserved_fees += Satoshis::from(fee_entry.units);
+        }
+    }
+
     match ledger
         .create_batch(CreateBatchParams {
             journal_id: wallet.journal_id,
@@ -47,6 +66,7 @@ pub async fn execute(
             satoshis: wallet_summary.total_out_sats,
             correlation_id: Uuid::from(data.batch_id),
             external_id: wallet_summary.ledger_tx_pending_id.to_string(),
+            reserved_fees,
             meta: CreateBatchMeta {
                 batch_id: id,
                 batch_group_id,
@@ -59,27 +79,6 @@ pub async fn execute(
         Err(e) => return Err(e.into()),
         Ok(_) => (),
     };
-
-    let mut tx = pool.begin().await?;
-
-    let utxos = batches.get_included_utxos(id, wallet.id).await?;
-    let settled_utxos = Utxos::get_settled_utxos(&mut tx, &utxos).await?;
-    let settled_ids: Vec<Uuid> = settled_utxos.into_iter().map(|u| u.settled_id).collect();
-    let settled_ledger_txn_entries = ledger
-        .get_ledger_entries_for_txns_with_external_id(settled_ids)
-        .await?;
-
-    let mut reserved_fee = Satoshis::from(0);
-    for entries in settled_ledger_txn_entries.values() {
-        if let Some(fee_entry) = entries
-            .into_iter()
-            .find(|entry| entry.entry_type == "ENCUMBERED_FEE_RESERVE_CR")
-        {
-            reserved_fee += Satoshis::from(fee_entry.units);
-        }
-    }
-
-    let true_up_fees = reserved_fee - wallet_summary.fee_sats;
 
     Ok(data)
 }

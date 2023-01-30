@@ -22,6 +22,7 @@ pub struct CreateBatchParams {
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub satoshis: Satoshis,
     pub fee_sats: Satoshis,
+    pub reserved_fees: Satoshis,
     pub correlation_id: Uuid,
     pub external_id: String,
     pub meta: CreateBatchMeta,
@@ -61,6 +62,11 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("true_up_fees")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("correlation_id")
                 .r#type(ParamDataType::UUID)
                 .build()
@@ -91,11 +97,13 @@ impl From<CreateBatchParams> for TxParams {
             ledger_account_ids,
             satoshis,
             fee_sats,
+            reserved_fees,
             correlation_id,
             external_id,
             meta,
         }: CreateBatchParams,
     ) -> Self {
+        let true_up_fees = (reserved_fees - fee_sats).to_btc();
         let satoshis = satoshis.to_btc();
         let fee_sats = fee_sats.to_btc();
         let effective = Utc::now().date_naive();
@@ -107,6 +115,7 @@ impl From<CreateBatchParams> for TxParams {
         params.insert("ledger_account_fee_id", ledger_account_ids.fee_id);
         params.insert("amount", satoshis);
         params.insert("fees", fee_sats);
+        params.insert("true_up_fees", true_up_fees);
         params.insert("correlation_id", correlation_id);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
@@ -238,6 +247,24 @@ impl CreateBatch {
                 .units("params.fees")
                 .build()
                 .expect("Couldn't build AT_REST_FEE_CR entry"),
+            EntryInput::builder()
+                .entry_type("'FEE_TRUE_UP_DR'")
+                .currency("'BTC'")
+                .account_id("params.ledger_account_fee_id")
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.true_up_fees")
+                .build()
+                .expect("Couldn't build FEE_TRUE_UP_DR entry"),
+            EntryInput::builder()
+                .entry_type("'FEE_TRUE_UP_CR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{}')", ONCHAIN_FEE_ID))
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.true_up_fees")
+                .build()
+                .expect("Couldn't build FEE_TRUE_UP_CR entry"),
         ];
 
         let params = CreateBatchParams::defs();
