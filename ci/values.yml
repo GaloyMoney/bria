@@ -1,0 +1,19 @@
+#@data/values
+---
+git_uri: git@github.com:GaloyMoney/bria.git
+git_branch: main
+github_private_key: ((github.private_key))
+github_token: ((github.api_token))
+
+docker_host_ip: ((staging-ssh.docker_host_ip))
+artifacts_bucket_name: ((staging-gcp-creds.bucket_name))
+staging_inception_creds: ((staging-gcp-creds.creds_json))
+staging_ssh_private_key: ((staging-ssh.ssh_private_key))
+staging_ssh_pub_key: ((staging-ssh.ssh_public_key))
+git_version_branch: version
+gh_org: GaloyMoney
+gh_repository: bria
+
+slack_channel: bria-github
+slack_username: concourse
+slack_webhook_url: ((addons-slack.api_url))
