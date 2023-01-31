@@ -1,6 +1,2 @@
 [files]
 extend-exclude = ["CHANGELOG.md", "*.cert"]
-
-# Hack for typos to ignore "SELECT" error: `ECT` should be `ETC`
-[default.extend-words]
-ECT = "ECT"

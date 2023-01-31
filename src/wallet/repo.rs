@@ -64,7 +64,7 @@ impl Wallets {
               FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
               WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1
             )
-            SElECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+            SELECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
                  FROM bria_wallet_keychains k
                  JOIN latest l ON k.wallet_id = l.id
                  ORDER BY sequence DESC"#,
@@ -116,7 +116,7 @@ impl Wallets {
               FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
               WHERE w.id = $1 ORDER BY version DESC LIMIT 1
             )
-            SElECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+            SELECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
                  FROM bria_wallet_keychains k
                  JOIN latest l ON k.wallet_id = l.id
                  ORDER BY sequence DESC"#,
@@ -164,7 +164,7 @@ impl Wallets {
               FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
               WHERE w.id = ANY($1) ORDER BY version DESC LIMIT 1
             )
-            SElECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
+            SELECT l.id, l.wallet_cfg, l.incoming_ledger_account_id, l.at_rest_ledger_account_id, l.fee_ledger_account_id, l.outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
                  FROM bria_wallet_keychains k
                  JOIN latest l ON k.wallet_id = l.id
                  ORDER BY sequence DESC"#,

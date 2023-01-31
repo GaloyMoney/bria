@@ -31,7 +31,7 @@ impl NewBatch {
         NewBatchBuilder::default()
     }
 
-    pub fn iter_utxos<'a>(&'a self) -> impl Iterator<Item = (WalletId, KeychainId, OutPoint)> + 'a {
+    pub fn iter_utxos(&'_ self) -> impl Iterator<Item = (WalletId, KeychainId, OutPoint)> + '_ {
         self.included_utxos
             .iter()
             .flat_map(|(wallet_id, keychains)| {
