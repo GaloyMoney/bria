@@ -18,6 +18,7 @@ use crate::{
     xpub::*,
 };
 
+#[allow(dead_code)]
 pub struct App {
     _runner: OwnedHandle,
     keys: AccountApiKeys,

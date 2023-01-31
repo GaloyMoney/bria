@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*};
 
@@ -12,16 +11,16 @@ pub struct BatchWalletFinalizingData {
 
 #[instrument(
     name = "job.batch_wallet_finalizing",
-    skip(_pool, wallets, batches, ledger),
+    skip(_pool, _wallets, _batches, _ledger),
     err
 )]
 pub async fn execute(
     _pool: sqlx::PgPool,
     data: BatchWalletFinalizingData,
     blockchain_cfg: BlockchainConfig,
-    ledger: Ledger,
-    wallets: Wallets,
-    batches: Batches,
+    _ledger: Ledger,
+    _wallets: Wallets,
+    _batches: Batches,
 ) -> Result<BatchWalletFinalizingData, BriaError> {
     // load and sign psbt
     Ok(data)

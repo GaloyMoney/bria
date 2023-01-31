@@ -1,7 +1,6 @@
 use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::{NaiveDateTime, Utc};
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
     tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
