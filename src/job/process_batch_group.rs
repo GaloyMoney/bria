@@ -38,6 +38,7 @@ impl ProcessBatchGroupData {
     ),
     err
 )]
+#[allow(clippy::type_complexity)]
 pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
