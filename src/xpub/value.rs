@@ -40,10 +40,10 @@ impl<O: Into<String>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
         let inner: ExtendedPubKey = original.parse()?;
         if let Some(ref d) = derivation {
             if d.len() != inner.depth as usize {
-                return Err(BriaError::XPubDepthMissmatch(inner.depth, d.len()));
+                return Err(BriaError::XPubDepthMismatch(inner.depth, d.len()));
             }
         } else if inner.depth > 0 {
-            return Err(BriaError::XPubDepthMissmatch(inner.depth, 0));
+            return Err(BriaError::XPubDepthMismatch(inner.depth, 0));
         }
 
         Ok(Self {
