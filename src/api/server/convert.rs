@@ -1,5 +1,4 @@
 use crate::error::BriaError;
-use crate::ledger::*;
 use crate::payout::*;
 use crate::xpub::*;
 
@@ -25,7 +24,7 @@ impl TryFrom<Option<super::proto::set_signer_config_request::Config>> for Signer
             }
             None => Err(tonic::Status::new(
                 tonic::Code::InvalidArgument,
-                format!("missing signer config"),
+                "missing signer config",
             )),
         }
     }
@@ -43,14 +42,14 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
                     value: destination.parse().map_err(|_| {
                         tonic::Status::new(
                             tonic::Code::InvalidArgument,
-                            format!("on chain address couldn't be parsed"),
+                            "on chain address couldn't be parsed",
                         )
                     })?,
                 })
             }
             None => Err(tonic::Status::new(
                 tonic::Code::InvalidArgument,
-                format!("missing destination"),
+                "missing destination",
             )),
         }
     }

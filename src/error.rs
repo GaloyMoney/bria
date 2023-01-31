@@ -19,8 +19,8 @@ pub enum BriaError {
     Bip32(#[from] bitcoin::util::bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
-    #[error("BriaError - CouldNotRetreiveWalletBalance")]
-    CouldNotRetreiveWalletBalance,
+    #[error("BriaError - CouldNotRetrieveWalletBalance")]
+    CouldNotRetrieveWalletBalance,
     #[error("BriaError - BatchGroupNotFound")]
     BatchGroupNotFound,
     #[error("BriaError - BatchNotFound")]
@@ -31,8 +31,8 @@ pub enum BriaError {
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("BriaError - BitcoinAddressParseError")]
     BitcoinAddressParseError(#[from] bitcoin::util::address::Error),
-    #[error("BriaError - XPubDepthMissmatch: expected depth {0}, got {1}")]
-    XPubDepthMissmatch(u8, usize),
+    #[error("BriaError - XPubDepthMismatch: expected depth {0}, got {1}")]
+    XPubDepthMismatch(u8, usize),
     #[error("BriaError - JoinError: {0}")]
     JoinError(#[from] tokio::task::JoinError),
     #[error("BriaError - BdkError: {0}")]

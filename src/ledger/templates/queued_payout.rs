@@ -1,6 +1,5 @@
 use crate::{error::*, ledger::constants::*, payout::*, primitives::*};
 use chrono::Utc;
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{
     tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,

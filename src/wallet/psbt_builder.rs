@@ -56,6 +56,12 @@ impl<T> PsbtBuilder<T> {
     }
 }
 
+impl Default for PsbtBuilder<InitialPsbtBuilderState> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PsbtBuilder<InitialPsbtBuilderState> {
     pub fn new() -> Self {
         Self {

@@ -76,7 +76,7 @@ impl From<Satoshis> for u64 {
 
 impl From<i32> for Satoshis {
     fn from(sats: i32) -> Self {
-        Self(Decimal::from(sats as i32))
+        Self(Decimal::from(sats))
     }
 }
 

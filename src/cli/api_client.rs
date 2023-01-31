@@ -86,8 +86,7 @@ impl ApiClient {
             xpub_ref,
             config: Some(proto::set_signer_config_request::Config::Lnd(config.into())),
         });
-        let response = self
-            .connect()
+        self.connect()
             .await?
             .set_signer_config(self.inject_auth_token(request)?)
             .await?;

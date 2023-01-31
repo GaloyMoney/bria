@@ -43,7 +43,7 @@ pub async fn execute(
         .get(&data.wallet_id)
         .expect("utxos not found");
     let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
-    let settled_utxos = all_utxos.get_settled_utxos(&utxos).await?;
+    let settled_utxos = all_utxos.get_settled_utxos(utxos).await?;
     let settled_ids: Vec<Uuid> = settled_utxos.into_iter().map(|u| u.settled_id).collect();
     let settled_ledger_txn_entries = ledger
         .get_ledger_entries_for_txns_with_external_id(settled_ids)
@@ -52,7 +52,7 @@ pub async fn execute(
     let mut reserved_fees = Satoshis::from(0);
     for entries in settled_ledger_txn_entries.values() {
         if let Some(fee_entry) = entries
-            .into_iter()
+            .iter()
             .find(|entry| entry.entry_type == "ENCUMBERED_FEE_RESERVE_CR")
         {
             reserved_fees += Satoshis::from(fee_entry.units);
@@ -77,7 +77,7 @@ pub async fn execute(
         .await
     {
         Err(BriaError::SqlxLedger(sqlx_ledger::SqlxLedgerError::DuplicateKey(_))) => (),
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(e),
         Ok(_) => (),
     };
 

@@ -4,8 +4,7 @@ use tracing::instrument;
 use std::collections::HashSet;
 
 use crate::{
-    app::BlockchainConfig, batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*,
-    primitives::*, wallet::*,
+    batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*, primitives::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +38,7 @@ impl ProcessBatchGroupData {
     ),
     err
 )]
+#[allow(clippy::type_complexity)]
 pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
@@ -114,10 +114,10 @@ pub async fn execute<'a>(
         psbt,
         included_payouts,
         included_utxos,
-        included_wallet_keychains,
         wallet_totals,
         tx_id,
         fee_satoshis,
+        ..
     } = outer_builder.finish();
 
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {

@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use sqlx_ledger::{balance::AccountBalance, AccountId as LedgerAccountId};
 
-use crate::primitives::{Satoshis, SATS_PER_BTC};
+use crate::primitives::Satoshis;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {

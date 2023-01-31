@@ -28,6 +28,7 @@ struct SyncAllWalletsDelay(std::time::Duration);
 #[derive(Debug, Clone)]
 struct ProcessAllBatchesDelay(std::time::Duration);
 
+#[allow(clippy::too_many_arguments)]
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
