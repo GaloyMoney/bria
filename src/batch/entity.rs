@@ -11,6 +11,7 @@ pub struct Batch {
     pub batch_group_id: BatchGroupId,
     pub bitcoin_tx_id: Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
+    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>>,
 }
 
 #[derive(Builder, Clone)]
@@ -22,12 +23,25 @@ pub struct NewBatch {
     pub(super) unsigned_psbt: psbt::PartiallySignedTransaction,
     pub(super) wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub(super) included_payouts: HashMap<WalletId, Vec<PayoutId>>,
-    pub included_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    pub(super) included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>>,
 }
 
 impl NewBatch {
     pub fn builder() -> NewBatchBuilder {
         NewBatchBuilder::default()
+    }
+
+    pub fn iter_utxos<'a>(&'a self) -> impl Iterator<Item = (WalletId, KeychainId, OutPoint)> + 'a {
+        self.included_utxos
+            .iter()
+            .flat_map(|(wallet_id, keychains)| {
+                keychains.iter().map(move |(keychain_id, utxos)| {
+                    utxos
+                        .iter()
+                        .map(move |utxo| (*wallet_id, *keychain_id, *utxo))
+                })
+            })
+            .flatten()
     }
 }
 

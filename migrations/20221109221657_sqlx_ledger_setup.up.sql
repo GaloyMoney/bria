@@ -69,7 +69,7 @@ CREATE TABLE sqlx_ledger_entries (
   journal_id UUID NOT NULL,
   entry_type VARCHAR NOT NULL,
   layer Layer NOT NULL,
-  units Numeric NOT NULL,
+  units NUMERIC NOT NULL,
   currency VARCHAR NOT NULL,
   direction DebitOrCredit NOT NULL,
   sequence INT NOT NULL,
@@ -109,3 +109,48 @@ CREATE TABLE sqlx_ledger_current_balances (
   version INT NOT NULL,
   UNIQUE(journal_id, account_id, currency)
 );
+
+CREATE TABLE sqlx_ledger_events (
+  id BIGSERIAL PRIMARY KEY,
+  type VARCHAR NOT NULL,
+  data JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE FUNCTION sqlx_ledger_transactions_event() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO sqlx_ledger_events (type, data, recorded_at)
+  SELECT CASE
+           WHEN NEW.id = ANY(SELECT id FROM sqlx_ledger_transactions WHERE id = NEW.id AND version < NEW.version LIMIT 1) THEN 'TransactionUpdated'
+           ELSE 'TransactionCreated'
+         END as type,
+        row_to_json(NEW),
+        NEW.modified_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER sqlx_ledger_transactions AFTER INSERT ON sqlx_ledger_transactions
+  FOR EACH ROW EXECUTE FUNCTION sqlx_ledger_transactions_event();
+
+CREATE FUNCTION sqlx_ledger_balances_event() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO sqlx_ledger_events (type, data, recorded_at)
+  SELECT 'BalanceUpdated', row_to_json(NEW), NEW.modified_at;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER sqlx_ledger_balances AFTER INSERT ON sqlx_ledger_balances
+  FOR EACH ROW EXECUTE FUNCTION sqlx_ledger_balances_event();
+
+CREATE FUNCTION notify_sqlx_ledger_events() RETURNS TRIGGER AS $$
+DECLARE
+  payload TEXT;
+BEGIN
+  payload := row_to_json(NEW);
+  PERFORM pg_notify('sqlx_ledger_events', payload);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sqlx_ledger_events AFTER INSERT ON sqlx_ledger_events
+  FOR EACH ROW EXECUTE FUNCTION notify_sqlx_ledger_events();

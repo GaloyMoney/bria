@@ -138,6 +138,8 @@ async fn build_psbt() -> anyhow::Result<()> {
     );
     assert_eq!(
         included_utxos
+            .get(&other_wallet_id)
+            .expect("wallet not included in utxos")
             .get(&other_wallet_deprecated_keychain_id)
             .expect("keychain not included in utxos")
             .len(),
@@ -145,6 +147,8 @@ async fn build_psbt() -> anyhow::Result<()> {
     );
     assert_eq!(
         included_utxos
+            .get(&other_wallet_id)
+            .expect("wallet not included in utxos")
             .get(&other_wallet_current_keychain_id)
             .expect("keychain not included in utxos")
             .len(),

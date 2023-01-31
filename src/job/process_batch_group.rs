@@ -114,6 +114,7 @@ pub async fn execute<'a>(
         psbt,
         included_payouts,
         included_utxos,
+        included_wallet_keychains,
         wallet_totals,
         tx_id,
         fee_satoshis,
@@ -149,7 +150,11 @@ pub async fn execute<'a>(
             .expect("Couldn't build batch");
 
         all_utxos
-            .reserve_utxos(&mut tx, batch.id, &batch.included_utxos)
+            .reserve_utxos(
+                &mut tx,
+                batch.id,
+                batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),
+            )
             .await?;
         batches.create_in_tx(&mut tx, batch).await?;
 

@@ -1,10 +1,13 @@
 mod constants;
 mod templates;
 
+use std::collections::HashMap;
+
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, balance::AccountBalance, journal::*,
-    AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, balance::AccountBalance, entry::Entry as LedgerEntry,
+    journal::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger,
+    SqlxLedgerError, TransactionId as LedgerTransactionId,
 };
 use tracing::instrument;
 use uuid::Uuid;
@@ -102,6 +105,25 @@ impl Ledger {
             .post_transaction(CREATE_BATCH_CODE, Some(params))
             .await?;
         Ok(())
+    }
+
+    #[instrument(
+        name = "ledger.get_ledger_entries_for_txns_with_external_id",
+        skip(self)
+    )]
+    pub async fn get_ledger_entries_for_txns_with_external_id(
+        &self,
+        external_ids: Vec<Uuid>,
+    ) -> Result<HashMap<LedgerTransactionId, Vec<LedgerEntry>>, BriaError> {
+        let external_ids = external_ids.into_iter().map(|id| id.to_string()).collect();
+        let txns = self
+            .inner
+            .transactions()
+            .list_by_external_ids(external_ids)
+            .await?;
+        let txids: Vec<LedgerTransactionId> = txns.into_iter().map(|tx| tx.id).collect();
+        let entries = self.inner.entries().list_by_transaction_ids(txids).await?;
+        Ok(entries)
     }
 
     #[instrument(name = "ledger.get_wallet_ledger_account_balances")]
