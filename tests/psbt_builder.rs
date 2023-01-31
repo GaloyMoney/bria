@@ -66,6 +66,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         },
         satoshis: send_amount,
     }];
+
     let payouts_two = vec![
         Payout {
             id: PayoutId::new(),
@@ -92,6 +93,7 @@ async fn build_psbt() -> anyhow::Result<()> {
             satoshis: send_amount * 10,
         },
     ];
+
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)
         .accept_current_keychain();

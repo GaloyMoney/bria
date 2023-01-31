@@ -7,6 +7,8 @@ pub enum BriaError {
     Tonic(#[from] tonic::transport::Error),
     #[error("BriaError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("BriaError - Migrate: {0}")]
+    Migrate(#[from] sqlx::migrate::MigrateError),
     #[error("BriaError - ParseId: {0}")]
     ParseId(#[from] uuid::Error),
     #[error("BriaError - SqlxLedger: {0}")]

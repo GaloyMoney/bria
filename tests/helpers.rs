@@ -44,7 +44,7 @@ pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
 pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     use bitcoincore_rpc::Auth;
 
-    let bitcoind_host = std::env::var("BITCIOND_HOST").unwrap_or("localhost".to_string());
+    let bitcoind_host = std::env::var("BITCOIND_HOST").unwrap_or("localhost".to_string());
     let client = BitcoindClient::new(
         &format!("{bitcoind_host}:18443"),
         Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
@@ -66,8 +66,9 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
 pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
     let macaroon_base64 = read_to_base64("./dev/lnd/regtest/lnd.admin.macaroon")?;
     let cert_base64 = read_to_base64("./dev/lnd/tls.cert")?;
+    let lnd_host = std::env::var("LND_HOST").unwrap_or("localhost".to_string());
     let cfg = LndSignerConfig {
-        endpoint: "https://localhost:10009".to_string(),
+        endpoint: format!("https://{lnd_host}:10009"),
         macaroon_base64,
         cert_base64,
     };
