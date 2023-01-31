@@ -1,0 +1,12 @@
+SQLX_OFFLINE=true cargo fmt --check --all
+Diff in /home/sandipndev/projects/galoy/bria/src/fee_estimation/mempool_space.rs at line 17:
+ impl MempoolSpaceClient {
+     pub async fn fee_rate(priority: TxPriority) -> Result<FeeRate, BriaError> {
+         let url = "https://mempool.space/api/v1/fees/recommended";
+[31m-        let resp = reqwest::get(url)
+[0m[31m-            .await
+[0m[31m-            .map_err(BriaError::FeeEstimation)?;
+[0m[32m+        let resp = reqwest::get(url).await.map_err(BriaError::FeeEstimation)?;
+[0m         let fee_estimations: RecommendedFeesResponse =
+             resp.json().await.map_err(BriaError::FeeEstimation)?;
+         match priority {

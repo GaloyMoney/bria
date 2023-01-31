@@ -57,7 +57,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
             .await
         {
             Ok(Ok(r)) => Ok(r),
-            Ok(Err(e)) => Err(e.into()),
+            Ok(Err(e)) => Err(e),
             Err(e) => Err(e.into()),
         }
     }
@@ -144,7 +144,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
             .await
         {
             Ok(Ok(r)) => Ok(r),
-            Ok(Err(e)) => Err(e.into()),
+            Ok(Err(e)) => Err(e),
             Err(e) => Err(e.into()),
         }
     }

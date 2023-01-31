@@ -52,7 +52,7 @@ impl Wallet {
         utxo: &LocalUtxo,
         account: LedgerAccountId,
     ) -> LedgerAccountId {
-        if self.is_dust_utxo(&utxo) {
+        if self.is_dust_utxo(utxo) {
             self.ledger_account_ids.dust_id
         } else {
             account

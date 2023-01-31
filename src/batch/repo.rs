@@ -95,7 +95,7 @@ impl Batches {
             Uuid::from(id)
         ).fetch_all(&self.pool).await?;
 
-        if rows.len() == 0 {
+        if rows.is_empty() {
             return Err(BriaError::BatchNotFound);
         }
 

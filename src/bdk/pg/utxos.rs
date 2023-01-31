@@ -188,7 +188,7 @@ impl Utxos {
             }),
             |mut builder, (keychain_id, tx_id, vout)| {
                 builder.push_bind(keychain_id);
-                builder.push_bind(tx_id.to_string());
+                builder.push_bind(tx_id);
                 builder.push_bind(vout);
             },
         );
@@ -221,7 +221,7 @@ impl Utxos {
             }),
             |mut builder, (keychain_id, tx_id, vout)| {
                 builder.push_bind(keychain_id);
-                builder.push_bind(tx_id.to_string());
+                builder.push_bind(tx_id);
                 builder.push_bind(vout);
             },
         );
