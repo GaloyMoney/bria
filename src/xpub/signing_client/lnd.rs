@@ -40,7 +40,7 @@ impl LndRemoteSigner {
         let client = tonic_lnd::connect(cfg.endpoint, cert_file, macaroon_file)
             .await
             .map_err(|e| {
-                SigningClientError::CouldNotConnect(format!("Failed to connect to lnd: {}", e))
+                SigningClientError::CouldNotConnect(format!("Failed to connect to lnd: {e}"))
             })?;
         Ok(Self { inner: client })
     }
@@ -60,7 +60,7 @@ impl RemoteSigningClient for LndRemoteSigner {
             })
             .await
             .map_err(|e| {
-                SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {}", e))
+                SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {e}"))
             })?;
         let signed_psbt = response.into_inner().signed_psbt;
         Ok(encode::deserialize(&signed_psbt)?)

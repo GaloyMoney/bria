@@ -119,7 +119,7 @@ impl IncomingUtxo {
             EntryInput::builder()
                 .entry_type("'PENDING_ONCHAIN_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{}')", ONCHAIN_INCOMING_ID))
+                .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")

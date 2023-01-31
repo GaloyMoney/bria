@@ -15,7 +15,7 @@ impl AdminApiKeys {
 
     pub async fn create(&self, name: String) -> Result<AdminApiKey, AdminApiError> {
         let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
-        let key = format!("bria_admin_{}", code);
+        let key = format!("bria_admin_{code}");
         let record = sqlx::query!(
             r#"INSERT INTO bria_admin_api_keys (name, encrypted_key)
             VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"#,

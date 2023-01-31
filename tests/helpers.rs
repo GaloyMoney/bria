@@ -79,7 +79,7 @@ pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyh
     let fund = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(6, &fund)?;
     bitcoind.send_to_address(
-        &addr,
+        addr,
         Amount::from_btc(amount as f64).unwrap(),
         None,
         None,

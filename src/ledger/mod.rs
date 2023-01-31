@@ -189,7 +189,7 @@ impl Ledger {
     ) -> Result<JournalId, BriaError> {
         let new_journal = NewJournal::builder()
             .id(Uuid::from(id))
-            .description(format!("Journal for account '{}'", account_name))
+            .description(format!("Journal for account '{account_name}'"))
             .name(account_name)
             .build()
             .expect("Couldn't build NewJournal");
@@ -209,8 +209,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{}_INCOMING", wallet_id),
-                    format!("{}-incoming", wallet_id),
+                    format!("WALLET_{wallet_id}_INCOMING"),
+                    format!("{wallet_id}-incoming"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -218,8 +218,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{}_AT_REST", wallet_id),
-                    format!("{}-at-rest", wallet_id),
+                    format!("WALLET_{wallet_id}_AT_REST"),
+                    format!("{wallet_id}-at-rest"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -227,8 +227,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{}_FEE", wallet_id),
-                    format!("{}-fee", wallet_id),
+                    format!("WALLET_{wallet_id}_FEE"),
+                    format!("{wallet_id}-fee"),
                     DebitOrCredit::Debit,
                 )
                 .await?,
@@ -236,8 +236,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{}_OUTGOING", wallet_id),
-                    format!("{}-outgoing", wallet_id),
+                    format!("WALLET_{wallet_id}_OUTGOING"),
+                    format!("{wallet_id}-outgoing"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -245,8 +245,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{}_DUST", wallet_id),
-                    format!("{}-dust", wallet_id),
+                    format!("WALLET_{wallet_id}_DUST"),
+                    format!("{wallet_id}-dust"),
                     DebitOrCredit::Credit,
                 )
                 .await?,

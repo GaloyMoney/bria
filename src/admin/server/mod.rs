@@ -78,8 +78,7 @@ pub fn extract_api_token<T>(request: &Request<T>) -> Result<&str, Status> {
             .to_str()
             .map_err(|_| Status::unauthenticated("Bad token")),
         None => Err(Status::unauthenticated(format!(
-            "{} missing",
-            ADMIN_API_KEY_HEADER
+            "{ADMIN_API_KEY_HEADER} missing"
         ))),
     }
 }

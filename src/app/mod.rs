@@ -264,7 +264,7 @@ impl App {
         pool: sqlx::PgPool,
         delay: std::time::Duration,
     ) -> Result<(), BriaError> {
-        let _ = tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 let _ = job::spawn_sync_all_wallets(&pool, std::time::Duration::from_secs(1)).await;
                 tokio::time::sleep(delay).await;
@@ -278,7 +278,7 @@ impl App {
         pool: sqlx::PgPool,
         delay: std::time::Duration,
     ) -> Result<(), BriaError> {
-        let _ = tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 let _ =
                     job::spawn_process_all_batch_groups(&pool, std::time::Duration::from_secs(1))

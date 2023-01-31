@@ -22,7 +22,7 @@ impl fmt::Display for XPub {
         if let Some(ref d) = self.derivation {
             write!(f, "[{}", self.parent_fingerprint)?;
             for child in d {
-                write!(f, "/{}", child)?;
+                write!(f, "/{child}")?;
             }
             f.write_str("]")?;
         }

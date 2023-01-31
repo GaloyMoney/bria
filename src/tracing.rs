@@ -24,7 +24,7 @@ impl Default for TracingConfig {
 
 pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
     let tracing_endpoint = format!("{}:{}", config.host, config.port);
-    println!("Sending traces to {}", tracing_endpoint);
+    println!("Sending traces to {tracing_endpoint}");
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_endpoint(tracing_endpoint)
         .with_service_name(config.service_name)
