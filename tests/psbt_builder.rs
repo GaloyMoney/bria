@@ -9,7 +9,6 @@ use bria::{payout::*, primitives::*, wallet::*, xpub::*};
 #[serial_test::serial]
 async fn build_psbt() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
-    dbg!("DB pool init");
 
     let domain_current_keychain_id = Uuid::new_v4();
     let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
@@ -20,7 +19,6 @@ async fn build_psbt() -> anyhow::Result<()> {
         domain_current_keychain_id.into(),
         keychain_cfg,
     );
-    dbg!("Constructed domain current keychain");
 
     let other_wallet_current_keychain = helpers::random_bdk_wallet()?;
     let other_wallet_deprecated_keychain = helpers::random_bdk_wallet()?;
@@ -28,20 +26,16 @@ async fn build_psbt() -> anyhow::Result<()> {
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let other_current_addr = other_wallet_current_keychain.get_address(AddressIndex::New)?;
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
-    dbg!("Constructed other keychains and addresses");
 
     let bitcoind = helpers::bitcoind_client()?;
     helpers::fund_addr(&bitcoind, &domain_addr, 7)?;
     helpers::fund_addr(&bitcoind, &other_current_addr, 5)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
-    dbg!("Funded and added a few blocks");
 
     let blockchain = helpers::electrum_blockchain()?;
     for _ in 0..5 {
-        dbg!("Sync other wallet keychain");
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
-        dbg!("Sync other wallet deprecated keychain");
         other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
         if other_wallet_current_keychain.get_balance()?.get_spendable() > 0
             && other_wallet_deprecated_keychain
@@ -54,14 +48,12 @@ async fn build_psbt() -> anyhow::Result<()> {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
     domain_current_keychain.sync(blockchain).await?;
-    dbg!("Synced the wallets");
 
     let fee = FeeRate::from_sat_per_vb(1.0);
     let builder = PsbtBuilder::new()
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
         .accept_wallets();
-    dbg!("Create psbt builder with fee");
 
     let domain_wallet_id = WalletId::new();
     let other_wallet_id = WalletId::new();
@@ -74,7 +66,6 @@ async fn build_psbt() -> anyhow::Result<()> {
         },
         satoshis: send_amount,
     }];
-    dbg!("Make Payout 1");
 
     let payouts_two = vec![
         Payout {
@@ -102,7 +93,6 @@ async fn build_psbt() -> anyhow::Result<()> {
             satoshis: send_amount * 10,
         },
     ];
-    dbg!("Make Payout 2");
 
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)

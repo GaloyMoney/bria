@@ -100,7 +100,6 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
 pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
-    dbg!(&electrum_url);
     Ok(ElectrumBlockchain::from(Client::new(&electrum_url)?))
 }
 
