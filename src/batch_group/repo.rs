@@ -46,7 +46,7 @@ impl BatchGroups {
         name: String,
     ) -> Result<BatchGroupId, BriaError> {
         let record = sqlx::query!(
-            r#"SElECT id
+            r#"SELECT id
                  FROM bria_batch_groups
                  WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"#,
             Uuid::from(account_id),
@@ -63,7 +63,7 @@ impl BatchGroups {
 
     pub async fn find_by_id(&self, id: BatchGroupId) -> Result<BatchGroup, BriaError> {
         let record = sqlx::query!(
-            r#"SElECT id, account_id, name, batch_cfg
+            r#"SELECT id, account_id, name, batch_cfg
                  FROM bria_batch_groups
                  WHERE id = $1 ORDER BY version DESC LIMIT 1"#,
             Uuid::from(id),
