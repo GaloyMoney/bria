@@ -2,11 +2,8 @@ use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx_ledger::{
-    tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
-};
+use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{error::*, ledger::constants::*, primitives::*};
 
@@ -23,7 +20,6 @@ pub struct IncomingUtxoMeta {
 pub struct IncomingUtxoParams {
     pub journal_id: JournalId,
     pub ledger_account_incoming_id: LedgerAccountId,
-    pub pending_id: Uuid,
     pub meta: IncomingUtxoMeta,
 }
 
@@ -46,16 +42,6 @@ impl IncomingUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("correlation_id")
-                .r#type(ParamDataType::UUID)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
-                .name("external_id")
-                .r#type(ParamDataType::STRING)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
                 .name("meta")
                 .r#type(ParamDataType::JSON)
                 .build()
@@ -74,7 +60,6 @@ impl From<IncomingUtxoParams> for TxParams {
         IncomingUtxoParams {
             journal_id,
             ledger_account_incoming_id,
-            pending_id,
             meta,
         }: IncomingUtxoParams,
     ) -> Self {
@@ -93,8 +78,6 @@ impl From<IncomingUtxoParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("ledger_account_incoming_id", ledger_account_incoming_id);
         params.insert("amount", amount);
-        params.insert("external_id", pending_id.to_string());
-        params.insert("correlation_id", pending_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -109,8 +92,6 @@ impl IncomingUtxo {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
-            .external_id("params.external_id")
-            .correlation_id("params.correlation_id")
             .metadata("params.meta")
             .description("'Onchain tx in mempool'")
             .build()

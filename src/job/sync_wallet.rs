@@ -46,13 +46,13 @@ pub async fn execute(
                 ledger
                     .incoming_utxo(
                         tx,
+                        pending_id,
                         IncomingUtxoParams {
                             journal_id: wallet.journal_id,
                             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
                                 &local_utxo,
                                 wallet.ledger_account_ids.incoming_id,
                             ),
-                            pending_id,
                             meta: IncomingUtxoMeta {
                                 wallet_id: id,
                                 keychain_id: *keychain_id,
@@ -85,6 +85,7 @@ pub async fn execute(
                     ledger
                         .confirmed_utxo_without_fee_reserve(
                             tx,
+                            settled_id,
                             ConfirmedUtxoWithoutFeeReserveParams {
                                 journal_id: wallet.journal_id,
                                 incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
@@ -96,7 +97,6 @@ pub async fn execute(
                                     wallet.ledger_account_ids.at_rest_id,
                                 ),
                                 pending_id,
-                                settled_id,
                                 meta: ConfirmedUtxoWithoutFeeReserveMeta {
                                     wallet_id: id,
                                     keychain_id: *keychain_id,
@@ -128,6 +128,7 @@ pub async fn execute(
                 ledger
                     .confirmed_utxo(
                         tx,
+                        settled_id,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
                             incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
@@ -144,7 +145,6 @@ pub async fn execute(
                                 false => Satoshis::from(fees),
                             },
                             pending_id,
-                            settled_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: id,
                                 keychain_id: *keychain_id,

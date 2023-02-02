@@ -7,14 +7,14 @@ use uuid::Uuid;
 use crate::{error::*, primitives::*};
 
 pub struct SettledUtxo {
-    pub settled_id: Uuid,
-    pub pending_id: Uuid,
+    pub settled_id: LedgerTransactionId,
+    pub pending_id: LedgerTransactionId,
     pub confirmation_time: BlockTime,
     pub local_utxo: LocalUtxo,
 }
 
 pub struct PendingUtxo {
-    pub pending_id: Uuid,
+    pub pending_id: LedgerTransactionId,
     pub confirmation_time: Option<BlockTime>,
     pub local_utxo: LocalUtxo,
 }
@@ -64,7 +64,7 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<PendingUtxo>, BriaError> {
-        let pending_id = Uuid::new_v4();
+        let pending_id = LedgerTransactionId::new();
         let utxos = sqlx::query!(
             r#"WITH utxo AS (
                  UPDATE bdk_utxos SET ledger_tx_pending_id = $1
@@ -76,7 +76,7 @@ impl Utxos {
                SELECT u.tx_id, utxo_json, details_json
                  FROM utxo u
                  JOIN bdk_transactions t ON u.tx_id = t.tx_id"#,
-            pending_id,
+            Uuid::from(pending_id),
             Uuid::from(self.keychain_id),
         )
         .fetch_optional(&mut *tx)
@@ -100,7 +100,7 @@ impl Utxos {
             .iter()
             .map(|OutPoint { txid, vout }| format!("{txid}:{vout}"))
             .collect::<Vec<_>>();
-        let settled_id = Uuid::new_v4();
+        let settled_id = LedgerTransactionId::new();
         let utxos = sqlx::query!(
             r#"WITH utxo AS (
                  UPDATE bdk_utxos SET ledger_tx_settled_id = $1
@@ -120,7 +120,7 @@ impl Utxos {
                )
                SELECT u.tx_id, utxo_json, ledger_tx_pending_id AS "ledger_tx_pending_id!", details_json
                FROM utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"#,
-            settled_id,
+            Uuid::from(settled_id),
             Uuid::from(self.keychain_id),
             &skip_utxos[..],
         )
@@ -128,7 +128,7 @@ impl Utxos {
         .await?;
         Ok(utxos.map(|utxo| SettledUtxo {
             settled_id,
-            pending_id: utxo.ledger_tx_pending_id,
+            pending_id: LedgerTransactionId::from(utxo.ledger_tx_pending_id),
             local_utxo: serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"),
             confirmation_time: serde_json::from_value::<TransactionDetails>(utxo.details_json)
                 .expect("Could not deserialize tx details")
@@ -232,8 +232,8 @@ impl Utxos {
         Ok(rows
             .into_iter()
             .map(|row| SettledUtxo {
-                pending_id: row.get::<Uuid, _>("ledger_tx_pending_id"),
-                settled_id: row.get::<Uuid, _>("ledger_tx_settled_id"),
+                pending_id: row.get::<Uuid, _>("ledger_tx_pending_id").into(),
+                settled_id: row.get::<Uuid, _>("ledger_tx_settled_id").into(),
                 local_utxo: serde_json::from_value(row.get("utxo_json"))
                     .expect("Could not deserialize utxo"),
                 confirmation_time: serde_json::from_value::<TransactionDetails>(

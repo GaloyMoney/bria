@@ -2,11 +2,8 @@ use bdk::BlockTime;
 use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
-use sqlx_ledger::{
-    tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
-};
+use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{error::*, ledger::constants::*, primitives::*};
 
@@ -26,8 +23,7 @@ pub struct ConfirmedUtxoParams {
     pub at_rest_ledger_account_id: LedgerAccountId,
     pub fee_ledger_account_id: LedgerAccountId,
     pub spending_fee_satoshis: Satoshis,
-    pub pending_id: Uuid,
-    pub settled_id: Uuid,
+    pub pending_id: LedgerTransactionId,
     pub meta: ConfirmedUtxoMeta,
 }
 
@@ -70,11 +66,6 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("external_id")
-                .r#type(ParamDataType::STRING)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
                 .name("meta")
                 .r#type(ParamDataType::JSON)
                 .build()
@@ -97,7 +88,6 @@ impl From<ConfirmedUtxoParams> for TxParams {
             fee_ledger_account_id,
             spending_fee_satoshis: fees,
             pending_id,
-            settled_id,
             meta,
         }: ConfirmedUtxoParams,
     ) -> Self {
@@ -114,7 +104,6 @@ impl From<ConfirmedUtxoParams> for TxParams {
         params.insert("ledger_account_fee_id", fee_ledger_account_id);
         params.insert("fees", fees.to_btc());
         params.insert("amount", amount);
-        params.insert("external_id", settled_id.to_string());
         params.insert("correlation_id", pending_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
@@ -130,7 +119,6 @@ impl ConfirmedUtxo {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
-            .external_id("params.external_id")
             .correlation_id("params.correlation_id")
             .metadata("params.meta")
             .description("'Onchain tx confirmed'")

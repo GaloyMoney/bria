@@ -39,15 +39,15 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     };
 
     let keychain_id = KeychainId::new();
-    let pending_id = Uuid::new_v4();
+    let pending_id = LedgerTransactionId::new();
 
     ledger
         .incoming_utxo(
             tx,
+            pending_id,
             IncomingUtxoParams {
                 journal_id,
                 ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
-                pending_id,
                 meta: IncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
@@ -67,11 +67,12 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     assert_eq!(balance.pending(), Decimal::ONE);
 
     let tx = pool.begin().await?;
-    let settled_id = Uuid::new_v4();
+    let settled_id = LedgerTransactionId::new();
 
     ledger
         .confirmed_utxo(
             tx,
+            settled_id,
             ConfirmedUtxoParams {
                 journal_id,
                 incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
@@ -79,7 +80,6 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                 fee_ledger_account_id: wallet_ledger_accounts.fee_id,
                 spending_fee_satoshis: Satoshis::from(Decimal::ONE),
                 pending_id,
-                settled_id,
                 meta: ConfirmedUtxoMeta {
                     wallet_id,
                     keychain_id,
@@ -109,19 +109,19 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
 
     assert_eq!(balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
 
-    let pending_id = Uuid::new_v4();
-    let settled_id = Uuid::new_v4();
+    let pending_id = LedgerTransactionId::new();
+    let settled_id = LedgerTransactionId::new();
     let tx = pool.begin().await?;
 
     ledger
         .confirmed_utxo_without_fee_reserve(
             tx,
+            settled_id,
             ConfirmedUtxoWithoutFeeReserveParams {
                 journal_id,
                 incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
                 at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
                 pending_id,
-                settled_id,
                 meta: ConfirmedUtxoWithoutFeeReserveMeta {
                     batch_id: BatchId::new(),
                     wallet_id,
@@ -173,22 +173,25 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     let reserved_fees = Satoshis::from(12_346);
 
     ledger
-        .create_batch(CreateBatchParams {
-            journal_id,
-            ledger_account_ids: wallet_ledger_accounts,
-            fee_sats,
-            satoshis,
-            correlation_id: Uuid::from(batch_id),
-            external_id: sqlx_ledger::TransactionId::new().to_string(),
-            reserved_fees,
-            meta: CreateBatchMeta {
-                batch_id,
-                batch_group_id: BatchGroupId::new(),
-                bitcoin_tx_id: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
-                    .parse()
-                    .unwrap(),
+        .create_batch(
+            LedgerTransactionId::new(),
+            CreateBatchParams {
+                journal_id,
+                ledger_account_ids: wallet_ledger_accounts,
+                fee_sats,
+                satoshis,
+                correlation_id: Uuid::from(batch_id),
+                reserved_fees,
+                meta: CreateBatchMeta {
+                    batch_id,
+                    batch_group_id: BatchGroupId::new(),
+                    bitcoin_tx_id:
+                        "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                            .parse()
+                            .unwrap(),
+                },
             },
-        })
+        )
         .await?;
 
     let wallet_outgoing_balance = ledger
