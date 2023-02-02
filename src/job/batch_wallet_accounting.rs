@@ -44,10 +44,9 @@ pub async fn execute(
         .expect("utxos not found");
     let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
     let settled_utxos = all_utxos.get_settled_utxos(utxos).await?;
-    let settled_ids: Vec<Uuid> = settled_utxos.into_iter().map(|u| u.settled_id).collect();
-    let settled_ledger_txn_entries = ledger
-        .get_ledger_entries_for_txns_with_external_id(settled_ids)
-        .await?;
+    let settled_ids: Vec<LedgerTransactionId> =
+        settled_utxos.into_iter().map(|u| u.settled_id).collect();
+    let settled_ledger_txn_entries = ledger.get_ledger_entries_for_txns(settled_ids).await?;
 
     let mut reserved_fees = Satoshis::from(0);
     for entries in settled_ledger_txn_entries.values() {
@@ -60,20 +59,22 @@ pub async fn execute(
     }
 
     match ledger
-        .create_batch(CreateBatchParams {
-            journal_id: wallet.journal_id,
-            ledger_account_ids: wallet.ledger_account_ids,
-            fee_sats: wallet_summary.fee_sats,
-            satoshis: wallet_summary.total_out_sats,
-            correlation_id: Uuid::from(data.batch_id),
-            external_id: wallet_summary.ledger_tx_pending_id.to_string(),
-            reserved_fees,
-            meta: CreateBatchMeta {
-                batch_id: id,
-                batch_group_id,
-                bitcoin_tx_id,
+        .create_batch(
+            wallet_summary.ledger_tx_pending_id,
+            CreateBatchParams {
+                journal_id: wallet.journal_id,
+                ledger_account_ids: wallet.ledger_account_ids,
+                fee_sats: wallet_summary.fee_sats,
+                satoshis: wallet_summary.total_out_sats,
+                correlation_id: Uuid::from(data.batch_id),
+                reserved_fees,
+                meta: CreateBatchMeta {
+                    batch_id: id,
+                    batch_group_id,
+                    bitcoin_tx_id,
+                },
             },
-        })
+        )
         .await
     {
         Err(BriaError::SqlxLedger(sqlx_ledger::SqlxLedgerError::DuplicateKey(_))) => (),

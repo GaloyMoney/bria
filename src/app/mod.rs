@@ -241,6 +241,7 @@ impl App {
         self.ledger
             .queued_payout(
                 tx,
+                LedgerTransactionId::from(uuid::Uuid::from(id)),
                 QueuedPayoutParams {
                     journal_id: wallet.journal_id,
                     ledger_account_outgoing_id: wallet.ledger_account_ids.outgoing_id,

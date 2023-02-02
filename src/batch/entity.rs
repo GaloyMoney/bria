@@ -1,6 +1,5 @@
 use bitcoin::{blockdata::transaction::OutPoint, util::psbt, Address, Txid};
 use derive_builder::Builder;
-use sqlx_ledger::TransactionId;
 
 use std::collections::HashMap;
 
@@ -53,6 +52,6 @@ pub struct WalletSummary {
     pub fee_sats: Satoshis,
     pub change_sats: Satoshis,
     pub change_address: Address,
-    pub ledger_tx_pending_id: TransactionId,
-    pub ledger_tx_settled_id: TransactionId,
+    pub ledger_tx_pending_id: LedgerTransactionId,
+    pub ledger_tx_settled_id: LedgerTransactionId,
 }

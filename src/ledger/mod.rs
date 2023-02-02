@@ -6,8 +6,7 @@ use std::collections::HashMap;
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
     account::NewAccount as NewLedgerAccount, balance::AccountBalance, entry::Entry as LedgerEntry,
-    journal::*, AccountId as LedgerAccountId, Currency, DebitOrCredit, JournalId, SqlxLedger,
-    SqlxLedgerError, TransactionId as LedgerTransactionId,
+    journal::*, Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tracing::instrument;
 use uuid::Uuid;
@@ -55,10 +54,11 @@ impl Ledger {
     pub async fn incoming_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
         params: IncomingUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, INCOMING_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, INCOMING_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -67,10 +67,11 @@ impl Ledger {
     pub async fn confirmed_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
         params: ConfirmedUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, CONFIRMED_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, CONFIRMED_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -79,10 +80,16 @@ impl Ledger {
     pub async fn confirmed_utxo_without_fee_reserve(
         &self,
         tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
         params: ConfirmedUtxoWithoutFeeReserveParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE, Some(params))
+            .post_transaction_in_tx(
+                tx,
+                tx_id,
+                CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE,
+                Some(params),
+            )
             .await?;
         Ok(())
     }
@@ -91,38 +98,33 @@ impl Ledger {
     pub async fn queued_payout(
         &self,
         tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
         params: QueuedPayoutParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, QUEUED_PAYOUT_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, QUEUED_PAYOUT_CODE, Some(params))
             .await?;
         Ok(())
     }
 
     #[instrument(name = "ledger.create_batch", skip(self))]
-    pub async fn create_batch(&self, params: CreateBatchParams) -> Result<(), BriaError> {
+    pub async fn create_batch(
+        &self,
+        tx_id: LedgerTransactionId,
+        params: CreateBatchParams,
+    ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction(CREATE_BATCH_CODE, Some(params))
+            .post_transaction(tx_id, CREATE_BATCH_CODE, Some(params))
             .await?;
         Ok(())
     }
 
-    #[instrument(
-        name = "ledger.get_ledger_entries_for_txns_with_external_id",
-        skip(self)
-    )]
-    pub async fn get_ledger_entries_for_txns_with_external_id(
+    #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self))]
+    pub async fn get_ledger_entries_for_txns(
         &self,
-        external_ids: Vec<Uuid>,
+        tx_ids: Vec<LedgerTransactionId>,
     ) -> Result<HashMap<LedgerTransactionId, Vec<LedgerEntry>>, BriaError> {
-        let external_ids = external_ids.into_iter().map(|id| id.to_string()).collect();
-        let txns = self
-            .inner
-            .transactions()
-            .list_by_external_ids(external_ids)
-            .await?;
-        let txids: Vec<LedgerTransactionId> = txns.into_iter().map(|tx| tx.id).collect();
-        let entries = self.inner.entries().list_by_transaction_ids(txids).await?;
+        let entries = self.inner.entries().list_by_transaction_ids(tx_ids).await?;
         Ok(entries)
     }
 

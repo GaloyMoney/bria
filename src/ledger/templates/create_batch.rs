@@ -24,7 +24,6 @@ pub struct CreateBatchParams {
     pub fee_sats: Satoshis,
     pub reserved_fees: Satoshis,
     pub correlation_id: Uuid,
-    pub external_id: String,
     pub meta: CreateBatchMeta,
 }
 
@@ -72,11 +71,6 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("external_id")
-                .r#type(ParamDataType::STRING)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
                 .name("meta")
                 .r#type(ParamDataType::JSON)
                 .build()
@@ -99,7 +93,6 @@ impl From<CreateBatchParams> for TxParams {
             fee_sats,
             reserved_fees,
             correlation_id,
-            external_id,
             meta,
         }: CreateBatchParams,
     ) -> Self {
@@ -117,7 +110,6 @@ impl From<CreateBatchParams> for TxParams {
         params.insert("fees", fee_sats);
         params.insert("true_up_fees", true_up_fees);
         params.insert("correlation_id", correlation_id);
-        params.insert("external_id", external_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -132,7 +124,6 @@ impl CreateBatch {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
-            .external_id("params.external_id")
             .correlation_id("params.correlation_id")
             .metadata("params.meta")
             .description("'Construct Batch'")

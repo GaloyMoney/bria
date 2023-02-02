@@ -1,10 +1,9 @@
-use crate::{error::*, ledger::constants::*, payout::*, primitives::*};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx_ledger::{
-    tx_template::*, AccountId as LedgerAccountId, JournalId, SqlxLedger, SqlxLedgerError,
-};
+use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
+
+use crate::{error::*, ledger::constants::*, payout::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuedPayoutMeta {
