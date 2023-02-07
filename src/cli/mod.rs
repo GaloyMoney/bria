@@ -115,6 +115,8 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
+        #[clap(long, action)]
+        json: bool,
     },
     /// Get a new address for a wallet
     NewAddress {
@@ -278,9 +280,10 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet: name,
+            json,
         } => {
             let client = api_client(url, api_key);
-            client.get_wallet_balance_summary(name).await?;
+            client.get_wallet_balance_summary(name, json).await?;
         }
         Command::NewAddress {
             url,

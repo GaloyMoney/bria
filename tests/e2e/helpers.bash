@@ -7,8 +7,12 @@ bria() {
   fi
 
   echo "${bria_location} $@"
-
   ${bria_location} $@
+}
+
+bitcoin-cli() {
+  echo "docker compose exec bitcoind bitcoin-cli $@"
+  docker compose exec bitcoind bitcoin-cli $@
 }
 
 background() {
