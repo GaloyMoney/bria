@@ -1,39 +1,55 @@
 version: "3"
 services:
+  e2e-deps:
+    image: busybox
+    depends_on:
+      - postgres
+      - bitcoind
+      - lnd
+      - otel-agent
+      - fulcrum
   integration-deps:
     image: busybox
     depends_on:
-    - postgres
-    - bitcoind
-    - lnd
-    - otel-agent
-    - fulcrum
+      - postgres
+      - bitcoind
+      - lnd
+      - otel-agent
+      - fulcrum
   postgres:
     image: postgres:14.1
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=pg
+  e2e-tests:
+    image: us.gcr.io/galoy-org/rust-concourse
+    depends_on:
+      - e2e-deps
+    command: [ "make", "e2e-in-ci" ]
+    working_dir: /repo
+    volumes:
+      - ./:/repo
   integration-tests:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
-    - integration-deps
-    command: ["make", "test-in-ci"]
+      - integration-deps
+    command: [ "make", "test-in-ci" ]
     environment:
-    - DATABASE_URL=postgres://user:password@postgres:5432/pg
-    - PG_HOST=postgres
-    - BITCOIND_HOST=bitcoind
-    - LND_HOST=lnd
-    - ELECTRUM_HOST=fulcrum
+      - DATABASE_URL=postgres://user:password@postgres:5432/pg
+      - PG_HOST=postgres
+      - BITCOIND_HOST=bitcoind
+      - LND_HOST=lnd
+      - ELECTRUM_HOST=fulcrum
     working_dir: /repo
     volumes:
       - ./:/repo
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
-    command: ["--config=/etc/otel-agent-config.yaml"]
+    command: [ "--config=/etc/otel-agent-config.yaml" ]
     environment:
-    - HONEYCOMB_DATASET=${HONEYCOMB_DATASET}
-    - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
+      - HONEYCOMB_DATASET=${HONEYCOMB_DATASET}
+      - HONEYCOMB_API_KEY=${HONEYCOMB_API_KEY}
     volumes:
       - ./dev/otel-agent-config.yaml:/etc/otel-agent-config.yaml
   bitcoind:
@@ -49,8 +65,8 @@ services:
       - ${PWD}/dev/lnd/regtest/lnd.wallet.db:/root/.lnd/wallet.db
       - ${PWD}/dev/lnd/regtest/lnd.macaroons.db:/root/.lnd/macaroons.db
       - ${PWD}/dev/lnd/regtest/lnd.admin.macaroon:/root/.lnd/admin.macaroon
-    depends_on: [bitcoind]
-    entrypoint: ["/bin/sh", "-c"]
+    depends_on: [ bitcoind ]
+    entrypoint: [ "/bin/sh", "-c" ]
     command:
       - |
         mkdir -p /root/.lnd/data/chain/bitcoin/regtest/
@@ -60,7 +76,7 @@ services:
         /bin/lnd
   fulcrum:
     image: cculianu/fulcrum:latest
-    depends_on: [bitcoind]
+    depends_on: [ bitcoind ]
     volumes:
       - ${PWD}/dev/fulcrum/fulcrum.conf:/fulcrum.conf
       - ${PWD}/dev/fulcrum/tls.key:/tls.key

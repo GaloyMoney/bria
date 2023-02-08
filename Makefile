@@ -37,5 +37,5 @@ reset-deps: clean-deps start-deps setup-db
 setup-db:
 	cargo sqlx migrate run
 
-test-e2e:
+e2e-in-ci:
 	bats -t tests/e2e
