@@ -1,0 +1,14 @@
+name: "E2E Tests"
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration:
+    name: End to End Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run e2e tests
+        run: make test-e2e
