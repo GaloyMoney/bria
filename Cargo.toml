@@ -10,7 +10,7 @@ fail-on-warnings = []
 [dependencies]
 sqlx-ledger = "0.3"
 
-anyhow = "1.0.66"
+anyhow = "1.0.69"
 clap = { version = "4.1", features = ["derive", "env"] }
 chrono = { version = "0.4.22", features = ["clock", "serde"], default-features = false }
 derive_builder = "0.12.0"
