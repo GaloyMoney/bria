@@ -140,7 +140,7 @@ impl ApiClient {
         Ok(())
     }
 
-    pub async fn new_address(&self, wallet: String) -> anyhow::Result<()> {
+    pub async fn new_address(&self, wallet: String, raw: bool) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::NewAddressRequest {
             wallet_name: wallet,
         });
@@ -149,7 +149,11 @@ impl ApiClient {
             .await?
             .new_address(self.inject_auth_token(request)?)
             .await?;
-        println!("New Address - {}", response.into_inner().address);
+        if raw {
+            print!("{}", response.into_inner().address);
+        } else {
+            println!("New Address - {}", response.into_inner().address);
+        }
         Ok(())
     }
 

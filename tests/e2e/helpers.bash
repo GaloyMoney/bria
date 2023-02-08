@@ -6,12 +6,10 @@ bria() {
     bria_location=${CARGO_TARGET_DIR}/debug/bria
   fi
 
-  echo "${bria_location} $@"
   ${bria_location} $@
 }
 
 bitcoin-cli() {
-  echo "docker compose exec bitcoind bitcoin-cli $@"
   docker compose exec bitcoind bitcoin-cli $@
 }
 
@@ -33,9 +31,20 @@ start_daemon() {
 }
 
 stop_daemon() {
-  kill -9 ${BATS_TMPDIR}/pid
+  kill -9 $(cat ${BATS_TMPDIR}/pid)
 }
 
 stop_deps() {
   make clean-deps
+}
+
+bria_init() {
+  bria admin bootstrap
+  bria admin create-account -n default
+
+	bitcoin-cli createwallet "default"
+	bitcoin-cli -generate 200
+  bria import-xpub -x tpubDDEGUyCLufbxAfQruPHkhUcu55UdhXy7otfcEQG4wqYNnMfq9DbHPxWCqpEQQAJUDi8Bq45DjcukdDAXasKJ2G27iLsvpdoEL5nTRy5TJ2B -n key1 -d m/64h/1h/0
+	bria create-wallet -n default -x key1
+  echo "Bria Initialization Complete"
 }

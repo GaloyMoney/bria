@@ -132,6 +132,8 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
+        #[clap(long, action)]
+        raw: bool,
     },
     CreateBatchGroup {
         #[clap(
@@ -289,9 +291,10 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
+            raw,
         } => {
             let client = api_client(url, api_key);
-            client.new_address(wallet).await?;
+            client.new_address(wallet, raw).await?;
         }
         Command::CreateBatchGroup { url, api_key, name } => {
             let client = api_client(url, api_key);
