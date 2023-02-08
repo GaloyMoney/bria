@@ -38,4 +38,6 @@ setup-db:
 	cargo sqlx migrate run
 
 e2e-in-ci:
+	git config --global --add safe.directory /repo
+	SQLX_OFFLINE=true cargo build --locked
 	bats -t tests/e2e
