@@ -30,6 +30,15 @@ services:
     working_dir: /repo
     volumes:
       - ./:/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - RUST_LOG=error
+      - DATABASE_URL=postgres://user:password@postgres:5432/pg
+      - PG_CON=postgres://user:password@postgres:5432/pg
+      - PG_HOST=postgres
+      - BITCOIND_HOST=bitcoind
+      - LND_HOST=lnd
+      - ELECTRUM_HOST=fulcrum
   integration-tests:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:

@@ -3,7 +3,7 @@
 load "helpers"
 
 setup_file() {
-  # start_deps
+  reset_pg
   start_daemon
   sleep 2
   bria_init
@@ -11,7 +11,6 @@ setup_file() {
 
 teardown_file() {
   stop_daemon
-  # stop_deps
 }
 
 @test "Fund an address and see if the balance is reflected" {

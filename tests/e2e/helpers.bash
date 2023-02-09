@@ -10,7 +10,7 @@ bria() {
 }
 
 bitcoin-cli() {
-  docker compose exec bitcoind bitcoin-cli $@
+  docker exec bria-bitcoind-1 bitcoin-cli $@
 }
 
 background() {
@@ -18,11 +18,10 @@ background() {
   echo $!
 }
 
-start_deps() {
-  make clean-deps
-  make start-deps
-  sleep 3
-  make setup-db
+reset_pg() {
+  docker exec bria-postgres-1 psql $PG_CON -c "DROP SCHEMA public CASCADE"
+  docker exec bria-postgres-1 psql $PG_CON -c "CREATE SCHEMA public"
+  cargo sqlx migrate run
 }
 
 start_daemon() {
@@ -32,10 +31,6 @@ start_daemon() {
 
 stop_daemon() {
   kill -9 $(cat ${BATS_TMPDIR}/pid)
-}
-
-stop_deps() {
-  make clean-deps
 }
 
 bria_init() {
