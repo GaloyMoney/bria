@@ -37,12 +37,10 @@ reset-deps: clean-deps start-deps setup-db
 setup-db:
 	cargo sqlx migrate run
 
-ready:
-	bria admin bootstrap
-	bria admin create-account -n default
-	bria import-xpub -x tpubDDEGUyCLufbxAfQruPHkhUcu55UdhXy7otfcEQG4wqYNnMfq9DbHPxWCqpEQQAJUDi8Bq45DjcukdDAXasKJ2G27iLsvpdoEL5nTRy5TJ2B -n key1 -d m/64h/1h/0
-	bria create-wallet -n default -x key1
-	docker compose exec bitcoind bitcoin-cli createwallet "default"
-	docker compose exec bitcoind bitcoin-cli -generate 500
-	# docker compose exec bitcoind bitcoin-cli -regtest sendtoaddress bcrt1q0k9yhm4jpqz9srfggvjsqt8f2gjcqu794h0sww 50
-	# docker compose exec bitcoind bitcoin-cli -regtest -generate 5
+e2e:
+	docker compose -f docker-compose.yml run e2e-tests
+
+e2e-in-ci:
+	git config --global --add safe.directory /repo # otherwise bats complains
+	SQLX_OFFLINE=true cargo build --locked
+	bats -t tests/e2e

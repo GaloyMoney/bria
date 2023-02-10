@@ -108,31 +108,39 @@ impl ApiClient {
         Ok(())
     }
 
-    pub async fn get_wallet_balance_summary(&self, wallet_name: String) -> anyhow::Result<()> {
+    pub async fn get_wallet_balance_summary(
+        &self,
+        wallet_name: String,
+        json: bool,
+    ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::GetWalletBalanceSummaryRequest { wallet_name });
         let response = self
             .connect()
             .await?
             .get_wallet_balance_summary(self.inject_auth_token(request)?)
             .await?;
-        let proto::GetWalletBalanceSummaryResponse {
-            current_settled,
-            pending_incoming,
-            pending_outgoing,
-            encumbered_fees,
-            encumbered_outgoing,
-        } = response.into_inner();
+        if json {
+            println!("{}", serde_json::to_string_pretty(&response.into_inner())?);
+        } else {
+            let proto::GetWalletBalanceSummaryResponse {
+                current_settled,
+                pending_incoming,
+                pending_outgoing,
+                encumbered_fees,
+                encumbered_outgoing,
+            } = response.into_inner();
 
-        println!("Pending Incoming: {pending_incoming}");
-        println!("Current Settled: {current_settled}");
-        println!("Encumbered Fees: {encumbered_fees}");
-        println!("Encumbered Outgoing: {encumbered_outgoing}");
-        println!("Pending Outgoing: {pending_outgoing}");
+            println!("Pending Incoming: {pending_incoming}");
+            println!("Current Settled: {current_settled}");
+            println!("Encumbered Fees: {encumbered_fees}");
+            println!("Encumbered Outgoing: {encumbered_outgoing}");
+            println!("Pending Outgoing: {pending_outgoing}");
+        }
 
         Ok(())
     }
 
-    pub async fn new_address(&self, wallet: String) -> anyhow::Result<()> {
+    pub async fn new_address(&self, wallet: String, raw: bool) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::NewAddressRequest {
             wallet_name: wallet,
         });
@@ -141,7 +149,11 @@ impl ApiClient {
             .await?
             .new_address(self.inject_auth_token(request)?)
             .await?;
-        println!("New Address - {}", response.into_inner().address);
+        if raw {
+            print!("{}", response.into_inner().address);
+        } else {
+            println!("New Address - {}", response.into_inner().address);
+        }
         Ok(())
     }
 

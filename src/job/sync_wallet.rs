@@ -1,6 +1,7 @@
 use bdk::blockchain::{ElectrumBlockchain, GetHeight};
 use electrum_client::Client;
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::{
@@ -13,16 +14,27 @@ use crate::{
     wallet::*,
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncWalletData {
+    pub(super) wallet_id: WalletId,
+}
+
+impl SyncWalletData {
+    pub fn new(id: WalletId) -> Self {
+        SyncWalletData { wallet_id: id }
+    }
+}
+
 #[instrument(name = "job.sync_wallet", skip(pool, wallets, batches, ledger), err)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
     batches: Batches,
-    id: WalletId,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
-) -> Result<(), BriaError> {
-    let wallet = wallets.find_by_id(id).await?;
+    data: SyncWalletData,
+) -> Result<SyncWalletData, BriaError> {
+    let wallet = wallets.find_by_id(data.wallet_id).await?;
     for (keychain_id, cfg) in wallet.keychains.iter() {
         let keychain_wallet = KeychainWallet::new(
             pool.clone(),
@@ -54,7 +66,7 @@ pub async fn execute(
                                 wallet.ledger_account_ids.incoming_id,
                             ),
                             meta: IncomingUtxoMeta {
-                                wallet_id: id,
+                                wallet_id: data.wallet_id,
                                 keychain_id: *keychain_id,
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,
@@ -98,7 +110,7 @@ pub async fn execute(
                                 ),
                                 pending_id,
                                 meta: ConfirmedUtxoWithoutFeeReserveMeta {
-                                    wallet_id: id,
+                                    wallet_id: data.wallet_id,
                                     keychain_id: *keychain_id,
                                     batch_id,
                                     confirmation_time,
@@ -146,7 +158,7 @@ pub async fn execute(
                             },
                             pending_id,
                             meta: ConfirmedUtxoMeta {
-                                wallet_id: id,
+                                wallet_id: data.wallet_id,
                                 keychain_id: *keychain_id,
                                 confirmation_time,
                                 outpoint: local_utxo.outpoint,
@@ -160,5 +172,5 @@ pub async fn execute(
             }
         }
     }
-    Ok(())
+    Ok(data)
 }

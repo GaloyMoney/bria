@@ -19,6 +19,7 @@ use batch_wallet_signing::BatchWalletSigningData;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
 use process_batch_group::ProcessBatchGroupData;
+use sync_wallet::SyncWalletData;
 
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 const PROCESS_ALL_BATCH_GROUPS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
@@ -72,7 +73,7 @@ async fn sync_all_wallets(
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
             for id in wallets.all_ids().await? {
-                let _ = spawn_sync_wallet(&pool, id).await;
+                let _ = spawn_sync_wallet(&pool, SyncWalletData::new(id)).await;
             }
             Ok::<(), BriaError>(())
         })
@@ -122,13 +123,13 @@ async fn sync_wallet(
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
 ) -> Result<(), BriaError> {
-    let wallet_id = WalletId::from(current_job.id());
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
-        .execute(|_| async move {
-            sync_wallet::execute(pool, wallets, batches, wallet_id, blockchain_cfg, ledger).await
+        .execute(|data| async move {
+            let data: SyncWalletData = data.expect("no SyncWalletData available");
+            sync_wallet::execute(pool, wallets, batches, blockchain_cfg, ledger, data).await
         })
         .await?;
     Ok(())
@@ -274,10 +275,13 @@ pub async fn spawn_sync_all_wallets(
 }
 
 #[instrument(skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_sync_wallet(pool: &sqlx::PgPool, id: WalletId) -> Result<(), BriaError> {
-    match sync_wallet
-        .builder()
-        .set_channel_args(&id.to_string())
+async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
+    match JobBuilder::new_with_id(Uuid::from(data.wallet_id), "sync_wallet")
+        .set_channel_name("wallet_sync")
+        .set_channel_args(&data.wallet_id.to_string())
+        .set_ordered(true)
+        .set_json(&data)
+        .expect("Couldn't set json")
         .spawn(pool)
         .await
     {
