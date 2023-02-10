@@ -1,5 +1,6 @@
-# blockchain:
-#   network: regtest
+blockchain:
+  network: regtest
+  electrum_url: fulcrum:50001
 # wallets:
 #   sync_all_delay: 10s
 # admin:

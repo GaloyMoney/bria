@@ -24,8 +24,7 @@ fn default_network() -> Network {
 }
 
 fn default_electrum_url() -> String {
-    let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("127.0.0.1".to_string());
-    format!("{electrum_host}:50001")
+    "127.0.0.1:50001".to_string()
 }
 
 #[serde_with::serde_as]
