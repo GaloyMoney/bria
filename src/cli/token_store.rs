@@ -26,6 +26,13 @@ pub fn load_account_token() -> anyhow::Result<String> {
     Ok(token)
 }
 
+pub fn store_daemon_pid(pid: u32) -> anyhow::Result<()> {
+    create_token_dir()?;
+    let _ = fs::remove_file(".bria/daemon_pid");
+    fs::write(".bria/daemon_pid", pid.to_string())?;
+    Ok(())
+}
+
 fn create_token_dir() -> anyhow::Result<()> {
     let _ = fs::create_dir(".bria");
     Ok(())

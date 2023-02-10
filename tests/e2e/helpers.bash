@@ -14,8 +14,7 @@ bitcoin-cli() {
 }
 
 background() {
-  "$@" 3>- &
-  echo $!
+  "$@" &
 }
 
 reset_pg() {
@@ -24,22 +23,27 @@ reset_pg() {
   cargo sqlx migrate run
 }
 
+bitcoind_init() {
+  bitcoin-cli createwallet "default" || true
+	bitcoin-cli -generate 200
+}
+
 start_daemon() {
   background bria daemon
-  echo $! > ${BATS_TMPDIR}/pid
+  sleep 5 # wait for daemon to be up and running
 }
 
 stop_daemon() {
-  kill -9 $(cat ${BATS_TMPDIR}/pid)
+  if [[ -f .bria/daemon_pid ]]; then
+    kill -9 $(cat .bria/daemon_pid)
+  fi
 }
 
 bria_init() {
   bria admin bootstrap
   bria admin create-account -n default
-
-	bitcoin-cli createwallet "default"
-	bitcoin-cli -generate 200
   bria import-xpub -x tpubDDEGUyCLufbxAfQruPHkhUcu55UdhXy7otfcEQG4wqYNnMfq9DbHPxWCqpEQQAJUDi8Bq45DjcukdDAXasKJ2G27iLsvpdoEL5nTRy5TJ2B -n key1 -d m/64h/1h/0
 	bria create-wallet -n default -x key1
+
   echo "Bria Initialization Complete"
 }

@@ -4,8 +4,8 @@ load "helpers"
 
 setup_file() {
   reset_pg
+  bitcoind_init
   start_daemon
-  sleep 2
   bria_init
 }
 
@@ -14,10 +14,9 @@ teardown_file() {
 }
 
 @test "Fund an address and see if the balance is reflected" {
-  bitcoin-cli -regtest sendtoaddress bcrt1q0k9yhm4jpqz9srfggvjsqt8f2gjcqu794h0sww 50
-	bitcoin-cli -generate 1
+  bitcoin-cli -regtest sendtoaddress $(bria new-address -w default --raw) 50
 
-  for i in {1..15}; do
+  for i in {1..30}; do
     pending_incoming=$(bria wallet-balance -w default --json | jq -r ".pending_incoming")
     if [[ $pending_incoming == "5000000000" ]]; then success="true"; break; fi;
     sleep 1
@@ -31,8 +30,8 @@ teardown_file() {
   bria queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 200000
 
   for i in {1..30}; do
-    pending_outgoing=$(bria wallet-balance -w default --json | jq -r ".pending_outgoing")
-    if [[ $pending_outgoing -gt "400000" ]]; then success="true"; break; fi
+    encumbered_outgoing=$(bria wallet-balance -w default --json | jq -r ".encumbered_outgoing")
+    if [[ $encumbered_outgoing == "400000" ]]; then success="true"; break; fi
     sleep 1
   done
   if [[ $success != "true" ]]; then exit 1; fi

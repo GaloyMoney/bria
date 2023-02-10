@@ -31,14 +31,18 @@ clean-deps:
 
 start-deps:
 	docker compose up -d integration-deps
+	sleep 2 # for pg to come up
 
 reset-deps: clean-deps start-deps setup-db
 
 setup-db:
 	cargo sqlx migrate run
 
+e2e:
+	make reset-deps
+	docker compose -f docker-compose.yml run e2e-tests
+
 e2e-in-ci:
-	sleep 10 # for all systems to get ready
-	git config --global --add safe.directory /repo
+	git config --global --add safe.directory /repo # otherwise bats complains
 	SQLX_OFFLINE=true cargo build --locked
 	bats -t tests/e2e

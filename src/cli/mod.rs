@@ -336,6 +336,7 @@ async fn run_cmd(
     }: Config,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
+    token_store::store_daemon_pid(std::process::id())?;
     println!("Starting server processes");
     let (send, mut receive) = tokio::sync::mpsc::channel(1);
     let mut handles = Vec::new();
