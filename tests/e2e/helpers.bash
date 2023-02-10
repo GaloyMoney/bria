@@ -29,7 +29,7 @@ bitcoind_init() {
 }
 
 start_daemon() {
-  background bria daemon
+  background bria daemon --config ./tests/e2e/bria.e2e.yml
   sleep 5 # wait for daemon to be up and running
 }
 
