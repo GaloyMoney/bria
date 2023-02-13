@@ -119,6 +119,7 @@ impl IncomingUtxo {
 
         let params = IncomingUtxoParams::defs();
         let template = NewTxTemplate::builder()
+            .id(INCOMING_UTXO_ID)
             .code(INCOMING_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)

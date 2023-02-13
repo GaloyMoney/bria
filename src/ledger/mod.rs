@@ -140,32 +140,26 @@ impl Ledger {
             dust_id,
         }: WalletLedgerAccountIds,
     ) -> Result<WalletLedgerAccountBalances, BriaError> {
+        let mut balances = self
+            .inner
+            .balances()
+            .find_all(
+                journal_id,
+                [incoming_id, at_rest_id, fee_id, outgoing_id, dust_id],
+            )
+            .await?;
         Ok(WalletLedgerAccountBalances {
-            incoming: self
-                .inner
-                .balances()
-                .find(journal_id, incoming_id, self.btc)
-                .await?,
-            at_rest: self
-                .inner
-                .balances()
-                .find(journal_id, at_rest_id, self.btc)
-                .await?,
-            fee: self
-                .inner
-                .balances()
-                .find(journal_id, fee_id, self.btc)
-                .await?,
-            outgoing: self
-                .inner
-                .balances()
-                .find(journal_id, outgoing_id, self.btc)
-                .await?,
-            dust: self
-                .inner
-                .balances()
-                .find(journal_id, dust_id, self.btc)
-                .await?,
+            incoming: balances
+                .get_mut(&incoming_id)
+                .and_then(|b| b.remove(&self.btc)),
+            at_rest: balances
+                .get_mut(&at_rest_id)
+                .and_then(|b| b.remove(&self.btc)),
+            fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
+            outgoing: balances
+                .get_mut(&outgoing_id)
+                .and_then(|b| b.remove(&self.btc)),
+            dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
         })
     }
 
@@ -266,6 +260,7 @@ impl Ledger {
         balance_type: DebitOrCredit,
     ) -> Result<LedgerAccountId, BriaError> {
         let account = NewLedgerAccount::builder()
+            .id(Uuid::new_v4())
             .name(&wallet_name)
             .code(wallet_code)
             .description(format!("Account for wallet '{}'", &wallet_id))

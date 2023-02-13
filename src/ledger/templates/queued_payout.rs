@@ -119,6 +119,7 @@ impl QueuedPayout {
 
         let params = QueuedPayoutParams::defs();
         let template = NewTxTemplate::builder()
+            .id(QUEUED_PAYOUD_ID)
             .code(QUEUED_PAYOUT_CODE)
             .tx_input(tx_input)
             .entries(entries)

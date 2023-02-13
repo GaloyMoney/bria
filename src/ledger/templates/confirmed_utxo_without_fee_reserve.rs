@@ -150,6 +150,7 @@ impl ConfirmedUtxoWithoutFeeReserve {
 
         let params = ConfirmedUtxoWithoutFeeReserveParams::defs();
         let template = NewTxTemplate::builder()
+            .id(CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_ID)
             .code(CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE)
             .tx_input(tx_input)
             .entries(entries)

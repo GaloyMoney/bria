@@ -224,6 +224,7 @@ impl CreateBatch {
 
         let params = CreateBatchParams::defs();
         let template = NewTxTemplate::builder()
+            .id(CREATE_BATCH_ID)
             .code(CREATE_BATCH_CODE)
             .tx_input(tx_input)
             .entries(entries)

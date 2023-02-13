@@ -209,21 +209,18 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
         wallet_balances
             .fee
             .as_ref()
-            .expect("No at rest balance")
+            .expect("No fee balance")
             .pending(),
-        -fee_sats.to_btc()
+        fee_sats.to_btc()
     );
     assert_eq!(
-        wallet_balances
-            .fee
-            .expect("No at rest balance")
-            .encumbered(),
-        reserved_fees.to_btc()
+        wallet_balances.fee.unwrap().encumbered(),
+        -reserved_fees.to_btc()
     );
     assert_eq!(
         wallet_balances
             .outgoing
-            .expect("No at rest balance")
+            .expect("No outgoing balance")
             .pending(),
         satoshis.to_btc()
     );

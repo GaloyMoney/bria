@@ -183,6 +183,7 @@ impl ConfirmedUtxo {
 
         let params = ConfirmedUtxoParams::defs();
         let template = NewTxTemplate::builder()
+            .id(CONFIRMED_UTXO_ID)
             .code(CONFIRMED_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)
