@@ -44,6 +44,7 @@ pub async fn execute(
         .expect("utxos not found");
     let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
     let settled_utxos = all_utxos.get_settled_utxos(utxos).await?;
+
     let settled_ids: Vec<LedgerTransactionId> =
         settled_utxos.into_iter().map(|u| u.settled_id).collect();
     let settled_ledger_txn_entries = ledger.get_ledger_entries_for_txns(settled_ids).await?;

@@ -21,6 +21,7 @@ pub struct WalletLedgerAccountBalances {
     pub dust: Option<AccountBalance>,
 }
 
+#[derive(Debug)]
 pub struct WalletBalanceSummary {
     pub current_settled: Satoshis,
     pub pending_incoming: Satoshis,

@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
+#[derive(Debug)]
 pub struct SettledUtxo {
     pub settled_id: LedgerTransactionId,
     pub pending_id: LedgerTransactionId,
@@ -204,9 +205,12 @@ impl Utxos {
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<SettledUtxo>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT ledger_tx_pending_id, ledger_tx_settled_id, utxo_json, details_json
-            FROM bdk_utxos
-            WHERE (keychain_id, tx_id, vout) IN"#,
+            r#"SELECT u.ledger_tx_pending_id, u.ledger_tx_settled_id, u.utxo_json, t.details_json
+            FROM bdk_utxos u
+            JOIN bdk_transactions t
+                ON u.keychain_id = t.keychain_id
+                AND u.tx_id = t.tx_id
+            WHERE (u.keychain_id, u.tx_id, u.vout) IN"#,
         );
 
         query_builder.push_tuples(

@@ -52,7 +52,7 @@ impl Batches {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
-            (batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats)"#,
+            (batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id)"#,
         );
         query_builder.push_values(
             batch.wallet_summaries,
@@ -64,6 +64,8 @@ impl Batches {
                 builder.push_bind(i64::from(summary.change_sats));
                 builder.push_bind(summary.change_address.to_string());
                 builder.push_bind(i64::from(summary.fee_sats));
+                builder.push_bind(Uuid::from(summary.ledger_tx_pending_id));
+                builder.push_bind(Uuid::from(summary.ledger_tx_settled_id));
             },
         );
         let query = query_builder.build();

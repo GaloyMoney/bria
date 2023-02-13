@@ -30,8 +30,21 @@ teardown_file() {
   bria queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 200000
 
   for i in {1..30}; do
+    pending_outgoing=$(bria wallet-balance -w default --json | jq -r ".pending_outgoing")
     encumbered_outgoing=$(bria wallet-balance -w default --json | jq -r ".encumbered_outgoing")
-    if [[ $encumbered_outgoing == "400000" ]]; then success="true"; break; fi
+    if [[ $encumbered_outgoing == "400000" && $pending_outgoing == "0" ]]; then success="true"; break; fi
+    sleep 1
+  done
+  if [[ $success != "true" ]]; then exit 1; fi
+}
+
+@test "Check if balances are up to date for queued payouts in settled utxos" {
+	bitcoin-cli -generate 20
+
+  for i in {1..120}; do
+    pending_outgoing=$(bria wallet-balance -w default --json | jq -r ".pending_outgoing")
+    if [[ $pending_outgoing == "400000" ]]; then success="true"; break; fi
+    bria wallet-balance -w default --json
     sleep 1
   done
   if [[ $success != "true" ]]; then exit 1; fi
