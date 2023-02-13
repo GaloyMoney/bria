@@ -31,12 +31,14 @@ services:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
       - e2e-deps
-    command: [ "make", "e2e-in-ci" ]
+    command: [ "make", "e2e-tests-in-container" ]
     working_dir: /repo
     volumes:
       - ./:/repo
       - /var/run/docker.sock:/var/run/docker.sock
+      - cargo-cache:/usr/local/cargo
     environment:
+      - BRIA_CONFIG=docker
       - RUST_LOG=error
       - DATABASE_URL=postgres://user:password@postgres:5432/pg
       - PG_CON=postgres://user:password@postgres:5432/pg
@@ -48,7 +50,7 @@ services:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
       - integration-deps
-    command: [ "make", "test-in-ci" ]
+    command: [ "make", "integration-tests-in-container" ]
     environment:
       - DATABASE_URL=postgres://user:password@postgres:5432/pg
       - PG_HOST=postgres
@@ -58,6 +60,7 @@ services:
     working_dir: /repo
     volumes:
       - ./:/repo
+      - cargo-cache:/usr/local/cargo
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
     command: [ "--config=/etc/otel-agent-config.yaml" ]
@@ -100,3 +103,5 @@ services:
       - SSL_CERTFILE=/tls.cert
       - SSL_KEYFILE=/tls.key
     command: [ "Fulcrum", "/fulcrum.conf" ]
+volumes:
+  cargo-cache:

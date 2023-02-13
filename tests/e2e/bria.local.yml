@@ -1,0 +1,3 @@
+blockchain:
+  network: regtest
+  electrum_url: localhost:50001
