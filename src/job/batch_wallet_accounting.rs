@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -11,6 +12,8 @@ pub struct BatchWalletAccountingData {
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
     pub(super) batch_id: BatchId,
+    #[serde(flatten)]
+    pub(super) tracing_data: HashMap<String, String>,
 }
 
 #[instrument(

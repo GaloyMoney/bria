@@ -128,7 +128,7 @@ impl Ledger {
         Ok(entries)
     }
 
-    #[instrument(name = "ledger.get_wallet_ledger_account_balances")]
+    #[instrument(name = "ledger.get_wallet_ledger_account_balances", skip(self))]
     pub async fn get_wallet_ledger_account_balances(
         &self,
         journal_id: JournalId,

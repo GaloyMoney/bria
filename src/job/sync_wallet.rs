@@ -25,7 +25,12 @@ impl SyncWalletData {
     }
 }
 
-#[instrument(name = "job.sync_wallet", skip(pool, wallets, batches, ledger), err)]
+#[instrument(
+    name = "job.sync_wallet",
+    skip(pool, wallets, batches, ledger),
+    fields(n_pending_utxos, n_settled_utxos),
+    err
+)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
@@ -35,6 +40,8 @@ pub async fn execute(
     data: SyncWalletData,
 ) -> Result<SyncWalletData, BriaError> {
     let wallet = wallets.find_by_id(data.wallet_id).await?;
+    let mut n_pending_utxos = 0;
+    let mut n_settled_utxos = 0;
     for (keychain_id, cfg) in wallet.keychains.iter() {
         let keychain_wallet = KeychainWallet::new(
             pool.clone(),
@@ -55,6 +62,7 @@ pub async fn execute(
                 confirmation_time,
             })) = utxos.find_new_pending_tx(&mut tx).await
             {
+                n_pending_utxos += 1;
                 ledger
                     .incoming_utxo(
                         tx,
@@ -90,6 +98,7 @@ pub async fn execute(
                 local_utxo,
             })) = utxos.find_new_settled_tx(&mut tx, &utxos_to_skip).await
             {
+                n_settled_utxos += 1;
                 if let Some(batch_id) = batches
                     .find_containing_utxo(*keychain_id, local_utxo.outpoint)
                     .await?
@@ -172,5 +181,10 @@ pub async fn execute(
             }
         }
     }
+
+    let span = tracing::Span::current();
+    span.record("n_pending_utxos", &n_pending_utxos);
+    span.record("n_settled_utxos", &n_settled_utxos);
+
     Ok(data)
 }

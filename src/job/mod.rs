@@ -48,6 +48,7 @@ pub async fn start_job_runner(
         process_batch_group,
         batch_wallet_accounting,
         batch_wallet_signing,
+        batch_wallet_finalizing,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
@@ -154,11 +155,7 @@ async fn process_batch_group(
                     .await?;
             if let Some((mut tx, wallet_ids)) = res {
                 for id in wallet_ids {
-                    spawn_batch_wallet_accounting(
-                        &mut tx,
-                        BatchWalletAccountingData::from((&data, id)),
-                    )
-                    .await?;
+                    spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
                 }
                 spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data)).await?;
                 tx.commit().await?;
@@ -254,7 +251,7 @@ async fn batch_wallet_finalizing(
     Ok(())
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_sync_all_wallets", skip_all, fields(error, error.level, error.message), err)]
 pub async fn spawn_sync_all_wallets(
     pool: &sqlx::PgPool,
     duration: std::time::Duration,
@@ -274,7 +271,7 @@ pub async fn spawn_sync_all_wallets(
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(Uuid::from(data.wallet_id), "sync_wallet")
         .set_channel_name("wallet_sync")
@@ -294,7 +291,7 @@ async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_process_all_batch_groups", skip_all, fields(error, error.level, error.message), err)]
 pub async fn spawn_process_all_batch_groups(
     pool: &sqlx::PgPool,
     delay: std::time::Duration,
@@ -314,7 +311,7 @@ pub async fn spawn_process_all_batch_groups(
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_process_batch_group", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_process_batch_group(
     pool: &sqlx::PgPool,
     data: ProcessBatchGroupData,
@@ -339,11 +336,12 @@ async fn spawn_process_batch_group(
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_batch_wallet_accounting", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_accounting(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: BatchWalletAccountingData,
+    data: impl Into<BatchWalletAccountingData>,
 ) -> Result<(), BriaError> {
+    let data = data.into();
     match batch_wallet_accounting
         .builder()
         .set_json(&data)
@@ -360,7 +358,7 @@ async fn spawn_batch_wallet_accounting(
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_batch_wallet_signing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_signing(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: BatchWalletSigningData,
@@ -381,7 +379,7 @@ async fn spawn_batch_wallet_signing(
     }
 }
 
-#[instrument(skip_all, fields(error, error.level, error.message), err)]
+#[instrument(name = "job.spawn_batch_wallet_finalizing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_finalizing(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: BatchWalletFinalizingData,
@@ -405,6 +403,7 @@ async fn spawn_batch_wallet_finalizing(
 impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
     fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
         Self {
+            tracing_data: crate::tracing::extract_tracing_data(),
             account_id: data.account_id,
             batch_id: data.batch_id,
             wallet_id,

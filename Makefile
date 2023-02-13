@@ -17,8 +17,8 @@ integration-tests-in-container:
 	DATABASE_URL=postgres://user:password@postgres:5432/pg cargo sqlx migrate run
 	SQLX_OFFLINE=true cargo nextest run --verbose --locked
 
-cli-run:
-	cargo run --bin stablesats run
+local-daemon:
+	cargo run --bin bria daemon --config ./tests/e2e/bria.local.yml
 
 build-x86_64-unknown-linux-musl-release:
 	SQLX_OFFLINE=true cargo build --release --locked --target x86_64-unknown-linux-musl
