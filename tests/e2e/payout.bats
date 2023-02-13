@@ -14,38 +14,52 @@ teardown_file() {
 }
 
 @test "Fund an address and see if the balance is reflected" {
-  bitcoin-cli -regtest sendtoaddress $(bria new-address -w default --raw) 50
+  bria_address=$(bria_cmd new-address -w default --raw)
+  if [ -z "$bria_address" ]; then
+    echo "Failed to get a new address"
+    exit 1
+  fi
+
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 25
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 25
 
   for i in {1..30}; do
-    pending_incoming=$(bria wallet-balance -w default --json | jq -r ".pending_incoming")
-    if [[ $pending_incoming == "5000000000" ]]; then success="true"; break; fi;
+    cache_default_wallet_balance
+    [[ $(cached_pending_income) == 5000000000 ]] && break
     sleep 1
   done
-  if [[ $success != "true" ]]; then exit 1; fi;
+  [[ $(cached_encumbered_fees) == 0 ]] || exit 1
+  [[ $(cached_pending_income) == 5000000000 ]] || exit 1;
 }
 
 @test "Create batch group and have two queued payouts on it" {
-  bria create-batch-group --name high
-  bria queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 200000
-  bria queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 200000
+  bria_cmd create-batch-group --name high
+  bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 200000
+  bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 200000
 
   for i in {1..30}; do
-    pending_outgoing=$(bria wallet-balance -w default --json | jq -r ".pending_outgoing")
-    encumbered_outgoing=$(bria wallet-balance -w default --json | jq -r ".encumbered_outgoing")
-    if [[ $encumbered_outgoing == "400000" && $pending_outgoing == "0" ]]; then success="true"; break; fi
+    cache_default_wallet_balance
+    [[ $(cached_encumbered_outgoing) == 400000 && $(cached_pending_outgoing) == 0 ]] && break
     sleep 1
   done
-  if [[ $success != "true" ]]; then exit 1; fi
+  [[ $(cached_encumbered_outgoing) == 400000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
-@test "Check if balances are up to date for queued payouts in settled utxos" {
-	bitcoin-cli -generate 20
+@test "Blocks settle income and makes outgoing pending" {
+	bitcoin_cli -generate 20
 
-  for i in {1..120}; do
-    pending_outgoing=$(bria wallet-balance -w default --json | jq -r ".pending_outgoing")
-    if [[ $pending_outgoing == "400000" ]]; then success="true"; break; fi
-    bria wallet-balance -w default --json
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_income) == 0 ]] && break
     sleep 1
   done
-  if [[ $success != "true" ]]; then exit 1; fi
+  [[ $(cached_current_settled) == 5000000000 ]] || exit 1
+  [[ $(cached_encumbered_fees) != 0 ]] || exit 1
+
+  for i in {1..120}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 400000 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 400000 ]] || exit 1
 }

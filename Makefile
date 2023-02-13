@@ -12,7 +12,7 @@ check-code:
 	SQLX_OFFLINE=true cargo clippy --all-features
 	SQLX_OFFLINE=true cargo audit
 
-test-in-ci:
+integration-tests-in-container:
 	sleep 10 # for all systems to get ready
 	DATABASE_URL=postgres://user:password@postgres:5432/pg cargo sqlx migrate run
 	SQLX_OFFLINE=true cargo nextest run --verbose --locked
@@ -37,10 +37,10 @@ reset-deps: clean-deps start-deps setup-db
 setup-db:
 	cargo sqlx migrate run
 
-e2e: reset-deps
-	docker compose -f docker-compose.yml run e2e-tests
+e2e: clean-deps build start-deps
+	bats -t tests/e2e
 
-e2e-in-ci:
+e2e-tests-in-container:
 	git config --global --add safe.directory /repo # otherwise bats complains
 	SQLX_OFFLINE=true cargo build --locked
 	bats -t tests/e2e

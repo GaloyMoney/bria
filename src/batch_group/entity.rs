@@ -76,5 +76,5 @@ impl Default for BatchGroupConfig {
 }
 
 fn default_interval() -> Duration {
-    Duration::from_secs(60)
+    Duration::from_secs(20)
 }
