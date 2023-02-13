@@ -88,11 +88,17 @@ impl BriaService for Bria {
             .await?;
 
         Ok(Response::new(GetWalletBalanceSummaryResponse {
-            current_settled: u64::try_from(balance.current_settled).expect("Too many sats"),
-            pending_incoming: u64::try_from(balance.pending_incoming).expect("Too many sats"),
-            pending_outgoing: u64::try_from(balance.pending_outgoing).expect("Too many sats"),
-            encumbered_fees: u64::try_from(balance.encumbered_fees).expect("Too many sats"),
-            encumbered_outgoing: u64::try_from(balance.encumbered_outgoing).expect("Too many sats"),
+            current_settled: u64::try_from(balance.current_settled)
+                .expect("Satoshis -> u64 failed"),
+            pending_incoming: u64::try_from(balance.pending_incoming)
+                .expect("Satoshis -> u64 failed"),
+            pending_outgoing: u64::try_from(balance.pending_outgoing)
+                .expect("Satoshis -> u64 failed"),
+            encumbered_fees: u64::try_from(balance.encumbered_fees)
+                .expect("Satoshis -> u64 failed"),
+            encumbered_outgoing: u64::try_from(balance.encumbered_outgoing)
+                .expect("Satoshis -> u64 failed"),
+            pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
         }))
     }
 

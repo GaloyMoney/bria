@@ -69,9 +69,7 @@ impl From<u64> for Satoshis {
 
 impl From<Satoshis> for u64 {
     fn from(sats: Satoshis) -> u64 {
-        sats.0
-            .to_u64()
-            .expect("Couldn't convert Satoshis (possibly msats)")
+        sats.0.to_u64().expect("Couldn't convert Satoshis")
     }
 }
 

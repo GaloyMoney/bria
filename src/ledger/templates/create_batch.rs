@@ -185,41 +185,41 @@ impl CreateBatch {
                 .build()
                 .expect("Couldn't build CREATE_BATCH_SETTLED_CR entry"),
             EntryInput::builder()
-                .entry_type("'CREATE_BATCH_PENDING_FEE_CR'")
-                .currency("'BTC'")
-                .account_id("params.ledger_account_fee_id")
-                .direction("CREDIT")
-                .layer("PENDING")
-                .units("params.fees")
-                .build()
-                .expect("Couldn't build CREATE_BATCH_FEE_CR entry"),
-            EntryInput::builder()
                 .entry_type("'CREATE_BATCH_PENDING_FEE_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
+                .account_id("params.ledger_account_fee_id")
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.fees")
                 .build()
                 .expect("Couldn't build CREATE_BATCH_FEE_DR entry"),
             EntryInput::builder()
-                .entry_type("'CREATE_BATCH_ENCUMBERED_FEE_DR'")
+                .entry_type("'CREATE_BATCH_PENDING_FEE_CR'")
                 .currency("'BTC'")
-                .account_id("params.ledger_account_fee_id")
-                .direction("DEBIT")
-                .layer("ENCUMBERED")
-                .units("params.true_up_fees")
+                .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
+                .direction("CREDIT")
+                .layer("PENDING")
+                .units("params.fees")
                 .build()
-                .expect("Couldn't build CREATE_BATCH_ENCUMBERED_FEE_DR entry"),
+                .expect("Couldn't build CREATE_BATCH_FEE_CR entry"),
             EntryInput::builder()
                 .entry_type("'CREATE_BATCH_ENCUMBERED_FEE_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
+                .account_id("params.ledger_account_fee_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.true_up_fees")
                 .build()
                 .expect("Couldn't build CREATE_BATCH_ENCUMBERED_FEE_CR entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_ENCUMBERED_FEE_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.true_up_fees")
+                .build()
+                .expect("Couldn't build CREATE_BATCH_ENCUMBERED_FEE_DR entry"),
         ];
 
         let params = CreateBatchParams::defs();

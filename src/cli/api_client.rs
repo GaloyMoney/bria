@@ -126,6 +126,7 @@ impl ApiClient {
                 current_settled,
                 pending_incoming,
                 pending_outgoing,
+                pending_fees,
                 encumbered_fees,
                 encumbered_outgoing,
             } = response.into_inner();
@@ -135,6 +136,7 @@ impl ApiClient {
             println!("Encumbered Fees: {encumbered_fees}");
             println!("Encumbered Outgoing: {encumbered_outgoing}");
             println!("Pending Outgoing: {pending_outgoing}");
+            println!("Pending Fees: {pending_fees}");
         }
 
         Ok(())

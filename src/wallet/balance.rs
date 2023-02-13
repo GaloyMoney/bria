@@ -26,6 +26,7 @@ pub struct WalletBalanceSummary {
     pub current_settled: Satoshis,
     pub pending_incoming: Satoshis,
     pub pending_outgoing: Satoshis,
+    pub pending_fees: Satoshis,
     pub encumbered_fees: Satoshis,
     pub encumbered_outgoing: Satoshis,
 }
@@ -36,7 +37,14 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
             current_settled: Satoshis::from_btc(
                 balances
                     .at_rest
-                    .map(|b| b.settled())
+                    .map(|b| {
+                        let val = b.settled();
+                        if val < Decimal::ZERO {
+                            Decimal::ZERO
+                        } else {
+                            val
+                        }
+                    })
                     .unwrap_or(Decimal::ZERO),
             ),
             pending_incoming: Satoshis::from_btc(
@@ -48,6 +56,13 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
             pending_outgoing: Satoshis::from_btc(
                 balances
                     .outgoing
+                    .as_ref()
+                    .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            pending_fees: Satoshis::from_btc(
+                balances
+                    .fee
                     .as_ref()
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),

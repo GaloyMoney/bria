@@ -29,6 +29,10 @@ cached_pending_outgoing() {
   echo ${balance} | jq -r '.pending_outgoing'
 }
 
+cached_pending_fees() {
+  echo ${balance} | jq -r '.pending_fees'
+}
+
 cached_encumbered_outgoing() {
   echo ${balance} | jq -r '.encumbered_outgoing'
 }
