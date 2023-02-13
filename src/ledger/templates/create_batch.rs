@@ -96,7 +96,7 @@ impl From<CreateBatchParams> for TxParams {
             meta,
         }: CreateBatchParams,
     ) -> Self {
-        let true_up_fees = (reserved_fees - fee_sats).to_btc();
+        let true_up_fees = (fee_sats - reserved_fees).to_btc();
         let satoshis = satoshis.to_btc();
         let fee_sats = fee_sats.to_btc();
         let effective = Utc::now().date_naive();

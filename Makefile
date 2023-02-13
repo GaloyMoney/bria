@@ -37,7 +37,7 @@ reset-deps: clean-deps start-deps setup-db
 setup-db:
 	cargo sqlx migrate run
 
-e2e:
+e2e: reset-deps
 	docker compose -f docker-compose.yml run e2e-tests
 
 e2e-in-ci:
