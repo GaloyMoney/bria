@@ -5,8 +5,7 @@ pub(super) const INCOMING_UTXO_CODE: &str = "INCOMING_UTXO";
 pub(super) const CONFIRMED_UTXO_CODE: &str = "CONFIRMED_UTXO";
 pub(super) const QUEUED_PAYOUT_CODE: &str = "QUEUED_PAYOUT";
 pub(super) const CREATE_BATCH_CODE: &str = "CREATE_BATCH";
-pub(super) const CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE: &str =
-    "CONFIRMED_UTXO_WITHOUT_FEE_RESERVE";
+pub(super) const CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE: &str = "CONFIRMED_UTXO_WO_FR";
 
 // Onchain/Omnibus Ledger Accounts
 pub(super) const ONCHAIN_INCOMING_CODE: &str = "ONCHAIN_INCOMING";

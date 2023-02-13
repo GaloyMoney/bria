@@ -126,16 +126,16 @@ impl ConfirmedUtxo {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
+                .entry_type("'CONFIRMED_UTXO_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_incoming_id")
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_PENDING_DR entry"),
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_CR'")
+                .entry_type("'CONFIRMED_UTXO_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -144,41 +144,41 @@ impl ConfirmedUtxo {
                 .build()
                 .expect("Couldn't build PENDING_ONCHAIN_CR entry"),
             EntryInput::builder()
-                .entry_type("'SETTLED_ONCHAIN_DR'")
+                .entry_type("'CONFIRMED_UTXO_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build SETTLED_ONCHAIN_DR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_SETTLED_DR entry"),
             EntryInput::builder()
-                .entry_type("'SETTLED_ONCHAIN_CR'")
+                .entry_type("'CONFIRMED_UTXO_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_at_rest_id")
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_SETTLED_CR entry"),
             EntryInput::builder()
-                .entry_type("'ENCUMBERED_FEE_RESERVE_DR'")
+                .entry_type("'CONFIRMED_UTXO_FR_DR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_fee_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.fees")
                 .build()
-                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_DR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_FR_DR entry"),
             EntryInput::builder()
-                .entry_type("'ENCUMBERED_FEE_RESERVE_CR'")
+                .entry_type("'CONFIRMED_UTXO_FR_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_OUTGOING_ID}')"))
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.fees")
                 .build()
-                .expect("Couldn't build ENCUMBERED_FEE_RESERVE_CR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_FR_DR entry"),
         ];
 
         let params = ConfirmedUtxoParams::defs();
