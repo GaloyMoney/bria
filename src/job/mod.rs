@@ -62,7 +62,7 @@ pub async fn start_job_runner(
     Ok(registry.runner(pool).run().await?)
 }
 
-#[job(name = "sync_all_wallets", channel_name = "wallet_sync")]
+#[job(name = "sync_all_wallets")]
 async fn sync_all_wallets(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -83,7 +83,7 @@ async fn sync_all_wallets(
     Ok(())
 }
 
-#[job(name = "process_all_batch_groups", channel_name = "wallet_sync")]
+#[job(name = "process_all_batch_groups")]
 async fn process_all_batch_groups(
     mut current_job: CurrentJob,
     batch_groups: BatchGroups,
@@ -111,12 +111,7 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(
-    name = "sync_wallet",
-    channel_name = "wallet_sync",
-    retries = 20,
-    ordered = true
-)]
+#[job(name = "sync_wallet")]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -136,7 +131,7 @@ async fn sync_wallet(
     Ok(())
 }
 
-#[job(name = "process_batch_group", channel_name = "batch_group")]
+#[job(name = "process_batch_group")]
 async fn process_batch_group(
     mut current_job: CurrentJob,
     payouts: Payouts,
@@ -169,8 +164,7 @@ async fn process_batch_group(
 
 #[job(
     name = "batch_wallet_accounting",
-    channel_name = "sync_wallet",
-    retries = 20,
+    channel_name = "bria",
     ordered = true
 )]
 async fn batch_wallet_accounting(
@@ -194,7 +188,7 @@ async fn batch_wallet_accounting(
     Ok(())
 }
 
-#[job(name = "batch_wallet_signing", channel_name = "batch", retries = 20)]
+#[job(name = "batch_wallet_signing", channel_name = "bria")]
 async fn batch_wallet_signing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
@@ -229,7 +223,7 @@ async fn batch_wallet_signing(
     Ok(())
 }
 
-#[job(name = "batch_wallet_finalizing", channel_name = "batch", retries = 20)]
+#[job(name = "batch_wallet_finalizing", channel_name = "bria", retries = 20)]
 async fn batch_wallet_finalizing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
@@ -257,7 +251,8 @@ pub async fn spawn_sync_all_wallets(
     duration: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(SYNC_ALL_WALLETS_ID, "sync_all_wallets")
-        .set_channel_name("wallet_sync")
+        .set_channel_name("bria_static")
+        .set_channel_args("sync_all_wallets")
         .set_delay(duration)
         .spawn(pool)
         .await
@@ -273,10 +268,10 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(data.wallet_id), "sync_wallet")
-        .set_channel_name("wallet_sync")
-        .set_channel_args(&data.wallet_id.to_string())
+    match JobBuilder::new_with_id(data.wallet_id.into(), "sync_wallet")
         .set_ordered(true)
+        .set_channel_name("bria")
+        .set_channel_args(&wallet_accounting_channel_arg(data.wallet_id))
         .set_json(&data)
         .expect("Couldn't set json")
         .spawn(pool)
@@ -297,7 +292,8 @@ pub async fn spawn_process_all_batch_groups(
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batch_groups")
-        .set_channel_name("batch_group")
+        .set_channel_name("bria_static")
+        .set_channel_args("process_all_batch_groups")
         .set_delay(delay)
         .spawn(pool)
         .await
@@ -317,11 +313,11 @@ async fn spawn_process_batch_group(
     data: ProcessBatchGroupData,
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(data.batch_group_id), "process_batch_group")
+    match JobBuilder::new_with_id(data.batch_group_id.into(), "process_batch_group")
         .set_delay(delay)
-        .set_channel_name("batch_group")
-        .set_channel_args(&data.account_id.to_string())
         .set_ordered(true)
+        .set_channel_name("bria")
+        .set_channel_args(&account_utxo_selection_channel_arg(data.account_id))
         .set_json(&data)
         .expect("Couldn't set json")
         .spawn(pool)
@@ -344,6 +340,7 @@ async fn spawn_batch_wallet_accounting(
     let data = data.into();
     match batch_wallet_accounting
         .builder()
+        .set_channel_args(&wallet_accounting_channel_arg(data.wallet_id))
         .set_json(&data)
         .expect("Couldn't set json")
         .set_channel_args(&data.wallet_id.to_string())
@@ -367,7 +364,6 @@ async fn spawn_batch_wallet_signing(
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
-        .set_channel_name("batch")
         .spawn(&mut *tx)
         .await
     {
@@ -388,7 +384,6 @@ async fn spawn_batch_wallet_finalizing(
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
-        .set_channel_name("batch")
         .spawn(&mut *tx)
         .await
     {
@@ -398,6 +393,14 @@ async fn spawn_batch_wallet_finalizing(
         }
         Ok(_) => Ok(()),
     }
+}
+
+fn wallet_accounting_channel_arg(wallet_id: WalletId) -> String {
+    format!("wallet_accounting:{}", wallet_id)
+}
+
+fn account_utxo_selection_channel_arg(account_id: AccountId) -> String {
+    format!("account_utxo_selection:{}", account_id)
 }
 
 impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
