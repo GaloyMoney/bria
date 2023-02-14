@@ -381,104 +381,6 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script = $2"
   },
-  "5345dac58bc958ac514d111891b99a4622739e7fbf3f633edb3bc9b7a0c07455": {
-    "describe": {
-      "columns": [
-        {
-          "name": "batch_group_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "bitcoin_tx_id",
-          "ordinal": 1,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "total_in_sats",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "total_out_sats",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_sats",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_address",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "fee_sats",
-          "ordinal": 8,
-          "type_info": "Int8"
-        },
-        {
-          "name": "ledger_tx_pending_id",
-          "ordinal": 9,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "ledger_tx_settled_id",
-          "ordinal": 10,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tx_id",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "vout",
-          "ordinal": 12,
-          "type_info": "Int4"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 13,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id\n            FROM bria_batch_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
-  },
   "6be0e1f0b1e056688e4e276b13a40d5b6423b960df7dbff0b2a2f5e1bec3dc33": {
     "describe": {
       "columns": [
@@ -1153,6 +1055,110 @@
       }
     },
     "query": "WITH utxo AS (\n                 UPDATE bdk_utxos SET ledger_tx_pending_id = $1\n                 WHERE keychain_id = $2 AND (tx_id, vout) in (\n                   SELECT tx_id, vout FROM bdk_utxos\n                   WHERE keychain_id = $2 AND ledger_tx_pending_id IS NULL LIMIT 1)\n                 RETURNING tx_id, utxo_json\n                 )\n               SELECT u.tx_id, utxo_json, details_json\n                 FROM utxo u\n                 JOIN bdk_transactions t ON u.tx_id = t.tx_id"
+  },
+  "eaf56dbf08faba87951ef230864999ab193e8625d24e41ea7786e56d5fc0b06c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "batch_group_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "unsigned_psbt",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "bitcoin_tx_id",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "total_in_sats",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "total_out_sats",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_sats",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_address",
+          "ordinal": 8,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "fee_sats",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ledger_tx_pending_id",
+          "ordinal": 10,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ledger_tx_settled_id",
+          "ordinal": 11,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tx_id",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "vout",
+          "ordinal": 13,
+          "type_info": "Int4"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 14,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT batch_group_id, unsigned_psbt, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id\n            FROM bria_batch_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
   },
   "ee265d202f419acf4715b077c2591278ac9274fa6b667dd4bf2a0bf44a3dd7eb": {
     "describe": {

@@ -35,6 +35,7 @@ pub async fn execute(
         batch_group_id,
         wallet_summaries,
         included_utxos,
+        ..
     } = batches.find_by_id(data.batch_id).await?;
 
     let wallet_summary = wallet_summaries

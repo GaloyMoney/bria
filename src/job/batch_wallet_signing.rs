@@ -15,7 +15,7 @@ pub struct BatchWalletSigningData {
 
 #[instrument(
     name = "job.batch_wallet_signing",
-    skip(_pool, _wallets, _batches, _ledger),
+    skip(_pool, _wallets, batches, _ledger),
     err
 )]
 pub async fn execute(
@@ -24,8 +24,8 @@ pub async fn execute(
     blockchain_cfg: BlockchainConfig,
     _ledger: Ledger,
     _wallets: Wallets,
-    _batches: Batches,
+    batches: Batches,
 ) -> Result<BatchWalletSigningData, BriaError> {
-    // load and sign psbt
+    let Batch { .. } = batches.find_by_id(data.batch_id).await?;
     Ok(data)
 }

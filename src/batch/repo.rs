@@ -89,7 +89,7 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id
+            r#"SELECT batch_group_id, unsigned_psbt, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id
             FROM bria_batch_utxos u
             LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
             LEFT JOIN bria_batches b ON b.id = u.batch_id
@@ -135,6 +135,7 @@ impl Batches {
             id,
             batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
             bitcoin_tx_id: bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?,
+            unsigned_psbt: bitcoin::consensus::deserialize(&rows[0].unsigned_psbt)?,
             wallet_summaries,
             included_utxos,
         })
