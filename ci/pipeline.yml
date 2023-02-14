@@ -28,6 +28,23 @@ groups:
 jobs:
 - #@ rust_check_code()
 - #@ rust_integration_test()
+- name: test-e2e
+  serial: true
+  plan:
+  - { get: repo, trigger: true }
+  - { get: pipeline-tasks }
+  - task: test-e2e
+    timeout: 15m
+    config:
+      platform: linux
+      image_resource: #@ rust_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: repo
+        path: #@ data.values.gh_repository + "-integration"
+      run:
+        path: pipeline-tasks/ci/tasks/test-e2e.sh
+  on_failure: #@ slack_failure_notification()
 
 resources:
 - #@ repo_resource()
