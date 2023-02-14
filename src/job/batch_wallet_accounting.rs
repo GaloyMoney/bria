@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -11,6 +12,8 @@ pub struct BatchWalletAccountingData {
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
     pub(super) batch_id: BatchId,
+    #[serde(flatten)]
+    pub(super) tracing_data: HashMap<String, String>,
 }
 
 #[instrument(
@@ -53,9 +56,9 @@ pub async fn execute(
     for entries in settled_ledger_txn_entries.values() {
         if let Some(fee_entry) = entries
             .iter()
-            .find(|entry| entry.entry_type == "ENCUMBERED_FEE_RESERVE_CR")
+            .find(|entry| entry.account_id == wallet.ledger_account_ids.fee_id)
         {
-            reserved_fees += Satoshis::from(fee_entry.units);
+            reserved_fees += Satoshis::from_btc(fee_entry.units);
         }
     }
 

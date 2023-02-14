@@ -98,27 +98,28 @@ impl QueuedPayout {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'ENQUEUED_PAYOUT_DR'")
+                .entry_type("'QUEUED_PAYOUT_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build ENQUEUED_PAYOUT_DEBIT entry"),
+                .expect("Couldn't build QUEUED_PAYOUT_DEBIT entry"),
             EntryInput::builder()
-                .entry_type("'ENQUEUED_PAYOUT_CR'")
+                .entry_type("'QUEUED_PAYOUT_CR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_outgoing_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build ENQUEUED_PAYOUT_CREDIT entry"),
+                .expect("Couldn't build QUEUED_PAYOUT_CREDIT entry"),
         ];
 
         let params = QueuedPayoutParams::defs();
         let template = NewTxTemplate::builder()
+            .id(QUEUED_PAYOUD_ID)
             .code(QUEUED_PAYOUT_CODE)
             .tx_input(tx_input)
             .entries(entries)

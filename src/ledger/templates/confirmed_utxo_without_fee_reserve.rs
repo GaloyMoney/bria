@@ -111,16 +111,16 @@ impl ConfirmedUtxoWithoutFeeReserve {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
+                .entry_type("'CONFIRMED_UTXO_WO_FR_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_incoming_id")
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_WO_FR_PENDING_DR entry"),
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_CR'")
+                .entry_type("'CONFIRMED_UTXO_WO_FR_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -129,27 +129,28 @@ impl ConfirmedUtxoWithoutFeeReserve {
                 .build()
                 .expect("Couldn't build PENDING_ONCHAIN_CR entry"),
             EntryInput::builder()
-                .entry_type("'SETTLED_ONCHAIN_DR'")
+                .entry_type("'CONFIRMED_UTXO_WO_FR_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build SETTLED_ONCHAIN_DR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_WO_FR_SETTLED_DR entry"),
             EntryInput::builder()
-                .entry_type("'SETTLED_ONCHAIN_CR'")
+                .entry_type("'CONFIRMED_UTXO_WO_FR_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_at_rest_id")
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build SETTLED_ONCHAIN_CR entry"),
+                .expect("Couldn't build CONFIRMED_UTXO_WO_FR_SETTLED_INCOMING_CR entry"),
         ];
 
         let params = ConfirmedUtxoWithoutFeeReserveParams::defs();
         let template = NewTxTemplate::builder()
+            .id(CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_ID)
             .code(CONFIRMED_UTXO_WITHOUT_FEE_RESERVE_CODE)
             .tx_input(tx_input)
             .entries(entries)

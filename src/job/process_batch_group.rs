@@ -64,7 +64,6 @@ pub async fn execute<'a>(
         "batch_group_id",
         &tracing::field::display(data.batch_group_id),
     );
-    span.record("batch_id", &tracing::field::display(data.batch_id));
 
     let unbatched_payouts = payouts.list_unbatched(data.batch_group_id).await?;
     span.record(
@@ -125,6 +124,7 @@ pub async fn execute<'a>(
         span.record("psbt", &tracing::field::display(&psbt));
 
         let wallet_ids = wallet_totals.keys().copied().collect();
+        span.record("batch_id", &tracing::field::display(data.batch_id));
         let batch = NewBatch::builder()
             .id(data.batch_id)
             .batch_group_id(data.batch_group_id)

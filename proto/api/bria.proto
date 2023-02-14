@@ -58,11 +58,12 @@ message GetWalletBalanceSummaryRequest {
 }
 
 message GetWalletBalanceSummaryResponse {
-  uint64 current_settled = 1;
-  uint64 pending_incoming = 2;
-  uint64 pending_outgoing = 3;
-  uint64 encumbered_fees = 4;
-  uint64 encumbered_outgoing = 5;
+  uint64 pending_incoming = 1;
+  uint64 encumbered_fees = 2;
+  uint64 current_settled = 3;
+  uint64 encumbered_outgoing = 4;
+  uint64 pending_outgoing = 5;
+  uint64 pending_fees = 6;
 }
 
 message CreateBatchGroupRequest {

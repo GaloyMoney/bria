@@ -168,7 +168,7 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     tx.commit().await?;
 
     let batch_id = BatchId::new();
-    let fee_sats = Satoshis::from(12_346);
+    let fee_sats = Satoshis::from(2_346);
     let satoshis = Satoshis::from(100_000_000);
     let reserved_fees = Satoshis::from(12_346);
 
@@ -194,19 +194,36 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
         )
         .await?;
 
-    let wallet_outgoing_balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.outgoing_id)
-        .await?
-        .expect("No balance");
+    let wallet_balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
 
-    assert_eq!(wallet_outgoing_balance.pending(), Decimal::ONE);
-
-    let wallet_fee_balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.fee_id)
-        .await?
-        .expect("No balance");
-
-    assert_eq!(-wallet_fee_balance.encumbered(), fee_sats.to_btc());
+    assert_eq!(
+        wallet_balances
+            .at_rest
+            .expect("No at rest balance")
+            .settled(),
+        -(satoshis + fee_sats).to_btc()
+    );
+    assert_eq!(
+        wallet_balances
+            .fee
+            .as_ref()
+            .expect("No fee balance")
+            .pending(),
+        fee_sats.to_btc()
+    );
+    assert_eq!(
+        wallet_balances.fee.unwrap().encumbered(),
+        -reserved_fees.to_btc()
+    );
+    assert_eq!(
+        wallet_balances
+            .outgoing
+            .expect("No outgoing balance")
+            .pending(),
+        satoshis.to_btc()
+    );
 
     Ok(())
 }

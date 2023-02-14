@@ -98,27 +98,28 @@ impl IncomingUtxo {
             .expect("Couldn't build TxInput");
         let entries = vec![
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_DR'")
+                .entry_type("'INCOMING_UTXO_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
+                .expect("Couldn't build INCOMING_UTXO_PENDING_DR entry"),
             EntryInput::builder()
-                .entry_type("'PENDING_ONCHAIN_CR'")
+                .entry_type("'INCOMING_UTXO_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id("params.ledger_account_incoming_id")
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build PENDING_ONCHAIN_DEBIT entry"),
+                .expect("Couldn't build INCOMING_UTXO_PENDING_CR entry"),
         ];
 
         let params = IncomingUtxoParams::defs();
         let template = NewTxTemplate::builder()
+            .id(INCOMING_UTXO_ID)
             .code(INCOMING_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)

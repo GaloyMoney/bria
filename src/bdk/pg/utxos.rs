@@ -210,7 +210,7 @@ impl Utxos {
             JOIN bdk_transactions t
                 ON u.keychain_id = t.keychain_id
                 AND u.tx_id = t.tx_id
-            WHERE (u.keychain_id, u.tx_id, u.vout) IN"#,
+            WHERE u.ledger_tx_settled_id IS NOT NULL AND (u.keychain_id, u.tx_id, u.vout) IN"#,
         );
 
         query_builder.push_tuples(
