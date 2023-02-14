@@ -24,6 +24,7 @@ groups:
   jobs:
   - check-code
   - test-integration
+  - test-e2e
 
 jobs:
 - #@ rust_check_code()
@@ -41,7 +42,6 @@ jobs:
       inputs:
       - name: pipeline-tasks
       - name: repo
-        path: #@ data.values.gh_repository + "-integration"
       run:
         path: pipeline-tasks/ci/tasks/test-e2e.sh
   on_failure: #@ slack_failure_notification()
