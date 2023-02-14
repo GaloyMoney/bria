@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*};
@@ -6,7 +7,10 @@ use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*,
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchWalletSigningData {
     pub(super) account_id: AccountId,
+    pub(super) wallet_id: WalletId,
     pub(super) batch_id: BatchId,
+    #[serde(flatten)]
+    pub(super) tracing_data: HashMap<String, String>,
 }
 
 #[instrument(

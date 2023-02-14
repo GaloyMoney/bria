@@ -156,8 +156,9 @@ async fn process_batch_group(
             if let Some((mut tx, wallet_ids)) = res {
                 for id in wallet_ids {
                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
+                    spawn_batch_wallet_signing(&mut tx, (&data, id)).await?;
                 }
-                spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data)).await?;
+                spawn_batch_wallet_finalizing(&mut tx, &data).await?;
                 tx.commit().await?;
             }
 
@@ -217,11 +218,6 @@ async fn batch_wallet_signing(
                 batches,
             )
             .await?;
-
-            let mut tx = pool.clone().begin().await?;
-            spawn_batch_wallet_finalizing(&mut tx, BatchWalletFinalizingData::from(data.clone()))
-                .await?;
-            tx.commit().await?;
 
             Ok::<_, BriaError>(data)
         })
@@ -361,8 +357,9 @@ async fn spawn_batch_wallet_accounting(
 #[instrument(name = "job.spawn_batch_wallet_signing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_signing(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: BatchWalletSigningData,
+    data: impl Into<BatchWalletSigningData>,
 ) -> Result<(), BriaError> {
+    let data = data.into();
     match batch_wallet_signing
         .builder()
         .set_json(&data)
@@ -382,8 +379,9 @@ async fn spawn_batch_wallet_signing(
 #[instrument(name = "job.spawn_batch_wallet_finalizing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_finalizing(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: BatchWalletFinalizingData,
+    data: impl Into<BatchWalletFinalizingData>,
 ) -> Result<(), BriaError> {
+    let data = data.into();
     match batch_wallet_finalizing
         .builder()
         .set_json(&data)
@@ -411,17 +409,19 @@ impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
     }
 }
 
-impl From<&ProcessBatchGroupData> for BatchWalletSigningData {
-    fn from(data: &ProcessBatchGroupData) -> Self {
+impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletSigningData {
+    fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
         Self {
+            tracing_data: crate::tracing::extract_tracing_data(),
             account_id: data.account_id,
             batch_id: data.batch_id,
+            wallet_id,
         }
     }
 }
 
-impl From<BatchWalletSigningData> for BatchWalletFinalizingData {
-    fn from(data: BatchWalletSigningData) -> Self {
+impl From<&ProcessBatchGroupData> for BatchWalletFinalizingData {
+    fn from(data: &ProcessBatchGroupData) -> Self {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
