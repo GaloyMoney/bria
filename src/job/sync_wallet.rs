@@ -183,8 +183,8 @@ pub async fn execute(
     }
 
     let span = tracing::Span::current();
-    span.record("n_pending_utxos", &n_pending_utxos);
-    span.record("n_settled_utxos", &n_settled_utxos);
+    span.record("n_pending_utxos", n_pending_utxos);
+    span.record("n_settled_utxos", n_settled_utxos);
 
     Ok(data)
 }
