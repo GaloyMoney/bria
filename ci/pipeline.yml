@@ -25,12 +25,15 @@ groups:
   - check-code
   - test-integration
   - test-e2e
+  - build-edge-image
 
 jobs:
 - #@ rust_check_code()
 - #@ rust_integration_test()
+- #@ build_edge_image()
 - name: test-e2e
   serial: true
+  tags: ["galoy-staging"]
   plan:
   - { get: repo, trigger: true }
   - { get: pipeline-tasks }
@@ -42,6 +45,8 @@ jobs:
       inputs:
       - name: pipeline-tasks
       - name: repo
+      params:
+        DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
       run:
         path: pipeline-tasks/ci/tasks/test-e2e.sh
   on_failure: #@ slack_failure_notification()
@@ -50,6 +55,7 @@ resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
 - #@ slack_resource()
+- #@ edge_image_resource()
 
 resource_types:
 - #@ slack_resource_type()
