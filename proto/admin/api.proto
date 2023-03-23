@@ -1,6 +1,8 @@
 syntax = "proto3";
 package services.bria_admin.v1;
 
+option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/adminv1";
+
 service AdminService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}
   rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}

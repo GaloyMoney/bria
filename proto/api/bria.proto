@@ -1,6 +1,8 @@
 syntax = "proto3";
 package services.bria.v1;
 
+option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/briav1";
+
 service BriaService {
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
