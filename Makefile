@@ -1,3 +1,6 @@
+install-dev-deps:
+	cargo install cargo-nextest cargo-watch cargo-audit sqlx-cli
+
 build:
 	SQLX_OFFLINE=true cargo build --locked
 
