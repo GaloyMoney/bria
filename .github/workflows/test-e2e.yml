@@ -14,6 +14,16 @@ jobs:
         with:
           bats-version: 1.9.0
       - uses: actions/checkout@v3
+      - name: Setup cache for cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - name: Run e2e tests
         env:
           PG_CON: postgres://user:password@127.0.0.1:5432/pg
