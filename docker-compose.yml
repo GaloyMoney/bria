@@ -36,7 +36,6 @@ services:
     volumes:
       - ./:/repo
       - /var/run/docker.sock:/var/run/docker.sock
-      - cargo-cache:/usr/local/cargo
     environment:
       - BRIA_CONFIG=docker
       - RUST_LOG=error
@@ -60,7 +59,6 @@ services:
     working_dir: /repo
     volumes:
       - ./:/repo
-      - cargo-cache:/usr/local/cargo
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
     command: [ "--config=/etc/otel-agent-config.yaml" ]
@@ -103,5 +101,3 @@ services:
       - SSL_CERTFILE=/tls.cert
       - SSL_KEYFILE=/tls.key
     command: [ "Fulcrum", "/fulcrum.conf" ]
-volumes:
-  cargo-cache:
