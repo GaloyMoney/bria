@@ -16,7 +16,6 @@ check-code:
 	SQLX_OFFLINE=true cargo audit
 
 integration-tests-in-container:
-	sleep 10 # for all systems to get ready
 	DATABASE_URL=postgres://user:password@postgres:5432/pg cargo sqlx migrate run
 	SQLX_OFFLINE=true cargo nextest run --verbose --locked
 
