@@ -33,7 +33,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
-    let blockchain = helpers::electrum_blockchain()?;
+    let blockchain = helpers::electrum_blockchain().await?;
     for _ in 0..5 {
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
         other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
@@ -191,7 +191,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         .finalize_psbt(signed_psbt)
         .await?
         .extract_tx();
-    helpers::electrum_blockchain()?.broadcast(&tx)?;
+    helpers::electrum_blockchain().await?.broadcast(&tx)?;
 
     Ok(())
 }

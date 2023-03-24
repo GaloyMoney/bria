@@ -16,6 +16,8 @@ use bitcoin::{
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, primitives::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
+use std::time::Duration;
+use tokio::time::sleep;
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
     let pg_host = std::env::var("PG_HOST").unwrap_or("localhost".to_string());
@@ -97,10 +99,35 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
+pub async fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
-    Ok(ElectrumBlockchain::from(Client::new(&electrum_url)?))
+
+    let mut retries = 0;
+    let max_retries = 5;
+
+    while retries < max_retries {
+        match Client::new(&electrum_url) {
+            Ok(client) => return Ok(ElectrumBlockchain::from(client)),
+            Err(e) => {
+                if retries == max_retries - 1 {
+                    return Err(anyhow::Error::new(e));
+                } else {
+                    retries += 1;
+                    println!(
+                        "Failed to connect to Electrum server (attempt {}/{}), retrying...",
+                        retries, max_retries
+                    );
+                    sleep(Duration::from_secs(1)).await;
+                }
+            }
+        }
+    }
+
+    Err(anyhow::anyhow!(
+        "Failed to connect to Electrum server after {} retries",
+        max_retries
+    ))
 }
 
 pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
