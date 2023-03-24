@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Run e2e tests
-        run: docker compose -f docker-compose.yml run e2e-tests
+        run: make e2e
