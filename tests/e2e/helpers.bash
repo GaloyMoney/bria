@@ -41,9 +41,19 @@ bitcoin_cli() {
   docker exec bria-bitcoind-1 bitcoin-cli $@
 }
 
+lnd_cli() {
+  docker exec bria-lnd-1 lncli -n regtest $@
+}
+
 reset_pg() {
   docker exec bria-postgres-1 psql $PG_CON -c "DROP SCHEMA public CASCADE"
   docker exec bria-postgres-1 psql $PG_CON -c "CREATE SCHEMA public"
+}
+
+restart_bitcoin() {
+  docker compose rm -sfv bitcoind lnd fulcrum
+	docker compose up -d integration-deps
+  retry 10 1 lnd_cli getinfo
 }
 
 bitcoind_init() {
@@ -65,7 +75,7 @@ stop_daemon() {
 bria_init() {
   bria_cmd admin bootstrap
   bria_cmd admin create-account -n default
-  bria_cmd import-xpub -x tpubDDEGUyCLufbxAfQruPHkhUcu55UdhXy7otfcEQG4wqYNnMfq9DbHPxWCqpEQQAJUDi8Bq45DjcukdDAXasKJ2G27iLsvpdoEL5nTRy5TJ2B -n key1 -d m/64h/1h/0
+  bria_cmd import-xpub -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -n key1 -d m/84h/0h/0h
 	bria_cmd create-wallet -n default -x key1
 
   echo "Bria Initialization Complete"
