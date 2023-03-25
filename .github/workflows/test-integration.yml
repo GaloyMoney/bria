@@ -10,5 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install sqlx-cli
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: sqlx-cli
+      - name: Install nextest
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-nextest
+      - name: Setup cache for cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - name: Run integration tests
-        run: docker compose -f docker-compose.yml run integration-tests
+        env:
+          PG_CON: postgres://user:password@127.0.0.1:5432/pg
+        run: make test-in-ci
