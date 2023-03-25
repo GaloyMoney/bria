@@ -1,13 +1,5 @@
 version: "3"
 services:
-  e2e-deps:
-    image: busybox
-    depends_on:
-      - postgres
-      - bitcoind
-      - lnd
-      - otel-agent
-      - fulcrum
   integration-deps:
     image: busybox
     depends_on:
@@ -27,38 +19,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  e2e-tests:
-    image: us.gcr.io/galoy-org/rust-concourse
-    depends_on:
-      - e2e-deps
-    command: [ "make", "e2e-tests-in-container" ]
-    working_dir: /repo
-    volumes:
-      - ./:/repo
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - BRIA_CONFIG=docker
-      - RUST_LOG=error
-      - DATABASE_URL=postgres://user:password@postgres:5432/pg
-      - PG_CON=postgres://user:password@postgres:5432/pg
-      - PG_HOST=postgres
-      - BITCOIND_HOST=bitcoind
-      - LND_HOST=lnd
-      - ELECTRUM_HOST=fulcrum
-  integration-tests:
-    image: us.gcr.io/galoy-org/rust-concourse
-    depends_on:
-      - integration-deps
-    command: [ "make", "integration-tests-in-container" ]
-    environment:
-      - DATABASE_URL=postgres://user:password@postgres:5432/pg
-      - PG_HOST=postgres
-      - BITCOIND_HOST=bitcoind
-      - LND_HOST=lnd
-      - ELECTRUM_HOST=fulcrum
-    working_dir: /repo
-    volumes:
-      - ./:/repo
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
     command: [ "--config=/etc/otel-agent-config.yaml" ]
