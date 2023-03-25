@@ -24,15 +24,43 @@ groups:
   jobs:
   - check-code
   - test-integration
+  - test-e2e
+  - build-edge-image
 
 jobs:
 - #@ rust_check_code()
 - #@ rust_integration_test()
+- #@ build_edge_image()
+- name: test-e2e
+  serial: true
+  plan:
+  - { get: repo, trigger: true }
+  - { get: pipeline-tasks }
+  - task: test-e2e
+    tags: ["galoy-staging"]
+    timeout: 15m
+    config:
+      platform: linux
+      image_resource: #@ rust_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: repo
+        path: #@ data.values.gh_repository + "-e2e"
+      params:
+        REPO_PATH: #@ data.values.gh_repository + "-e2e"
+        DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
+        GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
+        SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
+        SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
+      run:
+        path: pipeline-tasks/ci/tasks/test-e2e.sh
+  on_failure: #@ slack_failure_notification()
 
 resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
 - #@ slack_resource()
+- #@ edge_image_resource()
 
 resource_types:
 - #@ slack_resource_type()

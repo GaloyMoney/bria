@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'chore: bump actoins/checkout in rust-audit'
-      sha: 9bf3ef380e5c258dfc5d13a136e5bad15c76d4da
+      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
+      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'chore: bump actoins/checkout in rust-audit'
-      sha: 9bf3ef380e5c258dfc5d13a136e5bad15c76d4da
+      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
+      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
     path: .
   path: ./vendor
 kind: LockConfig

@@ -19,6 +19,42 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  e2e-tests:
+    image: us.gcr.io/galoy-org/rust-concourse
+    depends_on:
+      - postgres
+    command: [ "make", "e2e-tests-in-container" ]
+    working_dir: /repo
+    volumes:
+      - ./:/repo
+      - /var/run/docker.sock:/var/run/docker.sock
+      - cargo-cache:/usr/local/cargo
+    environment:
+      - HOST_PROJECT_PATH=${PWD}
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+      - BRIA_CONFIG=docker
+      - RUST_LOG=error
+      - DATABASE_URL=postgres://user:password@postgres:5432/pg
+      - PG_CON=postgres://user:password@postgres:5432/pg
+      - PG_HOST=postgres
+      - BITCOIND_HOST=bitcoind
+      - LND_HOST=lnd
+      - ELECTRUM_HOST=fulcrum
+  integration-tests:
+    image: us.gcr.io/galoy-org/rust-concourse
+    depends_on:
+      - integration-deps
+    command: [ "make", "integration-tests-in-container" ]
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/pg
+      - PG_HOST=postgres
+      - BITCOIND_HOST=bitcoind
+      - LND_HOST=lnd
+      - ELECTRUM_HOST=fulcrum
+    working_dir: /repo
+    volumes:
+      - ./:/repo
+      - cargo-cache:/usr/local/cargo
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
     command: [ "--config=/etc/otel-agent-config.yaml" ]
@@ -30,16 +66,16 @@ services:
   bitcoind:
     image: lncm/bitcoind:v24.0.1
     volumes:
-      - ${PWD}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
+      - ${HOST_PROJECT_PATH:-.}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
   lnd:
     image: lightninglabs/lnd:v0.15.4-beta
     volumes:
-      - ${PWD}/dev/lnd/lnd.conf:/root/.lnd/lnd.conf
-      - ${PWD}/dev/lnd/tls.key:/root/.lnd/tls.key
-      - ${PWD}/dev/lnd/tls.cert:/root/.lnd/tls.cert
-      - ${PWD}/dev/lnd/regtest/lnd.wallet.db:/root/.lnd/wallet.db
-      - ${PWD}/dev/lnd/regtest/lnd.macaroons.db:/root/.lnd/macaroons.db
-      - ${PWD}/dev/lnd/regtest/lnd.admin.macaroon:/root/.lnd/admin.macaroon
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/lnd.conf:/root/.lnd/lnd.conf
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/tls.key:/root/.lnd/tls.key
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/tls.cert:/root/.lnd/tls.cert
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/regtest/lnd.wallet.db:/root/.lnd/wallet.db
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/regtest/lnd.macaroons.db:/root/.lnd/macaroons.db
+      - ${HOST_PROJECT_PATH:-.}/dev/lnd/regtest/lnd.admin.macaroon:/root/.lnd/admin.macaroon
     depends_on: [ bitcoind ]
     entrypoint: [ "/bin/sh", "-c" ]
     command:
@@ -53,11 +89,13 @@ services:
     image: cculianu/fulcrum:latest
     depends_on: [ bitcoind ]
     volumes:
-      - ${PWD}/dev/fulcrum/fulcrum.conf:/fulcrum.conf
-      - ${PWD}/dev/fulcrum/tls.key:/tls.key
-      - ${PWD}/dev/fulcrum/tls.cert:/tls.cert
+      - ${HOST_PROJECT_PATH:-.}/dev/fulcrum/fulcrum.conf:/fulcrum.conf
+      - ${HOST_PROJECT_PATH:-.}/dev/fulcrum/tls.key:/tls.key
+      - ${HOST_PROJECT_PATH:-.}/dev/fulcrum/tls.cert:/tls.cert
     environment:
       - DATA_DIR=/db
       - SSL_CERTFILE=/tls.cert
       - SSL_KEYFILE=/tls.key
     command: [ "Fulcrum", "/fulcrum.conf" ]
+volumes:
+  cargo-cache:

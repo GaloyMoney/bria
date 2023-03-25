@@ -14,7 +14,7 @@ teardown_file() {
   stop_daemon
 }
 
-@test "Fund an address and see if the balance is reflected" {
+@test "payout: Fund an address and see if the balance is reflected" {
   bria_address=$(bria_cmd new-address -w default --raw)
   if [ -z "$bria_address" ]; then
     echo "Failed to get a new address"
@@ -33,7 +33,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
 
-@test "Create batch group and have two queued payouts on it" {
+@test "payout: Create batch group and have two queued payouts on it" {
   bria_cmd create-batch-group --name high
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 75000000
@@ -46,7 +46,7 @@ teardown_file() {
   [[ $(cached_encumbered_outgoing) == 150000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
-@test "Blocks settle income and makes outgoing pending" {
+@test "payout: Blocks settle income and makes outgoing pending" {
   bitcoin_cli -generate 20
 
   for i in {1..30}; do
@@ -67,7 +67,7 @@ teardown_file() {
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
 }
 
-@test "Outgoing unconfirmed utxo" {
+@test "payout: Outgoing unconfirmed utxo" {
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
   bria_address=$(bria_cmd new-address -w default --raw)
   bitcoin_cli -regtest sendtoaddress ${bria_address} 1

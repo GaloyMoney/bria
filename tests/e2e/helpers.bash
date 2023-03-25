@@ -1,4 +1,8 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-${REPO_ROOT##*/}}"
+if [[ "${BRIA_CONFIG}" == "docker" ]]; then
+  COMPOSE_FILE_ARG="-f docker-compose.yml"
+fi
 
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
@@ -38,21 +42,23 @@ cached_encumbered_outgoing() {
 }
 
 bitcoin_cli() {
-  docker exec bria-bitcoind-1 bitcoin-cli $@
+  docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
 }
 
 lnd_cli() {
-  docker exec bria-lnd-1 lncli -n regtest $@
+  docker exec "${COMPOSE_PROJECT_NAME}-lnd-1" lncli -n regtest $@
 }
 
 reset_pg() {
-  docker exec bria-postgres-1 psql $PG_CON -c "DROP SCHEMA public CASCADE"
-  docker exec bria-postgres-1 psql $PG_CON -c "CREATE SCHEMA public"
+  docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "DROP SCHEMA public CASCADE"
+  docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "CREATE SCHEMA public"
 }
 
 restart_bitcoin() {
-  docker compose rm -sfv bitcoind lnd fulcrum
-	docker compose up -d integration-deps
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
+  # Running this twice has sometimes bitcoind is dangling in CI
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
+  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind lnd fulcrum
   retry 10 1 lnd_cli getinfo
 }
 
