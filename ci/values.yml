@@ -5,6 +5,10 @@ git_branch: main
 github_private_key: ((github.private_key))
 github_token: ((github.api_token))
 
+docker_registry: us.gcr.io/galoy-org
+docker_registry_user: ((docker-creds.username))
+docker_registry_password: ((docker-creds.password))
+
 docker_host_ip: ((staging-ssh.docker_host_ip))
 artifacts_bucket_name: ((staging-gcp-creds.bucket_name))
 staging_inception_creds: ((staging-gcp-creds.creds_json))

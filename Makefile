@@ -35,9 +35,19 @@ reset-deps: clean-deps start-deps setup-db
 setup-db:
 	cargo sqlx migrate run
 
+integration-tests-in-container:
+	DATABASE_URL=postgres://user:password@postgres:5432/pg cargo sqlx migrate run
+	SQLX_OFFLINE=true cargo nextest run --verbose --locked
+
 test-in-ci: start-deps
 	DATABASE_URL=postgres://user:password@127.0.0.1:5432/pg cargo sqlx migrate run
 	SQLX_OFFLINE=true cargo nextest run --verbose --locked
+
+e2e-tests-in-container:
+	git config --global --add safe.directory /repo # otherwise bats complains
+	SQLX_OFFLINE=true cargo build --locked
+	bats -t tests/e2e
+	rm -rf .bria
 
 e2e: clean-deps build start-deps
 	bats -t tests/e2e

@@ -14,7 +14,7 @@ teardown_file() {
   stop_daemon
 }
 
-@test "Generates the same address" {
+@test "lnd_sync: Generates the same address" {
   # Get a p2wkh address from lnd
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
 
@@ -27,7 +27,7 @@ teardown_file() {
   [ "$lnd_address" = "$bria_address" ]
 }
 
-@test "Mirrors balance" {
+@test "lnd_sync: Mirrors balance" {
   # Create a new onchain address using the lnd_cli helper
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
   if [ -z "$lnd_address" ]; then
