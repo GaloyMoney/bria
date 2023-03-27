@@ -11,7 +11,7 @@ use uuid::{uuid, Uuid};
 
 use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
-    primitives::*, wallet::*,
+    primitives::*, wallet::*, wallet_utxo::WalletUtxos,
 };
 use batch_wallet_accounting::BatchWalletAccountingData;
 use batch_wallet_finalizing::BatchWalletFinalizingData;
@@ -37,6 +37,7 @@ pub async fn start_job_runner(
     batches: Batches,
     payouts: Payouts,
     ledger: Ledger,
+    wallet_utxos: WalletUtxos,
     sync_all_wallets_delay: std::time::Duration,
     process_all_batch_groups_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
@@ -58,6 +59,7 @@ pub async fn start_job_runner(
     registry.set_context(batches);
     registry.set_context(payouts);
     registry.set_context(ledger);
+    registry.set_context(wallet_utxos);
 
     Ok(registry.runner(pool).run().await?)
 }

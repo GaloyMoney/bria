@@ -15,6 +15,7 @@ use crate::{
     payout::*,
     primitives::*,
     wallet::{balance::*, *},
+    wallet_utxo::*,
     xpub::*,
 };
 
@@ -27,6 +28,7 @@ pub struct App {
     batch_groups: BatchGroups,
     payouts: Payouts,
     ledger: Ledger,
+    wallet_utxos: WalletUtxos,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
 }
@@ -46,6 +48,7 @@ impl App {
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
+        let wallet_utxos = WalletUtxos::new(&pool, &ledger);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
@@ -53,6 +56,7 @@ impl App {
             batches,
             payouts.clone(),
             ledger.clone(),
+            wallet_utxos.clone(),
             wallets_cfg.sync_all_wallets_delay,
             wallets_cfg.process_all_batch_groups_delay,
             blockchain_cfg.clone(),
@@ -72,6 +76,7 @@ impl App {
             payouts,
             pool,
             ledger,
+            wallet_utxos,
             _runner: runner,
             blockchain_cfg,
         })
