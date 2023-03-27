@@ -14,11 +14,12 @@ CREATE TABLE bdk_script_pubkeys (
   keychain_kind BdkKeychainKind NOT NULL,
   path INTEGER NOT NULL,
   script BYTEA NOT NULL,
+  script_hex VARCHAR NOT NULL,
   script_fmt VARCHAR NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(keychain_id, keychain_kind, path),
-  UNIQUE(keychain_id, script)
+  UNIQUE(keychain_id, script_hex)
 );
 
 CREATE TABLE bdk_indexes (

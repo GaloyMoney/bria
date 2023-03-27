@@ -1,8 +1,13 @@
 use bdk::LocalUtxo;
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
-use crate::primitives::*;
+use crate::{error::*, primitives::*};
+
+pub struct UnsyncedUtxo {
+    pub local_utxo: LocalUtxo,
+    pub path: u32,
+}
 
 pub struct Utxos {
     pool: PgPool,
@@ -49,5 +54,40 @@ impl Utxos {
             .into_iter()
             .map(|utxo| serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo"))
             .collect())
+    }
+
+    pub async fn find_unsynced_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+    ) -> Result<Option<UnsyncedUtxo>, BriaError> {
+        let row = sqlx::query!(
+            r#"WITH updated_utxo AS (
+            UPDATE bdk_utxos SET synced_to_wallet = true
+            WHERE keychain_id = $1 AND (tx_id, vout) IN (
+                SELECT tx_id, vout FROM bdk_utxos
+                WHERE keychain_id = $1 AND synced_to_wallet = false
+                ORDER BY created_at
+                LIMIT 1
+            )
+            RETURNING utxo_json
+            )
+            SELECT utxo_json, path
+            FROM updated_utxo u
+            JOIN bdk_script_pubkeys p
+            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex"#,
+            Uuid::from(keychain_id),
+        )
+        .fetch_optional(tx)
+        .await?;
+
+        Ok(row.map(|row| {
+            let local_utxo: LocalUtxo =
+                serde_json::from_value(row.utxo_json).expect("Could not deserialize utxo_json");
+            UnsyncedUtxo {
+                local_utxo,
+                path: row.path as u32,
+            }
+        }))
     }
 }

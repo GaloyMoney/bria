@@ -24,8 +24,8 @@ impl ScriptPubkeys {
         let kind = keychain.into();
         sqlx::query!(
             r#"INSERT INTO bdk_script_pubkeys
-            (keychain_id, keychain_kind, path, script, script_fmt)
-            VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING"#,
+            (keychain_id, keychain_kind, path, script, script_hex, script_fmt)
+            VALUES ($1, $2, $3, $4, ENCODE($4, 'hex'), $5) ON CONFLICT DO NOTHING"#,
             Uuid::from(self.keychain_id),
             kind as BdkKeychainKind,
             path as i32,
@@ -63,7 +63,7 @@ impl ScriptPubkeys {
     ) -> Result<Option<(BdkKeychainKind, u32)>, bdk::Error> {
         let rows = sqlx::query!(
             r#"SELECT keychain_kind as "keychain_kind: BdkKeychainKind", path FROM bdk_script_pubkeys
-            WHERE keychain_id = $1 AND script = $2"#,
+            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"#,
             Uuid::from(self.keychain_id),
             script.as_ref(),
         )
