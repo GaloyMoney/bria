@@ -1,5 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE TYPE KeychainKind AS ENUM ('external', 'internal');
+
 CREATE TABLE bria_admin_api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR UNIQUE NOT NULL,
@@ -67,6 +69,21 @@ CREATE TABLE bria_wallets (
   UNIQUE(id, version),
   UNIQUE(account_id, name, version)
 );
+
+CREATE TABLE bria_wallet_utxos (
+    keychain_id UUID NOT NULL,
+    tx_id VARCHAR NOT NULL,
+    vout INTEGER NOT NULL,
+    kind KeychainKind NOT NULL,
+    address_idx INTEGER NOT NULL,
+    value NUMERIC NOT NULL,
+    address VARCHAR NOT NULL,
+    script_hex VARCHAR NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(keychain_id, tx_id, vout)
+);
+
 
 CREATE TABLE bria_wallet_keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -1,5 +1,6 @@
 use bdk::{wallet::AddressInfo, LocalUtxo};
 use sqlx::{Pool, Postgres, Transaction};
+use tracing::instrument;
 
 use crate::{error::*, ledger::*, primitives::*};
 
@@ -19,6 +20,7 @@ impl WalletUtxos {
         }
     }
 
+    #[instrument(name = "wallet_utxos.new_bdk_utxo", skip(self, tx))]
     pub async fn new_bdk_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
@@ -26,6 +28,16 @@ impl WalletUtxos {
         address: AddressInfo,
         utxo: LocalUtxo,
     ) -> Result<(), BriaError> {
+        let new_utxo = NewWalletUtxo::builder()
+            .keychain_id(keychain_id)
+            .outpoint(utxo.outpoint)
+            .kind(address.keychain)
+            .address_idx(address.index)
+            .address(address.to_string())
+            .script_hex(format!("{:x}", utxo.txout.script_pubkey))
+            .value(utxo.txout.value)
+            .build()
+            .expect("Could not buld NewWalletUtxo");
         // ledger
         //     .incoming_utxo(
         //         tx,

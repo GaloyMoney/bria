@@ -28,6 +28,22 @@ pub mod bitcoin {
         },
         KeychainKind,
     };
+    pub mod pg {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+        #[sqlx(type_name = "KeychainKind", rename_all = "snake_case")]
+        pub enum PgKeychainKind {
+            External,
+            Internal,
+        }
+        impl From<super::KeychainKind> for PgKeychainKind {
+            fn from(kind: super::KeychainKind) -> Self {
+                match kind {
+                    super::KeychainKind::External => Self::External,
+                    super::KeychainKind::Internal => Self::Internal,
+                }
+            }
+        }
+    }
 }
 pub struct XPubId(bitcoin::Fingerprint);
 
@@ -68,6 +84,10 @@ impl Satoshis {
     pub fn from_btc(btc: Decimal) -> Self {
         Self(btc * SATS_PER_BTC)
     }
+
+    pub fn into_inner(self) -> Decimal {
+        self.0
+    }
 }
 
 impl From<Decimal> for Satoshis {
@@ -90,6 +110,12 @@ impl From<Satoshis> for u64 {
 
 impl From<i32> for Satoshis {
     fn from(sats: i32) -> Self {
+        Self(Decimal::from(sats))
+    }
+}
+
+impl From<u32> for Satoshis {
+    fn from(sats: u32) -> Self {
         Self(Decimal::from(sats))
     }
 }
