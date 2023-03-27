@@ -19,13 +19,14 @@ impl Utxos {
         utxo: &LocalUtxo,
     ) -> Result<(), bdk::Error> {
         sqlx::query!(
-            r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json)
-            VALUES ($1, $2, $3, $4) ON CONFLICT (keychain_id, tx_id, vout)
-            DO UPDATE set utxo_json = EXCLUDED.utxo_json"#,
+            r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json, is_spent)
+            VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id, vout)
+            DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = $5"#,
             Uuid::from(keychain_id),
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
             serde_json::to_value(utxo)?,
+            utxo.is_spent,
         )
         .execute(&self.pool)
         .await
@@ -33,7 +34,10 @@ impl Utxos {
         Ok(())
     }
 
-    pub async fn list(&self, keychain_id: KeychainId) -> Result<Vec<LocalUtxo>, bdk::Error> {
+    pub async fn list_local_utxos(
+        &self,
+        keychain_id: KeychainId,
+    ) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1"#,
             Uuid::from(keychain_id),

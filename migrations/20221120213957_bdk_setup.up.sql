@@ -34,13 +34,15 @@ CREATE TABLE bdk_utxos (
   keychain_id UUID NOT NULL,
   tx_id VARCHAR NOT NULL,
   vout INTEGER NOT NULL,
+  is_spent BOOLEAN NOT NULL,
   utxo_json JSONB NOT NULL,
   synced_to_wallet BOOLEAN DEFAULT false,
+  spent_synced_to_wallet BOOLEAN DEFAULT false,
+  confirmation_synced_to_wallet BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(keychain_id, tx_id, vout)
 );
-CREATE INDEX idx_bdk_utxos_unsynced ON bdk_utxos (synced_to_wallet) WHERE synced_to_wallet = false;
 
 
 CREATE TABLE bdk_old_utxos (

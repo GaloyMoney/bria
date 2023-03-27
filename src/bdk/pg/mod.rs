@@ -145,7 +145,7 @@ impl Database for SqlxWalletDb {
     }
     fn iter_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         self.rt
-            .block_on(async { Utxos::new(self.pool.clone()).list(self.keychain_id).await })
+            .block_on(async { Utxos::new(self.pool.clone()).list_local_utxos(self.keychain_id).await })
     }
     fn iter_raw_txs(&self) -> Result<Vec<Transaction>, bdk::Error> {
         unimplemented!()
