@@ -374,5 +374,6 @@ fn read_to_base64(path: PathBuf) -> anyhow::Result<String> {
     let mut reader = BufReader::new(f);
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
-    Ok(base64::encode(buffer))
+    use base64::{engine::general_purpose, Engine};
+    Ok(general_purpose::STANDARD.encode(buffer))
 }

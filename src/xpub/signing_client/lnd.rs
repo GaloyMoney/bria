@@ -20,6 +20,7 @@ pub struct LndRemoteSigner {
 
 impl LndRemoteSigner {
     pub async fn connect(cfg: LndSignerConfig) -> Result<Self, SigningClientError> {
+        use base64::{engine::general_purpose, Engine};
         use std::{io::Write, os::unix::fs::OpenOptionsExt};
         let tmpdir = tempfile::tempdir()?;
         let cert_file = tmpdir.path().join("cert");
@@ -29,14 +30,14 @@ impl LndRemoteSigner {
             .write(true)
             .mode(0o600)
             .open(&cert_file)?;
-        cert.write_all(&base64::decode(&cfg.cert_base64)?)?;
+        cert.write_all(&general_purpose::STANDARD.decode(&cfg.cert_base64)?)?;
         let macaroon_file = tmpdir.path().join("macaroon");
         let mut macaroon = fs::OpenOptions::new()
             .create(true)
             .write(true)
             .mode(0o600)
             .open(&macaroon_file)?;
-        macaroon.write_all(&base64::decode(&cfg.macaroon_base64)?)?;
+        macaroon.write_all(&general_purpose::STANDARD.decode(&cfg.macaroon_base64)?)?;
         let client = tonic_lnd::connect(cfg.endpoint, cert_file, macaroon_file)
             .await
             .map_err(|e| {
