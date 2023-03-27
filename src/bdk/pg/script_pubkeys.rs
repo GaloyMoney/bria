@@ -1,9 +1,8 @@
-use bitcoin::blockdata::script::Script;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
-use crate::primitives::*;
+use crate::primitives::{bitcoin::Script, *};
 
 pub struct ScriptPubkeys {
     keychain_id: KeychainId,

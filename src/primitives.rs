@@ -1,4 +1,3 @@
-use bitcoin::util::bip32::Fingerprint;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -14,16 +13,32 @@ crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }
 
-pub struct XPubId(Fingerprint);
+pub mod bitcoin {
+    pub use bdk::{
+        bitcoin::{
+            blockdata::{
+                script::Script,
+                transaction::{OutPoint, TxOut},
+            },
+            consensus,
+            hash_types::Txid,
+            util::bip32::{ExtendedPubKey, Fingerprint},
+            util::psbt,
+            Address, Network,
+        },
+        KeychainKind,
+    };
+}
+pub struct XPubId(bitcoin::Fingerprint);
 
-impl From<Fingerprint> for XPubId {
-    fn from(fp: Fingerprint) -> Self {
+impl From<bitcoin::Fingerprint> for XPubId {
+    fn from(fp: bitcoin::Fingerprint) -> Self {
         Self(fp)
     }
 }
 
 impl std::ops::Deref for XPubId {
-    type Target = Fingerprint;
+    type Target = bitcoin::Fingerprint;
 
     fn deref(&self) -> &Self::Target {
         &self.0

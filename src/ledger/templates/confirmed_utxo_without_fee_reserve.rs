@@ -1,5 +1,4 @@
 use bdk::BlockTime;
-use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
@@ -12,8 +11,8 @@ pub struct ConfirmedUtxoWithoutFeeReserveMeta {
     pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
-    pub outpoint: OutPoint,
-    pub txout: TxOut,
+    pub outpoint: bitcoin::OutPoint,
+    pub txout: bitcoin::TxOut,
     pub confirmation_time: BlockTime,
 }
 

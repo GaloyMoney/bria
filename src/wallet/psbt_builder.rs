@@ -1,17 +1,21 @@
+use ::bitcoin::util::psbt;
 use bdk::{
     database::BatchDatabase,
     wallet::tx_builder::TxOrdering,
     wallet::{AddressIndex, AddressInfo},
-    FeeRate, KeychainKind, Wallet,
+    FeeRate, Wallet,
 };
-use bitcoin::{blockdata::transaction::OutPoint, util::psbt};
 use std::{
     collections::{HashMap, HashSet},
     marker::PhantomData,
 };
 
 use super::keychain::*;
-use crate::{error::*, payout::Payout, primitives::*};
+use crate::{
+    error::*,
+    payout::Payout,
+    primitives::{bitcoin::*, *},
+};
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -24,7 +28,7 @@ pub struct WalletTotals {
 
 pub struct FinishedPsbtBuild {
     pub included_payouts: HashMap<WalletId, Vec<Payout>>,
-    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>>,
+    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
     pub fee_satoshis: Satoshis,
@@ -175,7 +179,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
         }
         builder
             .fee_rate(self.fee_rate.expect("fee rate must be set"))
-            .sighash(bitcoin::EcdsaSighashType::All.into())
+            .sighash(bdk::bitcoin::EcdsaSighashType::All.into())
             .drain_wallet()
             .drain_to(drain_address.script_pubkey());
         match builder.finish() {
@@ -250,7 +254,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         }
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.drain_to(change_address.script_pubkey());
-        builder.sighash(bitcoin::EcdsaSighashType::All.into());
+        builder.sighash(bdk::bitcoin::EcdsaSighashType::All.into());
 
         let mut total_output_satoshis = Satoshis::from(0);
         for next_payout in self.current_payouts.drain(..max_payout) {

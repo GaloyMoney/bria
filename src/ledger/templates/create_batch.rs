@@ -1,4 +1,3 @@
-use bitcoin::Txid;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
@@ -13,7 +12,7 @@ use crate::{
 pub struct CreateBatchMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
-    pub bitcoin_tx_id: Txid,
+    pub bitcoin_tx_id: bitcoin::Txid,
 }
 
 #[derive(Debug)]

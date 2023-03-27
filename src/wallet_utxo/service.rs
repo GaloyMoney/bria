@@ -21,15 +21,31 @@ impl WalletUtxos {
 
     pub async fn new_bdk_utxo(
         &self,
-        _tx: Transaction<'_, Postgres>,
-        _keychain_id: KeychainId,
-        _address: AddressInfo,
-        _utxo: LocalUtxo,
+        tx: Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+        address: AddressInfo,
+        utxo: LocalUtxo,
     ) -> Result<(), BriaError> {
-        // find address via
-        // scriptpubkeys.findpath
-        // keychainwallet.lookup address
-        // psbt builder moves to WalletUtxos
+        // ledger
+        //     .incoming_utxo(
+        //         tx,
+        //         pending_id,
+        //         IncomingUtxoParams {
+        //             journal_id: wallet.journal_id,
+        //             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
+        //                 &local_utxo,
+        //                 wallet.ledger_account_ids.incoming_id,
+        //             ),
+        //             meta: IncomingUtxoMeta {
+        //                 wallet_id: data.wallet_id,
+        //                 keychain_id,
+        //                 outpoint: local_utxo.outpoint,
+        //                 txout: local_utxo.txout,
+        //                 confirmation_time,
+        //             },
+        //         },
+        //     )
+        //     .await?;
         Ok(())
     }
 }

@@ -1,8 +1,10 @@
 mod helpers;
 
 use bdk::BlockTime;
-use bitcoin::blockdata::transaction::{OutPoint, TxOut};
-use bria::{ledger::*, primitives::*};
+use bria::{
+    ledger::*,
+    primitives::{bitcoin::*, *},
+};
 use rand::distributions::{Alphanumeric, DistString};
 use rust_decimal::Decimal;
 use uuid::Uuid;

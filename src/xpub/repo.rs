@@ -1,4 +1,3 @@
-use bitcoin::util::bip32::{ExtendedPubKey, Fingerprint};
 use sqlx::{Pool, Postgres};
 use std::str::FromStr;
 use tracing::instrument;
@@ -42,8 +41,8 @@ impl XPubs {
         xpub_ref: String,
     ) -> Result<AccountXPub, BriaError> {
         let (name, derivation_path, original, bytes) = match (
-            Fingerprint::from_str(&xpub_ref),
-            ExtendedPubKey::from_str(&xpub_ref),
+            bitcoin::Fingerprint::from_str(&xpub_ref),
+            bitcoin::ExtendedPubKey::from_str(&xpub_ref),
         ) {
             (Ok(fp), _) => {
                 let record = sqlx::query!(
@@ -99,7 +98,7 @@ impl XPubs {
                 derivation: derivation_path
                     .map(|d| d.parse().expect("Couldn't decode derivation path")),
                 original,
-                inner: ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
+                inner: bitcoin::ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
         })
     }

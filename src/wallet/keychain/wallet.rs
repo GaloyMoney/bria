@@ -2,13 +2,16 @@ use bdk::{
     blockchain::{GetHeight, WalletSync},
     database::BatchDatabase,
     wallet::{signer::SignOptions, AddressIndex},
-    KeychainKind, Wallet,
+    Wallet,
 };
-use bitcoin::{util::psbt, Network};
 use sqlx::PgPool;
 use tracing::instrument;
 
-use crate::{bdk::pg::SqlxWalletDb, error::*, primitives::*};
+use crate::{
+    bdk::pg::SqlxWalletDb,
+    error::*,
+    primitives::{bitcoin::*, *},
+};
 
 pub trait ToExternalDescriptor {
     fn to_external_descriptor(&self) -> String;
