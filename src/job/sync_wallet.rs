@@ -1,5 +1,5 @@
 use bdk::blockchain::{ElectrumBlockchain, GetHeight};
-use electrum_client::Client;
+use electrum_client::{Client, ConfigBuilder};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
@@ -49,8 +49,13 @@ pub async fn execute(
             *keychain_id,
             cfg.clone(),
         );
-        let blockchain =
-            ElectrumBlockchain::from(Client::new(&blockchain_cfg.electrum_url).unwrap());
+        let blockchain = ElectrumBlockchain::from(
+            Client::from_config(
+                &blockchain_cfg.electrum_url,
+                ConfigBuilder::new().retry(5).build(),
+            )
+            .unwrap(),
+        );
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
         let utxos = Utxos::new(*keychain_id, pool.clone());

@@ -6,7 +6,7 @@ use bdk::{
     bitcoin::{Address, Amount},
     blockchain::ElectrumBlockchain,
     database::MemoryDatabase,
-    electrum_client::Client,
+    electrum_client::{Client, ConfigBuilder},
     keys::{GeneratableKey, GeneratedKey, PrivateKeyGenerateOptions},
 };
 use bitcoin::{
@@ -16,8 +16,6 @@ use bitcoin::{
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, primitives::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
-use std::time::Duration;
-use tokio::time::sleep;
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
     let pg_host = std::env::var("PG_HOST").unwrap_or("localhost".to_string());
@@ -103,31 +101,9 @@ pub async fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
 
-    let mut retries = 0;
-    let max_retries = 5;
-
-    while retries < max_retries {
-        match Client::new(&electrum_url) {
-            Ok(client) => return Ok(ElectrumBlockchain::from(client)),
-            Err(e) => {
-                if retries == max_retries - 1 {
-                    return Err(anyhow::Error::new(e));
-                } else {
-                    retries += 1;
-                    println!(
-                        "Failed to connect to Electrum server (attempt {}/{}), retrying...",
-                        retries, max_retries
-                    );
-                    sleep(Duration::from_secs(1)).await;
-                }
-            }
-        }
-    }
-
-    Err(anyhow::anyhow!(
-        "Failed to connect to Electrum server after {} retries",
-        max_retries
-    ))
+    let cfg = ConfigBuilder::new().retry(5).build();
+    let client = Client::from_config(&electrum_url, cfg)?;
+    Ok(ElectrumBlockchain::from(client))
 }
 
 pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
@@ -151,5 +127,6 @@ fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String>
     let mut reader = BufReader::new(f);
     let mut buffer = Vec::new();
     reader.read_to_end(&mut buffer)?;
-    Ok(base64::encode(buffer))
+    use base64::{engine::general_purpose, Engine};
+    Ok(general_purpose::STANDARD.encode(buffer))
 }
