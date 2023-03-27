@@ -14,7 +14,7 @@ bria_cmd() {
 }
 
 cache_default_wallet_balance() {
-  balance=$(bria_cmd wallet-balance -w default --json)
+  balance=$(bria_cmd wallet-balance -w default)
 }
 
 cached_pending_income() {

@@ -115,8 +115,6 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
-        #[clap(long, action)]
-        json: bool,
     },
     /// Get a new address for a wallet
     NewAddress {
@@ -132,8 +130,6 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
-        #[clap(long, action)]
-        raw: bool,
     },
     CreateBatchGroup {
         #[clap(
@@ -282,19 +278,17 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet: name,
-            json,
         } => {
             let client = api_client(url, api_key);
-            client.get_wallet_balance_summary(name, json).await?;
+            client.get_wallet_balance_summary(name).await?;
         }
         Command::NewAddress {
             url,
             api_key,
             wallet,
-            raw,
         } => {
             let client = api_client(url, api_key);
-            client.new_address(wallet, raw).await?;
+            client.new_address(wallet).await?;
         }
         Command::CreateBatchGroup { url, api_key, name } => {
             let client = api_client(url, api_key);

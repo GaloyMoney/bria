@@ -73,8 +73,7 @@ impl ApiClient {
             .await?
             .import_xpub(self.inject_auth_token(request)?)
             .await?;
-        println!("XPUB imported - {}", response.into_inner().id);
-        Ok(())
+        output_json(response)
     }
 
     pub async fn set_signer_config(
@@ -86,12 +85,12 @@ impl ApiClient {
             xpub_ref,
             config: Some(proto::set_signer_config_request::Config::Lnd(config.into())),
         });
-        self.connect()
+        let response = self
+            .connect()
             .await?
             .set_signer_config(self.inject_auth_token(request)?)
             .await?;
-        println!("Done");
-        Ok(())
+        output_json(response)
     }
 
     pub async fn create_wallet(&self, name: String, xpubs: Vec<String>) -> anyhow::Result<()> {
@@ -104,45 +103,20 @@ impl ApiClient {
             .await?
             .create_wallet(self.inject_auth_token(request)?)
             .await?;
-        println!("Wallet created - {}", response.into_inner().id);
-        Ok(())
+        output_json(response)
     }
 
-    pub async fn get_wallet_balance_summary(
-        &self,
-        wallet_name: String,
-        json: bool,
-    ) -> anyhow::Result<()> {
+    pub async fn get_wallet_balance_summary(&self, wallet_name: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::GetWalletBalanceSummaryRequest { wallet_name });
         let response = self
             .connect()
             .await?
             .get_wallet_balance_summary(self.inject_auth_token(request)?)
             .await?;
-        if json {
-            println!("{}", serde_json::to_string_pretty(&response.into_inner())?);
-        } else {
-            let proto::GetWalletBalanceSummaryResponse {
-                current_settled,
-                pending_incoming,
-                pending_outgoing,
-                pending_fees,
-                encumbered_fees,
-                encumbered_outgoing,
-            } = response.into_inner();
-
-            println!("Pending Incoming: {pending_incoming}");
-            println!("Current Settled: {current_settled}");
-            println!("Encumbered Fees: {encumbered_fees}");
-            println!("Encumbered Outgoing: {encumbered_outgoing}");
-            println!("Pending Outgoing: {pending_outgoing}");
-            println!("Pending Fees: {pending_fees}");
-        }
-
-        Ok(())
+        output_json(response)
     }
 
-    pub async fn new_address(&self, wallet: String, raw: bool) -> anyhow::Result<()> {
+    pub async fn new_address(&self, wallet: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::NewAddressRequest {
             wallet_name: wallet,
         });
@@ -151,12 +125,7 @@ impl ApiClient {
             .await?
             .new_address(self.inject_auth_token(request)?)
             .await?;
-        if raw {
-            print!("{}", response.into_inner().address);
-        } else {
-            println!("New Address - {}", response.into_inner().address);
-        }
-        Ok(())
+        output_json(response)
     }
 
     pub async fn create_batch_group(&self, name: String) -> anyhow::Result<()> {
@@ -166,8 +135,7 @@ impl ApiClient {
             .await?
             .create_batch_group(self.inject_auth_token(request)?)
             .await?;
-        println!("BatchGroup created - {}", response.into_inner().id);
-        Ok(())
+        output_json(response)
     }
 
     pub async fn queue_payout(
@@ -190,7 +158,11 @@ impl ApiClient {
             .await?
             .queue_payout(self.inject_auth_token(request)?)
             .await?;
-        println!("Payout enqueued - {}", response.into_inner().id);
-        Ok(())
+        output_json(response)
     }
+}
+
+fn output_json<T: serde::Serialize>(response: tonic::Response<T>) -> anyhow::Result<()> {
+    println!("{}", serde_json::to_string_pretty(&response.into_inner())?);
+    Ok(())
 }

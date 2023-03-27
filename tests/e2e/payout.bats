@@ -15,7 +15,7 @@ teardown_file() {
 }
 
 @test "payout: Fund an address and see if the balance is reflected" {
-  bria_address=$(bria_cmd new-address -w default --raw)
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
   if [ -z "$bria_address" ]; then
     echo "Failed to get a new address"
     exit 1
@@ -69,7 +69,7 @@ teardown_file() {
 
 @test "payout: Outgoing unconfirmed utxo" {
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
-  bria_address=$(bria_cmd new-address -w default --raw)
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
   bitcoin_cli -regtest sendtoaddress ${bria_address} 1
 
   for i in {1..30}; do
