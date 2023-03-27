@@ -73,10 +73,8 @@ pub async fn execute<'a>(
 
     let wallet_ids = unbatched_payouts.keys().copied().collect();
     let mut wallets = wallets.find_by_ids(wallet_ids).await?;
-    let keychain_ids: HashSet<KeychainId> = wallets
-        .values()
-        .flat_map(|w| w.keychains.iter().map(|(id, _)| *id))
-        .collect();
+    let keychain_ids: HashSet<KeychainId> =
+        wallets.values().flat_map(|w| w.keychain_ids()).collect();
 
     let mut tx = pool.begin().await?;
     let all_utxos = OldUtxos::new(KeychainId::new(), pool.clone());

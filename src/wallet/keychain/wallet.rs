@@ -27,9 +27,9 @@ pub trait BdkWalletVisitor: Sized + Send + 'static {
 }
 
 pub struct KeychainWallet<T> {
+    pub keychain_id: KeychainId,
     pool: PgPool,
     network: Network,
-    keychain_id: KeychainId,
     descriptor: T,
 }
 

@@ -10,9 +10,10 @@ pub struct Wallet {
     pub id: WalletId,
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub journal_id: JournalId,
-    pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
     pub config: WalletConfig,
     pub network: bitcoin::Network,
+
+    pub(super) keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
 }
 
 impl Wallet {
@@ -25,6 +26,18 @@ impl Wallet {
 }
 
 impl Wallet {
+    pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
+        self.keychains.iter().map(|(id, _)| *id)
+    }
+
+    pub fn keychain_wallets(
+        &self,
+        pool: sqlx::PgPool,
+    ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
+        let current = self.current_keychain_wallet(&pool);
+        std::iter::once(current).chain(self.deprecated_keychain_wallets(pool))
+    }
+
     pub fn current_keychain_wallet(
         &self,
         pool: &sqlx::PgPool,

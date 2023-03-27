@@ -4,7 +4,8 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-    app::BlockchainConfig, batch::*, bdk::pg::OldUtxos, error::*, ledger::*, primitives::*, wallet::*,
+    app::BlockchainConfig, batch::*, bdk::pg::OldUtxos, error::*, ledger::*, primitives::*,
+    wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

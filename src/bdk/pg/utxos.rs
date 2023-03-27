@@ -1,10 +1,8 @@
-use bdk::{bitcoin::blockdata::transaction::OutPoint, BlockTime, LocalUtxo, TransactionDetails};
-use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction};
-use std::collections::{HashMap, HashSet};
-use tracing::instrument;
+use bdk::LocalUtxo;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{error::*, primitives::*};
+use crate::primitives::*;
 
 pub struct Utxos {
     pool: PgPool,

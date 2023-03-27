@@ -7,7 +7,7 @@ use tracing::instrument;
 use crate::{
     app::BlockchainConfig,
     batch::*,
-    bdk::pg::{PendingUtxo, SettledUtxo, OldUtxos},
+    bdk::pg::{OldUtxos, PendingUtxo, SettledUtxo},
     error::*,
     ledger::*,
     primitives::*,
@@ -42,13 +42,8 @@ pub async fn execute(
     let wallet = wallets.find_by_id(data.wallet_id).await?;
     let mut n_pending_utxos = 0;
     let mut n_settled_utxos = 0;
-    for (keychain_id, cfg) in wallet.keychains.iter() {
-        let keychain_wallet = KeychainWallet::new(
-            pool.clone(),
-            blockchain_cfg.network,
-            *keychain_id,
-            cfg.clone(),
-        );
+    for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
+        let keychain_id = keychain_wallet.keychain_id;
         let blockchain = ElectrumBlockchain::from(
             Client::from_config(
                 &blockchain_cfg.electrum_url,
@@ -58,7 +53,7 @@ pub async fn execute(
         );
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
-        let utxos = OldUtxos::new(*keychain_id, pool.clone());
+        let utxos = OldUtxos::new(keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some(PendingUtxo {
@@ -80,7 +75,7 @@ pub async fn execute(
                             ),
                             meta: IncomingUtxoMeta {
                                 wallet_id: data.wallet_id,
-                                keychain_id: *keychain_id,
+                                keychain_id,
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,
                                 confirmation_time,
@@ -105,7 +100,7 @@ pub async fn execute(
             {
                 n_settled_utxos += 1;
                 if let Some(batch_id) = batches
-                    .find_containing_utxo(*keychain_id, local_utxo.outpoint)
+                    .find_containing_utxo(keychain_id, local_utxo.outpoint)
                     .await?
                 {
                     ledger
@@ -125,7 +120,7 @@ pub async fn execute(
                                 pending_id,
                                 meta: ConfirmedUtxoWithoutFeeReserveMeta {
                                     wallet_id: data.wallet_id,
-                                    keychain_id: *keychain_id,
+                                    keychain_id,
                                     batch_id,
                                     confirmation_time,
                                     outpoint: local_utxo.outpoint,
@@ -173,7 +168,7 @@ pub async fn execute(
                             pending_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: data.wallet_id,
-                                keychain_id: *keychain_id,
+                                keychain_id,
                                 confirmation_time,
                                 outpoint: local_utxo.outpoint,
                                 txout: local_utxo.txout,

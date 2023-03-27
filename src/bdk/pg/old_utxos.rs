@@ -46,7 +46,7 @@ impl OldUtxos {
         Ok(())
     }
 
-    pub async fn list(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
+    pub async fn _list(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_old_utxos WHERE keychain_id = $1"#,
             Uuid::from(self.keychain_id),
