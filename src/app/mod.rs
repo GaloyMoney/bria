@@ -190,6 +190,16 @@ impl App {
         Ok(addr.to_string())
     }
 
+    #[instrument(name = "app.list_utxos", skip(self), err)]
+    pub async fn list_utxos(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+    ) -> Result<String, BriaError> {
+        let _wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        Ok(String::new())
+    }
+
     #[instrument(name = "app.create_batch_group", skip(self), err)]
     pub async fn create_batch_group(
         &self,

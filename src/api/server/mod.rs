@@ -118,6 +118,18 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_utxos(
+        &self,
+        request: Request<ListUtxosRequest>,
+    ) -> Result<Response<ListUtxosResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let result = self.app.list_utxos(account_id, request.wallet_name).await?;
+        Ok(Response::new(ListUtxosResponse { dummy: result }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_batch_group(
         &self,
         request: Request<CreateBatchGroupRequest>,
