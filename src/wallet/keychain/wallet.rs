@@ -2,7 +2,7 @@ use bdk::{
     blockchain::{GetHeight, WalletSync},
     database::BatchDatabase,
     wallet::{signer::SignOptions, AddressIndex},
-    Wallet,
+    KeychainKind, Wallet,
 };
 use bitcoin::{util::psbt, Network};
 use sqlx::PgPool;
@@ -65,24 +65,30 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
     #[instrument(name = "keychain_wallet.new_external_address", skip_all)]
     pub async fn new_external_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
         let addr = self
-            .with_wallet(|wallet| {
-                wallet
-                    .get_address(AddressIndex::New)
-                    .expect("Couldn't get new address")
-            })
-            .await?;
+            .with_wallet(|wallet| wallet.get_address(AddressIndex::New))
+            .await??;
         Ok(addr)
     }
 
     #[instrument(name = "keychain_wallet.new_internal_address", skip_all)]
     pub async fn new_internal_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
         let addr = self
-            .with_wallet(|wallet| {
-                wallet
-                    .get_internal_address(AddressIndex::New)
-                    .expect("Couldn't get new address")
+            .with_wallet(|wallet| wallet.get_internal_address(AddressIndex::New))
+            .await??;
+        Ok(addr)
+    }
+
+    pub async fn find_address_from_path(
+        &self,
+        path: u32,
+        kind: KeychainKind,
+    ) -> Result<bdk::wallet::AddressInfo, BriaError> {
+        let addr = self
+            .with_wallet(move |wallet| match kind {
+                KeychainKind::External => wallet.get_address(AddressIndex::Peek(path)),
+                KeychainKind::Internal => wallet.get_internal_address(AddressIndex::Peek(path)),
             })
-            .await?;
+            .await??;
         Ok(addr)
     }
 
