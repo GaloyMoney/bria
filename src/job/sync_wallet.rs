@@ -7,7 +7,7 @@ use tracing::instrument;
 use crate::{
     app::BlockchainConfig,
     batch::*,
-    bdk::pg::{PendingUtxo, SettledUtxo, Utxos},
+    bdk::pg::{PendingUtxo, SettledUtxo, OldUtxos},
     error::*,
     ledger::*,
     primitives::*,
@@ -58,7 +58,7 @@ pub async fn execute(
         );
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
-        let utxos = Utxos::new(*keychain_id, pool.clone());
+        let utxos = OldUtxos::new(*keychain_id, pool.clone());
         loop {
             let mut tx = pool.begin().await?;
             if let Ok(Some(PendingUtxo {

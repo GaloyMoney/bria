@@ -4,7 +4,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-    app::BlockchainConfig, batch::*, bdk::pg::Utxos, error::*, ledger::*, primitives::*, wallet::*,
+    app::BlockchainConfig, batch::*, bdk::pg::OldUtxos, error::*, ledger::*, primitives::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,7 +45,7 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
+    let all_utxos = OldUtxos::new(KeychainId::new(), pool.clone());
     let settled_utxos = all_utxos.get_settled_utxos(utxos).await?;
 
     let settled_ids: Vec<LedgerTransactionId> =

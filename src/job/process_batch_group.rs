@@ -4,7 +4,7 @@ use tracing::instrument;
 use std::collections::HashSet;
 
 use crate::{
-    batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*, primitives::*, wallet::*,
+    batch::*, batch_group::*, bdk::pg::OldUtxos, error::*, payout::*, primitives::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,7 +79,7 @@ pub async fn execute<'a>(
         .collect();
 
     let mut tx = pool.begin().await?;
-    let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
+    let all_utxos = OldUtxos::new(KeychainId::new(), pool.clone());
     let reserved_utxos = all_utxos
         .list_reserved_unspent_utxos(&mut tx, keychain_ids)
         .await?;

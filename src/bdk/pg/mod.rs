@@ -1,6 +1,7 @@
 mod convert;
 mod descriptor_checksum;
 mod index;
+mod old_utxos;
 mod script_pubkeys;
 mod sync_times;
 mod transactions;
@@ -17,6 +18,7 @@ use tokio::runtime::Handle;
 use crate::primitives::*;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
+pub use old_utxos::*;
 use script_pubkeys::ScriptPubkeys;
 use sync_times::SyncTimes;
 use transactions::Transactions;
@@ -54,8 +56,11 @@ impl BatchOperations for SqlxWalletDb {
 
     fn set_utxo(&mut self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
         self.rt.block_on(async {
-            let utxos = Utxos::new(self.keychain_id, self.pool.clone());
-            utxos.persist(utxo).await
+            let utxos = OldUtxos::new(self.keychain_id, self.pool.clone());
+            let _ = utxos.persist(utxo).await;
+            Utxos::new(self.pool.clone())
+                .persist(self.keychain_id, utxo)
+                .await
         })
     }
 
@@ -139,10 +144,8 @@ impl Database for SqlxWalletDb {
         })
     }
     fn iter_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
-        self.rt.block_on(async {
-            let utxos = Utxos::new(self.keychain_id, self.pool.clone());
-            utxos.list().await
-        })
+        self.rt
+            .block_on(async { Utxos::new(self.pool.clone()).list(self.keychain_id).await })
     }
     fn iter_raw_txs(&self) -> Result<Vec<Transaction>, bdk::Error> {
         unimplemented!()

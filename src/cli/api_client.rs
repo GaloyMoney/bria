@@ -128,6 +128,18 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn list_utxos(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListUtxosRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_utxos(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn create_batch_group(&self, name: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::CreateBatchGroupRequest { name });
         let response = self

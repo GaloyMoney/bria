@@ -131,6 +131,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// List Unspent Transaction Outputs of a wallet
+    ListUtxos {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+    },
     CreateBatchGroup {
         #[clap(
             short,
@@ -289,6 +304,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(url, api_key);
             client.new_address(wallet).await?;
+        }
+        Command::ListUtxos {
+            url,
+            api_key,
+            wallet,
+        } => {
+            let client = api_client(url, api_key);
+            client.list_utxos(wallet).await?;
         }
         Command::CreateBatchGroup { url, api_key, name } => {
             let client = api_client(url, api_key);
