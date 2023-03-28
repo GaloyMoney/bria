@@ -48,7 +48,7 @@ impl App {
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
-        let wallet_utxos = WalletUtxos::new(&pool, &ledger);
+        let wallet_utxos = WalletUtxos::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),

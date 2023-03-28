@@ -11,7 +11,8 @@ pub struct IncomingUtxoMeta {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
-    pub txout: bitcoin::TxOut,
+    pub satoshis: Satoshis,
+    pub address: String,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -62,7 +63,7 @@ impl From<IncomingUtxoParams> for TxParams {
             meta,
         }: IncomingUtxoParams,
     ) -> Self {
-        let amount = Satoshis::from(meta.txout.value).to_btc();
+        let amount = meta.satoshis.to_btc();
         let effective = meta
             .confirmation_time
             .as_ref()

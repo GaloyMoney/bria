@@ -1,4 +1,4 @@
-use bdk::LocalUtxo;
+use bdk::{LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
@@ -7,6 +7,7 @@ use crate::{error::*, primitives::*};
 pub struct UnsyncedUtxo {
     pub local_utxo: LocalUtxo,
     pub path: u32,
+    pub confirmation_time: Option<bitcoin::BlockTime>,
 }
 
 pub struct Utxos {
@@ -70,12 +71,13 @@ impl Utxos {
                 ORDER BY created_at
                 LIMIT 1
             )
-            RETURNING utxo_json
+            RETURNING tx_id, utxo_json
             )
-            SELECT utxo_json, path
+            SELECT utxo_json, path, details_json
             FROM updated_utxo u
             JOIN bdk_script_pubkeys p
-            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex"#,
+            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
+            JOIN bdk_transactions t ON u.tx_id = t.tx_id"#,
             Uuid::from(keychain_id),
         )
         .fetch_optional(tx)
@@ -87,6 +89,9 @@ impl Utxos {
             UnsyncedUtxo {
                 local_utxo,
                 path: row.path as u32,
+                confirmation_time: serde_json::from_value::<TransactionDetails>(row.details_json)
+                    .expect("Could not deserialize transaction details")
+                    .confirmation_time,
             }
         }))
     }

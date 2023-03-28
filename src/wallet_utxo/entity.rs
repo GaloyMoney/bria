@@ -13,10 +13,13 @@ pub struct NewWalletUtxo {
     pub value: Satoshis,
     pub address: String,
     pub script_hex: String,
+    pub ledger_tx_pending_id: LedgerTransactionId,
 }
 
 impl NewWalletUtxo {
     pub fn builder() -> NewWalletUtxoBuilder {
-        NewWalletUtxoBuilder::default()
+        let mut builder = NewWalletUtxoBuilder::default();
+        builder.ledger_tx_pending_id(LedgerTransactionId::new());
+        builder
     }
 }

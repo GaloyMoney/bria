@@ -26,7 +26,7 @@ pub mod bitcoin {
             util::psbt,
             Address, Network,
         },
-        KeychainKind,
+        BlockTime, KeychainKind,
     };
     pub mod pg {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]

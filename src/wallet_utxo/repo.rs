@@ -4,11 +4,16 @@ use uuid::Uuid;
 use super::entity::*;
 use crate::{error::*, primitives::bitcoin::pg};
 
+#[derive(Clone)]
 pub(super) struct WalletUtxoRepo {
     _pool: Pool<Postgres>,
 }
 
 impl WalletUtxoRepo {
+    pub fn new(pool: Pool<Postgres>) -> Self {
+        Self { _pool: pool }
+    }
+
     pub async fn persist(
         &self,
         tx: &mut Transaction<'_, Postgres>,
