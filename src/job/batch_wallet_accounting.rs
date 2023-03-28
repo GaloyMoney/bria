@@ -4,8 +4,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-    app::BlockchainConfig, batch::*, bdk::pg::OldUtxos, error::*, ledger::*, primitives::*,
-    wallet::*,
+    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*, wallet_utxo::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,15 +18,15 @@ pub struct BatchWalletAccountingData {
 
 #[instrument(
     name = "job.batch_wallet_accounting",
-    skip(pool, wallets, batches, ledger),
+    skip(wallets, batches, ledger, wallet_utxos),
     err
 )]
 pub async fn execute(
-    pool: sqlx::PgPool,
     data: BatchWalletAccountingData,
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
     wallets: Wallets,
+    wallet_utxos: WalletUtxos,
     batches: Batches,
 ) -> Result<BatchWalletAccountingData, BriaError> {
     let Batch {
@@ -46,11 +45,9 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let all_utxos = OldUtxos::new(KeychainId::new(), pool.clone());
-    let settled_utxos = all_utxos.get_settled_utxos(utxos).await?;
-
-    let settled_ids: Vec<LedgerTransactionId> =
-        settled_utxos.into_iter().map(|u| u.settled_id).collect();
+    let settled_ids = wallet_utxos
+        .get_settled_ledger_tx_ids_for_utxos(utxos)
+        .await?;
     let settled_ledger_txn_entries = ledger.get_ledger_entries_for_txns(settled_ids).await?;
 
     let mut reserved_fees = Satoshis::from(0);

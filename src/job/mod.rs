@@ -188,17 +188,24 @@ async fn batch_wallet_accounting(
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
     wallets: Wallets,
+    wallet_utxos: WalletUtxos,
     batches: Batches,
 ) -> Result<(), BriaError> {
-    let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchWalletAccountingData =
                 data.expect("no BatchWalletAccountingData available");
-            batch_wallet_accounting::execute(pool, data, blockchain_cfg, ledger, wallets, batches)
-                .await
+            batch_wallet_accounting::execute(
+                data,
+                blockchain_cfg,
+                ledger,
+                wallets,
+                wallet_utxos,
+                batches,
+            )
+            .await
         })
         .await?;
     Ok(())

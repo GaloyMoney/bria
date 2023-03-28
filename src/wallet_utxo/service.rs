@@ -103,4 +103,26 @@ impl WalletUtxos {
 
         Ok(outpoints_map)
     }
+
+    #[instrument(name = "wallet_utxos.reserve_utxos_in_batch", skip_all)]
+    pub async fn reserve_utxos_in_batch(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        batch_id: BatchId,
+        utxos: impl Iterator<Item = (KeychainId, OutPoint)>,
+    ) -> Result<(), BriaError> {
+        self.wallet_utxos
+            .reserve_utxos_in_batch(tx, batch_id, utxos)
+            .await
+    }
+
+    #[instrument(name = "wallet_utxos.get_settled_ledger_tx_ids_for_utxos", skip(self))]
+    pub async fn get_settled_ledger_tx_ids_for_utxos(
+        &self,
+        utxos: &HashMap<KeychainId, Vec<OutPoint>>,
+    ) -> Result<Vec<LedgerTransactionId>, BriaError> {
+        self.wallet_utxos
+            .get_settled_ledger_tx_ids_for_utxos(utxos)
+            .await
+    }
 }

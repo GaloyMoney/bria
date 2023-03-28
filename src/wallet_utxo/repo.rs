@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres, QueryBuilder, Row, Transaction};
 use uuid::Uuid;
 
 use std::collections::HashMap;
@@ -19,12 +19,12 @@ pub struct ReservableUtxo {
 
 #[derive(Clone)]
 pub(super) struct WalletUtxoRepo {
-    _pool: Pool<Postgres>,
+    pool: Pool<Postgres>,
 }
 
 impl WalletUtxoRepo {
     pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { _pool: pool }
+        Self { pool }
     }
 
     pub async fn persist_income_utxo(
@@ -115,7 +115,7 @@ impl WalletUtxoRepo {
            ORDER BY created_at DESC"#,
            &keychain_ids
         )
-            .fetch_all(&self._pool)
+            .fetch_all(&self.pool)
             .await?;
 
         let mut utxos = HashMap::new();
@@ -187,5 +187,73 @@ impl WalletUtxoRepo {
             .collect();
 
         Ok(reservable_utxos)
+    }
+
+    pub async fn reserve_utxos_in_batch(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        batch_id: BatchId,
+        utxos: impl Iterator<Item = (KeychainId, OutPoint)>,
+    ) -> Result<(), BriaError> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"UPDATE bria_wallet_utxos
+            SET spending_batch_id = "#,
+        );
+        query_builder.push_bind(Uuid::from(batch_id));
+        query_builder.push("WHERE (keychain_id, tx_id, vout) IN");
+        query_builder.push_tuples(
+            utxos.map(|(keychain_id, utxo)| {
+                (
+                    Uuid::from(keychain_id),
+                    utxo.txid.to_string(),
+                    utxo.vout as i32,
+                )
+            }),
+            |mut builder, (keychain_id, tx_id, vout)| {
+                builder.push_bind(keychain_id);
+                builder.push_bind(tx_id);
+                builder.push_bind(vout);
+            },
+        );
+
+        let query = query_builder.build();
+        query.execute(&mut *tx).await?;
+        Ok(())
+    }
+
+    pub async fn get_settled_ledger_tx_ids_for_utxos(
+        &self,
+        utxos: &HashMap<KeychainId, Vec<OutPoint>>,
+    ) -> Result<Vec<LedgerTransactionId>, BriaError> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"SELECT ledger_tx_settled_id
+            FROM bria_wallet_utxos
+            WHERE ledger_tx_settled_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
+        );
+
+        query_builder.push_tuples(
+            utxos.iter().flat_map(|(keychain_id, utxos)| {
+                utxos.iter().map(move |utxo| {
+                    (
+                        Uuid::from(*keychain_id),
+                        utxo.txid.to_string(),
+                        utxo.vout as i32,
+                    )
+                })
+            }),
+            |mut builder, (keychain_id, tx_id, vout)| {
+                builder.push_bind(keychain_id);
+                builder.push_bind(tx_id);
+                builder.push_bind(vout);
+            },
+        );
+
+        let query = query_builder.build();
+        let rows = query.fetch_all(&self.pool).await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("ledger_tx_settled_id")))
+            .collect())
     }
 }

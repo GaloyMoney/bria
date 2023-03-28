@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use std::collections::HashSet;
-
 use crate::{
     batch::*, batch_group::*, error::*, payout::*, primitives::*, wallet::*, wallet_utxo::*,
 };
@@ -140,19 +138,19 @@ pub async fn execute<'a>(
             .wallet_summaries(
                 wallet_totals
                     .into_iter()
-                    .map(|(wallet_id, total)| (wallet_id, total.into()))
+                    .map(|(wallet_id, total)| (wallet_id, WalletSummary::from(total)))
                     .collect(),
             )
             .build()
             .expect("Couldn't build batch");
 
-        // all_utxos
-        //     .reserve_utxos(
-        //         &mut tx,
-        //         batch.id,
-        //         batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),
-        //     )
-        //     .await?;
+        wallet_utxos
+            .reserve_utxos_in_batch(
+                &mut tx,
+                batch.id,
+                batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),
+            )
+            .await?;
         batches.create_in_tx(&mut tx, batch).await?;
 
         Ok((data, Some((tx, wallet_ids))))
