@@ -143,6 +143,7 @@ async fn process_batch_group(
     mut current_job: CurrentJob,
     payouts: Payouts,
     wallets: Wallets,
+    wallet_utxos: WalletUtxos,
     batch_groups: BatchGroups,
     batches: Batches,
 ) -> Result<(), BriaError> {
@@ -152,9 +153,16 @@ async fn process_batch_group(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: ProcessBatchGroupData = data.expect("no ProcessBatchGroupData available");
-            let (data, res) =
-                process_batch_group::execute(pool, payouts, wallets, batch_groups, batches, data)
-                    .await?;
+            let (data, res) = process_batch_group::execute(
+                pool,
+                payouts,
+                wallets,
+                batch_groups,
+                batches,
+                wallet_utxos,
+                data,
+            )
+            .await?;
             if let Some((mut tx, wallet_ids)) = res {
                 for id in wallet_ids {
                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;

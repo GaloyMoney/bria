@@ -9,6 +9,14 @@ use crate::{
     primitives::{bitcoin::*, *},
 };
 
+pub struct ReservableUtxo {
+    pub keychain_id: KeychainId,
+    pub income_address: bool,
+    pub outpoint: OutPoint,
+    pub spending_batch_id: Option<BatchId>,
+    pub settled_ledger_tx_id: Option<LedgerTransactionId>,
+}
+
 #[derive(Clone)]
 pub(super) struct WalletUtxoRepo {
     _pool: Pool<Postgres>,
@@ -144,5 +152,40 @@ impl WalletUtxoRepo {
         }
 
         Ok(utxos)
+    }
+
+    pub async fn find_reservable_utxos(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: impl Iterator<Item = KeychainId>,
+    ) -> Result<Vec<ReservableUtxo>, BriaError> {
+        let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
+        let rows = sqlx::query!(
+            r#"SELECT keychain_id,
+               CASE WHEN kind = 'external' THEN true ELSE false END as income_address,
+               tx_id, vout, spending_batch_id, settled_ledger_tx_id
+               FROM bria_wallet_utxos
+               WHERE keychain_id = ANY($1) AND spent = false
+               FOR UPDATE"#,
+            &uuids[..]
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        let reservable_utxos = rows
+            .into_iter()
+            .map(|row| ReservableUtxo {
+                keychain_id: KeychainId::from(row.keychain_id),
+                income_address: row.income_address.unwrap_or_default(),
+                outpoint: OutPoint {
+                    txid: row.tx_id.parse().unwrap(),
+                    vout: row.vout as u32,
+                },
+                spending_batch_id: row.spending_batch_id.map(BatchId::from),
+                settled_ledger_tx_id: row.settled_ledger_tx_id.map(LedgerTransactionId::from),
+            })
+            .collect();
+
+        Ok(reservable_utxos)
     }
 }

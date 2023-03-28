@@ -70,4 +70,37 @@ impl WalletUtxos {
     ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
         self.wallet_utxos.find_keychain_utxos(keychain_ids).await
     }
+
+    #[instrument(name = "wallet_utxos.outpoints_bdk_should_not_select", skip_all)]
+    pub async fn outpoints_bdk_should_not_select(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: impl Iterator<Item = KeychainId>,
+    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
+        let reservable_utxos = self.wallet_utxos.find_reservable_utxos(tx, ids).await?;
+
+        // We need to tell bdk which utxos not to select.
+        // If we have included it in a batch OR
+        // it is an income address and not recorded as settled yet
+        // we need to flag it to bdk
+        let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
+            if utxo.spending_batch_id.is_some()
+                || (utxo.income_address && utxo.settled_ledger_tx_id.is_none())
+            {
+                Some((utxo.keychain_id, utxo.outpoint))
+            } else {
+                None
+            }
+        });
+
+        let mut outpoints_map = HashMap::new();
+        for (keychain_id, outpoint) in filtered_utxos {
+            outpoints_map
+                .entry(keychain_id)
+                .or_insert_with(Vec::new)
+                .push(outpoint);
+        }
+
+        Ok(outpoints_map)
+    }
 }
