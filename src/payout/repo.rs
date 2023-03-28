@@ -51,7 +51,7 @@ impl Payouts {
     pub async fn list_unbatched(
         &self,
         batch_group_id: BatchGroupId,
-    ) -> Result<HashMap<WalletId, Vec<Payout>>, BriaError> {
+    ) -> Result<HashMap<WalletId, Vec<UnbatchedPayout>>, BriaError> {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
@@ -68,7 +68,7 @@ impl Payouts {
         for row in rows {
             let wallet_id = WalletId::from(row.wallet_id);
             let payouts = payouts.entry(wallet_id).or_insert_with(Vec::new);
-            payouts.push(Payout {
+            payouts.push(UnbatchedPayout {
                 id: PayoutId::from(row.id),
                 wallet_id,
                 destination: serde_json::from_value(row.destination_data)

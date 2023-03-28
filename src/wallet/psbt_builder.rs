@@ -13,7 +13,7 @@ use std::{
 use super::keychain::*;
 use crate::{
     error::*,
-    payout::Payout,
+    payout::UnbatchedPayout,
     primitives::{bitcoin::*, *},
 };
 
@@ -27,7 +27,7 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
+    pub included_payouts: HashMap<WalletId, Vec<UnbatchedPayout>>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
@@ -41,7 +41,7 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     current_wallet: Option<WalletId>,
-    current_payouts: Vec<Payout>,
+    current_payouts: Vec<UnbatchedPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
@@ -128,7 +128,7 @@ impl PsbtBuilder<AcceptingWalletState> {
     pub fn wallet_payouts(
         self,
         wallet_id: WalletId,
-        payouts: Vec<Payout>,
+        payouts: Vec<UnbatchedPayout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
@@ -400,7 +400,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
         &self,
         keychain_id: KeychainId,
-        payouts: &[Payout],
+        payouts: &[UnbatchedPayout],
         wallet: &Wallet<D>,
     ) -> Result<bool, BriaError> {
         let mut builder = wallet.build_tx();

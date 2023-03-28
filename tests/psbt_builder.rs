@@ -58,7 +58,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     let domain_wallet_id = WalletId::new();
     let other_wallet_id = WalletId::new();
     let send_amount = Satoshis::from(100_000_000);
-    let payouts_one = vec![Payout {
+    let payouts_one = vec![UnbatchedPayout {
         id: PayoutId::new(),
         wallet_id: domain_wallet_id,
         destination: PayoutDestination::OnchainAddress {
@@ -68,7 +68,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     }];
 
     let payouts_two = vec![
-        Payout {
+        UnbatchedPayout {
             id: PayoutId::new(),
             wallet_id: other_wallet_id,
             destination: PayoutDestination::OnchainAddress {
@@ -76,7 +76,7 @@ async fn build_psbt() -> anyhow::Result<()> {
             },
             satoshis: send_amount,
         },
-        Payout {
+        UnbatchedPayout {
             id: PayoutId::new(),
             wallet_id: domain_wallet_id,
             destination: PayoutDestination::OnchainAddress {
@@ -84,7 +84,7 @@ async fn build_psbt() -> anyhow::Result<()> {
             },
             satoshis: send_amount,
         },
-        Payout {
+        UnbatchedPayout {
             id: PayoutId::new(),
             wallet_id: domain_wallet_id,
             destination: PayoutDestination::OnchainAddress {

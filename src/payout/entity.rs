@@ -7,6 +7,16 @@ use super::destination::*;
 pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
+    pub batch_group_id: BatchGroupId,
+    pub satoshis: Satoshis,
+    pub destination: PayoutDestination,
+    pub external_id: String,
+    pub metadata: Option<serde_json::Value>,
+}
+
+pub struct UnbatchedPayout {
+    pub id: PayoutId,
+    pub wallet_id: WalletId,
     pub destination: PayoutDestination,
     pub satoshis: Satoshis,
 }
