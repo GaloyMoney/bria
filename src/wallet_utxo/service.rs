@@ -36,6 +36,7 @@ impl WalletUtxos {
                 .kind(address.keychain)
                 .address_idx(address.index)
                 .address(address.to_string())
+                .bdk_spent(utxo.is_spent)
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .build()

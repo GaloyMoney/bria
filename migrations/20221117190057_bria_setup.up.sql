@@ -79,11 +79,12 @@ CREATE TABLE bria_wallet_utxos (
     value NUMERIC NOT NULL,
     address VARCHAR NOT NULL,
     script_hex VARCHAR NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    bdk_spent BOOLEAN NOT NULL,
     ledger_tx_pending_id UUID DEFAULT NULL,
     ledger_tx_settled_id UUID DEFAULT NULL,
     spending_batch_id UUID DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE(keychain_id, tx_id, vout)
 );
 

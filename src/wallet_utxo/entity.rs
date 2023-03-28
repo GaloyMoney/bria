@@ -13,6 +13,7 @@ pub struct NewWalletUtxo {
     pub value: Satoshis,
     pub address: String,
     pub script_hex: String,
+    pub bdk_spent: bool,
     pub ledger_tx_pending_id: LedgerTransactionId,
 }
 
