@@ -86,7 +86,7 @@ impl Payouts {
              SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
              FROM bria_payouts
              WHERE wallet_id = $1
-           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id, satoshis, destination_data, external_id, metadata FROM bria_payouts
+           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id as "batch_id?", satoshis, destination_data, external_id, metadata FROM bria_payouts
              LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id
              WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)
              ORDER BY created_at"#,
@@ -101,7 +101,7 @@ impl Payouts {
                 id: PayoutId::from(row.id),
                 wallet_id,
                 batch_group_id: BatchGroupId::from(row.batch_group_id),
-                batch_id: Some(BatchId::from(row.batch_id)),
+                batch_id: row.batch_id.map(BatchId::from),
                 satoshis: Satoshis::from(row.satoshis),
                 destination: serde_json::from_value(row.destination_data)
                     .expect("Couldn't deserialize destination"),

@@ -22,7 +22,7 @@ cached_pending_income() {
 }
 
 cached_encumbered_fees() {
-  echo ${balance} | jq -r '.encumberedfees'
+  echo ${balance} | jq -r '.encumberedFees'
 }
 
 cached_current_settled() {
@@ -34,7 +34,7 @@ cached_pending_outgoing() {
 }
 
 cached_pending_fees() {
-  echo ${balance} | jq -r '.pendingfees'
+  echo ${balance} | jq -r '.pendingFees'
 }
 
 cached_encumbered_outgoing() {

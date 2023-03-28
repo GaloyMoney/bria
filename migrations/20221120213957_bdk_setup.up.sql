@@ -45,20 +45,6 @@ CREATE TABLE bdk_utxos (
   UNIQUE(keychain_id, tx_id, vout)
 );
 
-
-CREATE TABLE bdk_old_utxos (
-  keychain_id UUID NOT NULL,
-  tx_id VARCHAR NOT NULL,
-  vout INTEGER NOT NULL,
-  utxo_json JSONB NOT NULL,
-  ledger_tx_pending_id UUID DEFAULT NULL,
-  ledger_tx_settled_id UUID DEFAULT NULL,
-  spending_batch_id UUID DEFAULT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(keychain_id, tx_id, vout)
-);
-
 CREATE TABLE bdk_transactions (
   keychain_id UUID NOT NULL,
   tx_id VARCHAR NOT NULL,
