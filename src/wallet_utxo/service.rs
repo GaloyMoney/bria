@@ -25,12 +25,14 @@ impl WalletUtxos {
     pub async fn new_bdk_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
+        wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
     ) -> Result<Option<LedgerTransactionId>, BriaError> {
         if let KeychainKind::External = address.keychain {
             let new_utxo = NewWalletUtxo::builder()
+                .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
                 .outpoint(utxo.outpoint)
                 .kind(address.keychain)

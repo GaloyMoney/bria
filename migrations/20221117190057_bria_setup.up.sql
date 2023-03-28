@@ -71,6 +71,7 @@ CREATE TABLE bria_wallets (
 );
 
 CREATE TABLE bria_wallet_utxos (
+    wallet_id UUID NOT NULL,
     keychain_id UUID NOT NULL,
     tx_id VARCHAR NOT NULL,
     vout INTEGER NOT NULL,

@@ -5,6 +5,7 @@ pub struct WalletUtxo {}
 
 #[derive(Builder)]
 pub struct NewWalletUtxo {
+    pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
     pub kind: KeychainKind,

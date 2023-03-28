@@ -20,8 +20,9 @@ impl WalletUtxoRepo {
         utxo: NewWalletUtxo,
     ) -> Result<(), BriaError> {
         sqlx::query!(
-            r#"INSERT INTO bria_wallet_utxos (keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, bdk_spent)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
+            r#"INSERT INTO bria_wallet_utxos (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, bdk_spent)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+            Uuid::from(utxo.wallet_id),
             Uuid::from(utxo.keychain_id),
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
