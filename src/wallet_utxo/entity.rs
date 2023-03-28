@@ -11,6 +11,10 @@ pub struct WalletUtxo {
     pub address: Option<String>,
     pub spent: bool,
     pub block_height: Option<u32>,
+    pub pending_ledger_tx_id: Option<LedgerTransactionId>,
+    pub settled_ledger_tx_id: Option<LedgerTransactionId>,
+    pub spending_ledger_tx_id: Option<LedgerTransactionId>,
+    pub spending_batch_id: Option<BatchId>,
 }
 
 pub struct KeychainUtxos {

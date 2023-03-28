@@ -7,7 +7,9 @@ use tracing::instrument;
 use crate::{
     app::BlockchainConfig,
     batch::*,
-    bdk::pg::{OldUtxos, PendingUtxo, SettledUtxo, UnsyncedUtxo, Utxos},
+    bdk::pg::{
+        OldUtxos, PendingConfirmationSyncUtxo, PendingUtxo, SettledUtxo, UnsyncedUtxo, Utxos,
+    },
     error::*,
     ledger::*,
     primitives::*,
@@ -79,7 +81,7 @@ pub async fn execute(
                             IncomingUtxoParams {
                                 journal_id: wallet.journal_id,
                                 ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
-                                    &local_utxo,
+                                    local_utxo.txout.value.into(),
                                     wallet.ledger_account_ids.incoming_id,
                                 ),
                                 meta: IncomingUtxoMeta {
@@ -93,45 +95,122 @@ pub async fn execute(
                             },
                         )
                         .await?;
+                } else {
+                    tx.commit().await?;
                 }
             } else {
                 break;
             }
         }
+
+        loop {
+            let mut tx = pool.begin().await?;
+            let min_height = current_height - wallet.config.mark_settled_after_n_confs + 1;
+            if let Ok(Some(PendingConfirmationSyncUtxo {
+                outpoint,
+                kind,
+                spent,
+                value,
+                confirmation_time,
+            })) = utxos
+                .find_pending_confirmation_sync(&mut tx, keychain_id, min_height)
+                .await
+            {
+                // if let Some(wallet_utxo) = wallet_utxos
+                //     .confirm_bdk_utxo(
+                //         &mut tx,
+                //         keychain_id,
+                //         outpoint,
+                //         spent,
+                //         confirmation_time.height,
+                //     )
+                //     .await?
+                // {
+                //     if let Some(batch_id) =
+                //         batches.find_containing_utxo(keychain_id, outpoint).await?
+                //     {
+                //         ledger
+                //             .confirmed_utxo_without_fee_reserve(
+                //                 tx,
+                //                 settled_id,
+                //                 ConfirmedUtxoWithoutFeeReserveParams {
+                //                     journal_id: wallet.journal_id,
+                //                     incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                //                         value,
+                //                         wallet.ledger_account_ids.incoming_id,
+                //                     ),
+                //                     at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                //                         value,
+                //                         wallet.ledger_account_ids.at_rest_id,
+                //                     ),
+                //                     pending_id,
+                //                     meta: ConfirmedUtxoWithoutFeeReserveMeta {
+                //                         wallet_id: data.wallet_id,
+                //                         keychain_id,
+                //                         batch_id,
+                //                         confirmation_time,
+                //                         outpoint,
+                //                         satoshis: value,
+                //                         address:
+                //                     },
+                //                 },
+                //             )
+                //             .await?;
+                //         continue;
+                //     }
+
+                //     if confirmation_time.height
+                //         >= current_height - wallet.config.mark_settled_after_n_confs
+                //     {
+                //         utxos_to_skip.push(local_utxo.outpoint);
+                //         continue;
+                //     }
+
+                //     let fee_rate =
+                //         crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
+                //             .await?
+                //             .as_sat_per_vb();
+                //     let weight = keychain_wallet.max_satisfaction_weight().await?;
+                //     let fees = (fee_rate as u64) * (weight as u64);
+
+                //     ledger
+                //         .confirmed_utxo(
+                //             tx,
+                //             settled_id,
+                //             ConfirmedUtxoParams {
+                //                 journal_id: wallet.journal_id,
+                //                 incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                //                     &local_utxo,
+                //                     wallet.ledger_account_ids.incoming_id,
+                //                 ),
+                //                 at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
+                //                     &local_utxo,
+                //                     wallet.ledger_account_ids.at_rest_id,
+                //                 ),
+                //                 fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
+                //                 spending_fee_satoshis: match wallet.is_dust_utxo(&local_utxo) {
+                //                     true => Satoshis::from(Decimal::ZERO),
+                //                     false => Satoshis::from(fees),
+                //                 },
+                //                 pending_id,
+                //                 meta: ConfirmedUtxoMeta {
+                //                     wallet_id: data.wallet_id,
+                //                     keychain_id,
+                //                     confirmation_time,
+                //                     outpoint: local_utxo.outpoint,
+                //                     txout: local_utxo.txout,
+                //                 },
+                //             },
+                //         )
+                //         .await?;
+                // } else {
+                //     break;
+                // }
+            } else {
+                break;
+            }
+        }
         // let utxos = OldUtxos::new(keychain_id, pool.clone());
-        // loop {
-        //     let mut tx = pool.begin().await?;
-        //     if let Ok(Some(PendingUtxo {
-        //         pending_id,
-        //         local_utxo,
-        //         confirmation_time,
-        //     })) = utxos.find_new_pending_tx(&mut tx).await
-        //     {
-        //         n_pending_utxos += 1;
-        //         ledger
-        //             .incoming_utxo(
-        //                 tx,
-        //                 pending_id,
-        //                 IncomingUtxoParams {
-        //                     journal_id: wallet.journal_id,
-        //                     ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
-        //                         &local_utxo,
-        //                         wallet.ledger_account_ids.incoming_id,
-        //                     ),
-        //                     meta: IncomingUtxoMeta {
-        //                         wallet_id: data.wallet_id,
-        //                         keychain_id,
-        //                         outpoint: local_utxo.outpoint,
-        //                         txout: local_utxo.txout,
-        //                         confirmation_time,
-        //                     },
-        //                 },
-        //             )
-        //             .await?;
-        //     } else {
-        //         break;
-        //     }
-        // }
 
         // let mut utxos_to_skip = Vec::new();
         // loop {

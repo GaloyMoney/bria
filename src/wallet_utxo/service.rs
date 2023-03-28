@@ -6,7 +6,10 @@ use std::collections::HashMap;
 
 use crate::{
     error::*,
-    primitives::{bitcoin::KeychainKind, *},
+    primitives::{
+        bitcoin::{KeychainKind, OutPoint},
+        *,
+    },
 };
 
 use super::{entity::*, repo::*};
@@ -51,6 +54,17 @@ impl WalletUtxos {
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn confirm_bdk_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+        outpoint: OutPoint,
+        spent: bool,
+        block_height: u32,
+    ) -> Result<Option<WalletUtxo>, BriaError> {
+        unimplemented!()
     }
 
     #[instrument(name = "wallet_utxos.list_utxos_for_wallet", skip_all)]

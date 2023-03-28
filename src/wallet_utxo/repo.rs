@@ -55,7 +55,7 @@ impl WalletUtxoRepo {
                       WHEN kind = 'external' THEN address
                       ELSE NULL
                   END as optional_address,
-                  block_height
+                  block_height, pending_ledger_tx_id, settled_ledger_tx_id, spending_batch_id, spending_ledger_tx_id
            FROM bria_wallet_utxos
            WHERE keychain_id = ANY($1) AND spent = false
            ORDER BY created_at DESC"#,
@@ -80,6 +80,10 @@ impl WalletUtxoRepo {
                 address: row.optional_address,
                 spent: row.spent,
                 block_height: row.block_height.map(|v| v as u32),
+                pending_ledger_tx_id: row.pending_ledger_tx_id.map(LedgerTransactionId::from),
+                settled_ledger_tx_id: row.settled_ledger_tx_id.map(LedgerTransactionId::from),
+                spending_ledger_tx_id: row.spending_ledger_tx_id.map(LedgerTransactionId::from),
+                spending_batch_id: row.spending_batch_id.map(BatchId::from),
             };
 
             let keychain_id = KeychainId::from(row.keychain_id);
