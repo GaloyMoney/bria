@@ -1,4 +1,3 @@
-use bdk::LocalUtxo;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};

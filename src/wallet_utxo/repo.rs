@@ -26,8 +26,8 @@ impl WalletUtxoRepo {
     ) -> Result<(), BriaError> {
         sqlx::query!(
             r#"INSERT INTO bria_wallet_utxos
-               (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+               (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
                Uuid::from(utxo.wallet_id),
                Uuid::from(utxo.keychain_id),
                utxo.outpoint.txid.to_string(),
@@ -38,6 +38,7 @@ impl WalletUtxoRepo {
                utxo.address,
                utxo.script_hex,
                utxo.spent,
+               Uuid::from(utxo.pending_ledger_tx_id)
         )
             .execute(&mut *tx)
             .await?;
@@ -52,14 +53,41 @@ impl WalletUtxoRepo {
         spent: bool,
         block_height: u32,
     ) -> Result<ConfimedIncomeUtxo, BriaError> {
-        // sqlx::query!(
-        //     r#"SELECT keychain_id, tx_id, vout
-        //         FROM bria_wallet_utxos
-        //         WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
-        // )
-        // .fetch_optional(&mut *tx)
-        // .await?;
-        unimplemented!()
+        let new_settled_ledger_tx_id = LedgerTransactionId::new();
+
+        let row = sqlx::query!(
+            r#"UPDATE bria_wallet_utxos
+            SET spent = $1,
+                block_height = $2,
+                settled_ledger_tx_id = $3,
+                modified_at = NOW()
+            WHERE keychain_id = $4
+              AND tx_id = $5
+              AND vout = $6
+            RETURNING address_idx, value, address, pending_ledger_tx_id, spending_batch_id"#,
+            spent,
+            block_height as i32,
+            Uuid::from(new_settled_ledger_tx_id),
+            Uuid::from(keychain_id),
+            outpoint.txid.to_string(),
+            outpoint.vout as i32,
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        Ok(ConfimedIncomeUtxo {
+            keychain_id,
+            address_idx: row.address_idx as u32,
+            value: Satoshis::from(row.value),
+            address: row.address,
+            block_height,
+            pending_ledger_tx_id: LedgerTransactionId::from(
+                row.pending_ledger_tx_id
+                    .expect("pending_ledger_tx_id should always be set"),
+            ),
+            settled_ledger_tx_id: new_settled_ledger_tx_id,
+            spending_batch_id: row.spending_batch_id.map(BatchId::from),
+        })
     }
 
     pub async fn find_keychain_utxos(

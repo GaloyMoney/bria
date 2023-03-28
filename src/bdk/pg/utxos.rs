@@ -1,5 +1,6 @@
 use bdk::{LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, Transaction};
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
@@ -63,6 +64,7 @@ impl Utxos {
             .collect())
     }
 
+    #[instrument(name = "bdk_utxos.find_unsynced_income_utxo", skip(self, tx))]
     pub async fn find_unsynced_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -102,6 +104,7 @@ impl Utxos {
         }))
     }
 
+    #[instrument(name = "bdk_utxos.find_settled_income_utxo", skip(self, tx))]
     pub async fn find_settled_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -120,7 +123,7 @@ impl Utxos {
                 AND utxo_json->>'keychain' = 'External'
                 AND synced_to_wallet = true
                 AND confirmation_synced_to_wallet = false
-                AND (details_json->'confirmation_time'->'height')::INTEGER >= $2
+                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2
                 ORDER BY created_at
                 LIMIT 1
             )

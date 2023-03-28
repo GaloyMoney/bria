@@ -49,6 +49,7 @@ impl WalletUtxos {
         Ok(ret)
     }
 
+    #[instrument(name = "wallet_utxos.confirm_income_utxo", skip(self, tx))]
     pub async fn confirm_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,

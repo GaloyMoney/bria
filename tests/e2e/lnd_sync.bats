@@ -37,8 +37,11 @@ teardown_file() {
   done
   [[ $(cached_pending_income) == 100000000 ]] || exit 1
 
-  n_utxos=$(bria_cmd list-utxos -w default | jq '.keychains[0].utxos | length')
-  [[ "${n_utxos}" == "1" ]] || exit 1
+  utxos=$(bria_cmd list-utxos -w default)
+  n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
+  utxo_block_height=$(jq -r '.keychains[0].utxos[0].block_height' <<< "${utxos}")
+
+  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "null" ]]
 
   bitcoin_cli -generate 6
 
@@ -48,4 +51,10 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_current_settled) == 100000000 ]] || exit 1;
+
+  utxos=$(bria_cmd list-utxos -w default)
+  n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
+  utxo_block_height=$(jq -r '.keychains[0].utxos[0].block_height' <<< "${utxos}")
+
+  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "201" ]]
 }
