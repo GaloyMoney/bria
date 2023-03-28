@@ -172,6 +172,18 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
+
+    pub async fn list_payouts(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListPayoutsRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_payouts(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
 }
 
 fn output_json<T: serde::Serialize>(response: tonic::Response<T>) -> anyhow::Result<()> {

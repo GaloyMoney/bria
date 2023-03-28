@@ -180,6 +180,21 @@ enum Command {
         #[clap(short, long)]
         amount: u64,
     },
+    /// List Unspent Transaction Outputs of a wallet
+    ListPayouts {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -329,6 +344,14 @@ pub async fn run() -> anyhow::Result<()> {
             client
                 .queue_payout(wallet, group_name, destination, amount)
                 .await?;
+        }
+        Command::ListPayouts {
+            url,
+            api_key,
+            wallet,
+        } => {
+            let client = api_client(url, api_key);
+            client.list_payouts(wallet).await?;
         }
     }
     Ok(())

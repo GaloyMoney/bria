@@ -18,27 +18,27 @@ cache_default_wallet_balance() {
 }
 
 cached_pending_income() {
-  echo ${balance} | jq -r '.pending_incoming'
+  echo ${balance} | jq -r '.pendingIncoming'
 }
 
 cached_encumbered_fees() {
-  echo ${balance} | jq -r '.encumbered_fees'
+  echo ${balance} | jq -r '.encumberedfees'
 }
 
 cached_current_settled() {
-  echo ${balance} | jq -r '.current_settled'
+  echo ${balance} | jq -r '.currentSettled'
 }
 
 cached_pending_outgoing() {
-  echo ${balance} | jq -r '.pending_outgoing'
+  echo ${balance} | jq -r '.pendingOutgoing'
 }
 
 cached_pending_fees() {
-  echo ${balance} | jq -r '.pending_fees'
+  echo ${balance} | jq -r '.pendingfees'
 }
 
 cached_encumbered_outgoing() {
-  echo ${balance} | jq -r '.encumbered_outgoing'
+  echo ${balance} | jq -r '.encumberedOutgoing'
 }
 
 bitcoin_cli() {

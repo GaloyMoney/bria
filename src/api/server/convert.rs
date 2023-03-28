@@ -1,3 +1,4 @@
+use super::proto;
 use crate::{error::BriaError, payout::*, primitives::bitcoin::*, wallet_utxo::*, xpub::*};
 
 impl From<BriaError> for tonic::Status {
@@ -6,14 +7,14 @@ impl From<BriaError> for tonic::Status {
     }
 }
 
-impl TryFrom<Option<super::proto::set_signer_config_request::Config>> for SignerConfig {
+impl TryFrom<Option<proto::set_signer_config_request::Config>> for SignerConfig {
     type Error = tonic::Status;
 
     fn try_from(
-        config: Option<super::proto::set_signer_config_request::Config>,
+        config: Option<proto::set_signer_config_request::Config>,
     ) -> Result<Self, Self::Error> {
         match config {
-            Some(super::proto::set_signer_config_request::Config::Lnd(config)) => {
+            Some(proto::set_signer_config_request::Config::Lnd(config)) => {
                 Ok(SignerConfig::Lnd(LndSignerConfig {
                     endpoint: config.endpoint,
                     cert_base64: config.cert_base64,
@@ -28,14 +29,14 @@ impl TryFrom<Option<super::proto::set_signer_config_request::Config>> for Signer
     }
 }
 
-impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for PayoutDestination {
+impl TryFrom<Option<proto::queue_payout_request::Destination>> for PayoutDestination {
     type Error = tonic::Status;
 
     fn try_from(
-        destination: Option<super::proto::queue_payout_request::Destination>,
+        destination: Option<proto::queue_payout_request::Destination>,
     ) -> Result<Self, Self::Error> {
         match destination {
-            Some(super::proto::queue_payout_request::Destination::OnchainAddress(destination)) => {
+            Some(proto::queue_payout_request::Destination::OnchainAddress(destination)) => {
                 Ok(PayoutDestination::OnchainAddress {
                     value: destination.parse().map_err(|_| {
                         tonic::Status::new(
@@ -53,7 +54,7 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
     }
 }
 
-impl From<WalletUtxo> for super::proto::WalletUtxo {
+impl From<WalletUtxo> for proto::WalletUtxo {
     fn from(utxo: WalletUtxo) -> Self {
         Self {
             outpoint: format!("{}:{}", utxo.outpoint.txid, utxo.outpoint.vout),
@@ -67,11 +68,31 @@ impl From<WalletUtxo> for super::proto::WalletUtxo {
     }
 }
 
-impl From<KeychainUtxos> for super::proto::KeychainUtxos {
+impl From<KeychainUtxos> for proto::KeychainUtxos {
     fn from(keychain_utxo: KeychainUtxos) -> Self {
         Self {
             keychain_id: keychain_utxo.keychain_id.to_string(),
             utxos: keychain_utxo.utxos.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<Payout> for proto::Payout {
+    fn from(payout: Payout) -> Self {
+        let destination = match payout.destination {
+            PayoutDestination::OnchainAddress { value } => {
+                proto::payout::Destination::OnchainAddress(value.to_string())
+            }
+        };
+
+        proto::Payout {
+            id: payout.id.to_string(),
+            wallet_id: payout.wallet_id.to_string(),
+            batch_group_id: payout.batch_group_id.to_string(),
+            batch_id: payout.batch_id.map(|id| id.to_string()),
+            satoshis: u64::from(payout.satoshis),
+            destination: Some(destination),
+            external_id: payout.external_id,
         }
     }
 }

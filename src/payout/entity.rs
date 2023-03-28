@@ -8,6 +8,7 @@ pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,
+    pub batch_id: Option<BatchId>,
     pub satoshis: Satoshis,
     pub destination: PayoutDestination,
     pub external_id: String,

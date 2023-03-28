@@ -1,4 +1,5 @@
 syntax = "proto3";
+
 package services.bria.v1;
 
 option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/briav1";
@@ -12,6 +13,7 @@ service BriaService {
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
+  rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
 }
 
 message ImportXpubRequest {
@@ -118,4 +120,25 @@ message QueuePayoutRequest {
 
 message QueuePayoutResponse {
   string id = 1;
+}
+
+message ListPayoutsRequest {
+  string wallet_name = 1;
+}
+
+message Payout {
+  string id = 1;
+  string wallet_id = 2;
+  string batch_group_id = 3;
+  optional string batch_id = 4;
+  uint64 satoshis = 5;
+  oneof destination {
+    string onchain_address = 6;
+  }
+  string external_id = 7;
+}
+
+
+message ListPayoutsResponse {
+  repeated Payout payouts = 1;
 }

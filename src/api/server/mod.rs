@@ -183,6 +183,26 @@ impl BriaService for Bria {
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn list_payouts(
+        &self,
+        request: Request<ListPayoutsRequest>,
+    ) -> Result<Response<ListPayoutsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let payouts = self
+            .app
+            .list_payouts(account_id, request.into_inner().wallet_name)
+            .await?;
+
+        let payout_messages: Vec<proto::Payout> =
+            payouts.into_iter().map(proto::Payout::from).collect();
+        let response = ListPayoutsResponse {
+            payouts: payout_messages,
+        };
+        Ok(Response::new(response))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {

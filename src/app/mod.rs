@@ -283,6 +283,16 @@ impl App {
         Ok(id)
     }
 
+    #[instrument(name = "app.list_payouts", skip_all, err)]
+    pub async fn list_payouts(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+    ) -> Result<Vec<Payout>, BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        self.payouts.list_for_wallet(wallet.id).await
+    }
+
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,

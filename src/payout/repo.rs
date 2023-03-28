@@ -78,4 +78,38 @@ impl Payouts {
         }
         Ok(payouts)
     }
+
+    #[instrument(name = "payouts.list_for_wallet", skip(self))]
+    pub async fn list_for_wallet(&self, wallet_id: WalletId) -> Result<Vec<Payout>, BriaError> {
+        let rows = sqlx::query!(
+        r#"WITH latest AS (
+             SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
+             FROM bria_payouts
+             WHERE wallet_id = $1
+           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id, satoshis, destination_data, external_id, metadata FROM bria_payouts
+             LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id
+             WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)
+             ORDER BY created_at"#,
+        Uuid::from(wallet_id),
+    )
+    .fetch_all(&self.pool)
+    .await?;
+
+        let payouts = rows
+            .into_iter()
+            .map(|row| Payout {
+                id: PayoutId::from(row.id),
+                wallet_id,
+                batch_group_id: BatchGroupId::from(row.batch_group_id),
+                batch_id: Some(BatchId::from(row.batch_id)),
+                satoshis: Satoshis::from(row.satoshis),
+                destination: serde_json::from_value(row.destination_data)
+                    .expect("Couldn't deserialize destination"),
+                external_id: row.external_id,
+                metadata: row.metadata,
+            })
+            .collect();
+
+        Ok(payouts)
+    }
 }

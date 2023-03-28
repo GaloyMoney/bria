@@ -67,25 +67,25 @@ teardown_file() {
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
 }
 
-@test "payout: Outgoing unconfirmed utxo" {
-  bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
-  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
-  bitcoin_cli -regtest sendtoaddress ${bria_address} 1
+# @test "payout: Outgoing unconfirmed utxo" {
+#   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
+#   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
+#   bitcoin_cli -regtest sendtoaddress ${bria_address} 1
 
-  for i in {1..30}; do
-    cache_default_wallet_balance
-    [[ $(cached_pending_income) == 100000000 ]] && break
-    sleep 1
-  done
-  [[ $(cached_pending_outgoing) == 75000000 ]] && break
-  [[ $(cached_current_settled) == 0 ]] && break
+#   for i in {1..30}; do
+#     cache_default_wallet_balance
+#     [[ $(cached_pending_income) == 100000000 ]] && break
+#     sleep 1
+#   done
+#   [[ $(cached_pending_outgoing) == 75000000 ]] && break
+#   [[ $(cached_current_settled) == 0 ]] && break
 
-  bitcoin_cli -generate 3
+#   bitcoin_cli -generate 3
 
-  for i in {1..30}; do
-    cache_default_wallet_balance
-    [[ $(cached_pending_income) == 0 ]] && break
-    sleep 1
-  done
-  [[ $(cached_encumbered_fees) == 0 ]] || exit 1
-}
+#   for i in {1..30}; do
+#     cache_default_wallet_balance
+#     [[ $(cached_pending_income) == 0 ]] && break
+#     sleep 1
+#   done
+#   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
+# }

@@ -39,7 +39,7 @@ teardown_file() {
 
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
-  utxo_block_height=$(jq -r '.keychains[0].utxos[0].block_height' <<< "${utxos}")
+  utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
   [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "null" ]]
 
@@ -54,7 +54,7 @@ teardown_file() {
 
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
-  utxo_block_height=$(jq -r '.keychains[0].utxos[0].block_height' <<< "${utxos}")
+  utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
   [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "201" ]]
 }
