@@ -1,6 +1,4 @@
-use crate::error::BriaError;
-use crate::payout::*;
-use crate::xpub::*;
+use crate::{error::BriaError, payout::*, primitives::bitcoin::*, wallet_utxo::*, xpub::*};
 
 impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {
@@ -51,6 +49,29 @@ impl TryFrom<Option<super::proto::queue_payout_request::Destination>> for Payout
                 tonic::Code::InvalidArgument,
                 "missing destination",
             )),
+        }
+    }
+}
+
+impl From<WalletUtxo> for super::proto::WalletUtxo {
+    fn from(utxo: WalletUtxo) -> Self {
+        Self {
+            outpoint: format!("{}:{}", utxo.outpoint.txid, utxo.outpoint.vout),
+            address_idx: utxo.address_idx,
+            value: u64::from(utxo.value),
+            address: utxo.address,
+            change_output: utxo.kind == KeychainKind::Internal,
+            spent: utxo.spent,
+            block_height: utxo.block_height,
+        }
+    }
+}
+
+impl From<KeychainUtxos> for super::proto::KeychainUtxos {
+    fn from(keychain_utxo: KeychainUtxos) -> Self {
+        Self {
+            keychain_id: keychain_utxo.keychain_id.to_string(),
+            utxos: keychain_utxo.utxos.into_iter().map(Into::into).collect(),
         }
     }
 }

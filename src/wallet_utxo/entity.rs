@@ -13,6 +13,11 @@ pub struct WalletUtxo {
     pub block_height: Option<u32>,
 }
 
+pub struct KeychainUtxos {
+    pub keychain_id: KeychainId,
+    pub utxos: Vec<WalletUtxo>,
+}
+
 #[derive(Builder)]
 pub struct NewWalletUtxo {
     pub wallet_id: WalletId,
@@ -26,8 +31,6 @@ pub struct NewWalletUtxo {
     pub script_hex: String,
     pub spent: bool,
     pub ledger_tx_pending_id: LedgerTransactionId,
-    #[builder(setter(into))]
-    pub confirmation_time: Option<BlockTime>,
 }
 
 impl NewWalletUtxo {

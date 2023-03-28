@@ -124,6 +124,7 @@ async fn sync_wallet(
     wallets: Wallets,
     batches: Batches,
     blockchain_cfg: BlockchainConfig,
+    wallet_utxos: WalletUtxos,
     ledger: Ledger,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
@@ -132,7 +133,16 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(pool, wallets, batches, blockchain_cfg, ledger, data).await
+            sync_wallet::execute(
+                pool,
+                wallets,
+                batches,
+                blockchain_cfg,
+                wallet_utxos,
+                ledger,
+                data,
+            )
+            .await
         })
         .await?;
     Ok(())

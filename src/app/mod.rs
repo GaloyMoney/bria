@@ -200,10 +200,17 @@ impl App {
         &self,
         account_id: AccountId,
         wallet_name: String,
-    ) -> Result<String, BriaError> {
+    ) -> Result<(WalletId, Vec<KeychainUtxos>), BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
-        self.wallet_utxos.list_utxos_for_wallet(wallet.id).await?;
-        Ok(String::new())
+        let mut utxos = self
+            .wallet_utxos
+            .find_keychain_utxos(wallet.keychain_ids())
+            .await?;
+        let ordered_utxos = wallet
+            .keychain_ids()
+            .filter_map(|keychain_id| utxos.remove(&keychain_id))
+            .collect();
+        Ok((wallet.id, ordered_utxos))
     }
 
     #[instrument(name = "app.create_batch_group", skip(self), err)]

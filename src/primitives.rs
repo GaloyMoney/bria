@@ -136,9 +136,7 @@ impl From<i64> for Satoshis {
 
 impl From<Satoshis> for i64 {
     fn from(sats: Satoshis) -> i64 {
-        sats.0
-            .to_i64()
-            .expect("Couldn't convert Satoshis (possibly msats)")
+        sats.0.to_i64().expect("Couldn't convert Satoshis")
     }
 }
 

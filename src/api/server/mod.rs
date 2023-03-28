@@ -125,8 +125,16 @@ impl BriaService for Bria {
         let key = extract_api_token(&request)?;
         let account_id = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let result = self.app.list_utxos(account_id, request.wallet_name).await?;
-        Ok(Response::new(ListUtxosResponse { dummy: result }))
+        let (wallet_id, keychain_utxos) =
+            self.app.list_utxos(account_id, request.wallet_name).await?;
+
+        let proto_keychains: Vec<proto::KeychainUtxos> =
+            keychain_utxos.into_iter().map(Into::into).collect();
+
+        Ok(Response::new(ListUtxosResponse {
+            wallet_id: wallet_id.to_string(),
+            keychains: proto_keychains,
+        }))
     }
 
     #[instrument(skip_all, err)]

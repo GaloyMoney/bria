@@ -53,11 +53,11 @@ impl WalletUtxos {
         }
     }
 
-    #[instrument(name = "wallet_utxos.list_utxos_for_wallet", skip(self))]
-    pub async fn list_utxos_for_wallet(
+    #[instrument(name = "wallet_utxos.list_utxos_for_wallet", skip_all)]
+    pub async fn find_keychain_utxos(
         &self,
-        wallet_id: WalletId,
-    ) -> Result<HashMap<KeychainId, Vec<WalletUtxo>>, BriaError> {
-        self.wallet_utxos.list_utxos_for_wallet(wallet_id).await
+        keychain_ids: impl Iterator<Item = KeychainId>,
+    ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
+        self.wallet_utxos.find_keychain_utxos(keychain_ids).await
     }
 }
