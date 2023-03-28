@@ -35,21 +35,21 @@ impl WalletUtxos {
         address: &AddressInfo,
         utxo: &LocalUtxo,
     ) -> Result<Option<LedgerTransactionId>, BriaError> {
+        let new_utxo = NewWalletUtxo::builder()
+            .wallet_id(wallet_id)
+            .keychain_id(keychain_id)
+            .outpoint(utxo.outpoint)
+            .kind(address.keychain)
+            .address_idx(address.index)
+            .address(address.to_string())
+            .spent(utxo.is_spent)
+            .script_hex(format!("{:x}", utxo.txout.script_pubkey))
+            .value(utxo.txout.value)
+            .build()
+            .expect("Could not build NewWalletUtxo");
+        let ret = new_utxo.ledger_tx_pending_id;
+        self.wallet_utxos.persist(tx, new_utxo).await?;
         if let KeychainKind::External = address.keychain {
-            let new_utxo = NewWalletUtxo::builder()
-                .wallet_id(wallet_id)
-                .keychain_id(keychain_id)
-                .outpoint(utxo.outpoint)
-                .kind(address.keychain)
-                .address_idx(address.index)
-                .address(address.to_string())
-                .spent(utxo.is_spent)
-                .script_hex(format!("{:x}", utxo.txout.script_pubkey))
-                .value(utxo.txout.value)
-                .build()
-                .expect("Could not build NewWalletUtxo");
-            let ret = new_utxo.ledger_tx_pending_id;
-            self.wallet_utxos.persist(tx, new_utxo).await?;
             Ok(Some(ret))
         } else {
             Ok(None)
@@ -64,7 +64,9 @@ impl WalletUtxos {
         spent: bool,
         block_height: u32,
     ) -> Result<Option<WalletUtxo>, BriaError> {
-        unimplemented!()
+        self.wallet_utxos
+            .confirm_bdk_utxo(tx, keychain_id, outpoint, spent, block_height)
+            .await
     }
 
     #[instrument(name = "wallet_utxos.list_utxos_for_wallet", skip_all)]

@@ -27,7 +27,8 @@ impl WalletUtxoRepo {
         sqlx::query!(
             r#"INSERT INTO bria_wallet_utxos
                (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (keychain_id, tx_id, vout)
+               DO UPDATE SET spent = $10"#,
                Uuid::from(utxo.wallet_id),
                Uuid::from(utxo.keychain_id),
                utxo.outpoint.txid.to_string(),
@@ -42,6 +43,24 @@ impl WalletUtxoRepo {
             .execute(&mut *tx)
             .await?;
         Ok(())
+    }
+
+    pub async fn confirm_bdk_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+        outpoint: OutPoint,
+        spent: bool,
+        block_height: u32,
+    ) -> Result<Option<WalletUtxo>, BriaError> {
+        // sqlx::query!(
+        //     r#"SELECT keychain_id, tx_id, vout
+        //         FROM bria_wallet_utxos
+        //         WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
+        // )
+        // .fetch_optional(&mut *tx)
+        // .await?;
+        unimplemented!()
     }
 
     pub async fn find_keychain_utxos(
