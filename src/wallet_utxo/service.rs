@@ -2,6 +2,8 @@ use bdk::{wallet::AddressInfo, LocalUtxo};
 use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 
+use std::collections::HashMap;
+
 use crate::{
     error::*,
     primitives::{bitcoin::KeychainKind, *},
@@ -38,7 +40,7 @@ impl WalletUtxos {
                 .kind(address.keychain)
                 .address_idx(address.index)
                 .address(address.to_string())
-                .bdk_spent(utxo.is_spent)
+                .spent(utxo.is_spent)
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .build()
@@ -49,5 +51,13 @@ impl WalletUtxos {
         } else {
             Ok(None)
         }
+    }
+
+    #[instrument(name = "wallet_utxos.list_utxos_for_wallet", skip(self))]
+    pub async fn list_utxos_for_wallet(
+        &self,
+        wallet_id: WalletId,
+    ) -> Result<HashMap<KeychainId, Vec<WalletUtxo>>, BriaError> {
+        self.wallet_utxos.list_utxos_for_wallet(wallet_id).await
     }
 }

@@ -43,6 +43,14 @@ pub mod bitcoin {
                 }
             }
         }
+        impl From<PgKeychainKind> for super::KeychainKind {
+            fn from(kind: PgKeychainKind) -> Self {
+                match kind {
+                    PgKeychainKind::External => Self::External,
+                    PgKeychainKind::Internal => Self::Internal,
+                }
+            }
+        }
     }
 }
 pub struct XPubId(bitcoin::Fingerprint);

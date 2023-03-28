@@ -201,7 +201,8 @@ impl App {
         account_id: AccountId,
         wallet_name: String,
     ) -> Result<String, BriaError> {
-        let _wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        self.wallet_utxos.list_utxos_for_wallet(wallet.id).await?;
         Ok(String::new())
     }
 
