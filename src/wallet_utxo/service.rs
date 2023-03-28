@@ -6,10 +6,7 @@ use std::collections::HashMap;
 
 use crate::{
     error::*,
-    primitives::{
-        bitcoin::{KeychainKind, OutPoint},
-        *,
-    },
+    primitives::{bitcoin::OutPoint, *},
 };
 
 use super::{entity::*, repo::*};
@@ -26,15 +23,15 @@ impl WalletUtxos {
         }
     }
 
-    #[instrument(name = "wallet_utxos.new_bdk_utxo", skip(self, tx))]
-    pub async fn new_bdk_utxo(
+    #[instrument(name = "wallet_utxos.new_income_utxo", skip(self, tx))]
+    pub async fn new_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+    ) -> Result<LedgerTransactionId, BriaError> {
         let new_utxo = NewWalletUtxo::builder()
             .wallet_id(wallet_id)
             .keychain_id(keychain_id)
@@ -47,25 +44,21 @@ impl WalletUtxos {
             .value(utxo.txout.value)
             .build()
             .expect("Could not build NewWalletUtxo");
-        let ret = new_utxo.ledger_tx_pending_id;
-        self.wallet_utxos.persist(tx, new_utxo).await?;
-        if let KeychainKind::External = address.keychain {
-            Ok(Some(ret))
-        } else {
-            Ok(None)
-        }
+        let ret = new_utxo.pending_ledger_tx_id;
+        self.wallet_utxos.persist_income_utxo(tx, new_utxo).await?;
+        Ok(ret)
     }
 
-    pub async fn confirm_bdk_utxo(
+    pub async fn confirm_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         outpoint: OutPoint,
         spent: bool,
         block_height: u32,
-    ) -> Result<Option<WalletUtxo>, BriaError> {
+    ) -> Result<ConfimedIncomeUtxo, BriaError> {
         self.wallet_utxos
-            .confirm_bdk_utxo(tx, keychain_id, outpoint, spent, block_height)
+            .confirm_income_utxo(tx, keychain_id, outpoint, spent, block_height)
             .await
     }
 

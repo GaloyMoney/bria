@@ -4,16 +4,14 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
-pub struct UnsyncedUtxo {
+pub struct UnsyncedIncomeUtxo {
     pub local_utxo: LocalUtxo,
     pub path: u32,
     pub confirmation_time: Option<bitcoin::BlockTime>,
 }
 
-pub struct PendingConfirmationSyncUtxo {
+pub struct ConfirmedIncomeUtxo {
     pub outpoint: bitcoin::OutPoint,
-    pub kind: bitcoin::KeychainKind,
-    pub value: Satoshis,
     pub spent: bool,
     pub confirmation_time: bitcoin::BlockTime,
 }
@@ -65,17 +63,17 @@ impl Utxos {
             .collect())
     }
 
-    pub async fn find_unsynced_utxo(
+    pub async fn find_unsynced_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
-    ) -> Result<Option<UnsyncedUtxo>, BriaError> {
+    ) -> Result<Option<UnsyncedIncomeUtxo>, BriaError> {
         let row = sqlx::query!(
             r#"WITH updated_utxo AS (
             UPDATE bdk_utxos SET synced_to_wallet = true, modified_at = NOW()
             WHERE keychain_id = $1 AND (tx_id, vout) IN (
                 SELECT tx_id, vout FROM bdk_utxos
-                WHERE keychain_id = $1 AND synced_to_wallet = false
+                WHERE keychain_id = $1 AND synced_to_wallet = false AND utxo_json->>'keychain' = 'External'
                 ORDER BY created_at
                 LIMIT 1
             )
@@ -94,7 +92,7 @@ impl Utxos {
         Ok(row.map(|row| {
             let local_utxo: LocalUtxo =
                 serde_json::from_value(row.utxo_json).expect("Could not deserialize utxo_json");
-            UnsyncedUtxo {
+            UnsyncedIncomeUtxo {
                 local_utxo,
                 path: row.path as u32,
                 confirmation_time: serde_json::from_value::<TransactionDetails>(row.details_json)
@@ -104,12 +102,12 @@ impl Utxos {
         }))
     }
 
-    pub async fn find_pending_confirmation_sync(
+    pub async fn find_settled_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         min_height: u32,
-    ) -> Result<Option<PendingConfirmationSyncUtxo>, BriaError> {
+    ) -> Result<Option<ConfirmedIncomeUtxo>, BriaError> {
         let row = sqlx::query!(
             r#"WITH updated_utxo AS (
             UPDATE bdk_utxos SET confirmation_synced_to_wallet = true, modified_at = NOW()
@@ -119,6 +117,7 @@ impl Utxos {
                 JOIN bdk_transactions t
                 ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id
                 WHERE u.keychain_id = $1
+                AND utxo_json->>'keychain' = 'External'
                 AND synced_to_wallet = true
                 AND confirmation_synced_to_wallet = false
                 AND (details_json->'confirmation_time'->'height')::INTEGER >= $2
@@ -140,10 +139,8 @@ impl Utxos {
                 .expect("Could not deserialize utxo");
             let tx_details = serde_json::from_value::<TransactionDetails>(row.details_json)
                 .expect("Could not deserialize tx details");
-            PendingConfirmationSyncUtxo {
+            ConfirmedIncomeUtxo {
                 outpoint: local_utxo.outpoint,
-                kind: local_utxo.keychain,
-                value: Satoshis::from(local_utxo.txout.value),
                 spent: local_utxo.is_spent,
                 confirmation_time: tx_details
                     .confirmation_time

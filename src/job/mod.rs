@@ -122,7 +122,6 @@ async fn process_all_batch_groups(
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
-    batches: Batches,
     blockchain_cfg: BlockchainConfig,
     wallet_utxos: WalletUtxos,
     ledger: Ledger,
@@ -133,16 +132,7 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(
-                pool,
-                wallets,
-                batches,
-                blockchain_cfg,
-                wallet_utxos,
-                ledger,
-                data,
-            )
-            .await
+            sync_wallet::execute(pool, wallets, blockchain_cfg, wallet_utxos, ledger, data).await
         })
         .await?;
     Ok(())
