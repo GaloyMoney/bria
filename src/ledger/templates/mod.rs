@@ -1,5 +1,6 @@
 mod confirmed_utxo;
 mod create_batch;
+mod incoming_utxo;
 mod old_incoming_utxo;
 mod queued_payout;
 
