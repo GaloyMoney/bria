@@ -1,5 +1,14 @@
+use std::time::Duration;
+
 use super::proto;
-use crate::{error::BriaError, payout::*, primitives::bitcoin::*, wallet_utxo::*, xpub::*};
+use crate::{
+    batch_group::*,
+    error::BriaError,
+    payout::*,
+    primitives::{bitcoin::*, *},
+    wallet_utxo::*,
+    xpub::*,
+};
 
 impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {
@@ -93,6 +102,50 @@ impl From<Payout> for proto::Payout {
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
             external_id: payout.external_id,
+        }
+    }
+}
+
+impl From<proto::BatchGroupConfig> for BatchGroupConfig {
+    fn from(proto_config: proto::BatchGroupConfig) -> Self {
+        let tx_priority =
+            proto::TxPriority::from_i32(proto_config.tx_priority).map(TxPriority::from);
+        let consolidate_deprecated_keychains = proto_config.consolidate_deprecated_keychains;
+
+        let trigger = match proto_config.trigger {
+            Some(proto::batch_group_config::Trigger::Manual(_)) => Some(BatchGroupTrigger::Manual),
+            Some(proto::batch_group_config::Trigger::Immediate(_)) => {
+                Some(BatchGroupTrigger::Immediate)
+            }
+            Some(proto::batch_group_config::Trigger::IntervalSecs(interval)) => {
+                Some(BatchGroupTrigger::Interval {
+                    seconds: Duration::from_secs(interval as u64),
+                })
+            }
+            None => None,
+        };
+
+        let mut ret = Self {
+            consolidate_deprecated_keychains,
+            ..Self::default()
+        };
+
+        if let Some(trigger) = trigger {
+            ret.trigger = trigger;
+        }
+        if let Some(tx_priority) = tx_priority {
+            ret.tx_priority = tx_priority;
+        }
+        ret
+    }
+}
+
+impl From<proto::TxPriority> for TxPriority {
+    fn from(proto_tx_priority: proto::TxPriority) -> Self {
+        match proto_tx_priority {
+            proto::TxPriority::NextBlock => TxPriority::NextBlock,
+            proto::TxPriority::OneHour => TxPriority::OneHour,
+            proto::TxPriority::Economy => TxPriority::Economy,
         }
     }
 }

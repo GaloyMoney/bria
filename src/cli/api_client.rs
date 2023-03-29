@@ -1,7 +1,7 @@
 use anyhow::Context;
 use url::Url;
 
-use crate::api::proto;
+use crate::{api::proto, primitives::TxPriority};
 type ProtoClient = proto::bria_service_client::BriaServiceClient<tonic::transport::Channel>;
 
 use super::token_store;
@@ -140,13 +140,52 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn create_batch_group(&self, name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::CreateBatchGroupRequest { name });
+    pub async fn create_batch_group(
+        &self,
+        name: String,
+        description: Option<String>,
+        tx_priority: TxPriority,
+        consolidate_deprecated_keychains: bool,
+        manual_trigger: bool,
+        immediate_trigger: bool,
+        interval_trigger: Option<u32>,
+    ) -> anyhow::Result<()> {
+        let tx_priority = match tx_priority {
+            TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
+            TxPriority::OneHour => proto::TxPriority::OneHour as i32,
+            TxPriority::Economy => proto::TxPriority::Economy as i32,
+        };
+
+        let trigger = if manual_trigger {
+            Some(proto::batch_group_config::Trigger::Manual(manual_trigger))
+        } else if immediate_trigger {
+            Some(proto::batch_group_config::Trigger::Immediate(
+                immediate_trigger,
+            ))
+        } else if let Some(interval) = interval_trigger {
+            Some(proto::batch_group_config::Trigger::IntervalSecs(interval))
+        } else {
+            None
+        };
+
+        let config = proto::BatchGroupConfig {
+            tx_priority,
+            consolidate_deprecated_keychains,
+            trigger,
+        };
+
+        let request = tonic::Request::new(proto::CreateBatchGroupRequest {
+            name,
+            description,
+            config: Some(config),
+        });
+
         let response = self
             .connect()
             .await?
             .create_batch_group(self.inject_auth_token(request)?)
             .await?;
+
         output_json(response)
     }
 

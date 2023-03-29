@@ -103,6 +103,24 @@ message GetWalletBalanceSummaryResponse {
 
 message CreateBatchGroupRequest {
   string name = 1;
+  optional string description = 2;
+  BatchGroupConfig config = 3;
+}
+
+message BatchGroupConfig {
+  TxPriority tx_priority = 1;
+  bool consolidate_deprecated_keychains = 2;
+  oneof trigger {
+    bool manual = 3;
+    bool immediate = 4;
+    uint32 interval_secs = 5;
+  }
+}
+
+enum TxPriority {
+  NEXT_BLOCK = 0;
+  ONE_HOUR = 1;
+  ECONOMY = 2;
 }
 
 message CreateBatchGroupResponse {

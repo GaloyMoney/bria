@@ -218,12 +218,18 @@ impl App {
         &self,
         account_id: AccountId,
         batch_group_name: String,
+        description: Option<String>,
+        config: Option<BatchGroupConfig>,
     ) -> Result<BatchGroupId, BriaError> {
-        let batch_group = NewBatchGroup::builder()
+        let mut builder = NewBatchGroup::builder();
+        builder
             .account_id(account_id)
             .name(batch_group_name)
-            .build()
-            .expect("Couldn't build NewBatchGroup");
+            .description(description);
+        if let Some(config) = config {
+            builder.config(config);
+        }
+        let batch_group = builder.build().expect("Couldn't build NewBatchGroup");
         let batch_group_id = self.batch_groups.create(batch_group).await?;
         Ok(batch_group_id)
     }

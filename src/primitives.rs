@@ -71,7 +71,7 @@ impl std::ops::Deref for XPubId {
 
 pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum TxPriority {
     NextBlock,

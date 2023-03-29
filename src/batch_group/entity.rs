@@ -29,7 +29,7 @@ pub struct NewBatchGroup {
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
-    #[builder(default, setter(into, strip_option))]
+    #[builder(default)]
     pub(super) description: Option<String>,
     #[builder(default)]
     pub(super) config: BatchGroupConfig,
@@ -76,5 +76,5 @@ impl Default for BatchGroupConfig {
 }
 
 fn default_interval() -> Duration {
-    Duration::from_secs(20)
+    Duration::from_secs(60)
 }

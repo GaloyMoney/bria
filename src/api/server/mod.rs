@@ -11,7 +11,7 @@ use tracing::instrument;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*, primitives::*};
+use crate::{app::*, batch_group, error::*, primitives::*};
 
 pub const ACCOUNT_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -147,7 +147,12 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let id = self
             .app
-            .create_batch_group(account_id, request.name)
+            .create_batch_group(
+                account_id,
+                request.name,
+                request.description,
+                request.config.map(batch_group::BatchGroupConfig::from),
+            )
             .await?;
         Ok(Response::new(CreateBatchGroupResponse {
             id: id.to_string(),

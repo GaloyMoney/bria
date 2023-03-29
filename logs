@@ -1,0 +1,8 @@
+34072
+Sending traces to localhost:6831
+Starting server processes
+Starting admin server on port 2743
+Starting main server on port 2742
+{"timestamp":"2023-03-29T07:19:55.716348Z","level":"INFO","fields":{"message":"Derivation of 100 addresses from 0 took 491 ms","log.target":"bdk::wallet","log.module_path":"bdk::wallet","log.file":"/Users/jcarter/.cargo/registry/src/github.com-1ecc6299db9ec823/bdk-0.27.1/src/wallet/mod.rs","log.line":1393},"target":"bdk::wallet"}
+{"timestamp":"2023-03-29T07:20:05.035590Z","level":"INFO","fields":{"message":"Derivation of 100 addresses from 0 took 466 ms","log.target":"bdk::wallet","log.module_path":"bdk::wallet","log.file":"/Users/jcarter/.cargo/registry/src/github.com-1ecc6299db9ec823/bdk-0.27.1/src/wallet/mod.rs","log.line":1393},"target":"bdk::wallet"}
+{"timestamp":"2023-03-29T07:20:05.244019Z","level":"INFO","fields":{"message":"finished setup, elapsed 199ms","log.target":"bdk::blockchain::script_sync","log.module_path":"bdk::blockchain::script_sync","log.file":"/Users/jcarter/.cargo/registry/src/github.com-1ecc6299db9ec823/bdk-0.27.1/src/blockchain/script_sync.rs","log.line":436},"target":"bdk::blockchain::script_sync"}
