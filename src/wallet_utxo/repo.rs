@@ -14,7 +14,7 @@ pub struct ReservableUtxo {
     pub income_address: bool,
     pub outpoint: OutPoint,
     pub spending_batch_id: Option<BatchId>,
-    pub settled_ledger_tx_id: Option<LedgerTransactionId>,
+    pub income_settled_ledger_tx_id: Option<LedgerTransactionId>,
 }
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl WalletUtxoRepo {
                utxo.address,
                utxo.script_hex,
                utxo.spent,
-               Uuid::from(utxo.pending_ledger_tx_id)
+               Uuid::from(utxo.income_pending_ledger_tx_id)
         )
             .execute(&mut *tx)
             .await?;
@@ -89,11 +89,11 @@ impl WalletUtxoRepo {
             value: Satoshis::from(row.value),
             address: row.address,
             block_height,
-            pending_ledger_tx_id: LedgerTransactionId::from(
+            income_pending_ledger_tx_id: LedgerTransactionId::from(
                 row.income_pending_ledger_tx_id
                     .expect("pending_ledger_tx_id should always be set"),
             ),
-            settled_ledger_tx_id: new_settled_ledger_tx_id,
+            income_settled_ledger_tx_id: new_settled_ledger_tx_id,
             spending_batch_id: row.spending_batch_id.map(BatchId::from),
         })
     }
@@ -134,10 +134,10 @@ impl WalletUtxoRepo {
                 address: row.optional_address,
                 spent: row.spent,
                 block_height: row.block_height.map(|v| v as u32),
-                pending_ledger_tx_id: row
+                income_pending_ledger_tx_id: row
                     .income_pending_ledger_tx_id
                     .map(LedgerTransactionId::from),
-                settled_ledger_tx_id: row
+                income_settled_ledger_tx_id: row
                     .income_settled_ledger_tx_id
                     .map(LedgerTransactionId::from),
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
@@ -185,7 +185,7 @@ impl WalletUtxoRepo {
                     vout: row.vout as u32,
                 },
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
-                settled_ledger_tx_id: row
+                income_settled_ledger_tx_id: row
                     .income_settled_ledger_tx_id
                     .map(LedgerTransactionId::from),
             })

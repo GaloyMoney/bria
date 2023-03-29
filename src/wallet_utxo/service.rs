@@ -44,7 +44,7 @@ impl WalletUtxos {
             .value(utxo.txout.value)
             .build()
             .expect("Could not build NewWalletUtxo");
-        let ret = new_utxo.pending_ledger_tx_id;
+        let ret = new_utxo.income_pending_ledger_tx_id;
         self.wallet_utxos.persist_income_utxo(tx, new_utxo).await?;
         Ok(ret)
     }
@@ -88,7 +88,7 @@ impl WalletUtxos {
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.settled_ledger_tx_id.is_none())
+                || (utxo.income_address && utxo.income_settled_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {

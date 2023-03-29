@@ -21,7 +21,7 @@ teardown_file() {
   [ "$lnd_address" = "$bria_address" ]
 }
 
-@test "lnd_sync: Mirrors balance" {
+@test "lnd_sync: Incoming tx" {
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
   if [ -z "$lnd_address" ]; then
     echo "Failed to get a new address"
@@ -57,4 +57,31 @@ teardown_file() {
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
   [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "201" ]]
+}
+
+@test "lnd_sync: Detects outgoing transactions" {
+  # Get an address from bitcoind (or use a hardcoded regtest address)
+  bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
+
+  # Send funds from LND to the bitcoind address
+  lnd_cli sendcoins --addr=${bitcoind_address} --amt=50000000
+
+#   # Wait for Bria to detect the outgoing transaction
+#   for i in {1..30}; do
+#     cache_default_wallet_balance
+#     [[ $(cached_pending_outgoing) == 50000000 ]] && break
+#     sleep 1
+#   done
+#   [[ $(cached_pending_outgoing) == 50000000 ]] || exit 1
+
+#   # Generate a block to confirm the transaction
+#   bitcoin_cli -generate 1
+
+#   # Wait for Bria to detect the confirmed outgoing transaction
+#   for i in {1..30}; do
+#     cache_default_wallet_balance
+#     [[ $(cached_current_settled) <= 50000000 ]] && break
+#     sleep 1
+#   done
+#   [[ $(cached_current_settled) <= 50000000 ]] || exit 1
 }

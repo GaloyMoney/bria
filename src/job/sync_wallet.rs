@@ -127,7 +127,7 @@ pub async fn execute(
                 ledger
                     .confirmed_utxo(
                         tx,
-                        wallet_utxo.settled_ledger_tx_id,
+                        wallet_utxo.income_settled_ledger_tx_id,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
                             incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
@@ -143,7 +143,7 @@ pub async fn execute(
                                 true => Satoshis::from(Decimal::ZERO),
                                 false => Satoshis::from(fees),
                             },
-                            pending_id: wallet_utxo.pending_ledger_tx_id,
+                            pending_id: wallet_utxo.income_pending_ledger_tx_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,

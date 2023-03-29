@@ -11,8 +11,8 @@ pub struct WalletUtxo {
     pub address: Option<String>,
     pub spent: bool,
     pub block_height: Option<u32>,
-    pub pending_ledger_tx_id: Option<LedgerTransactionId>,
-    pub settled_ledger_tx_id: Option<LedgerTransactionId>,
+    pub income_pending_ledger_tx_id: Option<LedgerTransactionId>,
+    pub income_settled_ledger_tx_id: Option<LedgerTransactionId>,
     pub spending_batch_id: Option<BatchId>,
 }
 
@@ -22,8 +22,8 @@ pub struct ConfimedIncomeUtxo {
     pub value: Satoshis,
     pub address: String,
     pub block_height: u32,
-    pub pending_ledger_tx_id: LedgerTransactionId,
-    pub settled_ledger_tx_id: LedgerTransactionId,
+    pub income_pending_ledger_tx_id: LedgerTransactionId,
+    pub income_settled_ledger_tx_id: LedgerTransactionId,
     pub spending_batch_id: Option<BatchId>,
 }
 
@@ -44,13 +44,13 @@ pub struct NewWalletUtxo {
     pub address: String,
     pub script_hex: String,
     pub spent: bool,
-    pub pending_ledger_tx_id: LedgerTransactionId,
+    pub income_pending_ledger_tx_id: LedgerTransactionId,
 }
 
 impl NewWalletUtxo {
     pub fn builder() -> NewWalletUtxoBuilder {
         let mut builder = NewWalletUtxoBuilder::default();
-        builder.pending_ledger_tx_id(LedgerTransactionId::new());
+        builder.income_pending_ledger_tx_id(LedgerTransactionId::new());
         builder
     }
 }
