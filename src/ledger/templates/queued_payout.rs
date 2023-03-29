@@ -100,7 +100,7 @@ impl QueuedPayout {
             EntryInput::builder()
                 .entry_type("'QUEUED_PAYOUT_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")

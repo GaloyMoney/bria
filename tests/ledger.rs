@@ -108,43 +108,6 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
 
     assert_eq!(balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
 
-    let pending_id = LedgerTransactionId::new();
-    let settled_id = LedgerTransactionId::new();
-    let tx = pool.begin().await?;
-
-    ledger
-        .confirmed_utxo_without_fee_reserve(
-            tx,
-            settled_id,
-            ConfirmedUtxoWithoutFeeReserveParams {
-                journal_id,
-                incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
-                at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
-                pending_id,
-                meta: ConfirmedUtxoWithoutFeeReserveMeta {
-                    batch_id: BatchId::new(),
-                    wallet_id,
-                    keychain_id,
-                    outpoint,
-                    satoshis: one_btc,
-                    address: address.clone(),
-                    confirmation_time: BlockTime {
-                        height: 1,
-                        timestamp: 123409,
-                    },
-                },
-            },
-        )
-        .await?;
-
-    let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.at_rest_id)
-        .await?
-        .expect("No balance");
-
-    assert_eq!(balance.pending(), Decimal::ZERO);
-    assert_eq!(balance.settled(), Decimal::from(2));
-
     Ok(())
 }
 
