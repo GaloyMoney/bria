@@ -12,6 +12,17 @@ pub struct WalletLedgerAccountIds {
     pub dust_id: LedgerAccountId,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct AltWalletLedgerAccountIds {
+    pub logical_income: LedgerAccountId,
+    pub logical_at_rest: LedgerAccountId,
+    pub logical_outgoing: LedgerAccountId,
+    pub at_rest_id: LedgerAccountId,
+    pub fee_id: LedgerAccountId,
+    pub outgoing_id: LedgerAccountId,
+    pub dust_id: LedgerAccountId,
+}
+
 #[derive(Debug)]
 pub struct WalletLedgerAccountBalances {
     pub incoming: Option<AccountBalance>,

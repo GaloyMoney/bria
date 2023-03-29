@@ -55,10 +55,10 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: IncomingUtxoParams,
+        params: OldIncomingUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, INCOMING_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, OLD_INCOMING_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }

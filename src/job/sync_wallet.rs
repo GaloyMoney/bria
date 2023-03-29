@@ -73,13 +73,13 @@ pub async fn execute(
                     .incoming_utxo(
                         tx,
                         pending_id,
-                        IncomingUtxoParams {
+                        OldIncomingUtxoParams {
                             journal_id: wallet.journal_id,
                             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
                                 local_utxo.txout.value.into(),
                                 wallet.ledger_account_ids.incoming_id,
                             ),
-                            meta: IncomingUtxoMeta {
+                            meta: OldIncomingUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,
                                 outpoint: local_utxo.outpoint,

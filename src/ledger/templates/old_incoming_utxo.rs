@@ -7,7 +7,7 @@ use tracing::instrument;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IncomingUtxoMeta {
+pub struct OldIncomingUtxoMeta {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
@@ -17,13 +17,13 @@ pub struct IncomingUtxoMeta {
 }
 
 #[derive(Debug)]
-pub struct IncomingUtxoParams {
+pub struct OldIncomingUtxoParams {
     pub journal_id: JournalId,
     pub ledger_account_incoming_id: LedgerAccountId,
-    pub meta: IncomingUtxoMeta,
+    pub meta: OldIncomingUtxoMeta,
 }
 
-impl IncomingUtxoParams {
+impl OldIncomingUtxoParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -55,13 +55,13 @@ impl IncomingUtxoParams {
     }
 }
 
-impl From<IncomingUtxoParams> for TxParams {
+impl From<OldIncomingUtxoParams> for TxParams {
     fn from(
-        IncomingUtxoParams {
+        OldIncomingUtxoParams {
             journal_id,
             ledger_account_incoming_id,
             meta,
-        }: IncomingUtxoParams,
+        }: OldIncomingUtxoParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
         let effective = meta
@@ -117,10 +117,10 @@ impl IncomingUtxo {
                 .expect("Couldn't build INCOMING_UTXO_PENDING_CR entry"),
         ];
 
-        let params = IncomingUtxoParams::defs();
+        let params = OldIncomingUtxoParams::defs();
         let template = NewTxTemplate::builder()
-            .id(INCOMING_UTXO_ID)
-            .code(INCOMING_UTXO_CODE)
+            .id(OLD_INCOMING_UTXO_ID)
+            .code(OLD_INCOMING_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)

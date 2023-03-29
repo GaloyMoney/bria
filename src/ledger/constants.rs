@@ -1,8 +1,9 @@
 use uuid::{uuid, Uuid};
 
 // Transaction Template Codes
-pub(super) const INCOMING_UTXO_CODE: &str = "INCOMING_UTXO";
-pub(super) const INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
+pub(super) const OLD_INCOMING_UTXO_CODE: &str = "OLD_INCOMING_UTXO";
+pub(super) const OLD_INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-100000000001");
+
 pub(super) const CONFIRMED_UTXO_CODE: &str = "CONFIRMED_UTXO";
 pub(super) const CONFIRMED_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 pub(super) const QUEUED_PAYOUT_CODE: &str = "QUEUED_PAYOUT";

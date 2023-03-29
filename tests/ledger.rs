@@ -42,10 +42,10 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .incoming_utxo(
             tx,
             pending_id,
-            IncomingUtxoParams {
+            OldIncomingUtxoParams {
                 journal_id,
                 ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
-                meta: IncomingUtxoMeta {
+                meta: OldIncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
                     outpoint,
