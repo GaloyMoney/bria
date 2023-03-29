@@ -4,6 +4,7 @@ use bdk::BlockTime;
 use bria::{
     ledger::*,
     primitives::{bitcoin::*, *},
+    wallet::balance::WalletBalanceSummary,
 };
 use rand::distributions::{Alphanumeric, DistString};
 use rust_decimal::Decimal;
@@ -27,6 +28,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
+    let one_sat = Satoshis::from(1);
     let address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".to_string();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
@@ -47,7 +49,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                 onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
                 logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
-                spending_fee_satoshis: Satoshis::from(Decimal::ONE),
+                spending_fee_satoshis: one_sat,
                 meta: IncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
@@ -60,11 +62,14 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         )
         .await?;
 
-    let balances = ledger
-        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
-        .await?;
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
 
-    // assert_eq!(balance.pending(), Decimal::ONE);
+    assert_eq!(summary.pending_incoming_utxos, one_btc);
+    assert_eq!(summary.encumbered_fees, one_sat);
 
     Ok(())
 }

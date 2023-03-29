@@ -6,6 +6,7 @@ use crate::{
     error::BriaError,
     payout::*,
     primitives::{bitcoin::*, *},
+    wallet::balance::WalletBalanceSummary,
     wallet_utxo::*,
     xpub::*,
 };
@@ -146,6 +147,24 @@ impl From<proto::TxPriority> for TxPriority {
             proto::TxPriority::NextBlock => TxPriority::NextBlock,
             proto::TxPriority::OneHour => TxPriority::OneHour,
             proto::TxPriority::Economy => TxPriority::Economy,
+        }
+    }
+}
+
+impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
+    fn from(balance: WalletBalanceSummary) -> Self {
+        Self {
+            confirmed_utxos: u64::try_from(balance.confirmed_utxos)
+                .expect("Satoshis -> u64 failed"),
+            pending_incoming_utxos: u64::try_from(balance.pending_incoming_utxos)
+                .expect("Satoshis -> u64 failed"),
+            pending_outgoing_utxos: u64::try_from(balance.pending_outgoing_utxos)
+                .expect("Satoshis -> u64 failed"),
+            encumbered_fees: u64::try_from(balance.encumbered_fees)
+                .expect("Satoshis -> u64 failed"),
+            encumbered_outgoing: u64::try_from(balance.encumbered_outgoing)
+                .expect("Satoshis -> u64 failed"),
+            pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
         }
     }
 }
