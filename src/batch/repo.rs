@@ -54,7 +54,7 @@ impl Batches {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
-            (batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, create_batch_ledger_tx_id, ledger_tx_settled_id)"#,
+            (batch_id, wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id)"#,
         );
         query_builder.push_values(
             batch.wallet_summaries,
@@ -67,7 +67,7 @@ impl Batches {
                 builder.push_bind(summary.change_address.to_string());
                 builder.push_bind(i64::from(summary.fee_sats));
                 builder.push_bind(summary.create_batch_ledger_tx_id.map(Uuid::from));
-                builder.push_bind(summary.ledger_tx_settled_id.map(Uuid::from));
+                builder.push_bind(summary.submitted_ledger_tx_id.map(Uuid::from));
             },
         );
         let query = query_builder.build();
@@ -91,7 +91,7 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, create_batch_ledger_tx_id, ledger_tx_settled_id, tx_id, vout, keychain_id
+            r#"SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id
             FROM bria_batch_utxos u
             LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
             LEFT JOIN bria_batches b ON b.id = u.batch_id
@@ -128,7 +128,7 @@ impl Batches {
                     change_sats: Satoshis::from(row.change_sats),
                     change_address: Address::from_str(&row.change_address)?,
                     create_batch_ledger_tx_id: row.create_batch_ledger_tx_id.map(LedgerTxId::from),
-                    ledger_tx_settled_id: row.ledger_tx_settled_id.map(LedgerTxId::from),
+                    submitted_ledger_tx_id: row.submitted_ledger_tx_id.map(LedgerTxId::from),
                 },
             );
         }
@@ -142,7 +142,7 @@ impl Batches {
         })
     }
 
-    #[instrument(name = "batches.find_containing_utxo", skip_all)]
+    #[instrument(name = "batches.find_containing_utxo", skip(self))]
     pub async fn find_containing_utxo(
         &self,
         keychain_id: KeychainId,
@@ -162,6 +162,7 @@ impl Batches {
         Ok(row.map(|row| BatchId::from(row.batch_id)))
     }
 
+    #[instrument(name = "batches.set_create_batch_ledger_tx_id", skip(self))]
     pub async fn set_create_batch_ledger_tx_id(
         &self,
         batch_id: BatchId,

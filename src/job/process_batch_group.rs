@@ -169,7 +169,7 @@ impl From<WalletTotals> for WalletSummary {
             change_sats: wt.change_satoshis,
             change_address: wt.change_address.address,
             create_batch_ledger_tx_id: None,
-            ledger_tx_settled_id: None,
+            submitted_ledger_tx_id: None,
         }
     }
 }

@@ -54,5 +54,5 @@ pub struct WalletSummary {
     pub change_sats: Satoshis,
     pub change_address: bitcoin::Address,
     pub create_batch_ledger_tx_id: Option<LedgerTransactionId>,
-    pub ledger_tx_settled_id: Option<LedgerTransactionId>,
+    pub submitted_ledger_tx_id: Option<LedgerTransactionId>,
 }
