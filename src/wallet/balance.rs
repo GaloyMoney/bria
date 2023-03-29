@@ -8,6 +8,9 @@ pub struct WalletLedgerAccountIds {
     pub onchain_incoming_id: LedgerAccountId,
     pub onchain_at_rest_id: LedgerAccountId,
     pub onchain_outgoing_id: LedgerAccountId,
+    pub logical_incoming_id: LedgerAccountId,
+    pub logical_at_rest_id: LedgerAccountId,
+    pub logical_outgoing_id: LedgerAccountId,
     pub fee_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
 }

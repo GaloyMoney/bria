@@ -120,8 +120,11 @@ impl Ledger {
         WalletLedgerAccountIds {
             onchain_incoming_id,
             onchain_at_rest_id,
-            fee_id,
             onchain_outgoing_id,
+            logical_incoming_id,
+            logical_at_rest_id,
+            logical_outgoing_id,
+            fee_id,
             dust_id,
         }: WalletLedgerAccountIds,
     ) -> Result<WalletLedgerAccountBalances, BriaError> {
@@ -134,6 +137,9 @@ impl Ledger {
                     onchain_incoming_id,
                     onchain_at_rest_id,
                     onchain_outgoing_id,
+                    logical_incoming_id,
+                    logical_at_rest_id,
+                    logical_outgoing_id,
                     fee_id,
                     dust_id,
                 ],
@@ -196,8 +202,8 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{wallet_id}_INCOMING"),
-                    format!("{wallet_id}-incoming"),
+                    format!("WALLET_{wallet_id}_UTXO_INCOMING"),
+                    format!("{wallet_id}-utxo-incoming"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -206,7 +212,43 @@ impl Ledger {
                     tx,
                     wallet_id,
                     format!("WALLET_{wallet_id}_UTXO_AT_REST"),
-                    format!("{wallet_id}-at-rest"),
+                    format!("{wallet_id}-utxo-at-rest"),
+                    DebitOrCredit::Credit,
+                )
+                .await?,
+            onchain_outgoing_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{wallet_id}_UTXO_OUTGOING"),
+                    format!("{wallet_id}-utxo-outgoing"),
+                    DebitOrCredit::Credit,
+                )
+                .await?,
+            logical_incoming_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{wallet_id}_LOGICAL_INCOMING"),
+                    format!("{wallet_id}-logical-incoming"),
+                    DebitOrCredit::Credit,
+                )
+                .await?,
+            logical_at_rest_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{wallet_id}_LOGICAL_AT_REST"),
+                    format!("{wallet_id}-logical-at-rest"),
+                    DebitOrCredit::Credit,
+                )
+                .await?,
+            logical_outgoing_id: self
+                .create_account_for_wallet(
+                    tx,
+                    wallet_id,
+                    format!("WALLET_{wallet_id}_LOGICAL_OUTGOING"),
+                    format!("{wallet_id}-logical-outgoing"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -214,18 +256,9 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{wallet_id}_FEE"),
-                    format!("{wallet_id}-fee"),
+                    format!("WALLET_{wallet_id}_ONCHAIN_FEE"),
+                    format!("{wallet_id}-onchain-fee"),
                     DebitOrCredit::Debit,
-                )
-                .await?,
-            onchain_outgoing_id: self
-                .create_account_for_wallet(
-                    tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_OUTGOING"),
-                    format!("{wallet_id}-outgoing"),
-                    DebitOrCredit::Credit,
                 )
                 .await?,
             dust_id: self
