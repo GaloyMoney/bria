@@ -8,6 +8,8 @@ pub(super) const OLD_INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-100
 
 pub(super) const CONFIRMED_UTXO_CODE: &str = "CONFIRMED_UTXO";
 pub(super) const CONFIRMED_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
+pub(super) const OLD_CONFIRMED_UTXO_CODE: &str = "OLD_CONFIRMED_UTXO";
+pub(super) const OLD_CONFIRMED_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-100000000002");
 pub(super) const QUEUED_PAYOUT_CODE: &str = "QUEUED_PAYOUT";
 pub(super) const QUEUED_PAYOUD_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 pub(super) const CREATE_BATCH_CODE: &str = "CREATE_BATCH";

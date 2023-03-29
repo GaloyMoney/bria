@@ -43,7 +43,7 @@ impl Ledger {
 
         templates::IncomingUtxo::init(&inner).await?;
         templates::OldIncomingUtxo::init(&inner).await?;
-        templates::ConfirmedUtxo::init(&inner).await?;
+        templates::OldConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
 
@@ -84,10 +84,10 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: ConfirmedUtxoParams,
+        params: OldConfirmedUtxoParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, CONFIRMED_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, OLD_CONFIRMED_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }

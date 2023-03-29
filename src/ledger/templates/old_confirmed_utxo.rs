@@ -7,7 +7,7 @@ use tracing::instrument;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConfirmedUtxoMeta {
+pub struct OldConfirmedUtxoMeta {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
@@ -17,17 +17,17 @@ pub struct ConfirmedUtxoMeta {
 }
 
 #[derive(Debug)]
-pub struct ConfirmedUtxoParams {
+pub struct OldConfirmedUtxoParams {
     pub journal_id: JournalId,
     pub incoming_ledger_account_id: LedgerAccountId,
     pub at_rest_ledger_account_id: LedgerAccountId,
     pub fee_ledger_account_id: LedgerAccountId,
     pub spending_fee_satoshis: Satoshis,
     pub pending_id: LedgerTransactionId,
-    pub meta: ConfirmedUtxoMeta,
+    pub meta: OldConfirmedUtxoMeta,
 }
 
-impl ConfirmedUtxoParams {
+impl OldConfirmedUtxoParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -79,9 +79,9 @@ impl ConfirmedUtxoParams {
     }
 }
 
-impl From<ConfirmedUtxoParams> for TxParams {
+impl From<OldConfirmedUtxoParams> for TxParams {
     fn from(
-        ConfirmedUtxoParams {
+        OldConfirmedUtxoParams {
             journal_id,
             incoming_ledger_account_id,
             at_rest_ledger_account_id,
@@ -89,7 +89,7 @@ impl From<ConfirmedUtxoParams> for TxParams {
             spending_fee_satoshis: fees,
             pending_id,
             meta,
-        }: ConfirmedUtxoParams,
+        }: OldConfirmedUtxoParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
         let effective =
@@ -111,9 +111,9 @@ impl From<ConfirmedUtxoParams> for TxParams {
     }
 }
 
-pub struct ConfirmedUtxo {}
+pub struct OldConfirmedUtxo {}
 
-impl ConfirmedUtxo {
+impl OldConfirmedUtxo {
     #[instrument(name = "ledger.confirmed_utxo.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
@@ -181,10 +181,10 @@ impl ConfirmedUtxo {
                 .expect("Couldn't build CONFIRMED_UTXO_FR_DR entry"),
         ];
 
-        let params = ConfirmedUtxoParams::defs();
+        let params = OldConfirmedUtxoParams::defs();
         let template = NewTxTemplate::builder()
-            .id(CONFIRMED_UTXO_ID)
-            .code(CONFIRMED_UTXO_CODE)
+            .id(OLD_CONFIRMED_UTXO_ID)
+            .code(OLD_CONFIRMED_UTXO_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)

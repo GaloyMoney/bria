@@ -137,14 +137,14 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .confirmed_utxo(
             tx,
             settled_id,
-            ConfirmedUtxoParams {
+            OldConfirmedUtxoParams {
                 journal_id,
                 incoming_ledger_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 at_rest_ledger_account_id: wallet_ledger_accounts.onchain_at_rest_id,
                 fee_ledger_account_id: wallet_ledger_accounts.fee_id,
                 spending_fee_satoshis: Satoshis::from(Decimal::ONE),
                 pending_id,
-                meta: ConfirmedUtxoMeta {
+                meta: OldConfirmedUtxoMeta {
                     wallet_id,
                     keychain_id,
                     outpoint,
