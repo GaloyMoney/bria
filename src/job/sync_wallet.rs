@@ -69,17 +69,27 @@ pub async fn execute(
                     .new_income_utxo(&mut tx, wallet.id, keychain_id, &address_info, &local_utxo)
                     .await?;
                 n_pending_utxos += 1;
+                let fee_rate =
+                    crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
+                        .await?
+                        .as_sat_per_vb();
+                let weight = keychain_wallet.max_satisfaction_weight().await?;
+                let fees = Satoshis::from((fee_rate as u64) * (weight as u64));
                 ledger
-                    .old_incoming_utxo(
+                    .incoming_utxo(
                         tx,
                         pending_id,
-                        OldIncomingUtxoParams {
+                        IncomingUtxoParams {
                             journal_id: wallet.journal_id,
-                            ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
-                                local_utxo.txout.value.into(),
-                                wallet.ledger_account_ids.onchain_incoming_id,
-                            ),
-                            meta: OldIncomingUtxoMeta {
+                            onchain_incoming_account_id: wallet
+                                .ledger_account_ids
+                                .onchain_incoming_id,
+                            logical_incoming_account_id: wallet
+                                .ledger_account_ids
+                                .logical_incoming_id,
+                            onchain_fee_account_id: wallet.ledger_account_ids.fee_id,
+                            spending_fee_satoshis: fees,
+                            meta: IncomingUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,
                                 outpoint: local_utxo.outpoint,
@@ -117,34 +127,15 @@ pub async fn execute(
                     .await?;
                 n_settled_utxos += 1;
 
-                let fee_rate =
-                    crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
-                        .await?
-                        .as_sat_per_vb();
-                let weight = keychain_wallet.max_satisfaction_weight().await?;
-                let fees = (fee_rate as u64) * (weight as u64);
-
                 ledger
-                    .old_confirmed_utxo(
+                    .confirmed_utxo(
                         tx,
                         wallet_utxo.income_settled_ledger_tx_id,
-                        OldConfirmedUtxoParams {
+                        ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
-                            incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                wallet_utxo.value,
-                                wallet.ledger_account_ids.onchain_incoming_id,
-                            ),
-                            at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                wallet_utxo.value,
-                                wallet.ledger_account_ids.onchain_at_rest_id,
-                            ),
-                            fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
-                            spending_fee_satoshis: match wallet.is_dust_utxo(wallet_utxo.value) {
-                                true => Satoshis::from(Decimal::ZERO),
-                                false => Satoshis::from(fees),
-                            },
+                            ledger_account_ids: wallet.ledger_account_ids,
                             pending_id: wallet_utxo.income_pending_ledger_tx_id,
-                            meta: OldConfirmedUtxoMeta {
+                            meta: ConfirmedUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,
                                 confirmation_time,
