@@ -22,8 +22,11 @@ pub mod bitcoin {
             },
             consensus,
             hash_types::Txid,
-            util::bip32::{ExtendedPubKey, Fingerprint},
-            util::psbt,
+            util::{
+                address::Error as AddressError,
+                bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
+                psbt,
+            },
             Address, Network,
         },
         BlockTime, KeychainKind,

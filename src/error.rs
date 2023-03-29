@@ -1,5 +1,9 @@
-use crate::job::JobExecutionError;
 use thiserror::Error;
+
+use crate::{
+    job::JobExecutionError,
+    primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+};
 
 #[derive(Error, Debug)]
 pub enum BriaError {
@@ -16,7 +20,7 @@ pub enum BriaError {
     #[error("BriaError - SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
     #[error("BriaError - Bip32: {0}")]
-    Bip32(#[from] bitcoin::util::bip32::Error),
+    Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
     #[error("BriaError - CouldNotRetrieveWalletBalance")]
@@ -26,11 +30,11 @@ pub enum BriaError {
     #[error("BriaError - BatchNotFound")]
     BatchNotFound,
     #[error("BriaError - BitcoinConsensusEncodeError: {0}")]
-    BitcoinConsensusEncodeError(#[from] bitcoin::consensus::encode::Error),
+    BitcoinConsensusEncodeError(#[from] consensus::encode::Error),
     #[error("BriaError - TryFromIntError")]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("BriaError - BitcoinAddressParseError")]
-    BitcoinAddressParseError(#[from] bitcoin::util::address::Error),
+    BitcoinAddressParseError(#[from] AddressError),
     #[error("BriaError - XPubDepthMismatch: expected depth {0}, got {1}")]
     XPubDepthMismatch(u8, usize),
     #[error("BriaError - JoinError: {0}")]
@@ -42,7 +46,7 @@ pub enum BriaError {
     #[error("BriaError - FeeEstimation: {0}")]
     FeeEstimation(reqwest::Error),
     #[error("BriaError - CouldNotCombinePsbts: {0}")]
-    CouldNotCombinePsbts(bitcoin::psbt::Error),
+    CouldNotCombinePsbts(psbt::Error),
 }
 
 impl JobExecutionError for BriaError {}

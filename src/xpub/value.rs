@@ -1,8 +1,13 @@
-use bitcoin::util::bip32::{DerivationPath, ExtendedPubKey};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use crate::{error::*, primitives::XPubId};
+use crate::{
+    error::*,
+    primitives::{
+        bitcoin::{DerivationPath, ExtendedPubKey},
+        XPubId,
+    },
+};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct XPub {

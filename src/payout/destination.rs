@@ -1,5 +1,6 @@
-use bitcoin::Address;
 use serde::{Deserialize, Serialize};
+
+use crate::primitives::bitcoin::Address;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]

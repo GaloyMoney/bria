@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use bitcoin::util::psbt::PartiallySignedTransaction;
+
+use crate::primitives::bitcoin::psbt;
 
 use super::error::*;
 
@@ -7,6 +8,6 @@ use super::error::*;
 pub trait RemoteSigningClient {
     async fn sign_psbt(
         &mut self,
-        psbt: &PartiallySignedTransaction,
-    ) -> Result<PartiallySignedTransaction, SigningClientError>;
+        psbt: &psbt::PartiallySignedTransaction,
+    ) -> Result<psbt::PartiallySignedTransaction, SigningClientError>;
 }

@@ -1,4 +1,3 @@
-use ::bitcoin::util::psbt;
 use bdk::{
     database::BatchDatabase,
     wallet::tx_builder::TxOrdering,

@@ -1,6 +1,7 @@
-use bitcoin::Network;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+use crate::primitives::bitcoin::Network;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainConfig {

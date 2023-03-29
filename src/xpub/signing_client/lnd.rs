@@ -1,11 +1,11 @@
 use async_trait::async_trait;
-use bitcoin::{consensus::encode, util::psbt::PartiallySignedTransaction};
 use serde::{Deserialize, Serialize};
 use tonic_lnd::walletrpc::SignPsbtRequest;
 
 use std::fs;
 
 use super::{error::*, r#trait::*};
+use crate::primitives::bitcoin::{consensus, psbt};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LndSignerConfig {
@@ -51,19 +51,19 @@ impl LndRemoteSigner {
 impl RemoteSigningClient for LndRemoteSigner {
     async fn sign_psbt(
         &mut self,
-        psbt: &PartiallySignedTransaction,
-    ) -> Result<PartiallySignedTransaction, SigningClientError> {
+        psbt: &psbt::PartiallySignedTransaction,
+    ) -> Result<psbt::PartiallySignedTransaction, SigningClientError> {
         let response = self
             .inner
             .wallet()
             .sign_psbt(SignPsbtRequest {
-                funded_psbt: encode::serialize(psbt),
+                funded_psbt: consensus::encode::serialize(psbt),
             })
             .await
             .map_err(|e| {
                 SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {e}"))
             })?;
         let signed_psbt = response.into_inner().signed_psbt;
-        Ok(encode::deserialize(&signed_psbt)?)
+        Ok(consensus::encode::deserialize(&signed_psbt)?)
     }
 }
