@@ -28,10 +28,10 @@ pub struct AltWalletLedgerAccountIds {
 
 #[derive(Debug)]
 pub struct WalletLedgerAccountBalances {
-    pub incoming: Option<AccountBalance>,
-    pub at_rest: Option<AccountBalance>,
+    pub onchain_incoming: Option<AccountBalance>,
+    pub onchain_at_rest: Option<AccountBalance>,
+    pub onchain_outgoing: Option<AccountBalance>,
     pub fee: Option<AccountBalance>,
-    pub outgoing: Option<AccountBalance>,
     pub dust: Option<AccountBalance>,
 }
 
@@ -50,7 +50,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
         Self {
             current_settled: Satoshis::from_btc(
                 balances
-                    .at_rest
+                    .onchain_at_rest
                     .map(|b| {
                         let val = b.settled();
                         if val < Decimal::ZERO {
@@ -63,13 +63,13 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
             ),
             pending_incoming: Satoshis::from_btc(
                 balances
-                    .incoming
+                    .onchain_incoming
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
             pending_outgoing: Satoshis::from_btc(
                 balances
-                    .outgoing
+                    .onchain_outgoing
                     .as_ref()
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
@@ -89,7 +89,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
             ),
             encumbered_outgoing: Satoshis::from_btc(
                 balances
-                    .outgoing
+                    .onchain_outgoing
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),

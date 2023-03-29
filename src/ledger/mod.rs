@@ -160,14 +160,14 @@ impl Ledger {
             )
             .await?;
         Ok(WalletLedgerAccountBalances {
-            incoming: balances
+            onchain_incoming: balances
                 .get_mut(&onchain_incoming_id)
                 .and_then(|b| b.remove(&self.btc)),
-            at_rest: balances
+            onchain_at_rest: balances
                 .get_mut(&onchain_at_rest_id)
                 .and_then(|b| b.remove(&self.btc)),
             fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
-            outgoing: balances
+            onchain_outgoing: balances
                 .get_mut(&onchain_outgoing_id)
                 .and_then(|b| b.remove(&self.btc)),
             dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
