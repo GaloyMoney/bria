@@ -52,37 +52,37 @@ pub async fn execute(
 
     let mut reserved_fees = Satoshis::from(0);
     for entries in settled_ledger_txn_entries.values() {
-        if let Some(fee_entry) = entries
-            .iter()
-            .find(|entry| entry.account_id == wallet.ledger_account_ids.fee_id)
-        {
+        if let Some(fee_entry) = entries.iter().find(|entry| {
+            entry.account_id == wallet.ledger_account_ids.fee_id
+                && entry.layer == sqlx_ledger::Layer::Encumbered
+        }) {
             reserved_fees += Satoshis::from_btc(fee_entry.units);
         }
     }
 
-    match ledger
-        .create_batch(
-            wallet_summary.ledger_tx_pending_id,
-            CreateBatchParams {
-                journal_id: wallet.journal_id,
-                ledger_account_ids: wallet.ledger_account_ids,
-                fee_sats: wallet_summary.fee_sats,
-                satoshis: wallet_summary.total_out_sats,
-                correlation_id: Uuid::from(data.batch_id),
-                reserved_fees,
-                meta: CreateBatchMeta {
-                    batch_id: id,
-                    batch_group_id,
-                    bitcoin_tx_id,
-                },
-            },
-        )
-        .await
+    if let Some((tx, tx_id)) = batches
+        .set_create_batch_ledger_tx_id(data.batch_id, data.wallet_id)
+        .await?
     {
-        Err(BriaError::SqlxLedger(sqlx_ledger::SqlxLedgerError::DuplicateKey(_))) => (),
-        Err(e) => return Err(e),
-        Ok(_) => (),
-    };
-
+        ledger
+            .create_batch(
+                tx,
+                tx_id,
+                CreateBatchParams {
+                    journal_id: wallet.journal_id,
+                    ledger_account_ids: wallet.ledger_account_ids,
+                    fee_sats: wallet_summary.fee_sats,
+                    satoshis: wallet_summary.total_out_sats,
+                    correlation_id: Uuid::from(data.batch_id),
+                    reserved_fees,
+                    meta: CreateBatchMeta {
+                        batch_id: id,
+                        batch_group_id,
+                        bitcoin_tx_id,
+                    },
+                },
+            )
+            .await?;
+    }
     Ok(data)
 }

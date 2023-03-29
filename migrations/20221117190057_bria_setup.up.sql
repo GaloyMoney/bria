@@ -150,8 +150,8 @@ CREATE TABLE bria_batch_wallet_summaries (
   change_sats BIGINT NOT NULL,
   change_address VARCHAR NOT NULL,
   fee_sats BIGINT NOT NULL,
-  ledger_tx_pending_id UUID NOT NULL,
-  ledger_tx_settled_id UUID NOT NULL,
+  create_batch_ledger_tx_id UUID,
+  ledger_tx_settled_id UUID,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(batch_id, wallet_id)

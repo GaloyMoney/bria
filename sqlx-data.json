@@ -284,6 +284,20 @@
     },
     "query": "SELECT wallet_id, keychain_id, tx_id, vout, kind as \"kind: pg::PgKeychainKind\", address_idx, value, address, spent as spent,\n                  CASE\n                      WHEN kind = 'external' THEN address\n                      ELSE NULL\n                  END as optional_address,\n                  block_height, income_pending_ledger_tx_id, income_settled_ledger_tx_id, spending_batch_id\n           FROM bria_wallet_utxos\n           WHERE keychain_id = ANY($1) AND spent = false\n           ORDER BY created_at DESC"
   },
+  "2d8175d62037c8d586f50aa366000c92f17090b4f88a0d8d971ad29d2188f3af": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE bria_batch_wallet_summaries\n               SET create_batch_ledger_tx_id = $1\n               WHERE wallet_id = $2 AND batch_id = $3 AND create_batch_ledger_tx_id IS NULL"
+  },
   "2efcb24d9b29b54e7d682f191f1dda750834dcfc6c76a1d7487e50c3f3bab9b6": {
     "describe": {
       "columns": [
@@ -550,104 +564,6 @@
       }
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"
-  },
-  "5345dac58bc958ac514d111891b99a4622739e7fbf3f633edb3bc9b7a0c07455": {
-    "describe": {
-      "columns": [
-        {
-          "name": "batch_group_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "bitcoin_tx_id",
-          "ordinal": 1,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "total_in_sats",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "total_out_sats",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_sats",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_address",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "fee_sats",
-          "ordinal": 8,
-          "type_info": "Int8"
-        },
-        {
-          "name": "ledger_tx_pending_id",
-          "ordinal": 9,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "ledger_tx_settled_id",
-          "ordinal": 10,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tx_id",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "vout",
-          "ordinal": 12,
-          "type_info": "Int4"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 13,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, ledger_tx_pending_id, ledger_tx_settled_id, tx_id, vout, keychain_id\n            FROM bria_batch_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
   },
   "6be0e1f0b1e056688e4e276b13a40d5b6423b960df7dbff0b2a2f5e1bec3dc33": {
     "describe": {
@@ -1348,6 +1264,104 @@
       }
     },
     "query": "SELECT batch_id\n            FROM bria_batch_utxos\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
+  },
+  "f1a80f8a510aa56b2697b9ca4dc1162e6e7ee65032b55d51aeed47e9d3d8a073": {
+    "describe": {
+      "columns": [
+        {
+          "name": "batch_group_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "bitcoin_tx_id",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "total_in_sats",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "total_out_sats",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_sats",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_address",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "fee_sats",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "create_batch_ledger_tx_id",
+          "ordinal": 9,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ledger_tx_settled_id",
+          "ordinal": 10,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tx_id",
+          "ordinal": 11,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "vout",
+          "ordinal": 12,
+          "type_info": "Int4"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 13,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_out_sats, change_sats, change_address, fee_sats, create_batch_ledger_tx_id, ledger_tx_settled_id, tx_id, vout, keychain_id\n            FROM bria_batch_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
   },
   "f312759e58280bd0cbe7b479e032eca430ccc5cc98ed802f23402e7ceea22335": {
     "describe": {

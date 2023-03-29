@@ -172,8 +172,10 @@ async fn test_ledger_batch() -> anyhow::Result<()> {
     let satoshis = Satoshis::from(100_000_000);
     let reserved_fees = Satoshis::from(12_346);
 
+    let tx = pool.begin().await?;
     ledger
         .create_batch(
+            tx,
             LedgerTransactionId::new(),
             CreateBatchParams {
                 journal_id,
