@@ -102,8 +102,14 @@ impl From<CreateBatchParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("ledger_account_outgoing_id", ledger_account_ids.onchain_outgoing_id);
-        params.insert("ledger_account_at_rest_id", ledger_account_ids.onchain_at_rest_id);
+        params.insert(
+            "ledger_account_outgoing_id",
+            ledger_account_ids.onchain_outgoing_id,
+        );
+        params.insert(
+            "ledger_account_at_rest_id",
+            ledger_account_ids.onchain_at_rest_id,
+        );
         params.insert("ledger_account_fee_id", ledger_account_ids.fee_id);
         params.insert("amount", satoshis);
         params.insert("fees", fee_sats);

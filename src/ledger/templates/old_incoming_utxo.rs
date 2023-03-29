@@ -84,9 +84,9 @@ impl From<OldIncomingUtxoParams> for TxParams {
     }
 }
 
-pub struct IncomingUtxo {}
+pub struct OldIncomingUtxo {}
 
-impl IncomingUtxo {
+impl OldIncomingUtxo {
     #[instrument(name = "ledger.incoming_utxo.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()

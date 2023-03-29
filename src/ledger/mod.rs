@@ -42,6 +42,7 @@ impl Ledger {
         Self::logical_outgoing_account(&inner).await?;
 
         templates::IncomingUtxo::init(&inner).await?;
+        templates::OldIncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
