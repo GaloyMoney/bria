@@ -77,6 +77,9 @@ impl WalletUtxos {
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
     ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
+        // Here we list all Utxos that bdk might want to use and lock them (FOR UPDATE)
+        // This ensures that we don't have 2 concurrent psbt constructions get in the way
+        // of each other
         let reservable_utxos = self.wallet_utxos.find_reservable_utxos(tx, ids).await?;
 
         // We need to tell bdk which utxos not to select.
