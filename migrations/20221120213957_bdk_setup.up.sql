@@ -37,9 +37,8 @@ CREATE TABLE bdk_utxos (
   vout INTEGER NOT NULL,
   is_spent BOOLEAN NOT NULL,
   utxo_json JSONB NOT NULL,
-  synced_to_wallet BOOLEAN DEFAULT false,
-  spent_synced_to_wallet BOOLEAN DEFAULT false,
-  confirmation_synced_to_wallet BOOLEAN DEFAULT false,
+  synced_to_bria BOOLEAN DEFAULT false,
+  confirmation_synced_to_bria BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(keychain_id, tx_id, vout)
