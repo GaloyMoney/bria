@@ -54,6 +54,19 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
+    pub async fn incoming_utxo(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: IncomingUtxoParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, INCOMING_UTXO_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
     pub async fn old_incoming_utxo(
         &self,
         tx: Transaction<'_, Postgres>,

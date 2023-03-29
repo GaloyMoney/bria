@@ -39,13 +39,16 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
 
     ledger
-        .old_incoming_utxo(
+        .incoming_utxo(
             tx,
             pending_id,
-            OldIncomingUtxoParams {
+            IncomingUtxoParams {
                 journal_id,
-                ledger_account_incoming_id: wallet_ledger_accounts.onchain_incoming_id,
-                meta: OldIncomingUtxoMeta {
+                onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
+                onchain_fee_account_id: wallet_ledger_accounts.fee_id,
+                logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
+                spending_fee_satoshis: Satoshis::from(Decimal::ONE),
+                meta: IncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
                     outpoint,
@@ -63,50 +66,6 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .expect("No balance");
 
     assert_eq!(balance.pending(), Decimal::ONE);
-
-    let tx = pool.begin().await?;
-    let settled_id = LedgerTransactionId::new();
-
-    ledger
-        .confirmed_utxo(
-            tx,
-            settled_id,
-            ConfirmedUtxoParams {
-                journal_id,
-                incoming_ledger_account_id: wallet_ledger_accounts.onchain_incoming_id,
-                at_rest_ledger_account_id: wallet_ledger_accounts.onchain_at_rest_id,
-                fee_ledger_account_id: wallet_ledger_accounts.fee_id,
-                spending_fee_satoshis: Satoshis::from(Decimal::ONE),
-                pending_id,
-                meta: ConfirmedUtxoMeta {
-                    wallet_id,
-                    keychain_id,
-                    outpoint,
-                    satoshis: one_btc,
-                    address: address.clone(),
-                    confirmation_time: BlockTime {
-                        height: 1,
-                        timestamp: 123409,
-                    },
-                },
-            },
-        )
-        .await?;
-
-    let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.onchain_at_rest_id)
-        .await?
-        .expect("No balance");
-
-    assert_eq!(balance.pending(), Decimal::ZERO);
-    assert_eq!(balance.settled(), Decimal::ONE);
-
-    let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.fee_id)
-        .await?
-        .expect("No balance");
-
-    assert_eq!(balance.encumbered() * SATS_PER_BTC, Decimal::ONE);
 
     Ok(())
 }

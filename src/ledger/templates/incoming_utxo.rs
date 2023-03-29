@@ -12,7 +12,6 @@ pub struct IncomingUtxoMeta {
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
-    pub spending_fee_satoshis: Satoshis,
     pub address: String,
     pub confirmation_time: Option<BlockTime>,
 }
@@ -23,6 +22,7 @@ pub struct IncomingUtxoParams {
     pub onchain_incoming_account_id: LedgerAccountId,
     pub logical_incoming_account_id: LedgerAccountId,
     pub onchain_fee_account_id: LedgerAccountId,
+    pub spending_fee_satoshis: Satoshis,
     pub meta: IncomingUtxoMeta,
 }
 
@@ -45,7 +45,17 @@ impl IncomingUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("onchain_fee_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("amount")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("encumbered_spending_fees")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -70,6 +80,7 @@ impl From<IncomingUtxoParams> for TxParams {
             onchain_incoming_account_id,
             logical_incoming_account_id,
             onchain_fee_account_id,
+            spending_fee_satoshis: fees,
             meta,
         }: IncomingUtxoParams,
     ) -> Self {
@@ -90,6 +101,7 @@ impl From<IncomingUtxoParams> for TxParams {
         params.insert("logical_incoming_account_id", logical_incoming_account_id);
         params.insert("onchain_fee_account_id", onchain_fee_account_id);
         params.insert("amount", amount);
+        params.insert("encumbered_spending_fees", fees.to_btc());
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -154,7 +166,7 @@ impl IncomingUtxo {
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
-                .units("params.fees")
+                .units("params.encumbered_spending_fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -163,7 +175,7 @@ impl IncomingUtxo {
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
-                .units("params.fees")
+                .units("params.encumbered_spending_fees")
                 .build()
                 .expect("Couldn't build entry"),
         ];
