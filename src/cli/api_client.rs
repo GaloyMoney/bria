@@ -140,6 +140,7 @@ impl ApiClient {
         output_json(response)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_batch_group(
         &self,
         name: String,
@@ -162,10 +163,8 @@ impl ApiClient {
             Some(proto::batch_group_config::Trigger::Immediate(
                 immediate_trigger,
             ))
-        } else if let Some(interval) = interval_trigger {
-            Some(proto::batch_group_config::Trigger::IntervalSecs(interval))
         } else {
-            None
+            interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
         };
 
         let config = proto::BatchGroupConfig {

@@ -308,6 +308,62 @@
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"
   },
+  "2efcb24d9b29b54e7d682f191f1dda750834dcfc6c76a1d7487e50c3f3bab9b6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_group_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id?",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "satoshis",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "destination_data",
+          "ordinal": 4,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "external_id",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "metadata",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "WITH latest AS (\n             SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n             FROM bria_payouts\n             WHERE wallet_id = $1\n           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id as \"batch_id?\", satoshis, destination_data, external_id, metadata FROM bria_payouts\n             LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id\n             WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)\n             ORDER BY created_at"
+  },
   "2fa457a8cb724012819382713463f08be00258a86067984914abe8ebee3d38fa": {
     "describe": {
       "columns": [
@@ -477,62 +533,6 @@
       }
     },
     "query": "INSERT INTO bria_wallet_utxos\n               (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"
-  },
-  "3d29f45ca4de173da3f9a7fd95b2d2d51c34affc0ce23c94738307d61f1c0b8d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_group_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "satoshis",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "destination_data",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "external_id",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "metadata",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "WITH latest AS (\n             SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n             FROM bria_payouts\n             WHERE wallet_id = $1\n           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id, satoshis, destination_data, external_id, metadata FROM bria_payouts\n             LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id\n             WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)\n             ORDER BY created_at"
   },
   "46b5eee37f84d1274f4d22a0ee26d4399fe629ea70f25d5974a4859fee6cd0fe": {
     "describe": {

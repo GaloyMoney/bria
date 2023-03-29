@@ -116,36 +116,6 @@ pub async fn execute(
                     )
                     .await?;
                 n_settled_utxos += 1;
-                if let Some(batch_id) = wallet_utxo.spending_batch_id {
-                    ledger
-                        .confirmed_utxo_without_fee_reserve(
-                            tx,
-                            wallet_utxo.settled_ledger_tx_id,
-                            ConfirmedUtxoWithoutFeeReserveParams {
-                                journal_id: wallet.journal_id,
-                                incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                    wallet_utxo.value,
-                                    wallet.ledger_account_ids.incoming_id,
-                                ),
-                                at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
-                                    wallet_utxo.value,
-                                    wallet.ledger_account_ids.at_rest_id,
-                                ),
-                                pending_id: wallet_utxo.pending_ledger_tx_id,
-                                meta: ConfirmedUtxoWithoutFeeReserveMeta {
-                                    wallet_id: data.wallet_id,
-                                    keychain_id,
-                                    batch_id,
-                                    confirmation_time,
-                                    outpoint,
-                                    satoshis: wallet_utxo.value,
-                                    address: wallet_utxo.address,
-                                },
-                            },
-                        )
-                        .await?;
-                    continue;
-                }
 
                 let fee_rate =
                     crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
