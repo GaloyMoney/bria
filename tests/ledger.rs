@@ -134,7 +134,7 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     let settled_id = LedgerTransactionId::new();
 
     ledger
-        .confirmed_utxo(
+        .old_confirmed_utxo(
             tx,
             settled_id,
             OldConfirmedUtxoParams {

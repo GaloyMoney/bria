@@ -42,6 +42,7 @@ impl Ledger {
         Self::logical_outgoing_account(&inner).await?;
 
         templates::IncomingUtxo::init(&inner).await?;
+        templates::ConfirmedUtxo::init(&inner).await?;
         templates::OldIncomingUtxo::init(&inner).await?;
         templates::OldConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
@@ -80,7 +81,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
-    pub async fn confirmed_utxo(
+    pub async fn old_confirmed_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,

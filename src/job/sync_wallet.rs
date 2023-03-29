@@ -125,7 +125,7 @@ pub async fn execute(
                 let fees = (fee_rate as u64) * (weight as u64);
 
                 ledger
-                    .confirmed_utxo(
+                    .old_confirmed_utxo(
                         tx,
                         wallet_utxo.income_settled_ledger_tx_id,
                         OldConfirmedUtxoParams {
