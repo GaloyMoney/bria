@@ -226,14 +226,14 @@ impl WalletUtxoRepo {
         Ok(())
     }
 
-    pub async fn get_settled_ledger_tx_ids_for_utxos(
+    pub async fn get_pending_ledger_tx_ids_for_utxos(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<LedgerTransactionId>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT income_settled_ledger_tx_id
+            r#"SELECT income_pending_ledger_tx_id
             FROM bria_wallet_utxos
-            WHERE income_settled_ledger_tx_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
+            WHERE income_pending_ledger_tx_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
         );
 
         query_builder.push_tuples(
@@ -258,7 +258,7 @@ impl WalletUtxoRepo {
 
         Ok(rows
             .into_iter()
-            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("income_settled_ledger_tx_id")))
+            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("income_pending_ledger_tx_id")))
             .collect())
     }
 }

@@ -45,16 +45,17 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let settled_ids = wallet_utxos
-        .get_settled_ledger_tx_ids_for_utxos(utxos)
+    let incoming_tx_ids = wallet_utxos
+        .get_pending_ledger_tx_ids_for_utxos(utxos)
         .await?;
-    let settled_ledger_txn_entries = ledger.get_ledger_entries_for_txns(settled_ids).await?;
+    let incoming_ledger_txn_entries = ledger.get_ledger_entries_for_txns(incoming_tx_ids).await?;
 
     let mut reserved_fees = Satoshis::from(0);
-    for entries in settled_ledger_txn_entries.values() {
+    for entries in incoming_ledger_txn_entries.values() {
         if let Some(fee_entry) = entries.iter().find(|entry| {
             entry.account_id == wallet.ledger_account_ids.fee_id
                 && entry.layer == sqlx_ledger::Layer::Encumbered
+                && entry.entry_type.ends_with("FR_DR")
         }) {
             reserved_fees += Satoshis::from_btc(fee_entry.units);
         }

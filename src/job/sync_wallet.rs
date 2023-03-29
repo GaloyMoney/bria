@@ -1,6 +1,5 @@
 use bdk::blockchain::{ElectrumBlockchain, GetHeight};
 use electrum_client::{Client, ConfigBuilder};
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
