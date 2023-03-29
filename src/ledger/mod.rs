@@ -43,8 +43,6 @@ impl Ledger {
 
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
-        templates::OldIncomingUtxo::init(&inner).await?;
-        templates::OldConfirmedUtxo::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
 
@@ -67,19 +65,6 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
-    pub async fn old_incoming_utxo(
-        &self,
-        tx: Transaction<'_, Postgres>,
-        tx_id: LedgerTransactionId,
-        params: OldIncomingUtxoParams,
-    ) -> Result<(), BriaError> {
-        self.inner
-            .post_transaction_in_tx(tx, tx_id, OLD_INCOMING_UTXO_CODE, Some(params))
-            .await?;
-        Ok(())
-    }
-
     #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
     pub async fn confirmed_utxo(
         &self,
@@ -89,18 +74,6 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, CONFIRMED_UTXO_CODE, Some(params))
-            .await?;
-        Ok(())
-    }
-    #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
-    pub async fn old_confirmed_utxo(
-        &self,
-        tx: Transaction<'_, Postgres>,
-        tx_id: LedgerTransactionId,
-        params: OldConfirmedUtxoParams,
-    ) -> Result<(), BriaError> {
-        self.inner
-            .post_transaction_in_tx(tx, tx_id, OLD_CONFIRMED_UTXO_CODE, Some(params))
             .await?;
         Ok(())
     }
