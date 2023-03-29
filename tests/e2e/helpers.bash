@@ -38,7 +38,7 @@ cached_pending_fees() {
 }
 
 cached_encumbered_outgoing() {
-  echo ${balance} | jq -r '.encumberedOutgoing'
+  echo ${balance} | jq -r '.logicalEncumberedOutgoing'
 }
 
 bitcoin_cli() {

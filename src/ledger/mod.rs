@@ -166,10 +166,19 @@ impl Ledger {
             onchain_at_rest: balances
                 .get_mut(&onchain_at_rest_id)
                 .and_then(|b| b.remove(&self.btc)),
-            fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
             onchain_outgoing: balances
                 .get_mut(&onchain_outgoing_id)
                 .and_then(|b| b.remove(&self.btc)),
+            logical_incoming: balances
+                .get_mut(&logical_incoming_id)
+                .and_then(|b| b.remove(&self.btc)),
+            logical_at_rest: balances
+                .get_mut(&logical_at_rest_id)
+                .and_then(|b| b.remove(&self.btc)),
+            logical_outgoing: balances
+                .get_mut(&logical_outgoing_id)
+                .and_then(|b| b.remove(&self.btc)),
+            fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
             dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
         })
     }

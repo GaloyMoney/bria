@@ -31,6 +31,9 @@ pub struct WalletLedgerAccountBalances {
     pub onchain_incoming: Option<AccountBalance>,
     pub onchain_at_rest: Option<AccountBalance>,
     pub onchain_outgoing: Option<AccountBalance>,
+    pub logical_incoming: Option<AccountBalance>,
+    pub logical_at_rest: Option<AccountBalance>,
+    pub logical_outgoing: Option<AccountBalance>,
     pub fee: Option<AccountBalance>,
     pub dust: Option<AccountBalance>,
 }
@@ -42,7 +45,10 @@ pub struct WalletBalanceSummary {
     pub pending_outgoing_utxos: Satoshis,
     pub pending_fees: Satoshis,
     pub encumbered_fees: Satoshis,
-    pub encumbered_outgoing: Satoshis,
+    pub logical_settled: Satoshis,
+    pub logical_pending_income: Satoshis,
+    pub logical_pending_outgoing: Satoshis,
+    pub logical_encumbered_outgoing: Satoshis,
 }
 
 impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
@@ -80,7 +86,26 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),
-            encumbered_outgoing: Satoshis::from_btc(
+            logical_settled: Satoshis::from_btc(
+                balances
+                    .logical_at_rest
+                    .map(|b| b.settled())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            logical_pending_income: Satoshis::from_btc(
+                balances
+                    .logical_incoming
+                    .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            logical_pending_outgoing: Satoshis::from_btc(
+                balances
+                    .logical_outgoing
+                    .as_ref()
+                    .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            logical_encumbered_outgoing: Satoshis::from_btc(
                 balances
                     .onchain_outgoing
                     .map(|b| b.encumbered())

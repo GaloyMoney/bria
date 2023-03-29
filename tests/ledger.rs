@@ -69,6 +69,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     );
 
     assert_eq!(summary.pending_incoming_utxos, one_btc);
+    assert_eq!(summary.logical_pending_income, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
     Ok(())
