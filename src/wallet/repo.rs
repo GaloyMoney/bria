@@ -112,47 +112,12 @@ impl Wallets {
     }
 
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
-        let rows = sqlx::query!(
-            r#"WITH latest AS (
-              SELECT w.id, w.wallet_cfg, w.onchain_incoming_ledger_account_id, w.onchain_at_rest_ledger_account_id, w.onchain_fee_ledger_account_id, w.onchain_outgoing_ledger_account_id, w.dust_ledger_account_id, a.journal_id 
-              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
-              WHERE w.id = $1 ORDER BY version DESC LIMIT 1
-            )
-            SELECT l.id, l.wallet_cfg, l.onchain_incoming_ledger_account_id, l.onchain_at_rest_ledger_account_id, l.onchain_fee_ledger_account_id, l.onchain_outgoing_ledger_account_id, l.dust_ledger_account_id, l.journal_id, k.id AS keychain_id, keychain_cfg
-                 FROM bria_wallet_keychains k
-                 JOIN latest l ON k.wallet_id = l.id
-                 ORDER BY sequence DESC"#,
-            Uuid::from(id),
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        if rows.is_empty() {
-            return Err(BriaError::WalletNotFound);
+        let ids: HashSet<WalletId> = std::iter::once(id).collect();
+        if let Some(wallet) = self.find_by_ids(ids).await?.remove(&id) {
+            Ok(wallet)
+        } else {
+            Err(BriaError::WalletNotFound)
         }
-        let mut iter = rows.into_iter();
-        let first_row = iter.next().expect("There is always 1 row here");
-        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.keychain_cfg)?;
-        let keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
-        let config: WalletConfig = serde_json::from_value(first_row.wallet_cfg)?;
-        let mut wallet = Wallet {
-            id: first_row.id.into(),
-            journal_id: first_row.journal_id.into(),
-            ledger_account_ids: WalletLedgerAccountIds {
-                onchain_incoming_id: first_row.onchain_incoming_ledger_account_id.into(),
-                onchain_at_rest_id: first_row.onchain_at_rest_ledger_account_id.into(),
-                fee_id: first_row.onchain_fee_ledger_account_id.into(),
-                onchain_outgoing_id: first_row.onchain_outgoing_ledger_account_id.into(),
-                dust_id: first_row.dust_ledger_account_id.into(),
-            },
-            keychains,
-            config,
-            network: self.network,
-        };
-        for row in iter {
-            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)?;
-            wallet.previous_keychain(KeychainId::from(row.keychain_id), keychain);
-        }
-        Ok(wallet)
     }
 
     pub async fn find_by_ids(
