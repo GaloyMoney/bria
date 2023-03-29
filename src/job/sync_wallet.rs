@@ -77,7 +77,7 @@ pub async fn execute(
                             journal_id: wallet.journal_id,
                             ledger_account_incoming_id: wallet.pick_dust_or_ledger_account(
                                 local_utxo.txout.value.into(),
-                                wallet.ledger_account_ids.incoming_id,
+                                wallet.ledger_account_ids.onchain_incoming_id,
                             ),
                             meta: OldIncomingUtxoMeta {
                                 wallet_id: data.wallet_id,
@@ -132,11 +132,11 @@ pub async fn execute(
                             journal_id: wallet.journal_id,
                             incoming_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 wallet_utxo.value,
-                                wallet.ledger_account_ids.incoming_id,
+                                wallet.ledger_account_ids.onchain_incoming_id,
                             ),
                             at_rest_ledger_account_id: wallet.pick_dust_or_ledger_account(
                                 wallet_utxo.value,
-                                wallet.ledger_account_ids.at_rest_id,
+                                wallet.ledger_account_ids.onchain_at_rest_id,
                             ),
                             fee_ledger_account_id: wallet.ledger_account_ids.fee_id,
                             spending_fee_satoshis: match wallet.is_dust_utxo(wallet_utxo.value) {

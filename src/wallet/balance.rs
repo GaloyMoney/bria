@@ -5,10 +5,10 @@ use crate::primitives::{LedgerAccountId, Satoshis};
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {
-    pub incoming_id: LedgerAccountId,
-    pub at_rest_id: LedgerAccountId,
+    pub onchain_incoming_id: LedgerAccountId,
+    pub onchain_at_rest_id: LedgerAccountId,
+    pub onchain_outgoing_id: LedgerAccountId,
     pub fee_id: LedgerAccountId,
-    pub outgoing_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
 }
 

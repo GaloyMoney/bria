@@ -118,10 +118,10 @@ impl Ledger {
         &self,
         journal_id: JournalId,
         WalletLedgerAccountIds {
-            incoming_id,
-            at_rest_id,
+            onchain_incoming_id,
+            onchain_at_rest_id,
             fee_id,
-            outgoing_id,
+            onchain_outgoing_id,
             dust_id,
         }: WalletLedgerAccountIds,
     ) -> Result<WalletLedgerAccountBalances, BriaError> {
@@ -130,19 +130,25 @@ impl Ledger {
             .balances()
             .find_all(
                 journal_id,
-                [incoming_id, at_rest_id, fee_id, outgoing_id, dust_id],
+                [
+                    onchain_incoming_id,
+                    onchain_at_rest_id,
+                    onchain_outgoing_id,
+                    fee_id,
+                    dust_id,
+                ],
             )
             .await?;
         Ok(WalletLedgerAccountBalances {
             incoming: balances
-                .get_mut(&incoming_id)
+                .get_mut(&onchain_incoming_id)
                 .and_then(|b| b.remove(&self.btc)),
             at_rest: balances
-                .get_mut(&at_rest_id)
+                .get_mut(&onchain_at_rest_id)
                 .and_then(|b| b.remove(&self.btc)),
             fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
             outgoing: balances
-                .get_mut(&outgoing_id)
+                .get_mut(&onchain_outgoing_id)
                 .and_then(|b| b.remove(&self.btc)),
             dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
         })
@@ -186,7 +192,7 @@ impl Ledger {
         wallet_name: &str,
     ) -> Result<WalletLedgerAccountIds, BriaError> {
         let account_ids = WalletLedgerAccountIds {
-            incoming_id: self
+            onchain_incoming_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -195,7 +201,7 @@ impl Ledger {
                     DebitOrCredit::Credit,
                 )
                 .await?,
-            at_rest_id: self
+            onchain_at_rest_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -213,7 +219,7 @@ impl Ledger {
                     DebitOrCredit::Debit,
                 )
                 .await?,
-            outgoing_id: self
+            onchain_outgoing_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,

@@ -44,7 +44,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
             pending_id,
             OldIncomingUtxoParams {
                 journal_id,
-                ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
+                ledger_account_incoming_id: wallet_ledger_accounts.onchain_incoming_id,
                 meta: OldIncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
@@ -58,7 +58,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.incoming_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.onchain_incoming_id)
         .await?
         .expect("No balance");
 
@@ -73,8 +73,8 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
             settled_id,
             ConfirmedUtxoParams {
                 journal_id,
-                incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
-                at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
+                incoming_ledger_account_id: wallet_ledger_accounts.onchain_incoming_id,
+                at_rest_ledger_account_id: wallet_ledger_accounts.onchain_at_rest_id,
                 fee_ledger_account_id: wallet_ledger_accounts.fee_id,
                 spending_fee_satoshis: Satoshis::from(Decimal::ONE),
                 pending_id,
@@ -94,7 +94,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.at_rest_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.onchain_at_rest_id)
         .await?
         .expect("No balance");
 
@@ -146,7 +146,7 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
             pending_id,
             OldIncomingUtxoParams {
                 journal_id,
-                ledger_account_incoming_id: wallet_ledger_accounts.incoming_id,
+                ledger_account_incoming_id: wallet_ledger_accounts.onchain_incoming_id,
                 meta: OldIncomingUtxoMeta {
                     wallet_id,
                     keychain_id,
@@ -160,7 +160,7 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.incoming_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.onchain_incoming_id)
         .await?
         .expect("No balance");
 
@@ -175,8 +175,8 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
             settled_id,
             ConfirmedUtxoParams {
                 journal_id,
-                incoming_ledger_account_id: wallet_ledger_accounts.incoming_id,
-                at_rest_ledger_account_id: wallet_ledger_accounts.at_rest_id,
+                incoming_ledger_account_id: wallet_ledger_accounts.onchain_incoming_id,
+                at_rest_ledger_account_id: wallet_ledger_accounts.onchain_at_rest_id,
                 fee_ledger_account_id: wallet_ledger_accounts.fee_id,
                 spending_fee_satoshis: Satoshis::from(Decimal::ONE),
                 pending_id,
@@ -196,7 +196,7 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .await?;
 
     let balance = ledger
-        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.at_rest_id)
+        .get_ledger_account_balance(journal_id, wallet_ledger_accounts.onchain_at_rest_id)
         .await?
         .expect("No balance");
 
