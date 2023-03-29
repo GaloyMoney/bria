@@ -1,4 +1,3 @@
-use bdk::LocalUtxo;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
@@ -10,9 +9,10 @@ pub struct Wallet {
     pub id: WalletId,
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub journal_id: JournalId,
-    pub keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
     pub config: WalletConfig,
     pub network: bitcoin::Network,
+
+    pub(super) keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
 }
 
 impl Wallet {
@@ -25,6 +25,18 @@ impl Wallet {
 }
 
 impl Wallet {
+    pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
+        self.keychains.iter().map(|(id, _)| *id)
+    }
+
+    pub fn keychain_wallets(
+        &self,
+        pool: sqlx::PgPool,
+    ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
+        let current = self.current_keychain_wallet(&pool);
+        std::iter::once(current).chain(self.deprecated_keychain_wallets(pool))
+    }
+
     pub fn current_keychain_wallet(
         &self,
         pool: &sqlx::PgPool,
@@ -43,16 +55,16 @@ impl Wallet {
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
     }
 
-    pub fn is_dust_utxo(&self, utxo: &LocalUtxo) -> bool {
-        Satoshis::from(utxo.txout.value) <= self.config.dust_threshold_sats
+    pub fn is_dust_utxo(&self, value: Satoshis) -> bool {
+        value <= self.config.dust_threshold_sats
     }
 
     pub fn pick_dust_or_ledger_account(
         &self,
-        utxo: &LocalUtxo,
+        value: Satoshis,
         account: LedgerAccountId,
     ) -> LedgerAccountId {
-        if self.is_dust_utxo(utxo) {
+        if self.is_dust_utxo(value) {
             self.ledger_account_ids.dust_id
         } else {
             account

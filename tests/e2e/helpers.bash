@@ -18,27 +18,27 @@ cache_default_wallet_balance() {
 }
 
 cached_pending_income() {
-  echo ${balance} | jq -r '.pending_incoming'
+  echo ${balance} | jq -r '.pendingIncoming'
 }
 
 cached_encumbered_fees() {
-  echo ${balance} | jq -r '.encumbered_fees'
+  echo ${balance} | jq -r '.encumberedFees'
 }
 
 cached_current_settled() {
-  echo ${balance} | jq -r '.current_settled'
+  echo ${balance} | jq -r '.currentSettled'
 }
 
 cached_pending_outgoing() {
-  echo ${balance} | jq -r '.pending_outgoing'
+  echo ${balance} | jq -r '.pendingOutgoing'
 }
 
 cached_pending_fees() {
-  echo ${balance} | jq -r '.pending_fees'
+  echo ${balance} | jq -r '.pendingFees'
 }
 
 cached_encumbered_outgoing() {
-  echo ${balance} | jq -r '.encumbered_outgoing'
+  echo ${balance} | jq -r '.encumberedOutgoing'
 }
 
 bitcoin_cli() {
@@ -68,7 +68,7 @@ bitcoind_init() {
 }
 
 start_daemon() {
-  background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml > logs
+  background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml > .e2e-logs
   sleep 5 # wait for daemon to be up and running
 }
 

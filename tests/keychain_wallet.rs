@@ -24,6 +24,13 @@ async fn new_address() -> anyhow::Result<()> {
         addr.to_string(),
         "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0"
     );
+    let addr = wallet
+        .find_address_from_path(101, bdk::KeychainKind::External)
+        .await?;
+    assert_eq!(
+        addr.to_string(),
+        "bcrt1q9ctp73c2eyqltnvfjrmt5830hjun20yachdyd8"
+    );
 
     let keychain_id = Uuid::new_v4();
     let xpub = XPub::try_from(("tpubDD6sGNgWVAeKaMGF5XkfBhMAuSqjoiqUoSM7Dmf11auxu41PDg1AL4LDwTkuVEMUS2zY51zPESy1xr26cLj7BZHfwZQHd4Xf1Ym5WbvAMru", Some("m/86'/0'/0'"))).unwrap();

@@ -1,10 +1,8 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use std::collections::HashSet;
-
 use crate::{
-    batch::*, batch_group::*, bdk::pg::Utxos, error::*, payout::*, primitives::*, wallet::*,
+    batch::*, batch_group::*, error::*, payout::*, primitives::*, wallet::*, wallet_utxo::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +43,7 @@ pub async fn execute<'a>(
     wallets: Wallets,
     batch_groups: BatchGroups,
     batches: Batches,
+    wallet_utxos: WalletUtxos,
     data: ProcessBatchGroupData,
 ) -> Result<
     (
@@ -73,15 +72,11 @@ pub async fn execute<'a>(
 
     let wallet_ids = unbatched_payouts.keys().copied().collect();
     let mut wallets = wallets.find_by_ids(wallet_ids).await?;
-    let keychain_ids: HashSet<KeychainId> = wallets
-        .values()
-        .flat_map(|w| w.keychains.iter().map(|(id, _)| *id))
-        .collect();
+    let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
 
     let mut tx = pool.begin().await?;
-    let all_utxos = Utxos::new(KeychainId::new(), pool.clone());
-    let reserved_utxos = all_utxos
-        .list_reserved_unspent_utxos(&mut tx, keychain_ids)
+    let reserved_utxos = wallet_utxos
+        .outpoints_bdk_should_not_select(&mut tx, keychain_ids)
         .await?;
     span.record(
         "n_reserved_utxos",
@@ -143,14 +138,14 @@ pub async fn execute<'a>(
             .wallet_summaries(
                 wallet_totals
                     .into_iter()
-                    .map(|(wallet_id, total)| (wallet_id, total.into()))
+                    .map(|(wallet_id, total)| (wallet_id, WalletSummary::from(total)))
                     .collect(),
             )
             .build()
             .expect("Couldn't build batch");
 
-        all_utxos
-            .reserve_utxos(
+        wallet_utxos
+            .reserve_utxos_in_batch(
                 &mut tx,
                 batch.id,
                 batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),

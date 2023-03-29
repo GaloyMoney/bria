@@ -51,7 +51,7 @@ impl Payouts {
     pub async fn list_unbatched(
         &self,
         batch_group_id: BatchGroupId,
-    ) -> Result<HashMap<WalletId, Vec<Payout>>, BriaError> {
+    ) -> Result<HashMap<WalletId, Vec<UnbatchedPayout>>, BriaError> {
         let rows = sqlx::query!(
             r#"WITH latest AS (
                  SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
@@ -68,7 +68,7 @@ impl Payouts {
         for row in rows {
             let wallet_id = WalletId::from(row.wallet_id);
             let payouts = payouts.entry(wallet_id).or_insert_with(Vec::new);
-            payouts.push(Payout {
+            payouts.push(UnbatchedPayout {
                 id: PayoutId::from(row.id),
                 wallet_id,
                 destination: serde_json::from_value(row.destination_data)
@@ -76,6 +76,40 @@ impl Payouts {
                 satoshis: Satoshis::from(row.satoshis),
             });
         }
+        Ok(payouts)
+    }
+
+    #[instrument(name = "payouts.list_for_wallet", skip(self))]
+    pub async fn list_for_wallet(&self, wallet_id: WalletId) -> Result<Vec<Payout>, BriaError> {
+        let rows = sqlx::query!(
+        r#"WITH latest AS (
+             SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
+             FROM bria_payouts
+             WHERE wallet_id = $1
+           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id as "batch_id?", satoshis, destination_data, external_id, metadata FROM bria_payouts
+             LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id
+             WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)
+             ORDER BY created_at"#,
+        Uuid::from(wallet_id),
+    )
+    .fetch_all(&self.pool)
+    .await?;
+
+        let payouts = rows
+            .into_iter()
+            .map(|row| Payout {
+                id: PayoutId::from(row.id),
+                wallet_id,
+                batch_group_id: BatchGroupId::from(row.batch_group_id),
+                batch_id: row.batch_id.map(BatchId::from),
+                satoshis: Satoshis::from(row.satoshis),
+                destination: serde_json::from_value(row.destination_data)
+                    .expect("Couldn't deserialize destination"),
+                external_id: row.external_id,
+                metadata: row.metadata,
+            })
+            .collect();
+
         Ok(payouts)
     }
 }

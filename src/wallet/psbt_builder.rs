@@ -1,17 +1,21 @@
+use ::bitcoin::util::psbt;
 use bdk::{
     database::BatchDatabase,
     wallet::tx_builder::TxOrdering,
     wallet::{AddressIndex, AddressInfo},
-    FeeRate, KeychainKind, Wallet,
+    FeeRate, Wallet,
 };
-use bitcoin::{blockdata::transaction::OutPoint, util::psbt};
 use std::{
     collections::{HashMap, HashSet},
     marker::PhantomData,
 };
 
 use super::keychain::*;
-use crate::{error::*, payout::Payout, primitives::*};
+use crate::{
+    error::*,
+    payout::UnbatchedPayout,
+    primitives::{bitcoin::*, *},
+};
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -23,8 +27,8 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
-    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>>,
+    pub included_payouts: HashMap<WalletId, Vec<UnbatchedPayout>>,
+    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
     pub fee_satoshis: Satoshis,
@@ -37,7 +41,7 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     current_wallet: Option<WalletId>,
-    current_payouts: Vec<Payout>,
+    current_payouts: Vec<UnbatchedPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
@@ -124,7 +128,7 @@ impl PsbtBuilder<AcceptingWalletState> {
     pub fn wallet_payouts(
         self,
         wallet_id: WalletId,
-        payouts: Vec<Payout>,
+        payouts: Vec<UnbatchedPayout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
@@ -175,7 +179,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
         }
         builder
             .fee_rate(self.fee_rate.expect("fee rate must be set"))
-            .sighash(bitcoin::EcdsaSighashType::All.into())
+            .sighash(bdk::bitcoin::EcdsaSighashType::All.into())
             .drain_wallet()
             .drain_to(drain_address.script_pubkey());
         match builder.finish() {
@@ -250,7 +254,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         }
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.drain_to(change_address.script_pubkey());
-        builder.sighash(bitcoin::EcdsaSighashType::All.into());
+        builder.sighash(bdk::bitcoin::EcdsaSighashType::All.into());
 
         let mut total_output_satoshis = Satoshis::from(0);
         for next_payout in self.current_payouts.drain(..max_payout) {
@@ -396,7 +400,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
         &self,
         keychain_id: KeychainId,
-        payouts: &[Payout],
+        payouts: &[UnbatchedPayout],
         wallet: &Wallet<D>,
     ) -> Result<bool, BriaError> {
         let mut builder = wallet.build_tx();

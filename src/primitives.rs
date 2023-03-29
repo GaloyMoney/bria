@@ -1,4 +1,3 @@
-use bitcoin::util::bip32::Fingerprint;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -14,16 +13,56 @@ crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }
 
-pub struct XPubId(Fingerprint);
+pub mod bitcoin {
+    pub use bdk::{
+        bitcoin::{
+            blockdata::{
+                script::Script,
+                transaction::{OutPoint, TxOut},
+            },
+            consensus,
+            hash_types::Txid,
+            util::bip32::{ExtendedPubKey, Fingerprint},
+            util::psbt,
+            Address, Network,
+        },
+        BlockTime, KeychainKind,
+    };
+    pub mod pg {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+        #[sqlx(type_name = "KeychainKind", rename_all = "snake_case")]
+        pub enum PgKeychainKind {
+            External,
+            Internal,
+        }
+        impl From<super::KeychainKind> for PgKeychainKind {
+            fn from(kind: super::KeychainKind) -> Self {
+                match kind {
+                    super::KeychainKind::External => Self::External,
+                    super::KeychainKind::Internal => Self::Internal,
+                }
+            }
+        }
+        impl From<PgKeychainKind> for super::KeychainKind {
+            fn from(kind: PgKeychainKind) -> Self {
+                match kind {
+                    PgKeychainKind::External => Self::External,
+                    PgKeychainKind::Internal => Self::Internal,
+                }
+            }
+        }
+    }
+}
+pub struct XPubId(bitcoin::Fingerprint);
 
-impl From<Fingerprint> for XPubId {
-    fn from(fp: Fingerprint) -> Self {
+impl From<bitcoin::Fingerprint> for XPubId {
+    fn from(fp: bitcoin::Fingerprint) -> Self {
         Self(fp)
     }
 }
 
 impl std::ops::Deref for XPubId {
-    type Target = Fingerprint;
+    type Target = bitcoin::Fingerprint;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -32,7 +71,7 @@ impl std::ops::Deref for XPubId {
 
 pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum TxPriority {
     NextBlock,
@@ -52,6 +91,10 @@ impl Satoshis {
 
     pub fn from_btc(btc: Decimal) -> Self {
         Self(btc * SATS_PER_BTC)
+    }
+
+    pub fn into_inner(self) -> Decimal {
+        self.0
     }
 }
 
@@ -79,6 +122,12 @@ impl From<i32> for Satoshis {
     }
 }
 
+impl From<u32> for Satoshis {
+    fn from(sats: u32) -> Self {
+        Self(Decimal::from(sats))
+    }
+}
+
 impl From<i64> for Satoshis {
     fn from(sats: i64) -> Self {
         Self(Decimal::from(sats as u64))
@@ -87,9 +136,7 @@ impl From<i64> for Satoshis {
 
 impl From<Satoshis> for i64 {
     fn from(sats: Satoshis) -> i64 {
-        sats.0
-            .to_i64()
-            .expect("Couldn't convert Satoshis (possibly msats)")
+        sats.0.to_i64().expect("Couldn't convert Satoshis")
     }
 }
 

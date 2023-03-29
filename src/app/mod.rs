@@ -15,6 +15,7 @@ use crate::{
     payout::*,
     primitives::*,
     wallet::{balance::*, *},
+    wallet_utxo::*,
     xpub::*,
 };
 
@@ -27,6 +28,7 @@ pub struct App {
     batch_groups: BatchGroups,
     payouts: Payouts,
     ledger: Ledger,
+    wallet_utxos: WalletUtxos,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
 }
@@ -46,6 +48,7 @@ impl App {
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
+        let wallet_utxos = WalletUtxos::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
@@ -53,6 +56,7 @@ impl App {
             batches,
             payouts.clone(),
             ledger.clone(),
+            wallet_utxos.clone(),
             wallets_cfg.sync_all_wallets_delay,
             wallets_cfg.process_all_batch_groups_delay,
             blockchain_cfg.clone(),
@@ -72,6 +76,7 @@ impl App {
             payouts,
             pool,
             ledger,
+            wallet_utxos,
             _runner: runner,
             blockchain_cfg,
         })
@@ -190,17 +195,41 @@ impl App {
         Ok(addr.to_string())
     }
 
+    #[instrument(name = "app.list_utxos", skip(self), err)]
+    pub async fn list_utxos(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+    ) -> Result<(WalletId, Vec<KeychainUtxos>), BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let mut utxos = self
+            .wallet_utxos
+            .find_keychain_utxos(wallet.keychain_ids())
+            .await?;
+        let ordered_utxos = wallet
+            .keychain_ids()
+            .filter_map(|keychain_id| utxos.remove(&keychain_id))
+            .collect();
+        Ok((wallet.id, ordered_utxos))
+    }
+
     #[instrument(name = "app.create_batch_group", skip(self), err)]
     pub async fn create_batch_group(
         &self,
         account_id: AccountId,
         batch_group_name: String,
+        description: Option<String>,
+        config: Option<BatchGroupConfig>,
     ) -> Result<BatchGroupId, BriaError> {
-        let batch_group = NewBatchGroup::builder()
+        let mut builder = NewBatchGroup::builder();
+        builder
             .account_id(account_id)
             .name(batch_group_name)
-            .build()
-            .expect("Couldn't build NewBatchGroup");
+            .description(description);
+        if let Some(config) = config {
+            builder.config(config);
+        }
+        let batch_group = builder.build().expect("Couldn't build NewBatchGroup");
         let batch_group_id = self.batch_groups.create(batch_group).await?;
         Ok(batch_group_id)
     }
@@ -258,6 +287,16 @@ impl App {
             )
             .await?;
         Ok(id)
+    }
+
+    #[instrument(name = "app.list_payouts", skip_all, err)]
+    pub async fn list_payouts(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+    ) -> Result<Vec<Payout>, BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        self.payouts.list_for_wallet(wallet.id).await
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

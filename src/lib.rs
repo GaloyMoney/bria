@@ -18,4 +18,5 @@ pub mod payout;
 pub mod primitives;
 mod tracing;
 pub mod wallet;
+pub mod wallet_utxo;
 pub mod xpub;

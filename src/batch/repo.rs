@@ -1,13 +1,15 @@
 use std::{collections::HashMap, str::FromStr};
 
-use bitcoin::{blockdata::transaction::OutPoint, consensus::encode, Address};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use sqlx_ledger::TransactionId as LedgerTxId;
 use tracing::instrument;
 use uuid::Uuid;
 
 use super::entity::*;
-use crate::{error::*, primitives::*};
+use crate::{
+    error::*,
+    primitives::{bitcoin::*, *},
+};
 
 #[derive(Debug, Clone)]
 pub struct Batches {
@@ -32,7 +34,7 @@ impl Batches {
             Uuid::from(batch.batch_group_id),
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
-            encode::serialize(&batch.unsigned_psbt)
+            bitcoin::consensus::encode::serialize(&batch.unsigned_psbt)
         ).execute(&mut *tx).await?;
 
         let utxos = batch.iter_utxos();

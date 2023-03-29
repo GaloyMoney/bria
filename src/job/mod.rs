@@ -11,7 +11,7 @@ use uuid::{uuid, Uuid};
 
 use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
-    primitives::*, wallet::*,
+    primitives::*, wallet::*, wallet_utxo::WalletUtxos,
 };
 use batch_wallet_accounting::BatchWalletAccountingData;
 use batch_wallet_finalizing::BatchWalletFinalizingData;
@@ -37,6 +37,7 @@ pub async fn start_job_runner(
     batches: Batches,
     payouts: Payouts,
     ledger: Ledger,
+    wallet_utxos: WalletUtxos,
     sync_all_wallets_delay: std::time::Duration,
     process_all_batch_groups_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
@@ -58,6 +59,7 @@ pub async fn start_job_runner(
     registry.set_context(batches);
     registry.set_context(payouts);
     registry.set_context(ledger);
+    registry.set_context(wallet_utxos);
 
     Ok(registry.runner(pool).run().await?)
 }
@@ -120,8 +122,8 @@ async fn process_all_batch_groups(
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
-    batches: Batches,
     blockchain_cfg: BlockchainConfig,
+    wallet_utxos: WalletUtxos,
     ledger: Ledger,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
@@ -130,7 +132,7 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(pool, wallets, batches, blockchain_cfg, ledger, data).await
+            sync_wallet::execute(pool, wallets, blockchain_cfg, wallet_utxos, ledger, data).await
         })
         .await?;
     Ok(())
@@ -141,6 +143,7 @@ async fn process_batch_group(
     mut current_job: CurrentJob,
     payouts: Payouts,
     wallets: Wallets,
+    wallet_utxos: WalletUtxos,
     batch_groups: BatchGroups,
     batches: Batches,
 ) -> Result<(), BriaError> {
@@ -150,9 +153,16 @@ async fn process_batch_group(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: ProcessBatchGroupData = data.expect("no ProcessBatchGroupData available");
-            let (data, res) =
-                process_batch_group::execute(pool, payouts, wallets, batch_groups, batches, data)
-                    .await?;
+            let (data, res) = process_batch_group::execute(
+                pool,
+                payouts,
+                wallets,
+                batch_groups,
+                batches,
+                wallet_utxos,
+                data,
+            )
+            .await?;
             if let Some((mut tx, wallet_ids)) = res {
                 for id in wallet_ids {
                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
@@ -178,17 +188,24 @@ async fn batch_wallet_accounting(
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
     wallets: Wallets,
+    wallet_utxos: WalletUtxos,
     batches: Batches,
 ) -> Result<(), BriaError> {
-    let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchWalletAccountingData =
                 data.expect("no BatchWalletAccountingData available");
-            batch_wallet_accounting::execute(pool, data, blockchain_cfg, ledger, wallets, batches)
-                .await
+            batch_wallet_accounting::execute(
+                data,
+                blockchain_cfg,
+                ledger,
+                wallets,
+                wallet_utxos,
+                batches,
+            )
+            .await
         })
         .await?;
     Ok(())

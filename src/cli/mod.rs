@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 use url::Url;
 
+use crate::primitives::TxPriority;
 use config::*;
 
 #[derive(Parser)]
@@ -131,6 +132,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// List Unspent Transaction Outputs of a wallet
+    ListUtxos {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+    },
     CreateBatchGroup {
         #[clap(
             short,
@@ -144,6 +160,18 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         name: String,
+        #[clap(short, long)]
+        description: Option<String>,
+        #[clap(short = 'p', long, default_value = "next-block")]
+        tx_priority: TxPriority,
+        #[clap(short = 'c', long = "consolidate", default_value = "true")]
+        consolidate_deprecated_keychains: bool,
+        #[clap(long, conflicts_with_all = &["immediate_trigger", "interval_trigger"])]
+        manual_trigger: bool,
+        #[clap(long, conflicts_with_all = &["manual_trigger", "interval_trigger"])]
+        immediate_trigger: bool,
+        #[clap(short = 'i', long, conflicts_with_all = &["manual_trigger", "immediate_trigger"])]
+        interval_trigger: Option<u32>,
     },
     QueuePayout {
         #[clap(
@@ -164,6 +192,21 @@ enum Command {
         destination: String,
         #[clap(short, long)]
         amount: u64,
+    },
+    /// List Unspent Transaction Outputs of a wallet
+    ListPayouts {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIE_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
     },
 }
 
@@ -290,9 +333,37 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(url, api_key);
             client.new_address(wallet).await?;
         }
-        Command::CreateBatchGroup { url, api_key, name } => {
+        Command::ListUtxos {
+            url,
+            api_key,
+            wallet,
+        } => {
             let client = api_client(url, api_key);
-            client.create_batch_group(name).await?;
+            client.list_utxos(wallet).await?;
+        }
+        Command::CreateBatchGroup {
+            url,
+            api_key,
+            name,
+            description,
+            tx_priority,
+            consolidate_deprecated_keychains,
+            manual_trigger,
+            immediate_trigger,
+            interval_trigger,
+        } => {
+            let client = api_client(url, api_key);
+            client
+                .create_batch_group(
+                    name,
+                    description,
+                    tx_priority,
+                    consolidate_deprecated_keychains,
+                    manual_trigger,
+                    immediate_trigger,
+                    interval_trigger,
+                )
+                .await?;
         }
         Command::QueuePayout {
             url,
@@ -306,6 +377,14 @@ pub async fn run() -> anyhow::Result<()> {
             client
                 .queue_payout(wallet, group_name, destination, amount)
                 .await?;
+        }
+        Command::ListPayouts {
+            url,
+            api_key,
+            wallet,
+        } => {
+            let client = api_client(url, api_key);
+            client.list_payouts(wallet).await?;
         }
     }
     Ok(())

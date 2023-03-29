@@ -3,15 +3,14 @@
 use bdk::descriptor::IntoWalletDescriptor;
 use bdk::miniscript::Segwitv0;
 use bdk::{
-    bitcoin::{Address, Amount},
+    bitcoin::{
+        secp256k1::{rand, Secp256k1},
+        Address, Amount, PrivateKey,
+    },
     blockchain::ElectrumBlockchain,
     database::MemoryDatabase,
     electrum_client::{Client, ConfigBuilder},
     keys::{GeneratableKey, GeneratedKey, PrivateKeyGenerateOptions},
-};
-use bitcoin::{
-    secp256k1::{rand, Secp256k1},
-    Network, PrivateKey,
 };
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, primitives::*, xpub::*};
@@ -111,7 +110,8 @@ pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
     let sk: GeneratedKey<PrivateKey, Segwitv0> =
         PrivateKey::generate(PrivateKeyGenerateOptions::default())?;
     let wallet = bdk::Wallet::new(
-        format!("wpkh({})", sk.into_key()).into_wallet_descriptor(&secp, Network::Regtest)?,
+        format!("wpkh({})", sk.into_key())
+            .into_wallet_descriptor(&secp, bitcoin::Network::Regtest)?,
         None,
         bitcoin::Network::Regtest,
         MemoryDatabase::new(),

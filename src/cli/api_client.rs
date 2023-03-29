@@ -1,7 +1,7 @@
 use anyhow::Context;
 use url::Url;
 
-use crate::api::proto;
+use crate::{api::proto, primitives::TxPriority};
 type ProtoClient = proto::bria_service_client::BriaServiceClient<tonic::transport::Channel>;
 
 use super::token_store;
@@ -128,13 +128,63 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn create_batch_group(&self, name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::CreateBatchGroupRequest { name });
+    pub async fn list_utxos(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListUtxosRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_utxos(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub async fn create_batch_group(
+        &self,
+        name: String,
+        description: Option<String>,
+        tx_priority: TxPriority,
+        consolidate_deprecated_keychains: bool,
+        manual_trigger: bool,
+        immediate_trigger: bool,
+        interval_trigger: Option<u32>,
+    ) -> anyhow::Result<()> {
+        let tx_priority = match tx_priority {
+            TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
+            TxPriority::OneHour => proto::TxPriority::OneHour as i32,
+            TxPriority::Economy => proto::TxPriority::Economy as i32,
+        };
+
+        let trigger = if manual_trigger {
+            Some(proto::batch_group_config::Trigger::Manual(manual_trigger))
+        } else if immediate_trigger {
+            Some(proto::batch_group_config::Trigger::Immediate(
+                immediate_trigger,
+            ))
+        } else {
+            interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
+        };
+
+        let config = proto::BatchGroupConfig {
+            tx_priority,
+            consolidate_deprecated_keychains,
+            trigger,
+        };
+
+        let request = tonic::Request::new(proto::CreateBatchGroupRequest {
+            name,
+            description,
+            config: Some(config),
+        });
+
         let response = self
             .connect()
             .await?
             .create_batch_group(self.inject_auth_token(request)?)
             .await?;
+
         output_json(response)
     }
 
@@ -157,6 +207,18 @@ impl ApiClient {
             .connect()
             .await?
             .queue_payout(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    pub async fn list_payouts(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListPayoutsRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_payouts(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }

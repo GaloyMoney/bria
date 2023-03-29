@@ -1,8 +1,10 @@
 mod helpers;
 
 use bdk::BlockTime;
-use bitcoin::blockdata::transaction::{OutPoint, TxOut};
-use bria::{ledger::*, primitives::*};
+use bria::{
+    ledger::*,
+    primitives::{bitcoin::*, *},
+};
 use rand::distributions::{Alphanumeric, DistString};
 use rust_decimal::Decimal;
 use uuid::Uuid;
@@ -24,18 +26,13 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
         .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
         .await?;
 
-    let one_btc = 100_000_000;
+    let one_btc = Satoshis::from(100_000_000);
+    let address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".to_string();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
             .unwrap(),
         vout: 0,
-    };
-    let txout = TxOut {
-        value: one_btc,
-        script_pubkey: "76a914c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e8c0e888ac"
-            .parse()
-            .unwrap(),
     };
 
     let keychain_id = KeychainId::new();
@@ -52,7 +49,8 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                     wallet_id,
                     keychain_id,
                     outpoint,
-                    txout: txout.clone(),
+                    satoshis: one_btc,
+                    address: address.clone(),
                     confirmation_time: None,
                 },
             },
@@ -84,7 +82,8 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                     wallet_id,
                     keychain_id,
                     outpoint,
-                    txout: txout.clone(),
+                    satoshis: one_btc,
+                    address: address.clone(),
                     confirmation_time: BlockTime {
                         height: 1,
                         timestamp: 123409,
@@ -127,7 +126,8 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
                     wallet_id,
                     keychain_id,
                     outpoint,
-                    txout: txout.clone(),
+                    satoshis: one_btc,
+                    address: address.clone(),
                     confirmation_time: BlockTime {
                         height: 1,
                         timestamp: 123409,

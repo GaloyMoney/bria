@@ -1,5 +1,4 @@
 use bdk::BlockTime;
-use bitcoin::blockdata::transaction::{OutPoint, TxOut};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
@@ -12,8 +11,9 @@ pub struct ConfirmedUtxoWithoutFeeReserveMeta {
     pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
-    pub outpoint: OutPoint,
-    pub txout: TxOut,
+    pub outpoint: bitcoin::OutPoint,
+    pub satoshis: Satoshis,
+    pub address: String,
     pub confirmation_time: BlockTime,
 }
 
@@ -78,7 +78,7 @@ impl From<ConfirmedUtxoWithoutFeeReserveParams> for TxParams {
             meta,
         }: ConfirmedUtxoWithoutFeeReserveParams,
     ) -> Self {
-        let amount = Satoshis::from(meta.txout.value).to_btc();
+        let amount = meta.satoshis.to_btc();
         let effective =
             NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
                 .expect("Couldn't convert blocktime to NaiveDateTime")

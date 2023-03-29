@@ -11,7 +11,7 @@ use tracing::instrument;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*, primitives::*};
+use crate::{app::*, batch_group, error::*, primitives::*};
 
 pub const ACCOUNT_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -118,6 +118,26 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_utxos(
+        &self,
+        request: Request<ListUtxosRequest>,
+    ) -> Result<Response<ListUtxosResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let (wallet_id, keychain_utxos) =
+            self.app.list_utxos(account_id, request.wallet_name).await?;
+
+        let proto_keychains: Vec<proto::KeychainUtxos> =
+            keychain_utxos.into_iter().map(Into::into).collect();
+
+        Ok(Response::new(ListUtxosResponse {
+            wallet_id: wallet_id.to_string(),
+            keychains: proto_keychains,
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_batch_group(
         &self,
         request: Request<CreateBatchGroupRequest>,
@@ -127,7 +147,12 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let id = self
             .app
-            .create_batch_group(account_id, request.name)
+            .create_batch_group(
+                account_id,
+                request.name,
+                request.description,
+                request.config.map(batch_group::BatchGroupConfig::from),
+            )
             .await?;
         Ok(Response::new(CreateBatchGroupResponse {
             id: id.to_string(),
@@ -162,6 +187,26 @@ impl BriaService for Bria {
             )
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
+    }
+
+    #[instrument(skip_all, err)]
+    async fn list_payouts(
+        &self,
+        request: Request<ListPayoutsRequest>,
+    ) -> Result<Response<ListPayoutsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let payouts = self
+            .app
+            .list_payouts(account_id, request.into_inner().wallet_name)
+            .await?;
+
+        let payout_messages: Vec<proto::Payout> =
+            payouts.into_iter().map(proto::Payout::from).collect();
+        let response = ListPayoutsResponse {
+            payouts: payout_messages,
+        };
+        Ok(Response::new(response))
     }
 }
 

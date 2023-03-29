@@ -36,7 +36,7 @@ async fn test_payout() -> anyhow::Result<()> {
 
     let group_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let _ = app
-        .create_batch_group(account_id, group_name.clone())
+        .create_batch_group(account_id, group_name.clone(), None, None)
         .await?;
 
     let destination = PayoutDestination::OnchainAddress {
