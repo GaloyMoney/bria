@@ -60,12 +60,17 @@ teardown_file() {
   [[ $(cached_current_settled) == 200000000 ]] || exit 1
   [[ $(cached_encumbered_fees) != 0 ]] || exit 1
 
-  for i in {1..120}; do
+  for i in {1..20}; do
     batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
-  cache_default_wallet_balance
+  for i in {1..60}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 150000000 ]] && break;
+    sleep 1
+  done
+
   [[ $(cached_pending_outgoing) == 150000000 ]] || exit 1
   [[ $(cached_pending_fees) != 0 ]] || exit 1
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
