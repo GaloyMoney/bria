@@ -39,7 +39,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
 
     ledger
-        .incoming_utxo(
+        .old_incoming_utxo(
             tx,
             pending_id,
             OldIncomingUtxoParams {
@@ -141,7 +141,7 @@ async fn old_test_ledger_incoming_confirmed() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
 
     ledger
-        .incoming_utxo(
+        .old_incoming_utxo(
             tx,
             pending_id,
             OldIncomingUtxoParams {

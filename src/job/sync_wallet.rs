@@ -70,7 +70,7 @@ pub async fn execute(
                     .await?;
                 n_pending_utxos += 1;
                 ledger
-                    .incoming_utxo(
+                    .old_incoming_utxo(
                         tx,
                         pending_id,
                         OldIncomingUtxoParams {

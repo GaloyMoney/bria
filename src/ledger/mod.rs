@@ -54,7 +54,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
-    pub async fn incoming_utxo(
+    pub async fn old_incoming_utxo(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
