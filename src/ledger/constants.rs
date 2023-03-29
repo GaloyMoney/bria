@@ -23,3 +23,12 @@ pub(super) const ONCHAIN_UTXO_OUTGOING_ID: Uuid = uuid!("00000000-0000-0000-0000
 
 pub(super) const ONCHAIN_FEE_CODE: &str = "ONCHAIN_FEE";
 pub(super) const ONCHAIN_FEE_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
+
+pub(super) const LOGICAL_INCOMING_CODE: &str = "LOGICAL_INCOMING";
+pub(super) const LOGICAL_INCOMING_ID: Uuid = uuid!("10000000-0000-0000-0000-000000000001");
+
+pub(super) const LOGICAL_AT_REST_CODE: &str = "LOGICAL_AT_REST";
+pub(super) const LOGICAL_AT_REST_ID: Uuid = uuid!("10000000-0000-0000-0000-000000000002");
+
+pub(super) const LOGICAL_OUTGOING_CODE: &str = "LOGICAL_OUTGOING";
+pub(super) const LOGICAL_OUTGOING_ID: Uuid = uuid!("10000000-0000-0000-0000-000000000003");
