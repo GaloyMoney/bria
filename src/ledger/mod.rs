@@ -81,6 +81,18 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
+    pub async fn confirmed_utxo(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: ConfirmedUtxoParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, CONFIRMED_UTXO_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+    #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
     pub async fn old_confirmed_utxo(
         &self,
         tx: Transaction<'_, Postgres>,

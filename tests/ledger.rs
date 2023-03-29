@@ -29,6 +29,7 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
 
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
+    let zero = Satoshis::from(0);
     let address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".to_string();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
@@ -70,6 +71,44 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
 
     assert_eq!(summary.pending_incoming_utxos, one_btc);
     assert_eq!(summary.logical_pending_income, one_btc);
+    assert_eq!(summary.encumbered_fees, one_sat);
+
+    let settled_id = LedgerTransactionId::new();
+
+    let tx = pool.begin().await?;
+    ledger
+        .confirmed_utxo(
+            tx,
+            settled_id,
+            ConfirmedUtxoParams {
+                journal_id,
+                ledger_account_ids: wallet_ledger_accounts,
+                pending_id,
+                meta: ConfirmedUtxoMeta {
+                    wallet_id,
+                    keychain_id,
+                    outpoint,
+                    satoshis: one_btc,
+                    address: address.clone(),
+                    confirmation_time: BlockTime {
+                        height: 1,
+                        timestamp: 123409,
+                    },
+                },
+            },
+        )
+        .await?;
+
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+
+    assert_eq!(summary.pending_incoming_utxos, zero);
+    assert_eq!(summary.logical_pending_income, zero);
+    assert_eq!(summary.confirmed_utxos, one_btc);
+    assert_eq!(summary.logical_settled, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
     Ok(())
