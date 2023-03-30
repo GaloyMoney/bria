@@ -10,7 +10,7 @@ pub fn load_admin_token() -> anyhow::Result<String> {
 pub fn store_admin_token(token: &str) -> anyhow::Result<()> {
     println!("Writing admin token to .bria/admin-api-key");
     create_token_dir()?;
-    let _ = fs::remove_file(".bria/admin-api-key").context("Removing Admin API Key")?;
+    let _ = fs::remove_file(".bria/admin-api-key").context("Removing Admin API Key");
     fs::write(".bria/admin-api-key", token).context("Writing Admin API Key")?;
     Ok(())
 }
