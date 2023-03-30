@@ -36,5 +36,6 @@ pub fn store_daemon_pid(pid: u32) -> anyhow::Result<()> {
 }
 
 fn create_token_dir() -> anyhow::Result<()> {
-    fs::create_dir(".bria").context("Creating token directory")
+    let _ = fs::create_dir(".bria");
+    Ok(())
 }
