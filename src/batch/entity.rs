@@ -53,6 +53,8 @@ pub struct WalletSummary {
     pub fee_sats: Satoshis,
     pub change_sats: Satoshis,
     pub change_address: bitcoin::Address,
+    pub change_outpoint: Option<bitcoin::OutPoint>,
+    pub change_keychain_id: KeychainId,
     pub create_batch_ledger_tx_id: Option<LedgerTransactionId>,
     pub submitted_ledger_tx_id: Option<LedgerTransactionId>,
 }

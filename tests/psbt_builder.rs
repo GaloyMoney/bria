@@ -25,11 +25,16 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let other_current_addr = other_wallet_current_keychain.get_address(AddressIndex::New)?;
+    let other_change_address =
+        other_wallet_current_keychain.get_internal_address(AddressIndex::New)?;
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
 
     let bitcoind = helpers::bitcoind_client()?;
+    let other_wallet_funding = 7;
+    let other_wallet_funding_sats =
+        Satoshis::from_btc(rust_decimal::Decimal::from(other_wallet_funding));
     helpers::fund_addr(&bitcoind, &domain_addr, 7)?;
-    helpers::fund_addr(&bitcoind, &other_current_addr, 5)?;
+    helpers::fund_addr(&bitcoind, &other_current_addr, other_wallet_funding - 2)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
@@ -78,7 +83,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         },
         UnbatchedPayout {
             id: PayoutId::new(),
-            wallet_id: domain_wallet_id,
+            wallet_id: other_wallet_id,
             destination: PayoutDestination::OnchainAddress {
                 value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
             },
@@ -86,7 +91,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         },
         UnbatchedPayout {
             id: PayoutId::new(),
-            wallet_id: domain_wallet_id,
+            wallet_id: other_wallet_id,
             destination: PayoutDestination::OnchainAddress {
                 value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
             },
@@ -157,12 +162,27 @@ async fn build_psbt() -> anyhow::Result<()> {
         1
     );
     assert_eq!(wallet_totals.len(), 2);
-    let wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
-    assert_eq!(wallet_total.output_satoshis, send_amount);
+    let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
+    assert_eq!(domain_wallet_total.output_satoshis, send_amount);
     assert_eq!(
-        wallet_total.output_satoshis + wallet_total.change_satoshis + wallet_total.fee_satoshis,
-        wallet_total.input_satoshis
+        domain_wallet_total.output_satoshis
+            + domain_wallet_total.change_satoshis
+            + domain_wallet_total.fee_satoshis,
+        domain_wallet_total.input_satoshis
     );
+
+    let other_wallet_total = wallet_totals.get(&other_wallet_id).unwrap();
+    assert_eq!(other_wallet_total.input_satoshis, other_wallet_funding_sats);
+    assert_eq!(other_wallet_total.change_address, other_change_address);
+    assert_eq!(other_wallet_total.fee_satoshis, Satoshis::from(235));
+    assert_eq!(
+        other_wallet_total
+            .change_outpoint
+            .expect("no change output")
+            .vout,
+        3
+    );
+
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
     let total_tx_outs = unsigned_psbt
         .unsigned_tx

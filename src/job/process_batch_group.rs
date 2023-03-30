@@ -168,6 +168,8 @@ impl From<WalletTotals> for WalletSummary {
             fee_sats: wt.fee_satoshis,
             change_sats: wt.change_satoshis,
             change_address: wt.change_address.address,
+            change_outpoint: wt.change_outpoint,
+            change_keychain_id: wt.change_keychain_id,
             create_batch_ledger_tx_id: None,
             submitted_ledger_tx_id: None,
         }

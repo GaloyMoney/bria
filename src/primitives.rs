@@ -88,6 +88,8 @@ pub enum TxPriority {
 pub struct Satoshis(Decimal);
 
 impl Satoshis {
+    pub const ZERO: Self = Self(Decimal::ZERO);
+
     pub fn to_btc(self) -> Decimal {
         self.0 / SATS_PER_BTC
     }
