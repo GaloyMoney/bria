@@ -45,20 +45,12 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let settled_ids = wallet_utxos
-        .get_settled_ledger_tx_ids_for_utxos(utxos)
+    let incoming_tx_ids = wallet_utxos
+        .get_pending_ledger_tx_ids_for_utxos(utxos)
         .await?;
-    let settled_ledger_txn_entries = ledger.get_ledger_entries_for_txns(settled_ids).await?;
-
-    let mut reserved_fees = Satoshis::from(0);
-    for entries in settled_ledger_txn_entries.values() {
-        if let Some(fee_entry) = entries.iter().find(|entry| {
-            entry.account_id == wallet.ledger_account_ids.fee_id
-                && entry.layer == sqlx_ledger::Layer::Encumbered
-        }) {
-            reserved_fees += Satoshis::from_btc(fee_entry.units);
-        }
-    }
+    let reserved_fees = ledger
+        .sum_reserved_fees_in_txs(incoming_tx_ids, wallet.ledger_account_ids.fee_id)
+        .await?;
 
     if let Some((tx, tx_id)) = batches
         .set_create_batch_ledger_tx_id(data.batch_id, data.wallet_id)
@@ -72,13 +64,20 @@ pub async fn execute(
                     journal_id: wallet.journal_id,
                     ledger_account_ids: wallet.ledger_account_ids,
                     fee_sats: wallet_summary.fee_sats,
-                    satoshis: wallet_summary.total_out_sats,
+                    total_spent_sats: wallet_summary.total_spent_sats,
+                    total_in_sats: wallet_summary.total_in_sats,
                     correlation_id: Uuid::from(data.batch_id),
                     reserved_fees,
                     meta: CreateBatchMeta {
                         batch_id: id,
                         batch_group_id,
                         bitcoin_tx_id,
+                        change_keychain_id: wallet_summary.change_keychain_id,
+                        change_outpoint: wallet_summary.change_outpoint,
+                        change_address: wallet_summary
+                            .change_outpoint
+                            .as_ref()
+                            .map(|_| wallet_summary.change_address.clone()),
                     },
                 },
             )

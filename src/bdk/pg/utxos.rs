@@ -72,10 +72,10 @@ impl Utxos {
     ) -> Result<Option<UnsyncedIncomeUtxo>, BriaError> {
         let row = sqlx::query!(
             r#"WITH updated_utxo AS (
-            UPDATE bdk_utxos SET synced_to_wallet = true, modified_at = NOW()
+            UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND (tx_id, vout) IN (
                 SELECT tx_id, vout FROM bdk_utxos
-                WHERE keychain_id = $1 AND synced_to_wallet = false AND utxo_json->>'keychain' = 'External'
+                WHERE keychain_id = $1 AND synced_to_bria = false AND utxo_json->>'keychain' = 'External'
                 ORDER BY created_at
                 LIMIT 1
             )
@@ -113,7 +113,7 @@ impl Utxos {
     ) -> Result<Option<ConfirmedIncomeUtxo>, BriaError> {
         let row = sqlx::query!(
             r#"WITH updated_utxo AS (
-            UPDATE bdk_utxos SET confirmation_synced_to_wallet = true, modified_at = NOW()
+            UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND (tx_id, vout) IN (
                 SELECT u.tx_id, vout
                 FROM bdk_utxos u
@@ -121,8 +121,8 @@ impl Utxos {
                 ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id
                 WHERE u.keychain_id = $1
                 AND utxo_json->>'keychain' = 'External'
-                AND synced_to_wallet = true
-                AND confirmation_synced_to_wallet = false
+                AND synced_to_bria = true
+                AND confirmation_synced_to_bria = false
                 AND (details_json->'confirmation_time'->'height')::INTEGER <= $2
                 ORDER BY created_at
                 LIMIT 1

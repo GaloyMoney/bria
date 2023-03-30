@@ -18,11 +18,13 @@ use crate::{
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
+    pub change_keychain_id: KeychainId,
     pub input_satoshis: Satoshis,
     pub output_satoshis: Satoshis,
     pub fee_satoshis: Satoshis,
     pub change_satoshis: Satoshis,
     pub change_address: AddressInfo,
+    pub change_outpoint: Option<OutPoint>,
 }
 
 pub struct FinishedPsbtBuild {
@@ -55,7 +57,29 @@ pub struct AcceptingCurrentKeychainState;
 
 impl<T> PsbtBuilder<T> {
     fn finish_inner(self) -> FinishedPsbtBuild {
-        self.result
+        let mut ret = self.result;
+        if let (Some(tx_id), Some(psbt)) = (ret.tx_id.as_mut(), ret.psbt.as_mut()) {
+            for (_, total) in ret.wallet_totals.iter_mut() {
+                if total.change_satoshis == Satoshis::ZERO {
+                    continue;
+                }
+                let (vout, _) = psbt
+                    .unsigned_tx
+                    .output
+                    .iter()
+                    .enumerate()
+                    .find(|(_, out)| {
+                        out.script_pubkey == total.change_address.script_pubkey()
+                            && Satoshis::from(out.value) == total.change_satoshis
+                    })
+                    .expect("change output disappeared");
+                total.change_outpoint = Some(OutPoint {
+                    txid: *tx_id,
+                    vout: vout as u32,
+                });
+            }
+        }
+        ret
     }
 }
 
@@ -218,7 +242,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
 impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
     fn visit_bdk_wallet<D: BatchDatabase>(
         mut self,
-        keychain_id: KeychainId,
+        current_keychain_id: KeychainId,
         wallet: &Wallet<D>,
     ) -> Result<Self, BriaError> {
         let keychain_satisfaction_weight = wallet
@@ -230,7 +254,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         let mut max_payout = 0;
         while max_payout < self.current_payouts.len()
             && self.try_build_current_wallet_psbt(
-                keychain_id,
+                current_keychain_id,
                 &self.current_payouts[..=max_payout],
                 wallet,
             )?
@@ -245,7 +269,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         if let Some(reserved_utxos) = self
             .reserved_utxos
             .as_ref()
-            .and_then(|m| m.get(&keychain_id))
+            .and_then(|m| m.get(&current_keychain_id))
         {
             for out in reserved_utxos {
                 builder.add_unspendable(*out);
@@ -343,6 +367,8 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                         fee_satoshis: current_wallet_fee,
                         change_satoshis,
                         change_address,
+                        change_keychain_id: current_keychain_id,
+                        change_outpoint: None,
                     },
                 );
                 self.result.fee_satoshis = fee_satoshis;
@@ -355,11 +381,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                             .included_utxos
                             .entry(wallet_id)
                             .or_default()
-                            .entry(keychain_id)
+                            .entry(current_keychain_id)
                             .or_default()
                             .push(input.previous_output);
                         self.result.included_wallet_keychains.insert(
-                            keychain_id,
+                            current_keychain_id,
                             self.current_wallet.expect("current wallet shouyld be set"),
                         );
                     }

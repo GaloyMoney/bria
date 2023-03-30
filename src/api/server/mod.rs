@@ -87,19 +87,9 @@ impl BriaService for Bria {
             .get_wallet_balance_summary(account_id, request.wallet_name)
             .await?;
 
-        Ok(Response::new(GetWalletBalanceSummaryResponse {
-            current_settled: u64::try_from(balance.current_settled)
-                .expect("Satoshis -> u64 failed"),
-            pending_incoming: u64::try_from(balance.pending_incoming)
-                .expect("Satoshis -> u64 failed"),
-            pending_outgoing: u64::try_from(balance.pending_outgoing)
-                .expect("Satoshis -> u64 failed"),
-            encumbered_fees: u64::try_from(balance.encumbered_fees)
-                .expect("Satoshis -> u64 failed"),
-            encumbered_outgoing: u64::try_from(balance.encumbered_outgoing)
-                .expect("Satoshis -> u64 failed"),
-            pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
-        }))
+        Ok(Response::new(GetWalletBalanceSummaryResponse::from(
+            balance,
+        )))
     }
 
     #[instrument(skip_all, err)]

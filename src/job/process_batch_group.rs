@@ -164,10 +164,12 @@ impl From<WalletTotals> for WalletSummary {
         Self {
             wallet_id: wt.wallet_id,
             total_in_sats: wt.input_satoshis,
-            total_out_sats: wt.output_satoshis,
+            total_spent_sats: wt.output_satoshis,
             fee_sats: wt.fee_satoshis,
             change_sats: wt.change_satoshis,
             change_address: wt.change_address.address,
+            change_outpoint: wt.change_outpoint,
+            change_keychain_id: wt.change_keychain_id,
             create_batch_ledger_tx_id: None,
             submitted_ledger_tx_id: None,
         }

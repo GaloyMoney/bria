@@ -57,10 +57,13 @@ CREATE TABLE bria_wallets (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  incoming_ledger_account_id UUID NOT NULL,
-  at_rest_ledger_account_id UUID NOT NULL,
-  fee_ledger_account_id UUID NOT NULL,
-  outgoing_ledger_account_id UUID NOT NULL,
+  onchain_incoming_ledger_account_id UUID NOT NULL,
+  onchain_at_rest_ledger_account_id UUID NOT NULL,
+  onchain_outgoing_ledger_account_id UUID NOT NULL,
+  onchain_fee_ledger_account_id UUID NOT NULL,
+  logical_incoming_ledger_account_id UUID NOT NULL,
+  logical_at_rest_ledger_account_id UUID NOT NULL,
+  logical_outgoing_ledger_account_id UUID NOT NULL,
   dust_ledger_account_id UUID NOT NULL,
   name VARCHAR NOT NULL,
   wallet_cfg JSONB NOT NULL,
@@ -146,9 +149,11 @@ CREATE TABLE bria_batch_wallet_summaries (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   wallet_id UUID NOT NULL,
   total_in_sats BIGINT NOT NULL,
-  total_out_sats BIGINT NOT NULL,
+  total_spent_sats BIGINT NOT NULL,
   change_sats BIGINT NOT NULL,
   change_address VARCHAR NOT NULL,
+  change_vout INTEGER,
+  change_keychain_id UUID NOT NULL,
   fee_sats BIGINT NOT NULL,
   create_batch_ledger_tx_id UUID,
   submitted_ledger_tx_id UUID,
@@ -163,7 +168,7 @@ CREATE TABLE bria_batch_payouts (
   UNIQUE(batch_id, payout_id)
 );
 
-CREATE TABLE bria_batch_utxos (
+CREATE TABLE bria_batch_spent_utxos (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   keychain_id UUID NOT NULL,
   wallet_id UUID NOT NULL,

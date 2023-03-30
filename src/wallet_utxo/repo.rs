@@ -43,7 +43,7 @@ impl WalletUtxoRepo {
                pg::PgKeychainKind::from(utxo.kind) as pg::PgKeychainKind,
                utxo.address_idx as i32,
                utxo.value.into_inner(),
-               utxo.address,
+               utxo.address.to_string(),
                utxo.script_hex,
                utxo.spent,
                Uuid::from(utxo.income_pending_ledger_tx_id)
@@ -87,7 +87,7 @@ impl WalletUtxoRepo {
             keychain_id,
             address_idx: row.address_idx as u32,
             value: Satoshis::from(row.value),
-            address: row.address,
+            address: row.address.parse().expect("couldn't parse address"),
             block_height,
             income_pending_ledger_tx_id: LedgerTransactionId::from(
                 row.income_pending_ledger_tx_id
@@ -131,7 +131,9 @@ impl WalletUtxoRepo {
                 kind: KeychainKind::from(row.kind),
                 address_idx: row.address_idx as u32,
                 value: Satoshis::from(row.value),
-                address: row.optional_address,
+                address: row
+                    .optional_address
+                    .map(|addr| addr.parse().expect("couldn't parse address")),
                 spent: row.spent,
                 block_height: row.block_height.map(|v| v as u32),
                 income_pending_ledger_tx_id: row
@@ -226,14 +228,14 @@ impl WalletUtxoRepo {
         Ok(())
     }
 
-    pub async fn get_settled_ledger_tx_ids_for_utxos(
+    pub async fn get_pending_ledger_tx_ids_for_utxos(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<LedgerTransactionId>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT income_settled_ledger_tx_id
+            r#"SELECT income_pending_ledger_tx_id
             FROM bria_wallet_utxos
-            WHERE income_settled_ledger_tx_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
+            WHERE income_pending_ledger_tx_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
         );
 
         query_builder.push_tuples(
@@ -258,7 +260,7 @@ impl WalletUtxoRepo {
 
         Ok(rows
             .into_iter()
-            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("income_settled_ledger_tx_id")))
+            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("income_pending_ledger_tx_id")))
             .collect())
     }
 }

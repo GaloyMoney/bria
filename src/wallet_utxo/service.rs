@@ -119,13 +119,13 @@ impl WalletUtxos {
             .await
     }
 
-    #[instrument(name = "wallet_utxos.get_settled_ledger_tx_ids_for_utxos", skip(self))]
-    pub async fn get_settled_ledger_tx_ids_for_utxos(
+    #[instrument(name = "wallet_utxos.get_pending_ledger_tx_ids_for_utxos", skip(self))]
+    pub async fn get_pending_ledger_tx_ids_for_utxos(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<LedgerTransactionId>, BriaError> {
         self.wallet_utxos
-            .get_settled_ledger_tx_ids_for_utxos(utxos)
+            .get_pending_ledger_tx_ids_for_utxos(utxos)
             .await
     }
 }
