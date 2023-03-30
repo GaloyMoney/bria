@@ -30,7 +30,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
     let zero = Satoshis::from(0);
-    let address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".to_string();
+    let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -89,7 +89,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
                     keychain_id,
                     outpoint,
                     satoshis: one_btc,
-                    address: address.clone(),
+                    address,
                     confirmation_time: BlockTime {
                         height: 1,
                         timestamp: 123409,
@@ -220,6 +220,9 @@ async fn create_batch() -> anyhow::Result<()> {
                         "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
                             .parse()
                             .unwrap(),
+                    change_address: None,
+                    change_outpoint: None,
+                    change_keychain_id: KeychainId::new(),
                 },
             },
         )

@@ -72,6 +72,12 @@ pub async fn execute(
                         batch_id: id,
                         batch_group_id,
                         bitcoin_tx_id,
+                        change_keychain_id: wallet_summary.change_keychain_id,
+                        change_outpoint: wallet_summary.change_outpoint,
+                        change_address: wallet_summary
+                            .change_outpoint
+                            .as_ref()
+                            .map(|_| wallet_summary.change_address.clone()),
                     },
                 },
             )

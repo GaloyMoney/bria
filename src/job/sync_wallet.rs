@@ -93,7 +93,7 @@ pub async fn execute(
                                 keychain_id,
                                 outpoint: local_utxo.outpoint,
                                 satoshis: local_utxo.txout.value.into(),
-                                address: address_info.to_string(),
+                                address: address_info.address,
                                 confirmation_time,
                             },
                         },

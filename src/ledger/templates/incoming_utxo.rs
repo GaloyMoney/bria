@@ -12,7 +12,7 @@ pub struct IncomingUtxoMeta {
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
-    pub address: String,
+    pub address: bitcoin::Address,
     pub confirmation_time: Option<BlockTime>,
 }
 

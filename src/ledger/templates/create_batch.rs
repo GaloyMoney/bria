@@ -13,6 +13,9 @@ pub struct CreateBatchMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
     pub bitcoin_tx_id: bitcoin::Txid,
+    pub change_keychain_id: KeychainId,
+    pub change_outpoint: Option<bitcoin::OutPoint>,
+    pub change_address: Option<bitcoin::Address>,
 }
 
 #[derive(Debug)]

@@ -70,7 +70,7 @@ impl From<WalletUtxo> for proto::WalletUtxo {
             outpoint: format!("{}:{}", utxo.outpoint.txid, utxo.outpoint.vout),
             address_idx: utxo.address_idx,
             value: u64::from(utxo.value),
-            address: utxo.address,
+            address: utxo.address.map(|a| a.to_string()),
             change_output: utxo.kind == KeychainKind::Internal,
             spent: utxo.spent,
             block_height: utxo.block_height,
