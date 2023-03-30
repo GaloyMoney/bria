@@ -72,7 +72,7 @@ impl<T> PsbtBuilder<T> {
                         out.script_pubkey == total.change_address.script_pubkey()
                             && Satoshis::from(out.value) == total.change_satoshis
                     })
-                    .expect("change output disapeared");
+                    .expect("change output disappeared");
                 total.change_outpoint = Some(OutPoint {
                     txid: *tx_id,
                     vout: vout as u32,
