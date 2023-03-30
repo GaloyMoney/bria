@@ -10,7 +10,7 @@ pub fn load_admin_token() -> anyhow::Result<String> {
 pub fn store_admin_token(token: &str) -> anyhow::Result<()> {
     println!("Writing admin token to .bria/admin-api-key");
     create_token_dir()?;
-    let _ = fs::remove_file(".bria/admin-api-key").context("Removing Admin API Key");
+    let _ = fs::remove_file(".bria/admin-api-key");
     fs::write(".bria/admin-api-key", token).context("Writing Admin API Key")?;
     Ok(())
 }
@@ -18,7 +18,7 @@ pub fn store_admin_token(token: &str) -> anyhow::Result<()> {
 pub fn store_account_token(token: &str) -> anyhow::Result<()> {
     println!("Writing account token to .bria/account-api-key");
     create_token_dir()?;
-    let _ = fs::remove_file(".bria/account-api-key").context("Removing existing Account API Key");
+    let _ = fs::remove_file(".bria/account-api-key");
     fs::write(".bria/account-api-key", token).context("Writing Account API Key")?;
     Ok(())
 }
@@ -30,7 +30,7 @@ pub fn load_account_token() -> anyhow::Result<String> {
 
 pub fn store_daemon_pid(pid: u32) -> anyhow::Result<()> {
     create_token_dir()?;
-    let _ = fs::remove_file(".bria/daemon_pid").context("Removing existing daemon PID");
+    let _ = fs::remove_file(".bria/daemon_pid");
     fs::write(".bria/daemon_pid", pid.to_string()).context("Writing PID file")?;
     Ok(())
 }
