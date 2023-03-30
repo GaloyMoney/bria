@@ -49,7 +49,7 @@ impl NewBatch {
 pub struct WalletSummary {
     pub wallet_id: WalletId,
     pub total_in_sats: Satoshis,
-    pub total_out_sats: Satoshis,
+    pub total_spent_sats: Satoshis,
     pub fee_sats: Satoshis,
     pub change_sats: Satoshis,
     pub change_address: bitcoin::Address,

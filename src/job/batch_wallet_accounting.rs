@@ -64,7 +64,8 @@ pub async fn execute(
                     journal_id: wallet.journal_id,
                     ledger_account_ids: wallet.ledger_account_ids,
                     fee_sats: wallet_summary.fee_sats,
-                    logical_sats: wallet_summary.total_out_sats,
+                    total_spent_sats: wallet_summary.total_spent_sats,
+                    total_in_sats: wallet_summary.total_in_sats,
                     correlation_id: Uuid::from(data.batch_id),
                     reserved_fees,
                     meta: CreateBatchMeta {

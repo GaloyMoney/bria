@@ -149,7 +149,7 @@ CREATE TABLE bria_batch_wallet_summaries (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   wallet_id UUID NOT NULL,
   total_in_sats BIGINT NOT NULL,
-  total_out_sats BIGINT NOT NULL,
+  total_spent_sats BIGINT NOT NULL,
   change_sats BIGINT NOT NULL,
   change_address VARCHAR NOT NULL,
   fee_sats BIGINT NOT NULL,

@@ -196,7 +196,8 @@ async fn create_batch() -> anyhow::Result<()> {
 
     let batch_id = BatchId::new();
     let fee_sats = Satoshis::from(2_346);
-    let logical_sats = Satoshis::from(100_000_000);
+    let total_spent_sats = Satoshis::from(100_000_000);
+    let total_in_sats = Satoshis::from(200_000_000);
     let reserved_fees = Satoshis::from(12_346);
 
     let tx = pool.begin().await?;
@@ -207,8 +208,9 @@ async fn create_batch() -> anyhow::Result<()> {
             CreateBatchParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
+                total_in_sats,
+                total_spent_sats,
                 fee_sats,
-                logical_sats,
                 correlation_id: Uuid::from(batch_id),
                 reserved_fees,
                 meta: CreateBatchMeta {
@@ -229,11 +231,14 @@ async fn create_batch() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.logical_pending_outgoing, logical_sats);
-    assert_eq!(summary.logical_settled.flip_sign(), logical_sats + fee_sats);
+    assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
+    assert_eq!(
+        summary.logical_settled.flip_sign(),
+        total_spent_sats + fee_sats
+    );
     assert_eq!(
         summary.logical_encumbered_outgoing.flip_sign(),
-        logical_sats
+        total_spent_sats
     );
     assert_eq!(summary.encumbered_fees.flip_sign(), reserved_fees);
     assert_eq!(summary.pending_fees, fee_sats);
