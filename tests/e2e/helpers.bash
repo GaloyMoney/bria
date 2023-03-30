@@ -30,7 +30,7 @@ cached_current_settled() {
 }
 
 cached_pending_outgoing() {
-  echo ${balance} | jq -r '.pendingOutgoingUtxos'
+  echo ${balance} | jq -r '.logicalPendingOutgoing'
 }
 
 cached_pending_fees() {

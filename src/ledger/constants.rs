@@ -1,5 +1,7 @@
 use uuid::{uuid, Uuid};
 
+pub(super) const FEE_ENCUMBERED_POSTFIX: &str = "FEE_ENCUMEBERED_DR";
+
 // Transaction Template Codes
 pub(super) const INCOMING_UTXO_CODE: &str = "INCOMING_UTXO";
 pub(super) const INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");

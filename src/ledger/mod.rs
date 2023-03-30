@@ -1,12 +1,10 @@
 mod constants;
 mod templates;
 
-use std::collections::HashMap;
-
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, balance::AccountBalance, entry::Entry as LedgerEntry,
-    journal::*, Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, balance::AccountBalance, journal::*, Currency,
+    DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tracing::instrument;
 use uuid::Uuid;
@@ -105,12 +103,23 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self))]
-    pub async fn get_ledger_entries_for_txns(
+    pub async fn sum_reserved_fees_in_txs(
         &self,
         tx_ids: Vec<LedgerTransactionId>,
-    ) -> Result<HashMap<LedgerTransactionId, Vec<LedgerEntry>>, BriaError> {
+        fee_account_id: LedgerAccountId,
+    ) -> Result<Satoshis, BriaError> {
+        let mut reserved_fees = Satoshis::from(0);
         let entries = self.inner.entries().list_by_transaction_ids(tx_ids).await?;
-        Ok(entries)
+        for entries in entries.values() {
+            if let Some(fee_entry) = entries.iter().find(|entry| {
+                entry.account_id == fee_account_id
+                    && entry.layer == sqlx_ledger::Layer::Encumbered
+                    && entry.entry_type.ends_with(FEE_ENCUMBERED_POSTFIX)
+            }) {
+                reserved_fees += Satoshis::from_btc(fee_entry.units);
+            }
+        }
+        Ok(reserved_fees)
     }
 
     #[instrument(name = "ledger.get_wallet_ledger_account_balances", skip(self))]

@@ -111,6 +111,11 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     assert_eq!(summary.logical_settled, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
+    let reserved_fees = ledger
+        .sum_reserved_fees_in_txs(vec![pending_id, settled_id], wallet_ledger_accounts.fee_id)
+        .await?;
+    assert_eq!(reserved_fees, one_sat);
+
     Ok(())
 }
 
@@ -191,7 +196,7 @@ async fn create_batch() -> anyhow::Result<()> {
 
     let batch_id = BatchId::new();
     let fee_sats = Satoshis::from(2_346);
-    let satoshis = Satoshis::from(100_000_000);
+    let logical_sats = Satoshis::from(100_000_000);
     let reserved_fees = Satoshis::from(12_346);
 
     let tx = pool.begin().await?;
@@ -203,7 +208,7 @@ async fn create_batch() -> anyhow::Result<()> {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 fee_sats,
-                satoshis,
+                logical_sats,
                 correlation_id: Uuid::from(batch_id),
                 reserved_fees,
                 meta: CreateBatchMeta {
@@ -218,36 +223,20 @@ async fn create_batch() -> anyhow::Result<()> {
         )
         .await?;
 
-    let wallet_balances = ledger
-        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
-        .await?;
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
 
+    assert_eq!(summary.logical_pending_outgoing, logical_sats);
+    assert_eq!(summary.logical_settled.flip_sign(), logical_sats + fee_sats);
     assert_eq!(
-        wallet_balances
-            .onchain_at_rest
-            .expect("No at rest balance")
-            .settled(),
-        -(satoshis + fee_sats).to_btc()
+        summary.logical_encumbered_outgoing.flip_sign(),
+        logical_sats
     );
-    assert_eq!(
-        wallet_balances
-            .fee
-            .as_ref()
-            .expect("No fee balance")
-            .pending(),
-        fee_sats.to_btc()
-    );
-    assert_eq!(
-        wallet_balances.fee.unwrap().encumbered(),
-        -reserved_fees.to_btc()
-    );
-    assert_eq!(
-        wallet_balances
-            .onchain_outgoing
-            .expect("No outgoing balance")
-            .pending(),
-        satoshis.to_btc()
-    );
+    assert_eq!(summary.encumbered_fees.flip_sign(), reserved_fees);
+    assert_eq!(summary.pending_fees, fee_sats);
 
     Ok(())
 }

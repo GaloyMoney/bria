@@ -99,6 +99,10 @@ impl Satoshis {
     pub fn into_inner(self) -> Decimal {
         self.0
     }
+
+    pub fn flip_sign(self) -> Self {
+        Self(self.0 * Decimal::NEGATIVE_ONE)
+    }
 }
 
 impl From<Decimal> for Satoshis {
