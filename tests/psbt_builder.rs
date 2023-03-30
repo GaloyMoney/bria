@@ -8,6 +8,30 @@ use bria::{payout::*, primitives::*, wallet::*, xpub::*};
 #[tokio::test]
 #[serial_test::serial]
 async fn build_psbt() -> anyhow::Result<()> {
+    // ChatGPT description of this test:
+    //
+    // This test is designed to cover specific scenarios to ensure the proper functioning of the PSBT
+    // building process in a multi-wallet and multi-keychain environment. Two notable properties are
+    // included as part of the test:
+    //
+    // 1. A wallet that spends without a change output: The test sets up a domain wallet that receives
+    //    funding and sends a transaction without generating a change output. This scenario is created
+    //    by carefully selecting the amount to be sent, such that it equals the funded amount minus a
+    //    predefined fee. The test verifies that there is no change output for this wallet by asserting
+    //    that the change satoshis are zero and that there is no change outpoint present.
+    //
+    // 2. A wallet with 2 keychains that consolidates UTXOs from the deprecated keychain: The test
+    //    creates another wallet with two keychains - one current and one deprecated. Both keychains
+    //    receive funding, simulating a real-world scenario where a wallet has UTXOs in a deprecated
+    //    keychain. The `PsbtBuilder` is configured to consolidate deprecated keychains using the
+    //    `consolidate_deprecated_keychains(true)` method. The test verifies that the UTXOs from both
+    //    the current and deprecated keychains are included in the PSBT, ensuring that the consolidation
+    //    of UTXOs from the deprecated keychain takes place as expected.
+    //
+    // By including these properties in the test, it ensures that the PSBT building process can handle
+    // scenarios where a wallet spends without a change output and properly consolidates UTXOs from
+    // deprecated keychains.
+
     let pool = helpers::init_pool().await?;
 
     let domain_current_keychain_id = Uuid::new_v4();
@@ -30,11 +54,10 @@ async fn build_psbt() -> anyhow::Result<()> {
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
 
     let bitcoind = helpers::bitcoind_client()?;
-    let other_wallet_funding = 7;
-    let other_wallet_funding_sats =
-        Satoshis::from_btc(rust_decimal::Decimal::from(other_wallet_funding));
-    helpers::fund_addr(&bitcoind, &domain_addr, 7)?;
-    helpers::fund_addr(&bitcoind, &other_current_addr, other_wallet_funding - 2)?;
+    let wallet_funding = 7;
+    let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
+    helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
+    helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 2)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
@@ -61,6 +84,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         .accept_wallets();
 
     let domain_wallet_id = WalletId::new();
+    let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
     let other_wallet_id = WalletId::new();
     let send_amount = Satoshis::from(100_000_000);
     let payouts_one = vec![UnbatchedPayout {
@@ -69,7 +93,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         destination: PayoutDestination::OnchainAddress {
             value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
         },
-        satoshis: send_amount,
+        satoshis: domain_send_amount,
     }];
 
     let payouts_two = vec![
@@ -163,24 +187,26 @@ async fn build_psbt() -> anyhow::Result<()> {
     );
     assert_eq!(wallet_totals.len(), 2);
     let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
-    assert_eq!(domain_wallet_total.output_satoshis, send_amount);
+    assert_eq!(domain_wallet_total.input_satoshis, wallet_funding_sats);
+    assert_eq!(domain_wallet_total.output_satoshis, domain_send_amount);
+    assert_eq!(domain_wallet_total.change_satoshis, Satoshis::ZERO);
+    assert!(domain_wallet_total.change_outpoint.is_none());
     assert_eq!(
-        domain_wallet_total.output_satoshis
-            + domain_wallet_total.change_satoshis
-            + domain_wallet_total.fee_satoshis,
+        domain_wallet_total.output_satoshis + domain_wallet_total.fee_satoshis,
         domain_wallet_total.input_satoshis
     );
 
     let other_wallet_total = wallet_totals.get(&other_wallet_id).unwrap();
-    assert_eq!(other_wallet_total.input_satoshis, other_wallet_funding_sats);
+    assert_eq!(other_wallet_total.input_satoshis, wallet_funding_sats);
     assert_eq!(other_wallet_total.change_address, other_change_address);
-    assert_eq!(other_wallet_total.fee_satoshis, Satoshis::from(235));
+    assert_eq!(other_wallet_total.fee_satoshis, Satoshis::from(193));
+    dbg!(&unsigned_psbt);
     assert_eq!(
         other_wallet_total
             .change_outpoint
             .expect("no change output")
             .vout,
-        3
+        2
     );
 
     let mut unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
@@ -201,7 +227,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
     assert_eq!(total_summary_fees, fee_satoshis);
     assert!(unsigned_psbt.inputs.len() >= 3);
-    assert_eq!(unsigned_psbt.outputs.len(), 5);
+    assert_eq!(unsigned_psbt.outputs.len(), 4);
 
     other_wallet_current_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
     other_wallet_deprecated_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
