@@ -74,9 +74,11 @@ impl Utxos {
             r#"WITH updated_utxo AS (
             UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND (tx_id, vout) IN (
-                SELECT tx_id, vout FROM bdk_utxos
-                WHERE keychain_id = $1 AND synced_to_bria = false AND utxo_json->>'keychain' = 'External'
-                ORDER BY created_at
+                SELECT t.tx_id, vout
+                FROM bdk_utxos u
+                JOIN bdk_transactions t ON bdk_utxos.tx_id = t.tx_id
+                WHERE u.keychain_id = $1 AND u.synced_to_bria = false AND utxo_json->>'keychain' = 'External'
+                ORDER BY t.height ASC NULLS LAST
                 LIMIT 1
             )
             RETURNING tx_id, utxo_json
@@ -121,10 +123,10 @@ impl Utxos {
                 ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id
                 WHERE u.keychain_id = $1
                 AND utxo_json->>'keychain' = 'External'
-                AND synced_to_bria = true
-                AND confirmation_synced_to_bria = false
+                AND u.synced_to_bria = true
+                AND u.confirmation_synced_to_bria = false
                 AND (details_json->'confirmation_time'->'height')::INTEGER <= $2
-                ORDER BY created_at
+                ORDER BY t.height ASC NULLS LAST
                 LIMIT 1
             )
             RETURNING tx_id, utxo_json

@@ -123,6 +123,39 @@
     },
     "query": "WITH latest AS (\n              SELECT w.*, a.journal_id \n              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id\n              WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1\n            )\n            SELECT l.*, k.id AS keychain_id, keychain_cfg\n                 FROM bria_wallet_keychains k\n                 JOIN latest l ON k.wallet_id = l.id\n                 ORDER BY sequence DESC"
   },
+  "0e1beecb2d8045b25c5b4bdd4e2f8c1bc707c0cf379705adbce374cfdc78fc23": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4"
+        ]
+      }
+    },
+    "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT u.tx_id, vout\n                FROM bdk_utxos u\n                JOIN bdk_transactions t\n                ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id\n                WHERE u.keychain_id = $1\n                AND utxo_json->>'keychain' = 'External'\n                AND u.synced_to_bria = true\n                AND u.confirmation_synced_to_bria = false\n                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2\n                ORDER BY t.height ASC NULLS LAST\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT u.tx_id, utxo_json, details_json\n            FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
+  },
   "1071eb38b4d772554beb04d7bb3c3a563829d105b9657b67ba36c9d7b55d825e": {
     "describe": {
       "columns": [
@@ -481,20 +514,6 @@
     },
     "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_payouts LEFT JOIN bria_batch_payouts ON id = payout_id\n                 WHERE batch_group_id = $1 AND payout_id IS NULL\n               ) SELECT id, wallet_id, destination_data, satoshis FROM bria_payouts\n                 WHERE (id, version) IN (SELECT * FROM latest)\n                 ORDER BY priority, created_at"
   },
-  "318f82b3188e528f94254ecea21adae1cd19d9af02599f538234a0811089853f": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json)\n        VALUES ($1, $2, $3) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json"
-  },
   "323bf243d28db3a7f6810a2e640a8339e41793a7982e9ed6dc7175570f1d921d": {
     "describe": {
       "columns": [
@@ -635,38 +654,6 @@
       }
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"
-  },
-  "592f9a4a096df0ceb84a7a0a56fdbaa22d83557cd8106b809caa3bdbe4077363": {
-    "describe": {
-      "columns": [
-        {
-          "name": "utxo_json",
-          "ordinal": 0,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "path",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "details_json",
-          "ordinal": 2,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT tx_id, vout FROM bdk_utxos\n                WHERE keychain_id = $1 AND synced_to_bria = false AND utxo_json->>'keychain' = 'External'\n                ORDER BY created_at\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT utxo_json, path, details_json\n            FROM updated_utxo u\n            JOIN bdk_script_pubkeys p\n            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n            JOIN bdk_transactions t ON u.tx_id = t.tx_id"
   },
   "6be0e1f0b1e056688e4e276b13a40d5b6423b960df7dbff0b2a2f5e1bec3dc33": {
     "describe": {
@@ -958,6 +945,22 @@
       }
     },
     "query": "INSERT INTO bria_wallets\n               (id, wallet_cfg, account_id,\n               onchain_incoming_ledger_account_id, onchain_at_rest_ledger_account_id, onchain_outgoing_ledger_account_id,\n               logical_incoming_ledger_account_id, logical_at_rest_ledger_account_id, logical_outgoing_ledger_account_id,\n               onchain_fee_ledger_account_id, dust_ledger_account_id, name)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            RETURNING (id)"
+  },
+  "7d36b5cd24ecbc930a45b73876bf356abb1a773c37ebb161c3a2c14fe63f9a15": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Jsonb",
+          "Int4",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json, sent, height)\n        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json, height = $5, modified_at = NOW()"
   },
   "7d7af417c1ef479000d3a7cfc4e481d4c1724e92df0a4a2a3d7e04387c80ab47": {
     "describe": {
@@ -1356,39 +1359,6 @@
     },
     "query": "SELECT batch_group_id, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id\n            FROM bria_batch_spent_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
   },
-  "cd2df6fcfa997988d3de00c3ed127b13374d1871ac2cef56febe7afd4e4b2e18": {
-    "describe": {
-      "columns": [
-        {
-          "name": "tx_id",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "utxo_json",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "details_json",
-          "ordinal": 2,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Int4"
-        ]
-      }
-    },
-    "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT u.tx_id, vout\n                FROM bdk_utxos u\n                JOIN bdk_transactions t\n                ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id\n                WHERE u.keychain_id = $1\n                AND utxo_json->>'keychain' = 'External'\n                AND synced_to_bria = true\n                AND confirmation_synced_to_bria = false\n                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2\n                ORDER BY created_at\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT u.tx_id, utxo_json, details_json\n            FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
-  },
   "cea08e173999feced38d8c3d7039b2d2ea3bf7a26f7df74d33da7b2c0b772117": {
     "describe": {
       "columns": [
@@ -1506,6 +1476,38 @@
       }
     },
     "query": "INSERT INTO bria_admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
+  },
+  "e9f59e3bd06f23e776a052d00c13fff4ea7bd0129e142988dc16c49c5d5aa404": {
+    "describe": {
+      "columns": [
+        {
+          "name": "utxo_json",
+          "ordinal": 0,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "path",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT t.tx_id, vout\n                FROM bdk_utxos u\n                JOIN bdk_transactions t ON bdk_utxos.tx_id = t.tx_id\n                WHERE u.keychain_id = $1 AND u.synced_to_bria = false AND utxo_json->>'keychain' = 'External'\n                ORDER BY t.height ASC NULLS LAST\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT utxo_json, path, details_json\n            FROM updated_utxo u\n            JOIN bdk_script_pubkeys p\n            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n            JOIN bdk_transactions t ON u.tx_id = t.tx_id"
   },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {

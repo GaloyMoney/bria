@@ -48,6 +48,12 @@ CREATE TABLE bdk_transactions (
   keychain_id UUID NOT NULL,
   tx_id VARCHAR NOT NULL,
   details_json JSONB NOT NULL,
+  sent INTEGER NOT NULL,
+  height INTEGER,
+  synced_to_bria BOOLEAN DEFAULT false,
+  confirmation_synced_to_bria BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(keychain_id, tx_id)
 );
 
