@@ -273,7 +273,7 @@ impl App {
                 LedgerTransactionId::from(uuid::Uuid::from(id)),
                 QueuedPayoutParams {
                     journal_id: wallet.journal_id,
-                    ledger_account_outgoing_id: wallet.ledger_account_ids.onchain_outgoing_id,
+                    logical_outgoing_account_id: wallet.ledger_account_ids.logical_outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     payout_satoshis: sats,
                     meta: QueuedPayoutMeta {

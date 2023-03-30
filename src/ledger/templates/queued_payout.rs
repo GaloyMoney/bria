@@ -17,7 +17,7 @@ pub struct QueuedPayoutMeta {
 #[derive(Debug)]
 pub struct QueuedPayoutParams {
     pub journal_id: JournalId,
-    pub ledger_account_outgoing_id: LedgerAccountId,
+    pub logical_outgoing_account_id: LedgerAccountId,
     pub external_id: String,
     pub payout_satoshis: Satoshis,
     pub meta: QueuedPayoutMeta,
@@ -32,7 +32,7 @@ impl QueuedPayoutParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("ledger_account_outgoing_id")
+                .name("logical_outgoing_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -64,7 +64,7 @@ impl From<QueuedPayoutParams> for TxParams {
     fn from(
         QueuedPayoutParams {
             journal_id,
-            ledger_account_outgoing_id,
+            logical_outgoing_account_id,
             external_id,
             payout_satoshis,
             meta,
@@ -74,7 +74,7 @@ impl From<QueuedPayoutParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("ledger_account_outgoing_id", ledger_account_outgoing_id);
+        params.insert("logical_outgoing_account_id", logical_outgoing_account_id);
         params.insert("amount", payout_satoshis.to_btc());
         params.insert("external_id", external_id);
         params.insert("meta", meta);
@@ -97,24 +97,25 @@ impl QueuedPayout {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
+            // LOGICAL
             EntryInput::builder()
-                .entry_type("'QUEUED_PAYOUT_DR'")
+                .entry_type("'QUEUED_PAYOUT_LOGICAL_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build QUEUED_PAYOUT_DEBIT entry"),
+                .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'QUEUED_PAYOUT_CR'")
+                .entry_type("'QUEUED_PAYOUT_LOGICAL_CR'")
                 .currency("'BTC'")
-                .account_id("params.ledger_account_outgoing_id")
+                .account_id("params.logical_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build QUEUED_PAYOUT_CREDIT entry"),
+                .expect("Couldn't build entry"),
         ];
 
         let params = QueuedPayoutParams::defs();

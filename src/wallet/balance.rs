@@ -96,7 +96,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
             ),
             logical_encumbered_outgoing: Satoshis::from_btc(
                 balances
-                    .onchain_outgoing
+                    .logical_outgoing
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),

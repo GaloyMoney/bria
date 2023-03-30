@@ -3,6 +3,7 @@ mod helpers;
 use bdk::BlockTime;
 use bria::{
     ledger::*,
+    payout::PayoutDestination,
     primitives::{bitcoin::*, *},
     wallet::balance::WalletBalanceSummary,
 };
@@ -10,7 +11,7 @@ use rand::distributions::{Alphanumeric, DistString};
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
+async fn utxo_confirmation() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let ledger = Ledger::init(&pool).await?;
@@ -114,7 +115,63 @@ async fn test_ledger_incoming_confirmed() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn test_ledger_batch() -> anyhow::Result<()> {
+async fn queue_payout() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+
+    let ledger = Ledger::init(&pool).await?;
+
+    let account_id = AccountId::new();
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let mut tx = pool.begin().await?;
+    let journal_id = ledger
+        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .await?;
+    let wallet_id = WalletId::new();
+    let wallet_ledger_accounts = ledger
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .await?;
+
+    tx.commit().await?;
+
+    let payout_id = PayoutId::new();
+    let payout_satoshis = Satoshis::from(50_000_000);
+
+    let tx = pool.begin().await?;
+    ledger
+        .queued_payout(
+            tx,
+            LedgerTransactionId::new(),
+            QueuedPayoutParams {
+                journal_id,
+                logical_outgoing_account_id: wallet_ledger_accounts.logical_outgoing_id,
+                external_id: payout_id.to_string(),
+                payout_satoshis,
+                meta: QueuedPayoutMeta {
+                    payout_id,
+                    wallet_id,
+                    batch_group_id: BatchGroupId::new(),
+                    destination: PayoutDestination::OnchainAddress {
+                        value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
+                    },
+                    additional_meta: None,
+                },
+            },
+        )
+        .await?;
+
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+
+    assert_eq!(summary.logical_encumbered_outgoing, payout_satoshis);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn create_batch() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let ledger = Ledger::init(&pool).await?;
