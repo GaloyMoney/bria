@@ -121,25 +121,6 @@ impl IncomingUtxo {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // UTXO
-            EntryInput::builder()
-                .entry_type("'INCOMING_UTXO_UTXO_PENDING_DR'")
-                .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build INCOMING_UTXO_PENDING_DR entry"),
-            EntryInput::builder()
-                .entry_type("'INCOMING_UTXO_UTXO_PENDING_CR'")
-                .currency("'BTC'")
-                .account_id("params.onchain_incoming_account_id")
-                .direction("CREDIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build entry"),
             // LOGICAL
             EntryInput::builder()
                 .entry_type("'INCOMING_UTXO_LOGICAL_PENDING_DR'")
@@ -161,7 +142,7 @@ impl IncomingUtxo {
                 .expect("Couldn't build entry"),
             // FEE
             EntryInput::builder()
-                .entry_type("'INCOMING_UTXO_FR_DR'")
+                .entry_type("'INCOMING_UTXO_FEE_ENCUMBERER_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -170,12 +151,31 @@ impl IncomingUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'INCOMING_UTXO_FR_CR'")
+                .entry_type("'INCOMING_UTXO_FEE_ENCUMBERE_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.encumbered_spending_fees")
+                .build()
+                .expect("Couldn't build entry"),
+            // UTXO
+            EntryInput::builder()
+                .entry_type("'INCOMING_UTXO_UTXO_PENDING_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
+                .direction("DEBIT")
+                .layer("PENDING")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build INCOMING_UTXO_PENDING_DR entry"),
+            EntryInput::builder()
+                .entry_type("'INCOMING_UTXO_UTXO_PENDING_CR'")
+                .currency("'BTC'")
+                .account_id("params.onchain_incoming_account_id")
+                .direction("CREDIT")
+                .layer("PENDING")
+                .units("params.amount")
                 .build()
                 .expect("Couldn't build entry"),
         ];

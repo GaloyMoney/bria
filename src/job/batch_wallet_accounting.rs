@@ -55,7 +55,7 @@ pub async fn execute(
         if let Some(fee_entry) = entries.iter().find(|entry| {
             entry.account_id == wallet.ledger_account_ids.fee_id
                 && entry.layer == sqlx_ledger::Layer::Encumbered
-                && entry.entry_type.ends_with("FR_DR")
+                && entry.entry_type.ends_with("FEE_ENCUMBERED_DR")
         }) {
             reserved_fees += Satoshis::from_btc(fee_entry.units);
         }
