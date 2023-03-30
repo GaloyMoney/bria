@@ -225,11 +225,18 @@ async fn create_batch() -> anyhow::Result<()> {
         )
         .await?;
 
-    let summary = WalletBalanceSummary::from(
-        ledger
-            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
-            .await?,
+    let balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
+    assert_eq!(
+        balances
+            .onchain_incoming
+            .as_ref()
+            .expect("No onchain incoming balance")
+            .encumbered(),
+        (total_in_sats - fee_sats - total_spent_sats).to_btc()
     );
+    let summary = WalletBalanceSummary::from(balances);
 
     assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
     assert_eq!(
@@ -242,6 +249,8 @@ async fn create_batch() -> anyhow::Result<()> {
     );
     assert_eq!(summary.encumbered_fees.flip_sign(), reserved_fees);
     assert_eq!(summary.pending_fees, fee_sats);
+    assert_eq!(summary.confirmed_utxos.flip_sign(), total_in_sats);
+    assert_eq!(summary.pending_outgoing_utxos, total_in_sats - fee_sats);
 
     Ok(())
 }

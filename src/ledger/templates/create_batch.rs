@@ -51,6 +51,21 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("onchain_at_rest_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("onchain_income_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("onchain_outgoing_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("total_in")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
@@ -119,6 +134,18 @@ impl From<CreateBatchParams> for TxParams {
             ledger_account_ids.logical_at_rest_id,
         );
         params.insert("onchain_fee_account_id", ledger_account_ids.fee_id);
+        params.insert(
+            "onchain_outgoing_account_id",
+            ledger_account_ids.onchain_outgoing_id,
+        );
+        params.insert(
+            "onchain_income_account_id",
+            ledger_account_ids.onchain_incoming_id,
+        );
+        params.insert(
+            "onchain_at_rest_account_id",
+            ledger_account_ids.onchain_at_rest_id,
+        );
         params.insert("total_in", total_in);
         params.insert("total_spent", total_spent);
         params.insert("fees", fee_sats);
@@ -234,6 +261,61 @@ impl CreateBatch {
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.reserved_fees")
+                .build()
+                .expect("Couldn't build entry"),
+            // UTXO
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_PENDING_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
+                .direction("DEBIT")
+                .layer("PENDING")
+                .units("params.total_in - params.fees")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_PENDING_CR'")
+                .currency("'BTC'")
+                .account_id("params.onchain_outgoing_account_id")
+                .direction("CREDIT")
+                .layer("PENDING")
+                .units("params.total_in - params.fees")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_SETTLED_DR'")
+                .currency("'BTC'")
+                .account_id("params.onchain_at_rest_account_id")
+                .direction("DEBIT")
+                .layer("SETTLED")
+                .units("params.total_in")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_SETTLED_CR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
+                .direction("CREDIT")
+                .layer("SETTLED")
+                .units("params.total_in")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_ENCUMBERED_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
+                .direction("DEBIT")
+                .layer("ENCUMBERED")
+                .units("params.total_in - params.fees - params.total_spent")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CREATE_BATCH_UTXO_ENCUMBERED_CR'")
+                .currency("'BTC'")
+                .account_id("params.onchain_income_account_id")
+                .direction("CREDIT")
+                .layer("ENCUMBERED")
+                .units("params.total_in - params.fees - params.total_spent")
                 .build()
                 .expect("Couldn't build entry"),
         ];
