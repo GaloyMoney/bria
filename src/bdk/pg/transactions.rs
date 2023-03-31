@@ -70,12 +70,16 @@ impl Transactions {
     }
 
     #[instrument(name = "bdk_transactions.find_unsynced_tx", skip(self), fields(n_rows))]
-    pub async fn find_unsynced_tx(&self) -> Result<Option<UnsyncedTransaction>, BriaError> {
+    pub async fn find_unsynced_tx(
+        &self,
+        excluded_tx_ids: &[bitcoin::Txid],
+    ) -> Result<Option<UnsyncedTransaction>, BriaError> {
+        let excluded_tx_ids: Vec<_> = excluded_tx_ids.iter().map(|id| id.to_string()).collect();
         let rows = sqlx::query!(
         r#"WITH tx_to_sync AS (
            SELECT tx_id, details_json, height
            FROM bdk_transactions
-           WHERE keychain_id = $1 AND synced_to_bria = false
+           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)
            ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST
            LIMIT 1
            ),
@@ -94,6 +98,7 @@ impl Transactions {
            WHERE u.keychain_id = $1 AND u.synced_to_bria = false
         "#,
         Uuid::from(self.keychain_id),
+        &excluded_tx_ids
         )
            .fetch_all(&self.pool)
            .await?;

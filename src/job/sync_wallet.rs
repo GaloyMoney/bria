@@ -60,7 +60,7 @@ pub async fn execute(
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
-        while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx().await {
+        while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&[]).await {
             n_found_txs += 1;
             span.record("n_found_txs", n_found_txs);
             let mut change = Vec::new();
