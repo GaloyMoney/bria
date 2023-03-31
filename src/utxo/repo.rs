@@ -29,19 +29,20 @@ impl UtxoRepo {
 
     pub async fn persist_utxo(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
         utxo: NewUtxo,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
+        let mut tx = self.pool.begin().await?;
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           Uuid::from(utxo.wallet_id),
           Uuid::from(utxo.keychain_id),
           utxo.outpoint.txid.to_string(),
           utxo.outpoint.vout as i32,
           utxo.sats_per_vbyte_when_created,
+          utxo.self_pay,
           pg::PgKeychainKind::from(utxo.kind) as pg::PgKeychainKind,
           utxo.address_idx as i32,
           utxo.value.into_inner(),
@@ -54,7 +55,7 @@ impl UtxoRepo {
         .await?;
 
         Ok(if result.rows_affected() > 0 {
-            Some(utxo.income_pending_ledger_tx_id)
+            Some((utxo.income_pending_ledger_tx_id, tx))
         } else {
             None
         })

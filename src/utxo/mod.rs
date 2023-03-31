@@ -26,16 +26,16 @@ impl Utxos {
         }
     }
 
-    #[instrument(name = "utxos.new_utxo", skip(self, tx))]
+    #[instrument(name = "utxos.new_utxo", skip(self))]
     pub async fn new_utxo(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
         sats_per_vbyte_when_created: f32,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+        self_pay: bool,
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
         let new_utxo = NewUtxo::builder()
             .wallet_id(wallet_id)
             .keychain_id(keychain_id)
@@ -47,9 +47,10 @@ impl Utxos {
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
+            .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
-        self.utxos.persist_utxo(tx, new_utxo).await
+        self.utxos.persist_utxo(new_utxo).await
     }
 
     #[instrument(name = "utxos.confirm_utxo", skip(self, tx))]

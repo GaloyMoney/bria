@@ -79,7 +79,8 @@ pub async fn execute(
                 }
                 inputs.len()
             };
-            if n_inputs > 0 {
+            let self_pay = n_inputs > 0;
+            if self_pay {
                 income_bria_utxos = bria_utxos
                     .get_pending_ledger_tx_ids_for_utxos(&utxos_to_fetch)
                     .await?;
@@ -98,15 +99,14 @@ pub async fn execute(
                 let address_info = keychain_wallet
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
-                let mut tx = pool.begin().await?;
-                if let Some(pending_id) = bria_utxos
+                if let Some((pending_id, mut tx)) = bria_utxos
                     .new_utxo(
-                        &mut tx,
                         wallet.id,
                         keychain_id,
                         &address_info,
                         &local_utxo,
                         unsynced_tx.sats_per_vbyte_when_created,
+                        self_pay,
                     )
                     .await?
                 {
@@ -150,7 +150,7 @@ pub async fn execute(
 
         loop {
             let mut tx = pool.begin().await?;
-            let min_height = current_height - wallet.config.mark_confirmed_after_n_confs + 1;
+            let min_height = current_height - wallet.config.settle_income_after_n_confs + 1;
             if let Ok(Some(ConfirmedIncomeUtxo {
                 outpoint,
                 spent,

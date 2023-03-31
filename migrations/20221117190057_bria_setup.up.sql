@@ -80,6 +80,7 @@ CREATE TABLE bria_utxos (
     tx_id VARCHAR NOT NULL,
     vout INTEGER NOT NULL,
     sats_per_vbyte_when_created REAL NOT NULL,
+    self_pay BOOLEAN NOT NULL,
     kind KeychainKind NOT NULL,
     address_idx INTEGER NOT NULL,
     value NUMERIC NOT NULL,

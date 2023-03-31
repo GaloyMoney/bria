@@ -94,14 +94,40 @@ impl NewWallet {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
-    pub mark_confirmed_after_n_confs: u32,
+    pub settle_income_after_n_confs: u32,
+    pub settle_change_after_n_confs: u32,
     pub dust_threshold_sats: Satoshis,
+}
+
+impl WalletConfig {
+    pub fn min_income_settle_height(&self, current_height: u32) -> Option<u32> {
+        if self.settle_income_after_n_confs == 0 {
+            return None;
+        }
+        Some(current_height - self.settle_income_after_n_confs + 1)
+    }
+
+    pub fn min_change_settle_height(&self, current_height: u32) -> Option<u32> {
+        if self.settle_change_after_n_confs == 0 {
+            return None;
+        }
+        Some(current_height - self.settle_change_after_n_confs + 1)
+    }
+
+    pub fn min_settle_height(&self, current_height: u32, self_pay: bool) -> Option<u32> {
+        if self_pay {
+            self.min_change_settle_height(current_height)
+        } else {
+            self.min_income_settle_height(current_height)
+        }
+    }
 }
 
 impl Default for WalletConfig {
     fn default() -> Self {
         Self {
-            mark_confirmed_after_n_confs: 2,
+            settle_income_after_n_confs: 2,
+            settle_change_after_n_confs: 1,
             dust_threshold_sats: Satoshis::from(0),
         }
     }
