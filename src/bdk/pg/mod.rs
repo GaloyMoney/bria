@@ -54,8 +54,8 @@ impl BatchOperations for SqlxWalletDb {
 
     fn set_utxo(&mut self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
         self.rt.block_on(async {
-            Utxos::new(self.pool.clone())
-                .persist(self.keychain_id, utxo)
+            Utxos::new(self.keychain_id, self.pool.clone())
+                .persist(utxo)
                 .await
         })
     }
@@ -141,8 +141,8 @@ impl Database for SqlxWalletDb {
     }
     fn iter_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         self.rt.block_on(async {
-            Utxos::new(self.pool.clone())
-                .list_local_utxos(self.keychain_id)
+            Utxos::new(self.keychain_id, self.pool.clone())
+                .list_local_utxos()
                 .await
         })
     }

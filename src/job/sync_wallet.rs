@@ -43,7 +43,6 @@ pub async fn execute(
     let mut n_pending_utxos = 0;
     let mut n_settled_utxos = 0;
     let mut n_found_txs = 0;
-    let bdk_utxos = Utxos::new(pool.clone());
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         let keychain_id = keychain_wallet.keychain_id;
         let blockchain = ElectrumBlockchain::from(
@@ -60,6 +59,7 @@ pub async fn execute(
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
+        let bdk_utxos = Utxos::new(keychain_id, pool.clone());
         while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx().await {
             n_found_txs += 1;
             span.record("n_found_txs", n_found_txs);
@@ -85,9 +85,7 @@ pub async fn execute(
                             .as_sat_per_vb();
                     let weight = keychain_wallet.max_satisfaction_weight().await?;
                     let fees = Satoshis::from((fee_rate as u64) * (weight as u64));
-                    bdk_utxos
-                        .mark_as_synced(&mut tx, keychain_id, &local_utxo)
-                        .await?;
+                    bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
                     ledger
                         .incoming_utxo(
                             tx,
@@ -126,7 +124,7 @@ pub async fn execute(
                 spent,
                 confirmation_time,
             })) = bdk_utxos
-                .find_settled_income_utxo(&mut tx, keychain_id, min_height)
+                .find_settled_income_utxo(&mut tx, min_height)
                 .await
             {
                 let wallet_utxo = wallet_utxos

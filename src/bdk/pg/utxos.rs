@@ -12,24 +12,21 @@ pub struct ConfirmedIncomeUtxo {
 }
 
 pub struct Utxos {
+    keychain_id: KeychainId,
     pool: PgPool,
 }
 
 impl Utxos {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(keychain_id: KeychainId, pool: PgPool) -> Self {
+        Self { keychain_id, pool }
     }
 
-    pub async fn persist(
-        &self,
-        keychain_id: KeychainId,
-        utxo: &LocalUtxo,
-    ) -> Result<(), bdk::Error> {
+    pub async fn persist(&self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
         sqlx::query!(
             r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json, is_spent)
             VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id, vout)
             DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = $5, modified_at = NOW()"#,
-            Uuid::from(keychain_id),
+            Uuid::from(self.keychain_id),
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
             serde_json::to_value(utxo)?,
@@ -41,13 +38,10 @@ impl Utxos {
         Ok(())
     }
 
-    pub async fn list_local_utxos(
-        &self,
-        keychain_id: KeychainId,
-    ) -> Result<Vec<LocalUtxo>, bdk::Error> {
+    pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1"#,
-            Uuid::from(keychain_id),
+            Uuid::from(self.keychain_id),
         )
         .fetch_all(&self.pool)
         .await
@@ -62,13 +56,12 @@ impl Utxos {
     pub async fn mark_as_synced(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        keychain_id: KeychainId,
         utxo: &LocalUtxo,
     ) -> Result<(), BriaError> {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
-            Uuid::from(keychain_id),
+            Uuid::from(self.keychain_id),
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
         )
@@ -81,7 +74,6 @@ impl Utxos {
     pub async fn find_settled_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        keychain_id: KeychainId,
         min_height: u32,
     ) -> Result<Option<ConfirmedIncomeUtxo>, BriaError> {
         let row = sqlx::query!(
@@ -104,7 +96,7 @@ impl Utxos {
             )
             SELECT u.tx_id, utxo_json, details_json
             FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"#,
-            Uuid::from(keychain_id),
+            Uuid::from(self.keychain_id),
             min_height as i32,
         )
         .fetch_optional(tx)
