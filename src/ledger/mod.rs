@@ -109,14 +109,17 @@ impl Ledger {
         fee_account_id: LedgerAccountId,
     ) -> Result<Satoshis, BriaError> {
         let mut reserved_fees = Satoshis::from(0);
-        let entries = self.inner.entries().list_by_transaction_ids(tx_ids).await?;
-        for entries in entries.values() {
-            if let Some(fee_entry) = entries.iter().find(|entry| {
-                entry.account_id == fee_account_id
-                    && entry.layer == sqlx_ledger::Layer::Encumbered
-                    && entry.entry_type.ends_with(FEE_ENCUMBERED_POSTFIX)
-            }) {
-                reserved_fees += Satoshis::from_btc(fee_entry.units);
+        #[derive(serde::Deserialize)]
+        struct ExtractSpendingFee {
+            encumbered_spending_fee_sats: Option<Satoshis>,
+        }
+        let txs = self.inner.transactions().list_by_ids(tx_ids).await?;
+        for tx in txs {
+            if let Some(ExtractSpendingFee {
+                encumbered_spending_fee_sats,
+            }) = tx.metadata()?
+            {
+                reserved_fees += encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
             }
         }
         Ok(reserved_fees)

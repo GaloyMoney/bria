@@ -106,13 +106,13 @@ pub async fn execute(
                                     .ledger_account_ids
                                     .logical_incoming_id,
                                 onchain_fee_account_id: wallet.ledger_account_ids.fee_id,
-                                spending_fee_satoshis: fees,
                                 meta: IncomingUtxoMeta {
                                     wallet_id: data.wallet_id,
                                     keychain_id,
                                     outpoint: local_utxo.outpoint,
                                     satoshis: local_utxo.txout.value.into(),
                                     address: address_info.address,
+                                    encumbered_spending_fee_sats: fees,
                                     confirmation_time: unsynced_tx.confirmation_time.clone(),
                                 },
                             },
