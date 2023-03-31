@@ -34,6 +34,7 @@ impl Utxos {
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
+        sats_per_vbyte_when_created: f32,
     ) -> Result<Option<LedgerTransactionId>, BriaError> {
         let new_utxo = NewUtxo::builder()
             .wallet_id(wallet_id)
@@ -45,6 +46,7 @@ impl Utxos {
             .spent(utxo.is_spent)
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
+            .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
             .build()
             .expect("Could not build NewUtxo");
         self.utxos.persist_utxo(tx, new_utxo).await

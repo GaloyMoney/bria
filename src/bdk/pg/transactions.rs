@@ -8,6 +8,7 @@ use crate::{error::*, primitives::*};
 pub struct UnsyncedTransaction {
     pub tx_id: bitcoin::Txid,
     pub confirmation_time: Option<bitcoin::BlockTime>,
+    pub sats_per_vbyte_when_created: f32,
     pub inputs: Vec<(LocalUtxo, u32)>,
     pub outputs: Vec<(LocalUtxo, u32)>,
 }
@@ -103,6 +104,7 @@ impl Transactions {
         let mut outputs = Vec::new();
         let mut tx_id = None;
         let mut confirmation_time = None;
+        let mut sats_per_vbyte_when_created = 0.0;
 
         for row in rows {
             let utxo: LocalUtxo = serde_json::from_value(row.utxo_json)?;
@@ -114,12 +116,15 @@ impl Transactions {
             if tx_id.is_none() {
                 tx_id = Some(row.tx_id.parse().expect("couldn't parse tx_id"));
                 let details: TransactionDetails = serde_json::from_value(row.details_json)?;
+                sats_per_vbyte_when_created = details.fee.expect("Fee") as f32
+                    / details.transaction.expect("transaction").vsize() as f32;
                 confirmation_time = details.confirmation_time;
             }
         }
         Ok(tx_id.map(|tx_id| UnsyncedTransaction {
             tx_id,
             confirmation_time,
+            sats_per_vbyte_when_created,
             inputs,
             outputs,
         }))

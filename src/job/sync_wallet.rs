@@ -75,7 +75,14 @@ pub async fn execute(
                     .await?;
                 let mut tx = pool.begin().await?;
                 if let Some(pending_id) = bria_utxos
-                    .new_utxo(&mut tx, wallet.id, keychain_id, &address_info, &local_utxo)
+                    .new_utxo(
+                        &mut tx,
+                        wallet.id,
+                        keychain_id,
+                        &address_info,
+                        &local_utxo,
+                        unsynced_tx.sats_per_vbyte_when_created,
+                    )
                     .await?
                 {
                     n_pending_utxos += 1;

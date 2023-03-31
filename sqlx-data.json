@@ -309,38 +309,6 @@
     },
     "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false\n           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON CONCAT(u.tx_id, ':', u.vout::text) = ANY(ARRAY(\n               SELECT output FROM previous_outputs\n           )) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND u.synced_to_bria = false\n        "
   },
-  "163583677d4c876a20baa3e31b5475cdb26f6bb4671ad6ab52a45c048f15e635": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Int4",
-          "Numeric",
-          "Varchar",
-          "Varchar",
-          "Bool",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
-  },
   "1e5a38689d22733b68e1e66320a8cdbdc5d6d692e44e72c735bafe657e7ddf1f": {
     "describe": {
       "columns": [
@@ -379,6 +347,39 @@
       }
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"
+  },
+  "229fbcfd3309d0a80c1708210361d477ed895c28af7eaa3999965855cc9e4c1d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Int4",
+          "Float4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Int4",
+          "Numeric",
+          "Varchar",
+          "Varchar",
+          "Bool",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
   },
   "277091eb889c9bfe2dac75ef4f634ff9a22328710da5608e39c79d2f212d1995": {
     "describe": {
