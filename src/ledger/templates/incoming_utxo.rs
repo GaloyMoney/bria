@@ -142,7 +142,7 @@ impl IncomingUtxo {
                 .expect("Couldn't build entry"),
             // FEE
             EntryInput::builder()
-                .entry_type(format!("'INCOMING_UTXO_FEE_ENCUMEBERED_DR'"))
+                .entry_type("'INCOMING_UTXO_FEE_ENCUMEBERED_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
