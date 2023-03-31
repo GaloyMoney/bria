@@ -5,12 +5,12 @@ use tracing::instrument;
 
 use crate::{
     app::BlockchainConfig,
-    bdk::pg::{ConfirmedIncomeUtxo, Transactions, Utxos},
+    bdk::pg::{ConfirmedIncomeUtxo, Transactions, Utxos as BdkUtxos},
     error::*,
     ledger::*,
     primitives::*,
+    utxo::Utxos,
     wallet::*,
-    wallet_utxo::WalletUtxos,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,22 +26,22 @@ impl SyncWalletData {
 
 #[instrument(
     name = "job.sync_wallet",
-    skip(pool, wallets, wallet_utxos, ledger),
-    fields(n_pending_utxos, n_settled_utxos, n_found_txs),
+    skip(pool, wallets, bria_utxos, ledger),
+    fields(n_pending_utxos, n_confirmed_utxos, n_found_txs),
     err
 )]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
-    wallet_utxos: WalletUtxos,
+    bria_utxos: Utxos,
     ledger: Ledger,
     data: SyncWalletData,
 ) -> Result<SyncWalletData, BriaError> {
     let span = tracing::Span::current();
     let wallet = wallets.find_by_id(data.wallet_id).await?;
     let mut n_pending_utxos = 0;
-    let mut n_settled_utxos = 0;
+    let mut n_confirmed_utxos = 0;
     let mut n_found_txs = 0;
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         let keychain_id = keychain_wallet.keychain_id;
@@ -59,7 +59,7 @@ pub async fn execute(
         let current_height = blockchain.get_height()?;
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
-        let bdk_utxos = Utxos::new(keychain_id, pool.clone());
+        let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx().await {
             n_found_txs += 1;
             span.record("n_found_txs", n_found_txs);
@@ -74,7 +74,7 @@ pub async fn execute(
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
                 let mut tx = pool.begin().await?;
-                if let Some(pending_id) = wallet_utxos
+                if let Some(pending_id) = bria_utxos
                     .new_utxo(&mut tx, wallet.id, keychain_id, &address_info, &local_utxo)
                     .await?
                 {
@@ -118,17 +118,17 @@ pub async fn execute(
 
         loop {
             let mut tx = pool.begin().await?;
-            let min_height = current_height - wallet.config.mark_settled_after_n_confs + 1;
+            let min_height = current_height - wallet.config.mark_confirmed_after_n_confs + 1;
             if let Ok(Some(ConfirmedIncomeUtxo {
                 outpoint,
                 spent,
                 confirmation_time,
             })) = bdk_utxos
-                .find_settled_income_utxo(&mut tx, min_height)
+                .find_confirmed_income_utxo(&mut tx, min_height)
                 .await
             {
-                let wallet_utxo = wallet_utxos
-                    .confirm_income_utxo(
+                let utxo = bria_utxos
+                    .confirm_utxo(
                         &mut tx,
                         keychain_id,
                         outpoint,
@@ -136,23 +136,23 @@ pub async fn execute(
                         confirmation_time.height,
                     )
                     .await?;
-                n_settled_utxos += 1;
+                n_confirmed_utxos += 1;
 
                 ledger
                     .confirmed_utxo(
                         tx,
-                        wallet_utxo.income_settled_ledger_tx_id,
+                        utxo.confirmed_ledger_tx_id,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
                             ledger_account_ids: wallet.ledger_account_ids,
-                            pending_id: wallet_utxo.income_pending_ledger_tx_id,
+                            pending_id: utxo.pending_ledger_tx_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,
                                 confirmation_time,
-                                satoshis: wallet_utxo.value,
+                                satoshis: utxo.value,
                                 outpoint,
-                                address: wallet_utxo.address,
+                                address: utxo.address,
                             },
                         },
                     )
@@ -164,7 +164,7 @@ pub async fn execute(
     }
 
     span.record("n_pending_utxos", n_pending_utxos);
-    span.record("n_settled_utxos", n_settled_utxos);
+    span.record("n_confirmed_utxos", n_confirmed_utxos);
     span.record("n_found_txs", n_found_txs);
 
     Ok(data)

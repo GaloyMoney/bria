@@ -73,7 +73,7 @@ CREATE TABLE bria_wallets (
   UNIQUE(account_id, name, version)
 );
 
-CREATE TABLE bria_wallet_utxos (
+CREATE TABLE bria_utxos (
     wallet_id UUID NOT NULL,
     keychain_id UUID NOT NULL,
     tx_id VARCHAR NOT NULL,
@@ -84,9 +84,10 @@ CREATE TABLE bria_wallet_utxos (
     address VARCHAR NOT NULL,
     script_hex VARCHAR NOT NULL,
     spent BOOLEAN NOT NULL,
-    income_pending_ledger_tx_id UUID,
-    income_settled_ledger_tx_id UUID DEFAULT NULL,
+    pending_ledger_tx_id UUID NOT NULL,
+    confirmed_ledger_tx_id UUID DEFAULT NULL,
     spending_batch_id UUID DEFAULT NULL,
+    spending_ledger_tx_id UUID DEFAULT NULL,
     block_height INTEGER DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),

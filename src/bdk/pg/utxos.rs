@@ -70,8 +70,8 @@ impl Utxos {
         Ok(())
     }
 
-    #[instrument(name = "bdk_utxos.find_settled_income_utxo", skip(self, tx))]
-    pub async fn find_settled_income_utxo(
+    #[instrument(name = "bdk_utxos.find_confirmed_income_utxo", skip(self, tx))]
+    pub async fn find_confirmed_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         min_height: u32,

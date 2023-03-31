@@ -94,14 +94,14 @@ impl NewWallet {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
-    pub mark_settled_after_n_confs: u32,
+    pub mark_confirmed_after_n_confs: u32,
     pub dust_threshold_sats: Satoshis,
 }
 
 impl Default for WalletConfig {
     fn default() -> Self {
         Self {
-            mark_settled_after_n_confs: 2,
+            mark_confirmed_after_n_confs: 2,
             dust_threshold_sats: Satoshis::from(0),
         }
     }

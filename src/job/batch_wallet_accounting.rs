@@ -4,7 +4,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{
-    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*, wallet_utxo::*,
+    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, utxo::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ pub struct BatchWalletAccountingData {
 
 #[instrument(
     name = "job.batch_wallet_accounting",
-    skip(wallets, batches, ledger, wallet_utxos),
+    skip(wallets, batches, ledger, bria_utxos),
     err
 )]
 pub async fn execute(
@@ -26,7 +26,7 @@ pub async fn execute(
     blockchain_cfg: BlockchainConfig,
     ledger: Ledger,
     wallets: Wallets,
-    wallet_utxos: WalletUtxos,
+    bria_utxos: Utxos,
     batches: Batches,
 ) -> Result<BatchWalletAccountingData, BriaError> {
     let Batch {
@@ -45,7 +45,7 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let incoming_tx_ids = wallet_utxos
+    let incoming_tx_ids = bria_utxos
         .get_pending_ledger_tx_ids_for_utxos(utxos)
         .await?;
     let reserved_fees = ledger

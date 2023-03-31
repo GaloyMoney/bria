@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::{
-    batch::*, batch_group::*, error::*, payout::*, primitives::*, wallet::*, wallet_utxo::*,
-};
+use crate::{batch::*, batch_group::*, error::*, payout::*, primitives::*, utxo::*, wallet::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessBatchGroupData {
@@ -43,7 +41,7 @@ pub async fn execute<'a>(
     wallets: Wallets,
     batch_groups: BatchGroups,
     batches: Batches,
-    wallet_utxos: WalletUtxos,
+    utxos: Utxos,
     data: ProcessBatchGroupData,
 ) -> Result<
     (
@@ -75,7 +73,7 @@ pub async fn execute<'a>(
     let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
 
     let mut tx = pool.begin().await?;
-    let reserved_utxos = wallet_utxos
+    let reserved_utxos = utxos
         .outpoints_bdk_should_not_select(&mut tx, keychain_ids)
         .await?;
     span.record(
@@ -144,7 +142,7 @@ pub async fn execute<'a>(
             .build()
             .expect("Couldn't build batch");
 
-        wallet_utxos
+        utxos
             .reserve_utxos_in_batch(
                 &mut tx,
                 batch.id,

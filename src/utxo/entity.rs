@@ -11,19 +11,19 @@ pub struct WalletUtxo {
     pub address: Option<bitcoin::Address>,
     pub spent: bool,
     pub block_height: Option<u32>,
-    pub income_pending_ledger_tx_id: Option<LedgerTransactionId>,
-    pub income_settled_ledger_tx_id: Option<LedgerTransactionId>,
+    pub pending_ledger_tx_id: LedgerTransactionId,
+    pub confirmed_ledger_tx_id: Option<LedgerTransactionId>,
     pub spending_batch_id: Option<BatchId>,
 }
 
-pub struct ConfimedIncomeUtxo {
+pub struct ConfirmedUtxo {
     pub keychain_id: KeychainId,
     pub address_idx: u32,
     pub value: Satoshis,
     pub address: bitcoin::Address,
     pub block_height: u32,
-    pub income_pending_ledger_tx_id: LedgerTransactionId,
-    pub income_settled_ledger_tx_id: LedgerTransactionId,
+    pub pending_ledger_tx_id: LedgerTransactionId,
+    pub confirmed_ledger_tx_id: LedgerTransactionId,
     pub spending_batch_id: Option<BatchId>,
 }
 
@@ -33,7 +33,7 @@ pub struct KeychainUtxos {
 }
 
 #[derive(Builder)]
-pub struct NewWalletUtxo {
+pub struct NewUtxo {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: OutPoint,
@@ -47,9 +47,9 @@ pub struct NewWalletUtxo {
     pub income_pending_ledger_tx_id: LedgerTransactionId,
 }
 
-impl NewWalletUtxo {
-    pub fn builder() -> NewWalletUtxoBuilder {
-        let mut builder = NewWalletUtxoBuilder::default();
+impl NewUtxo {
+    pub fn builder() -> NewUtxoBuilder {
+        let mut builder = NewUtxoBuilder::default();
         builder.income_pending_ledger_tx_id(LedgerTransactionId::new());
         builder
     }

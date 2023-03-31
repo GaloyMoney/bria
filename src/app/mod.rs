@@ -14,8 +14,8 @@ use crate::{
     ledger::*,
     payout::*,
     primitives::*,
+    utxo::*,
     wallet::{balance::*, *},
-    wallet_utxo::*,
     xpub::*,
 };
 
@@ -28,7 +28,7 @@ pub struct App {
     batch_groups: BatchGroups,
     payouts: Payouts,
     ledger: Ledger,
-    wallet_utxos: WalletUtxos,
+    utxos: Utxos,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
 }
@@ -48,7 +48,7 @@ impl App {
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
-        let wallet_utxos = WalletUtxos::new(&pool);
+        let utxos = Utxos::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
@@ -56,7 +56,7 @@ impl App {
             batches,
             payouts.clone(),
             ledger.clone(),
-            wallet_utxos.clone(),
+            utxos.clone(),
             wallets_cfg.sync_all_wallets_delay,
             wallets_cfg.process_all_batch_groups_delay,
             blockchain_cfg.clone(),
@@ -76,7 +76,7 @@ impl App {
             payouts,
             pool,
             ledger,
-            wallet_utxos,
+            utxos,
             _runner: runner,
             blockchain_cfg,
         })
@@ -203,7 +203,7 @@ impl App {
     ) -> Result<(WalletId, Vec<KeychainUtxos>), BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let mut utxos = self
-            .wallet_utxos
+            .utxos
             .find_keychain_utxos(wallet.keychain_ids())
             .await?;
         let ordered_utxos = wallet

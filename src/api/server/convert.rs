@@ -6,8 +6,8 @@ use crate::{
     error::BriaError,
     payout::*,
     primitives::{bitcoin::*, *},
+    utxo::*,
     wallet::balance::WalletBalanceSummary,
-    wallet_utxo::*,
     xpub::*,
 };
 
@@ -64,7 +64,7 @@ impl TryFrom<Option<proto::queue_payout_request::Destination>> for PayoutDestina
     }
 }
 
-impl From<WalletUtxo> for proto::WalletUtxo {
+impl From<WalletUtxo> for proto::Utxo {
     fn from(utxo: WalletUtxo) -> Self {
         Self {
             outpoint: format!("{}:{}", utxo.outpoint.txid, utxo.outpoint.vout),

@@ -62,7 +62,7 @@ message ListUtxosRequest {
   string wallet_name = 1;
 }
 
-message WalletUtxo {
+message Utxo {
   string outpoint = 1;
   uint32 address_idx = 2;
   uint64 value = 3;
@@ -74,7 +74,7 @@ message WalletUtxo {
 
 message KeychainUtxos {
   string keychain_id = 1;
-  repeated WalletUtxo utxos = 2;
+  repeated Utxo utxos = 2;
 }
 
 enum KeychainKind {

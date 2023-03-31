@@ -73,13 +73,13 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     assert_eq!(summary.logical_pending_income, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
-    let settled_id = LedgerTransactionId::new();
+    let confirmed_id = LedgerTransactionId::new();
 
     let tx = pool.begin().await?;
     ledger
         .confirmed_utxo(
             tx,
-            settled_id,
+            confirmed_id,
             ConfirmedUtxoParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
@@ -112,7 +112,10 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     assert_eq!(summary.encumbered_fees, one_sat);
 
     let reserved_fees = ledger
-        .sum_reserved_fees_in_txs(vec![pending_id, settled_id], wallet_ledger_accounts.fee_id)
+        .sum_reserved_fees_in_txs(
+            vec![pending_id, confirmed_id],
+            wallet_ledger_accounts.fee_id,
+        )
         .await?;
     assert_eq!(reserved_fees, one_sat);
 
