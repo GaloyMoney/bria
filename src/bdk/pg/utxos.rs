@@ -5,12 +5,6 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
-pub struct UnsyncedIncomeUtxo {
-    pub local_utxo: LocalUtxo,
-    pub path: u32,
-    pub confirmation_time: Option<bitcoin::BlockTime>,
-}
-
 pub struct ConfirmedIncomeUtxo {
     pub outpoint: bitcoin::OutPoint,
     pub spent: bool,
@@ -64,46 +58,23 @@ impl Utxos {
             .collect())
     }
 
-    #[instrument(name = "bdk_utxos.find_unsynced_income_utxo", skip(self, tx))]
-    pub async fn find_unsynced_income_utxo(
+    #[instrument(name = "bdk_utxos.mark_as_synced", skip(self, tx))]
+    pub async fn mark_as_synced(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
-    ) -> Result<Option<UnsyncedIncomeUtxo>, BriaError> {
-        let row = sqlx::query!(
-            r#"WITH updated_utxo AS (
-            UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
-            WHERE keychain_id = $1 AND (tx_id, vout) IN (
-                SELECT t.tx_id, vout
-                FROM bdk_utxos u
-                JOIN bdk_transactions t ON bdk_utxos.tx_id = t.tx_id
-                WHERE u.keychain_id = $1 AND u.synced_to_bria = false AND utxo_json->>'keychain' = 'External'
-                ORDER BY t.height ASC NULLS LAST
-                LIMIT 1
-            )
-            RETURNING tx_id, utxo_json
-            )
-            SELECT utxo_json, path, details_json
-            FROM updated_utxo u
-            JOIN bdk_script_pubkeys p
-            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
-            JOIN bdk_transactions t ON u.tx_id = t.tx_id"#,
+        utxo: &LocalUtxo,
+    ) -> Result<(), BriaError> {
+        sqlx::query!(
+            r#"UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
+            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
             Uuid::from(keychain_id),
+            utxo.outpoint.txid.to_string(),
+            utxo.outpoint.vout as i32,
         )
-        .fetch_optional(tx)
+        .execute(&mut *tx)
         .await?;
-
-        Ok(row.map(|row| {
-            let local_utxo: LocalUtxo =
-                serde_json::from_value(row.utxo_json).expect("Could not deserialize utxo_json");
-            UnsyncedIncomeUtxo {
-                local_utxo,
-                path: row.path as u32,
-                confirmation_time: serde_json::from_value::<TransactionDetails>(row.details_json)
-                    .expect("Could not deserialize transaction details")
-                    .confirmation_time,
-            }
-        }))
+        Ok(())
     }
 
     #[instrument(name = "bdk_utxos.find_settled_income_utxo", skip(self, tx))]

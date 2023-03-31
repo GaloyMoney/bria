@@ -19,7 +19,7 @@ use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
 use sync_times::SyncTimes;
-use transactions::Transactions;
+pub use transactions::*;
 pub use utxos::*;
 
 pub struct SqlxWalletDb {

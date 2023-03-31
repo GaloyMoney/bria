@@ -1,8 +1,16 @@
-use bdk::{bitcoin::Txid, TransactionDetails};
+use bdk::{bitcoin::Txid, LocalUtxo, TransactionDetails};
 use sqlx::PgPool;
+use tracing::instrument;
 use uuid::Uuid;
 
-use crate::primitives::*;
+use crate::{error::*, primitives::*};
+
+pub struct UnsyncedTransaction {
+    pub tx_id: bitcoin::Txid,
+    pub confirmation_time: Option<bitcoin::BlockTime>,
+    pub inputs: Vec<(LocalUtxo, u32)>,
+    pub outputs: Vec<(LocalUtxo, u32)>,
+}
 
 pub struct Transactions {
     keychain_id: KeychainId,
@@ -58,5 +66,75 @@ impl Transactions {
             .into_iter()
             .map(|tx| serde_json::from_value(tx.details_json).unwrap())
             .collect())
+    }
+
+    #[instrument(name = "bdk_transactions.find_unsynced_tx", skip(self), fields(n_rows))]
+    pub async fn find_unsynced_tx(&self) -> Result<Option<UnsyncedTransaction>, BriaError> {
+        let rows = sqlx::query!(
+        r#"WITH tx_to_sync AS (
+           SELECT tx_id, details_json, height
+           FROM bdk_transactions
+           WHERE keychain_id = $1 AND synced_to_bria = false
+           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST
+           LIMIT 1
+           ),
+           previous_outputs AS (
+               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output
+               FROM tx_to_sync
+           )
+           SELECT t.tx_id, details_json, utxo_json, path, vout,
+                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS "is_tx_output!"
+           FROM bdk_utxos u
+           JOIN tx_to_sync t ON CONCAT(u.tx_id, ':', u.vout::text) = ANY(ARRAY(
+               SELECT output FROM previous_outputs
+           )) OR u.tx_id = t.tx_id
+           JOIN bdk_script_pubkeys p
+           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
+           WHERE u.keychain_id = $1 AND u.synced_to_bria = false
+        "#,
+        Uuid::from(self.keychain_id),
+        )
+           .fetch_all(&self.pool)
+           .await?;
+
+        tracing::Span::current().record("n_rows", rows.len());
+
+        let mut inputs = Vec::new();
+        let mut outputs = Vec::new();
+        let mut tx_id = None;
+        let mut confirmation_time = None;
+
+        for row in rows {
+            let utxo: LocalUtxo = serde_json::from_value(row.utxo_json)?;
+            if row.is_tx_output {
+                outputs.push((utxo, row.path as u32));
+            } else {
+                inputs.push((utxo, row.path as u32));
+            }
+            if tx_id.is_none() {
+                tx_id = Some(row.tx_id.parse().expect("couldn't parse tx_id"));
+                let details: TransactionDetails = serde_json::from_value(row.details_json)?;
+                confirmation_time = details.confirmation_time;
+            }
+        }
+        Ok(tx_id.map(|tx_id| UnsyncedTransaction {
+            tx_id,
+            confirmation_time,
+            inputs,
+            outputs,
+        }))
+    }
+
+    #[instrument(name = "bdk_transactions.mark_as_synced", skip(self))]
+    pub async fn mark_as_synced(&self, tx_id: bitcoin::Txid) -> Result<(), BriaError> {
+        sqlx::query!(
+            r#"UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()
+            WHERE keychain_id = $1 AND tx_id = $2"#,
+            Uuid::from(self.keychain_id),
+            tx_id.to_string(),
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 }

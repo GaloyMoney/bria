@@ -27,30 +27,36 @@ impl WalletUtxoRepo {
         Self { pool }
     }
 
-    pub async fn persist_income_utxo(
+    pub async fn persist_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         utxo: NewWalletUtxo,
-    ) -> Result<(), BriaError> {
-        sqlx::query!(
+    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+        let result = sqlx::query!(
             r#"INSERT INTO bria_wallet_utxos
                (wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, script_hex, spent, income_pending_ledger_tx_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)"#,
-               Uuid::from(utxo.wallet_id),
-               Uuid::from(utxo.keychain_id),
-               utxo.outpoint.txid.to_string(),
-               utxo.outpoint.vout as i32,
-               pg::PgKeychainKind::from(utxo.kind) as pg::PgKeychainKind,
-               utxo.address_idx as i32,
-               utxo.value.into_inner(),
-               utxo.address.to_string(),
-               utxo.script_hex,
-               utxo.spent,
-               Uuid::from(utxo.income_pending_ledger_tx_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
+          Uuid::from(utxo.wallet_id),
+          Uuid::from(utxo.keychain_id),
+          utxo.outpoint.txid.to_string(),
+          utxo.outpoint.vout as i32,
+          pg::PgKeychainKind::from(utxo.kind) as pg::PgKeychainKind,
+          utxo.address_idx as i32,
+          utxo.value.into_inner(),
+          utxo.address.to_string(),
+          utxo.script_hex,
+          utxo.spent,
+          Uuid::from(utxo.income_pending_ledger_tx_id)
         )
-            .execute(&mut *tx)
-            .await?;
-        Ok(())
+        .execute(&mut *tx)
+        .await?;
+
+        Ok(if result.rows_affected() > 0 {
+            Some(utxo.income_pending_ledger_tx_id)
+        } else {
+            None
+        })
     }
 
     pub async fn confirm_income_utxo(

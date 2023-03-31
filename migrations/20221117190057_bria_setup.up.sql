@@ -84,7 +84,7 @@ CREATE TABLE bria_wallet_utxos (
     address VARCHAR NOT NULL,
     script_hex VARCHAR NOT NULL,
     spent BOOLEAN NOT NULL,
-    income_pending_ledger_tx_id UUID DEFAULT NULL,
+    income_pending_ledger_tx_id UUID,
     income_settled_ledger_tx_id UUID DEFAULT NULL,
     spending_batch_id UUID DEFAULT NULL,
     block_height INTEGER DEFAULT NULL,

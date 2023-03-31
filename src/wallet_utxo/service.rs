@@ -23,15 +23,15 @@ impl WalletUtxos {
         }
     }
 
-    #[instrument(name = "wallet_utxos.new_income_utxo", skip(self, tx))]
-    pub async fn new_income_utxo(
+    #[instrument(name = "wallet_utxos.new_utxo", skip(self, tx))]
+    pub async fn new_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
-    ) -> Result<LedgerTransactionId, BriaError> {
+    ) -> Result<Option<LedgerTransactionId>, BriaError> {
         let new_utxo = NewWalletUtxo::builder()
             .wallet_id(wallet_id)
             .keychain_id(keychain_id)
@@ -44,9 +44,7 @@ impl WalletUtxos {
             .value(utxo.txout.value)
             .build()
             .expect("Could not build NewWalletUtxo");
-        let ret = new_utxo.income_pending_ledger_tx_id;
-        self.wallet_utxos.persist_income_utxo(tx, new_utxo).await?;
-        Ok(ret)
+        self.wallet_utxos.persist_utxo(tx, new_utxo).await
     }
 
     #[instrument(name = "wallet_utxos.confirm_income_utxo", skip(self, tx))]

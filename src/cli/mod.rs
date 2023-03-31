@@ -34,7 +34,7 @@ enum Command {
 
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
-        /// Connection string for the user-trades database
+        /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
     },
