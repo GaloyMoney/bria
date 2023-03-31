@@ -29,8 +29,9 @@ pub struct WalletLedgerAccountBalances {
 
 #[derive(Debug)]
 pub struct WalletBalanceSummary {
-    pub confirmed_utxos: Satoshis,
+    pub encumbered_incoming_utxos: Satoshis,
     pub pending_incoming_utxos: Satoshis,
+    pub confirmed_utxos: Satoshis,
     pub pending_outgoing_utxos: Satoshis,
     pub pending_fees: Satoshis,
     pub encumbered_fees: Satoshis,
@@ -43,10 +44,11 @@ pub struct WalletBalanceSummary {
 impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
     fn from(balances: WalletLedgerAccountBalances) -> Self {
         Self {
-            confirmed_utxos: Satoshis::from_btc(
+            encumbered_incoming_utxos: Satoshis::from_btc(
                 balances
-                    .onchain_at_rest
-                    .map(|b| b.settled())
+                    .onchain_incoming
+                    .as_ref()
+                    .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),
             pending_incoming_utxos: Satoshis::from_btc(
@@ -60,6 +62,12 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                     .onchain_outgoing
                     .as_ref()
                     .map(|b| b.pending())
+                    .unwrap_or(Decimal::ZERO),
+            ),
+            confirmed_utxos: Satoshis::from_btc(
+                balances
+                    .onchain_at_rest
+                    .map(|b| b.settled())
                     .unwrap_or(Decimal::ZERO),
             ),
             pending_fees: Satoshis::from_btc(

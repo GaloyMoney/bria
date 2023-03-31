@@ -154,6 +154,8 @@ impl From<proto::TxPriority> for TxPriority {
 impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     fn from(balance: WalletBalanceSummary) -> Self {
         Self {
+            encumbered_incoming_utxos: u64::try_from(balance.encumbered_incoming_utxos)
+                .expect("Satoshis -> u64 failed"),
             pending_incoming_utxos: u64::try_from(balance.pending_incoming_utxos)
                 .expect("Satoshis -> u64 failed"),
             confirmed_utxos: u64::try_from(balance.confirmed_utxos)
