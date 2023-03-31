@@ -12,6 +12,7 @@ use crate::{
     utxo::Utxos,
     wallet::*,
 };
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncWalletData {
@@ -43,8 +44,12 @@ pub async fn execute(
     let mut n_pending_utxos = 0;
     let mut n_confirmed_utxos = 0;
     let mut n_found_txs = 0;
+    let mut utxos_to_fetch = HashMap::new();
+    let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         let keychain_id = keychain_wallet.keychain_id;
+        utxos_to_fetch.clear();
+        utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
         let blockchain = ElectrumBlockchain::from(
             Client::from_config(
                 &blockchain_cfg.electrum_url,
@@ -60,10 +65,30 @@ pub async fn execute(
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
-        while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&[]).await {
+        let mut txs_to_skip = Vec::new();
+        while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&txs_to_skip).await {
+            income_bria_utxos.clear();
             n_found_txs += 1;
             span.record("n_found_txs", n_found_txs);
             let mut change = Vec::new();
+            let n_inputs = {
+                let inputs = utxos_to_fetch.get_mut(&keychain_id).unwrap();
+                inputs.clear();
+                for input in unsynced_tx.inputs {
+                    inputs.push(input.0.outpoint);
+                }
+                inputs.len()
+            };
+            if n_inputs > 0 {
+                income_bria_utxos = bria_utxos
+                    .get_pending_ledger_tx_ids_for_utxos(&utxos_to_fetch)
+                    .await?;
+                if income_bria_utxos.len() != n_inputs {
+                    txs_to_skip.push(unsynced_tx.tx_id.to_string());
+                    continue;
+                }
+            }
+            txs_to_skip.clear();
             for output in unsynced_tx.outputs.drain(..) {
                 if output.0.keychain == bitcoin::KeychainKind::Internal {
                     change.push(output);
