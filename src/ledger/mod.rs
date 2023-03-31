@@ -106,7 +106,6 @@ impl Ledger {
     pub async fn sum_reserved_fees_in_txs(
         &self,
         tx_ids: Vec<LedgerTransactionId>,
-        fee_account_id: LedgerAccountId,
     ) -> Result<Satoshis, BriaError> {
         let mut reserved_fees = Satoshis::from(0);
         #[derive(serde::Deserialize)]

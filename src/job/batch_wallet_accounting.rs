@@ -48,9 +48,7 @@ pub async fn execute(
     let incoming_tx_ids = bria_utxos
         .get_pending_ledger_tx_ids_for_utxos(utxos)
         .await?;
-    let reserved_fees = ledger
-        .sum_reserved_fees_in_txs(incoming_tx_ids, wallet.ledger_account_ids.fee_id)
-        .await?;
+    let reserved_fees = ledger.sum_reserved_fees_in_txs(incoming_tx_ids).await?;
 
     if let Some((tx, tx_id)) = batches
         .set_create_batch_ledger_tx_id(data.batch_id, data.wallet_id)

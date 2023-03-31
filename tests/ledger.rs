@@ -112,10 +112,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     assert_eq!(summary.encumbered_fees, one_sat);
 
     let reserved_fees = ledger
-        .sum_reserved_fees_in_txs(
-            vec![pending_id, confirmed_id],
-            wallet_ledger_accounts.fee_id,
-        )
+        .sum_reserved_fees_in_txs(vec![pending_id, confirmed_id])
         .await?;
     assert_eq!(reserved_fees, one_sat);
 
