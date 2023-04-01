@@ -25,6 +25,27 @@ impl SyncWalletData {
     }
 }
 
+struct InstrumentationTrackers {
+    n_pending_utxos: usize,
+    n_confirmed_utxos: usize,
+    n_found_txs: usize,
+}
+impl InstrumentationTrackers {
+    fn new() -> Self {
+        InstrumentationTrackers {
+            n_pending_utxos: 0,
+            n_confirmed_utxos: 0,
+            n_found_txs: 0,
+        }
+    }
+}
+
+struct Deps {
+    blockchain_cfg: BlockchainConfig,
+    bria_utxos: Utxos,
+    ledger: Ledger,
+}
+
 #[instrument(
     name = "job.sync_wallet",
     skip(pool, wallets, bria_utxos, ledger),
@@ -41,35 +62,26 @@ pub async fn execute(
 ) -> Result<SyncWalletData, BriaError> {
     let span = tracing::Span::current();
     let wallet = wallets.find_by_id(data.wallet_id).await?;
-    let mut n_pending_utxos = 0;
-    let mut n_confirmed_utxos = 0;
-    let mut n_found_txs = 0;
+    let mut trackers = InstrumentationTrackers::new();
+    let deps = Deps {
+        blockchain_cfg,
+        bria_utxos,
+        ledger,
+    };
     let mut utxos_to_fetch = HashMap::new();
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
-        let blockchain = ElectrumBlockchain::from(
-            Client::from_config(
-                &blockchain_cfg.electrum_url,
-                ConfigBuilder::new()
-                    .retry(10)
-                    .timeout(Some(4))
-                    .expect("couldn't set electrum timeout")
-                    .build(),
-            )
-            .unwrap(),
-        );
-        let current_height = blockchain.get_height()?;
+        let (blockchain, current_height) = init_electrum(&deps.blockchain_cfg.electrum_url).await?;
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         let mut txs_to_skip = Vec::new();
         while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&txs_to_skip).await {
             income_bria_utxos.clear();
-            n_found_txs += 1;
-            span.record("n_found_txs", n_found_txs);
+            trackers.n_found_txs += 1;
             let mut change = Vec::new();
             let n_inputs = {
                 let inputs = utxos_to_fetch.get_mut(&keychain_id).unwrap();
@@ -81,7 +93,8 @@ pub async fn execute(
             };
             let self_pay = n_inputs > 0;
             if self_pay {
-                income_bria_utxos = bria_utxos
+                income_bria_utxos = deps
+                    .bria_utxos
                     .get_pending_ledger_tx_ids_for_utxos(&utxos_to_fetch)
                     .await?;
                 if income_bria_utxos.len() != n_inputs {
@@ -99,7 +112,8 @@ pub async fn execute(
                 let address_info = keychain_wallet
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
-                if let Some((pending_id, mut tx)) = bria_utxos
+                if let Some((pending_id, mut tx)) = deps
+                    .bria_utxos
                     .new_utxo(
                         wallet.id,
                         keychain_id,
@@ -110,15 +124,10 @@ pub async fn execute(
                     )
                     .await?
                 {
-                    n_pending_utxos += 1;
-                    let fee_rate =
-                        crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
-                            .await?
-                            .as_sat_per_vb();
-                    let weight = keychain_wallet.max_satisfaction_weight().await?;
-                    let fees = Satoshis::from((fee_rate as u64) * (weight as u64));
+                    trackers.n_pending_utxos += 1;
+                    let fees = fees_for_keychain(&keychain_wallet).await?;
                     bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
-                    ledger
+                    deps.ledger
                         .incoming_utxo(
                             tx,
                             pending_id,
@@ -155,7 +164,8 @@ pub async fn execute(
                     if let Some(conf_time) = conf_time {
                         let mut tx = pool.begin().await?;
                         bdk_utxos.mark_confirmed(&mut tx, &local_utxo).await?;
-                        let utxo = bria_utxos
+                        let utxo = deps
+                            .bria_utxos
                             .confirm_utxo(
                                 &mut tx,
                                 keychain_id,
@@ -164,9 +174,9 @@ pub async fn execute(
                                 conf_time.height,
                             )
                             .await?;
-                        n_confirmed_utxos += 1;
+                        trackers.n_confirmed_utxos += 1;
 
-                        ledger
+                        deps.ledger
                             .confirmed_utxo(
                                 tx,
                                 utxo.confirmed_ledger_tx_id,
@@ -202,7 +212,8 @@ pub async fn execute(
                 .find_confirmed_income_utxo(&mut tx, min_height)
                 .await
             {
-                let utxo = bria_utxos
+                let utxo = deps
+                    .bria_utxos
                     .confirm_utxo(
                         &mut tx,
                         keychain_id,
@@ -211,9 +222,9 @@ pub async fn execute(
                         confirmation_time.height,
                     )
                     .await?;
-                n_confirmed_utxos += 1;
+                trackers.n_confirmed_utxos += 1;
 
-                ledger
+                deps.ledger
                     .confirmed_utxo(
                         tx,
                         utxo.confirmed_ledger_tx_id,
@@ -238,9 +249,36 @@ pub async fn execute(
         }
     }
 
-    span.record("n_pending_utxos", n_pending_utxos);
-    span.record("n_confirmed_utxos", n_confirmed_utxos);
-    span.record("n_found_txs", n_found_txs);
+    span.record("n_pending_utxos", trackers.n_pending_utxos);
+    span.record("n_confirmed_utxos", trackers.n_confirmed_utxos);
+    span.record("n_found_txs", trackers.n_found_txs);
 
     Ok(data)
+}
+
+async fn fees_for_keychain<T>(keychain: &KeychainWallet<T>) -> Result<Satoshis, BriaError>
+where
+    T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'static,
+{
+    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
+        .await?
+        .as_sat_per_vb();
+    let weight = keychain.max_satisfaction_weight().await?;
+    Ok(Satoshis::from((fee_rate as u64) * (weight as u64)))
+}
+
+async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BriaError> {
+    let blockchain = ElectrumBlockchain::from(
+        Client::from_config(
+            electrum_url,
+            ConfigBuilder::new()
+                .retry(10)
+                .timeout(Some(4))
+                .expect("couldn't set electrum timeout")
+                .build(),
+        )
+        .unwrap(),
+    );
+    let current_height = blockchain.get_height()?;
+    Ok((blockchain, current_height))
 }
