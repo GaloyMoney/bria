@@ -74,6 +74,11 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("total_in_settled")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("total_spent")
                 .r#type(ParamDataType::DECIMAL)
                 .build()

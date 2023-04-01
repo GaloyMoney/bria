@@ -41,6 +41,7 @@ impl Ledger {
 
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
+        templates::ExternalSpend::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
 
@@ -98,6 +99,19 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, CREATE_BATCH_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.external_spend", skip(self, tx))]
+    pub async fn external_spend(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: ExternalSpendParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, EXTERNAL_SPEND_CODE, Some(params))
             .await?;
         Ok(())
     }

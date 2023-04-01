@@ -231,14 +231,6 @@ async fn create_batch() -> anyhow::Result<()> {
     let balances = ledger
         .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
         .await?;
-    assert_eq!(
-        balances
-            .onchain_incoming
-            .as_ref()
-            .expect("No onchain incoming balance")
-            .encumbered(),
-        (total_in_sats - fee_sats - total_spent_sats).to_btc()
-    );
     let summary = WalletBalanceSummary::from(balances);
 
     assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
@@ -252,8 +244,89 @@ async fn create_batch() -> anyhow::Result<()> {
     );
     assert_eq!(summary.encumbered_fees.flip_sign(), reserved_fees);
     assert_eq!(summary.pending_fees, fee_sats);
+    assert_eq!(
+        summary.encumbered_incoming_utxos,
+        total_in_sats - fee_sats - total_spent_sats
+    );
     assert_eq!(summary.confirmed_utxos.flip_sign(), total_in_sats);
     assert_eq!(summary.pending_outgoing_utxos, total_in_sats - fee_sats);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn external_spend() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+
+    let ledger = Ledger::init(&pool).await?;
+
+    let account_id = AccountId::new();
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let mut tx = pool.begin().await?;
+    let journal_id = ledger
+        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .await?;
+    let wallet_id = WalletId::new();
+    let keychain_id = KeychainId::new();
+    let wallet_ledger_accounts = ledger
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .await?;
+
+    tx.commit().await?;
+
+    let fee_sats = Satoshis::from(2_346);
+    let total_spent_sats = Satoshis::from(100_000_000);
+    let total_in_sats = Satoshis::from(200_000_000);
+    let total_settled_in_sats = Satoshis::from(200_000_000);
+    let reserved_fees = Satoshis::from(12_346);
+    let encumbered_spending_fee_sats = Satoshis::ONE;
+
+    let tx = pool.begin().await?;
+    ledger
+        .external_spend(
+            tx,
+            LedgerTransactionId::new(),
+            ExternalSpendParams {
+                journal_id,
+                ledger_account_ids: wallet_ledger_accounts,
+                total_in_sats,
+                total_settled_in_sats,
+                total_spent_sats,
+                fee_sats,
+                reserved_fees,
+                meta: ExternalSpendMeta {
+                    wallet_id,
+                    keychain_id,
+                    encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),
+                    change_address: None,
+                    change_outpoint: None,
+                    confirmation_time: None,
+                },
+            },
+        )
+        .await?;
+
+    let balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
+    let summary = WalletBalanceSummary::from(balances);
+
+    assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
+    assert_eq!(
+        summary.logical_settled.flip_sign(),
+        total_spent_sats + fee_sats
+    );
+    assert_eq!(
+        summary.encumbered_fees.flip_sign(),
+        reserved_fees - encumbered_spending_fee_sats
+    );
+    assert_eq!(summary.pending_fees, fee_sats);
+    assert_eq!(summary.confirmed_utxos.flip_sign(), total_settled_in_sats);
+    assert_eq!(summary.pending_outgoing_utxos, total_in_sats - fee_sats);
+    assert_eq!(
+        summary.pending_incoming_utxos,
+        total_in_sats - fee_sats - total_spent_sats
+    );
 
     Ok(())
 }
