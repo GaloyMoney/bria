@@ -143,6 +143,49 @@ pub async fn execute(
                             },
                         )
                         .await?;
+                    let conf_time = match unsynced_tx.confirmation_time.as_ref() {
+                        Some(t)
+                            if wallet.config.min_settle_height(current_height, self_pay)
+                                <= t.height =>
+                        {
+                            Some(t)
+                        }
+                        _ => None,
+                    };
+                    if let Some(conf_time) = conf_time {
+                        let mut tx = pool.begin().await?;
+                        bdk_utxos.mark_confirmed(&mut tx, &local_utxo).await?;
+                        let utxo = bria_utxos
+                            .confirm_utxo(
+                                &mut tx,
+                                keychain_id,
+                                local_utxo.outpoint,
+                                local_utxo.is_spent,
+                                conf_time.height,
+                            )
+                            .await?;
+                        n_confirmed_utxos += 1;
+
+                        ledger
+                            .confirmed_utxo(
+                                tx,
+                                utxo.confirmed_ledger_tx_id,
+                                ConfirmedUtxoParams {
+                                    journal_id: wallet.journal_id,
+                                    ledger_account_ids: wallet.ledger_account_ids,
+                                    pending_id: utxo.pending_ledger_tx_id,
+                                    meta: ConfirmedUtxoMeta {
+                                        wallet_id: data.wallet_id,
+                                        keychain_id,
+                                        confirmation_time: conf_time.clone(),
+                                        satoshis: utxo.value,
+                                        outpoint: local_utxo.outpoint,
+                                        address: utxo.address,
+                                    },
+                                },
+                            )
+                            .await?;
+                    }
                 }
             }
             bdk_txs.mark_as_synced(unsynced_tx.tx_id).await?;
