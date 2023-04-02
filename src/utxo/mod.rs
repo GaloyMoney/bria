@@ -43,7 +43,6 @@ impl Utxos {
             .kind(address.keychain)
             .address_idx(address.index)
             .address(address.to_string())
-            .spent(utxo.is_spent)
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .sats_per_vbyte_when_created(sats_per_vbyte_when_created)

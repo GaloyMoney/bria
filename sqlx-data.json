@@ -259,6 +259,39 @@
     },
     "query": "SELECT keychain_id,\n               CASE WHEN kind = 'external' THEN true ELSE false END as income_address,\n               tx_id, vout, spending_batch_id, confirmed_ledger_tx_id\n               FROM bria_utxos\n               WHERE keychain_id = ANY($1) AND spent = false\n               FOR UPDATE"
   },
+  "1a6692a5369c5ddc8014490eb43bc2dc27ba705c334ae2b3978fbcd4fdba88b8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Int4",
+          "Float4",
+          "Bool",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Int4",
+          "Numeric",
+          "Varchar",
+          "Varchar",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
+  },
   "1e5a38689d22733b68e1e66320a8cdbdc5d6d692e44e72c735bafe657e7ddf1f": {
     "describe": {
       "columns": [
@@ -592,40 +625,6 @@
       }
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"
-  },
-  "585d32158257aba370d2efd23b96c16091c9b445ef31e636c4d6da0a32d62734": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          "Int4",
-          "Float4",
-          "Bool",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Int4",
-          "Numeric",
-          "Varchar",
-          "Varchar",
-          "Bool",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, spent, pending_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
   },
   "5cd3cee4143ce5012c7a669eef7163931dfc964879dd3a26349dd83ade660901": {
     "describe": {

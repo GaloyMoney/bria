@@ -43,7 +43,6 @@ pub struct NewUtxo {
     pub value: Satoshis,
     pub address: String,
     pub script_hex: String,
-    pub spent: bool,
     pub sats_per_vbyte_when_created: f32,
     pub self_pay: bool,
     pub income_pending_ledger_tx_id: LedgerTransactionId,
