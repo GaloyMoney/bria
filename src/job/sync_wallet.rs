@@ -179,11 +179,11 @@ pub async fn execute(
                         deps.ledger
                             .confirmed_utxo(
                                 tx,
-                                utxo.confirmed_ledger_tx_id,
+                                utxo.confirmed_income_ledger_tx_id,
                                 ConfirmedUtxoParams {
                                     journal_id: wallet.journal_id,
                                     ledger_account_ids: wallet.ledger_account_ids,
-                                    pending_id: utxo.pending_ledger_tx_id,
+                                    pending_id: utxo.pending_income_ledger_tx_id,
                                     meta: ConfirmedUtxoMeta {
                                         wallet_id: data.wallet_id,
                                         keychain_id,
@@ -227,11 +227,11 @@ pub async fn execute(
                 deps.ledger
                     .confirmed_utxo(
                         tx,
-                        utxo.confirmed_ledger_tx_id,
+                        utxo.confirmed_income_ledger_tx_id,
                         ConfirmedUtxoParams {
                             journal_id: wallet.journal_id,
                             ledger_account_ids: wallet.ledger_account_ids,
-                            pending_id: utxo.pending_ledger_tx_id,
+                            pending_id: utxo.pending_income_ledger_tx_id,
                             meta: ConfirmedUtxoMeta {
                                 wallet_id: data.wallet_id,
                                 keychain_id,

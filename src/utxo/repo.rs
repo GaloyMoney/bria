@@ -96,8 +96,8 @@ impl UtxoRepo {
             value: Satoshis::from(row.value),
             address: row.address.parse().expect("couldn't parse address"),
             block_height,
-            pending_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
-            confirmed_ledger_tx_id: new_confirmed_ledger_tx_id,
+            pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
+            confirmed_income_ledger_tx_id: new_confirmed_ledger_tx_id,
             spending_batch_id: row.spending_batch_id.map(BatchId::from),
         })
     }
@@ -140,8 +140,10 @@ impl UtxoRepo {
                     .map(|addr| addr.parse().expect("couldn't parse address")),
                 spent: row.spent,
                 block_height: row.block_height.map(|v| v as u32),
-                pending_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
-                confirmed_ledger_tx_id: row.confirmed_ledger_tx_id.map(LedgerTransactionId::from),
+                pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
+                confirmed_income_ledger_tx_id: row
+                    .confirmed_ledger_tx_id
+                    .map(LedgerTransactionId::from),
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
             };
 
