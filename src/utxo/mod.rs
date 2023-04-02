@@ -26,8 +26,8 @@ impl Utxos {
         }
     }
 
-    #[instrument(name = "utxos.new_utxo", skip(self))]
-    pub async fn new_utxo(
+    #[instrument(name = "utxos.new_income_utxo", skip(self))]
+    pub async fn new_income_utxo(
         &self,
         wallet_id: WalletId,
         keychain_id: KeychainId,

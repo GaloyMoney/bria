@@ -114,7 +114,7 @@ pub async fn execute(
                     .await?;
                 if let Some((pending_id, mut tx)) = deps
                     .bria_utxos
-                    .new_utxo(
+                    .new_income_utxo(
                         wallet.id,
                         keychain_id,
                         &address_info,
