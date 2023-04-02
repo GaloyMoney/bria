@@ -34,7 +34,7 @@ impl UtxoRepo {
         let mut tx = self.pool.begin().await?;
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_ledger_tx_id)
+               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           Uuid::from(utxo.wallet_id),
@@ -74,12 +74,12 @@ impl UtxoRepo {
             r#"UPDATE bria_utxos
             SET spent = $1,
                 block_height = $2,
-                confirmed_ledger_tx_id = $3,
+                confirmed_income_ledger_tx_id = $3,
                 modified_at = NOW()
             WHERE keychain_id = $4
               AND tx_id = $5
               AND vout = $6
-            RETURNING address_idx, value, address, pending_ledger_tx_id, spending_batch_id"#,
+            RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"#,
             spent,
             block_height as i32,
             Uuid::from(new_confirmed_ledger_tx_id),
@@ -96,7 +96,7 @@ impl UtxoRepo {
             value: Satoshis::from(row.value),
             address: row.address.parse().expect("couldn't parse address"),
             block_height,
-            pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
+            pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_income_ledger_tx_id),
             confirmed_income_ledger_tx_id: new_confirmed_ledger_tx_id,
             spending_batch_id: row.spending_batch_id.map(BatchId::from),
         })
@@ -113,7 +113,7 @@ impl UtxoRepo {
                       WHEN kind = 'external' THEN address
                       ELSE NULL
                   END as optional_address,
-                  block_height, pending_ledger_tx_id, confirmed_ledger_tx_id, spending_batch_id
+                  block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id
            FROM bria_utxos
            WHERE keychain_id = ANY($1) AND spent = false
            ORDER BY created_at DESC"#,
@@ -140,9 +140,11 @@ impl UtxoRepo {
                     .map(|addr| addr.parse().expect("couldn't parse address")),
                 spent: row.spent,
                 block_height: row.block_height.map(|v| v as u32),
-                pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_ledger_tx_id),
+                pending_income_ledger_tx_id: LedgerTransactionId::from(
+                    row.pending_income_ledger_tx_id,
+                ),
                 confirmed_income_ledger_tx_id: row
-                    .confirmed_ledger_tx_id
+                    .confirmed_income_ledger_tx_id
                     .map(LedgerTransactionId::from),
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
             };
@@ -170,7 +172,7 @@ impl UtxoRepo {
         let rows = sqlx::query!(
             r#"SELECT keychain_id,
                CASE WHEN kind = 'external' THEN true ELSE false END as income_address,
-               tx_id, vout, spending_batch_id, confirmed_ledger_tx_id
+               tx_id, vout, spending_batch_id, confirmed_income_ledger_tx_id
                FROM bria_utxos
                WHERE keychain_id = ANY($1) AND spent = false
                FOR UPDATE"#,
@@ -189,7 +191,9 @@ impl UtxoRepo {
                     vout: row.vout as u32,
                 },
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
-                confirmed_ledger_tx_id: row.confirmed_ledger_tx_id.map(LedgerTransactionId::from),
+                confirmed_ledger_tx_id: row
+                    .confirmed_income_ledger_tx_id
+                    .map(LedgerTransactionId::from),
             })
             .collect();
 
@@ -233,9 +237,9 @@ impl UtxoRepo {
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<LedgerTransactionId>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT pending_ledger_tx_id
+            r#"SELECT pending_income_ledger_tx_id
             FROM bria_utxos
-            WHERE pending_ledger_tx_id IS NOT NULL AND (keychain_id, tx_id, vout) IN"#,
+            WHERE (keychain_id, tx_id, vout) IN"#,
         );
 
         query_builder.push_tuples(
@@ -260,7 +264,7 @@ impl UtxoRepo {
 
         Ok(rows
             .into_iter()
-            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("pending_ledger_tx_id")))
+            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("pending_income_ledger_tx_id")))
             .collect())
     }
 }
