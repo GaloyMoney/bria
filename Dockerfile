@@ -1,10 +1,10 @@
 FROM clux/muslrust:stable AS build
   COPY . /src
   WORKDIR /src
-  RUN SQLX_OFFLINE=true cargo build --release --locked
+  RUN SQLX_OFFLINE=true cargo build --locked
 
 FROM ubuntu
-  COPY --from=build /src/target/x86_64-unknown-linux-musl/release/bria /usr/local/bin
+  COPY --from=build /src/target/x86_64-unknown-linux-musl/debug/bria /usr/local/bin
   RUN apt update && apt install postgresql-client --yes
   RUN mkdir /bria
   RUN chown -R 1000 /bria && chmod -R u+w /bria
