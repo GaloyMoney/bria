@@ -14,7 +14,7 @@ pub struct ReservableUtxo {
     pub income_address: bool,
     pub outpoint: OutPoint,
     pub spending_batch_id: Option<BatchId>,
-    pub confirmed_ledger_tx_id: Option<LedgerTransactionId>,
+    pub confirmed_income_ledger_tx_id: Option<LedgerTransactionId>,
 }
 
 #[derive(Clone)]
@@ -108,7 +108,7 @@ impl UtxoRepo {
     ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
         let keychain_ids: Vec<Uuid> = keychain_ids.map(Uuid::from).collect();
         let rows = sqlx::query!(
-            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind as "kind: pg::PgKeychainKind", address_idx, value, address, spent as spent,
+            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind as "kind: pg::PgKeychainKind", address_idx, value, address, spent,
                   CASE
                       WHEN kind = 'external' THEN address
                       ELSE NULL
@@ -191,7 +191,7 @@ impl UtxoRepo {
                     vout: row.vout as u32,
                 },
                 spending_batch_id: row.spending_batch_id.map(BatchId::from),
-                confirmed_ledger_tx_id: row
+                confirmed_income_ledger_tx_id: row
                     .confirmed_income_ledger_tx_id
                     .map(LedgerTransactionId::from),
             })
@@ -232,12 +232,17 @@ impl UtxoRepo {
         Ok(())
     }
 
-    pub async fn get_pending_ledger_tx_ids_for_utxos(
+    pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
-    ) -> Result<Vec<LedgerTransactionId>, BriaError> {
+    ) -> Result<Vec<WalletUtxo>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT pending_income_ledger_tx_id
+            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, spent,
+                  CASE
+                      WHEN kind = 'external' THEN address
+                      ELSE NULL
+                  END as optional_address,
+                  block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id
             FROM bria_utxos
             WHERE (keychain_id, tx_id, vout) IN"#,
         );
@@ -258,13 +263,38 @@ impl UtxoRepo {
                 builder.push_bind(vout);
             },
         );
-
+        query_builder
+            .push("ORDER BY block_height ASC NULLS LAST, sats_per_vbyte_when_created DESC");
         let query = query_builder.build();
         let rows = query.fetch_all(&self.pool).await?;
 
         Ok(rows
             .into_iter()
-            .map(|row| LedgerTransactionId::from(row.get::<Uuid, _>("pending_income_ledger_tx_id")))
+            .map(|row| WalletUtxo {
+                wallet_id: WalletId::from(row.get::<Uuid, _>("wallet_id")),
+                keychain_id: KeychainId::from(row.get::<Uuid, _>("keychain_id")),
+                address: row
+                    .get::<Option<String>, _>("optional_address")
+                    .map(|addr| addr.parse().expect("couldn't parse address")),
+                address_idx: row.get::<i32, _>("address_idx") as u32,
+                outpoint: OutPoint {
+                    txid: row.get::<String, _>("tx_id").parse().unwrap(),
+                    vout: row.get::<i32, _>("vout") as u32,
+                },
+                kind: KeychainKind::from(row.get::<bitcoin::pg::PgKeychainKind, _>("kind")),
+                spent: row.get("spent"),
+                value: Satoshis::from(row.get::<rust_decimal::Decimal, _>("value")),
+                pending_income_ledger_tx_id: LedgerTransactionId::from(
+                    row.get::<Uuid, _>("pending_income_ledger_tx_id"),
+                ),
+                confirmed_income_ledger_tx_id: row
+                    .get::<Option<Uuid>, _>("confirmed_income_ledger_tx_id")
+                    .map(LedgerTransactionId::from),
+                spending_batch_id: row
+                    .get::<Option<Uuid>, _>("spending_batch_id")
+                    .map(BatchId::from),
+                block_height: row.get::<Option<i32>, _>("block_height").map(|h| h as u32),
+            })
             .collect())
     }
 }

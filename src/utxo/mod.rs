@@ -91,7 +91,7 @@ impl Utxos {
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.confirmed_ledger_tx_id.is_none())
+                || (utxo.income_address && utxo.confirmed_income_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
@@ -125,6 +125,12 @@ impl Utxos {
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<LedgerTransactionId>, BriaError> {
-        self.utxos.get_pending_ledger_tx_ids_for_utxos(utxos).await
+        Ok(self
+            .utxos
+            .list_utxos_by_outpoint(utxos)
+            .await?
+            .into_iter()
+            .map(|w| w.pending_income_ledger_tx_id)
+            .collect())
     }
 }
