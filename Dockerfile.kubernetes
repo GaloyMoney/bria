@@ -1,0 +1,22 @@
+FROM clux/muslrust:stable AS build
+  COPY . /src
+  WORKDIR /src
+  RUN SQLX_OFFLINE=true cargo build --locked
+
+FROM ubuntu
+  COPY --from=build /src/target/x86_64-unknown-linux-musl/debug/bria /usr/local/bin
+  
+  RUN apt update && apt install postgresql-client --yes
+
+  ARG KUBECTL_VERSION=v1.23.5
+  ARG KUBECTL_SHASUM=715da05c56aa4f8df09cb1f9d96a2aa2c33a1232f6fd195e3ffce6e98a50a879
+  RUN curl -LO https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl \
+    && echo $KUBECTL_SHASUM kubectl | sha256sum --check \
+    && chmod +x ./kubectl \
+    && mv ./kubectl /usr/local/bin
+
+  RUN mkdir /bria
+  RUN chown -R 1000 /bria && chmod -R u+w /bria
+  USER 1000
+  WORKDIR /bria
+  CMD ["bria"]
