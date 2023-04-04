@@ -95,7 +95,7 @@ pub async fn execute(
             if self_pay {
                 income_bria_utxos = deps
                     .bria_utxos
-                    .get_pending_ledger_tx_ids_for_utxos(&utxos_to_fetch)
+                    .list_utxos_by_outpoint(&utxos_to_fetch)
                     .await?;
                 if income_bria_utxos.len() != n_inputs {
                     txs_to_skip.push(unsynced_tx.tx_id.to_string());

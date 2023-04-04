@@ -120,17 +120,11 @@ impl Utxos {
         self.utxos.reserve_utxos_in_batch(tx, batch_id, utxos).await
     }
 
-    #[instrument(name = "utxos.get_pending_ledger_tx_ids_for_utxos", skip(self))]
-    pub async fn get_pending_ledger_tx_ids_for_utxos(
+    #[instrument(name = "utxos.list_utxos_by_outpoint", skip(self))]
+    pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
-    ) -> Result<Vec<LedgerTransactionId>, BriaError> {
-        Ok(self
-            .utxos
-            .list_utxos_by_outpoint(utxos)
-            .await?
-            .into_iter()
-            .map(|w| w.pending_income_ledger_tx_id)
-            .collect())
+    ) -> Result<Vec<WalletUtxo>, BriaError> {
+        self.utxos.list_utxos_by_outpoint(utxos).await
     }
 }
