@@ -45,6 +45,7 @@ impl Utxos {
             .address(address.to_string())
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
+            .bdk_spent(utxo.is_spent)
             .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
             .self_pay(self_pay)
             .build()
@@ -58,11 +59,11 @@ impl Utxos {
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         outpoint: OutPoint,
-        spent: bool,
+        bdk_spent: bool,
         block_height: u32,
     ) -> Result<ConfirmedUtxo, BriaError> {
         self.utxos
-            .mark_utxo_confirmed(tx, keychain_id, outpoint, spent, block_height)
+            .mark_utxo_confirmed(tx, keychain_id, outpoint, bdk_spent, block_height)
             .await
     }
 

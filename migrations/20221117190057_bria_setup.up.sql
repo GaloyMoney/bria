@@ -86,7 +86,7 @@ CREATE TABLE bria_utxos (
     value NUMERIC NOT NULL,
     address VARCHAR NOT NULL,
     script_hex VARCHAR NOT NULL,
-    spent BOOLEAN NOT NULL DEFAULT FALSE,
+    bdk_spent BOOLEAN NOT NULL DEFAULT FALSE,
     pending_income_ledger_tx_id UUID NOT NULL,
     confirmed_income_ledger_tx_id UUID DEFAULT NULL,
     spending_batch_id UUID DEFAULT NULL,

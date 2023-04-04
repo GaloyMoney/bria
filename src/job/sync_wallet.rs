@@ -91,8 +91,8 @@ pub async fn execute(
                 }
                 inputs.len()
             };
-            let self_pay = n_inputs > 0;
-            if self_pay {
+            let spend_tx = n_inputs > 0;
+            if spend_tx {
                 income_bria_utxos = deps
                     .bria_utxos
                     .list_utxos_by_outpoint(&utxos_to_fetch)
@@ -120,7 +120,7 @@ pub async fn execute(
                         &address_info,
                         &local_utxo,
                         unsynced_tx.sats_per_vbyte_when_created,
-                        self_pay,
+                        spend_tx,
                     )
                     .await?
                 {
@@ -154,7 +154,7 @@ pub async fn execute(
                         .await?;
                     let conf_time = match unsynced_tx.confirmation_time.as_ref() {
                         Some(t)
-                            if wallet.config.min_settle_height(current_height, self_pay)
+                            if wallet.config.min_settle_height(current_height, spend_tx)
                                 <= t.height =>
                         {
                             Some(t)
@@ -197,6 +197,10 @@ pub async fn execute(
                             .await?;
                     }
                 }
+            }
+            if spend_tx {
+                // persist new ledger tx ids in utxos and
+                // persist in ledger
             }
             bdk_txs.mark_as_synced(unsynced_tx.tx_id).await?;
         }

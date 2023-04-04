@@ -1,54 +1,5 @@
 {
   "db": "PostgreSQL",
-  "00075b0e1de9a42136aa214cd3665981ec9514a84ed78e61bfb2fd3b7503e67c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address_idx",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "value",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "address",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "pending_income_ledger_tx_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "spending_batch_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Int4",
-          "Uuid",
-          "Uuid",
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "UPDATE bria_utxos\n            SET spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"
-  },
   "02b2bdbc58153f4eb1decf01b1fb912fe086e86b4ab5eae1e83182ca88ce0949": {
     "describe": {
       "columns": [
@@ -296,6 +247,114 @@
       }
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"
+  },
+  "2386eba5a6696d646892d8282d27bc81d5ca1368f76c18528293bcc5005b8389": {
+    "describe": {
+      "columns": [
+        {
+          "name": "wallet_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tx_id",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "vout",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "kind: pg::PgKeychainKind",
+          "ordinal": 4,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          }
+        },
+        {
+          "name": "address_idx",
+          "ordinal": 5,
+          "type_info": "Int4"
+        },
+        {
+          "name": "value",
+          "ordinal": 6,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "address",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "bdk_spent",
+          "ordinal": 8,
+          "type_info": "Bool"
+        },
+        {
+          "name": "optional_address",
+          "ordinal": 9,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "block_height",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "pending_income_ledger_tx_id",
+          "ordinal": 11,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "confirmed_income_ledger_tx_id",
+          "ordinal": 12,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "spending_batch_id",
+          "ordinal": 13,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        null,
+        true,
+        false,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "SELECT wallet_id, keychain_id, tx_id, vout, kind as \"kind: pg::PgKeychainKind\", address_idx, value, address, bdk_spent,\n                  CASE\n                      WHEN kind = 'external' THEN address\n                      ELSE NULL\n                  END as optional_address,\n                  block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id\n           FROM bria_utxos\n           WHERE keychain_id = ANY($1) AND bdk_spent = false\n           ORDER BY created_at DESC"
   },
   "277091eb889c9bfe2dac75ef4f634ff9a22328710da5608e39c79d2f212d1995": {
     "describe": {
@@ -1177,114 +1236,6 @@
     },
     "query": "INSERT INTO bria_payouts (id, account_id, batch_group_id, wallet_id, satoshis, destination_data, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
   },
-  "b2eded899dc7d7aae73e23de3ff4927152f8e49d23058f5a7f6ed284e4b1446d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "wallet_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tx_id",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "vout",
-          "ordinal": 3,
-          "type_info": "Int4"
-        },
-        {
-          "name": "kind: pg::PgKeychainKind",
-          "ordinal": 4,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          }
-        },
-        {
-          "name": "address_idx",
-          "ordinal": 5,
-          "type_info": "Int4"
-        },
-        {
-          "name": "value",
-          "ordinal": 6,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "address",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "spent",
-          "ordinal": 8,
-          "type_info": "Bool"
-        },
-        {
-          "name": "optional_address",
-          "ordinal": 9,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "block_height",
-          "ordinal": 10,
-          "type_info": "Int4"
-        },
-        {
-          "name": "pending_income_ledger_tx_id",
-          "ordinal": 11,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "confirmed_income_ledger_tx_id",
-          "ordinal": 12,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "spending_batch_id",
-          "ordinal": 13,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        null,
-        true,
-        false,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "UuidArray"
-        ]
-      }
-    },
-    "query": "SELECT wallet_id, keychain_id, tx_id, vout, kind as \"kind: pg::PgKeychainKind\", address_idx, value, address, spent,\n                  CASE\n                      WHEN kind = 'external' THEN address\n                      ELSE NULL\n                  END as optional_address,\n                  block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id\n           FROM bria_utxos\n           WHERE keychain_id = ANY($1) AND spent = false\n           ORDER BY created_at DESC"
-  },
   "b4ff1533cd12d644b6959e11e7594e2d04a10913c7b49eae397ad41b3f918b5c": {
     "describe": {
       "columns": [],
@@ -1524,7 +1475,56 @@
     },
     "query": "SELECT id\n                 FROM bria_batch_groups\n                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"
   },
-  "dc234116ab010784d5897bddd0713ee135465d1c49f404b64033de7b3ed15261": {
+  "dadf92f232ace36b25eebac9361458d8427ac4d6dcecf58fb9cb69c16737a48a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address_idx",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "value",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "address",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "pending_income_ledger_tx_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "spending_batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Int4",
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"
+  },
+  "e093cc590f538bfdc34657ed4041535f771e6ad41679f068cba67ecff29c6ea5": {
     "describe": {
       "columns": [
         {
@@ -1572,7 +1572,7 @@
         ]
       }
     },
-    "query": "SELECT keychain_id,\n               CASE WHEN kind = 'external' THEN true ELSE false END as income_address,\n               tx_id, vout, spending_batch_id, confirmed_income_ledger_tx_id\n               FROM bria_utxos\n               WHERE keychain_id = ANY($1) AND spent = false\n               FOR UPDATE"
+    "query": "SELECT keychain_id,\n               CASE WHEN kind = 'external' THEN true ELSE false END as income_address,\n               tx_id, vout, spending_batch_id, confirmed_income_ledger_tx_id\n               FROM bria_utxos\n               WHERE keychain_id = ANY($1) AND bdk_spent = false\n               FOR UPDATE"
   },
   "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
     "describe": {

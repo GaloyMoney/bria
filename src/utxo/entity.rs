@@ -9,7 +9,7 @@ pub struct WalletUtxo {
     pub address_idx: u32,
     pub value: Satoshis,
     pub address: Option<bitcoin::Address>,
-    pub spent: bool,
+    pub bdk_spent: bool,
     pub block_height: Option<u32>,
     pub pending_income_ledger_tx_id: LedgerTransactionId,
     pub confirmed_income_ledger_tx_id: Option<LedgerTransactionId>,
@@ -45,6 +45,7 @@ pub struct NewUtxo {
     pub script_hex: String,
     pub sats_per_vbyte_when_created: f32,
     pub self_pay: bool,
+    pub bdk_spent: bool,
     pub income_pending_ledger_tx_id: LedgerTransactionId,
 }
 

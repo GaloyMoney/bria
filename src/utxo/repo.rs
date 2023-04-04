@@ -65,14 +65,14 @@ impl UtxoRepo {
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         outpoint: OutPoint,
-        spent: bool,
+        bdk_spent: bool,
         block_height: u32,
     ) -> Result<ConfirmedUtxo, BriaError> {
         let new_confirmed_ledger_tx_id = LedgerTransactionId::new();
 
         let row = sqlx::query!(
             r#"UPDATE bria_utxos
-            SET spent = $1,
+            SET bdk_spent = $1,
                 block_height = $2,
                 confirmed_income_ledger_tx_id = $3,
                 modified_at = NOW()
@@ -80,7 +80,7 @@ impl UtxoRepo {
               AND tx_id = $5
               AND vout = $6
             RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"#,
-            spent,
+            bdk_spent,
             block_height as i32,
             Uuid::from(new_confirmed_ledger_tx_id),
             Uuid::from(keychain_id),
@@ -108,14 +108,14 @@ impl UtxoRepo {
     ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
         let keychain_ids: Vec<Uuid> = keychain_ids.map(Uuid::from).collect();
         let rows = sqlx::query!(
-            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind as "kind: pg::PgKeychainKind", address_idx, value, address, spent,
+            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind as "kind: pg::PgKeychainKind", address_idx, value, address, bdk_spent,
                   CASE
                       WHEN kind = 'external' THEN address
                       ELSE NULL
                   END as optional_address,
                   block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id
            FROM bria_utxos
-           WHERE keychain_id = ANY($1) AND spent = false
+           WHERE keychain_id = ANY($1) AND bdk_spent = false
            ORDER BY created_at DESC"#,
            &keychain_ids
         )
@@ -138,7 +138,7 @@ impl UtxoRepo {
                 address: row
                     .optional_address
                     .map(|addr| addr.parse().expect("couldn't parse address")),
-                spent: row.spent,
+                bdk_spent: row.bdk_spent,
                 block_height: row.block_height.map(|v| v as u32),
                 pending_income_ledger_tx_id: LedgerTransactionId::from(
                     row.pending_income_ledger_tx_id,
@@ -174,7 +174,7 @@ impl UtxoRepo {
                CASE WHEN kind = 'external' THEN true ELSE false END as income_address,
                tx_id, vout, spending_batch_id, confirmed_income_ledger_tx_id
                FROM bria_utxos
-               WHERE keychain_id = ANY($1) AND spent = false
+               WHERE keychain_id = ANY($1) AND bdk_spent = false
                FOR UPDATE"#,
             &uuids[..]
         )
@@ -237,7 +237,7 @@ impl UtxoRepo {
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
     ) -> Result<Vec<WalletUtxo>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, spent,
+            r#"SELECT wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, bdk_spent,
                   CASE
                       WHEN kind = 'external' THEN address
                       ELSE NULL
@@ -282,7 +282,7 @@ impl UtxoRepo {
                     vout: row.get::<i32, _>("vout") as u32,
                 },
                 kind: KeychainKind::from(row.get::<bitcoin::pg::PgKeychainKind, _>("kind")),
-                spent: row.get("spent"),
+                bdk_spent: row.get("bdk_spent"),
                 value: Satoshis::from(row.get::<rust_decimal::Decimal, _>("value")),
                 pending_income_ledger_tx_id: LedgerTransactionId::from(
                     row.get::<Uuid, _>("pending_income_ledger_tx_id"),

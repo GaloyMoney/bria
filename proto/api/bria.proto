@@ -68,8 +68,7 @@ message Utxo {
   uint64 value = 3;
   optional string address = 4;
   bool change_output = 5;
-  bool spent = 6;
-  optional uint32 block_height = 7;
+  optional uint32 block_height = 6;
 }
 
 message KeychainUtxos {
