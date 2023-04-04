@@ -3,6 +3,7 @@
 #@ load("vendor/pipeline-fragments.lib.yml",
 #@   "build_edge_image",
 #@   "public_docker_registry",
+#@   "nodejs_task_image_config",
 #@   "rust_check_code",
 #@   "rust_integration_test",
 #@   "repo_resource",
@@ -26,11 +27,11 @@ groups:
   - test-integration
   - test-e2e
   - build-edge-image
+  - build-admin-provision-sidecar-image
 
 jobs:
 - #@ rust_check_code()
 - #@ rust_integration_test()
-- #@ build_edge_image()
 - name: test-e2e
   serial: true
   plan:
@@ -56,11 +57,58 @@ jobs:
         path: pipeline-tasks/ci/tasks/test-e2e.sh
   on_failure: #@ slack_failure_notification()
 
+- #@ build_edge_image()
+- name: build-admin-provision-sidecar-image
+  serial: true
+  plan:
+  - in_parallel:
+    - { get: repo, trigger: true }
+    - { get: pipeline-tasks }
+  - task: prepare-docker-build
+    config:
+      platform: linux
+      image_resource: #@ nodejs_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: repo
+      outputs:
+      - name: repo
+      run:
+        path: pipeline-tasks/ci/vendor/tasks/docker-prep-docker-build-env.sh
+  - task: build
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: vito/oci-build-task
+      inputs:
+      - name: repo
+      outputs:
+      - name: image
+      params:
+        CONTEXT: repo
+        DOCKERFILE: repo/Dockerfile.kubernetes
+      run:
+        path: build
+  - put: admin-provision-sidecar-image
+    params:
+      image: image/image.tar
+
 resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
 - #@ slack_resource()
+
 - #@ edge_image_resource()
+- name: admin-provision-sidecar-image
+  type: registry-image
+  source:
+    tag: admin-provision-sidecar
+    username: #@ data.values.docker_registry_user
+    password: #@ data.values.docker_registry_password
+    repository: #@ public_docker_registry() + "/" + data.values.gh_repository + "-admin-provision-sidecar"
 
 resource_types:
 - #@ slack_resource_type()
