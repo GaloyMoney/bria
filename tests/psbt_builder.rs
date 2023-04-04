@@ -6,7 +6,6 @@ use uuid::Uuid;
 use bria::{payout::*, primitives::*, wallet::*, xpub::*};
 
 #[tokio::test]
-#[serial_test::serial]
 async fn build_psbt() -> anyhow::Result<()> {
     // ChatGPT description of this test:
     //
