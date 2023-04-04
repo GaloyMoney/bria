@@ -42,7 +42,7 @@ enum Command {
     Admin {
         #[clap(subcommand)]
         command: AdminCommand,
-        #[clap(short, long, value_parser, env = "BRIE_ADMIN_API_URL")]
+        #[clap(short, long, value_parser, env = "BRIA_ADMIN_API_URL")]
         url: Option<Url>,
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
@@ -54,7 +54,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -75,7 +75,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -92,7 +92,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -109,7 +109,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -124,7 +124,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -139,7 +139,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -153,7 +153,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -179,7 +179,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
@@ -200,7 +200,7 @@ enum Command {
             long,
             value_parser,
             default_value = "http://localhost:2742",
-            env = "BRIE_API_URL"
+            env = "BRIA_API_URL"
         )]
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
