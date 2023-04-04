@@ -432,7 +432,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "tokio",
- "tonic 0.8.3",
+ "tonic 0.9.1",
  "tonic-build 0.8.4",
  "tonic_lnd",
  "tracing",
@@ -3200,14 +3200,13 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.8.3"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f219fad3b929bef19b1f86fbc0358d35daed8f2cac972037ac0dc10bbb8d5fb"
+checksum = "38bd8e87955eb13c1986671838177d6792cdc52af9bffced0d2c8a9a7f741ab3"
 dependencies = [
- "async-stream",
  "async-trait",
  "axum",
- "base64 0.13.1",
+ "base64 0.21.0",
  "bytes",
  "futures-core",
  "futures-util",
@@ -3219,15 +3218,12 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "prost 0.11.8",
- "prost-derive 0.11.8",
  "tokio",
  "tokio-stream",
- "tokio-util 0.7.7",
  "tower",
  "tower-layer",
  "tower-service",
  "tracing",
- "tracing-futures",
 ]
 
 [[package]]

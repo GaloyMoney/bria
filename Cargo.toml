@@ -21,7 +21,7 @@ serde_yaml = "0.9.14"
 sqlx = { version = "0.6", features = [ "offline", "runtime-tokio-rustls", "postgres", "decimal", "uuid", "chrono"] }
 sqlxmq = { version = "0.4.1", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio = { version = "1.24", features = ["rt-multi-thread", "macros"] }
-tonic = "0.8"
+tonic = "0.9"
 rust_decimal = "1.29.1"
 tracing = "0.1.37"
 tracing-opentelemetry = "0.18.0"
