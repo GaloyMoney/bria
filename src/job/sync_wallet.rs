@@ -5,7 +5,7 @@ use tracing::instrument;
 
 use crate::{
     app::BlockchainConfig,
-    bdk::pg::{ConfirmedIncomeUtxo, Transactions, Utxos as BdkUtxos},
+    bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
     ledger::*,
     primitives::*,
@@ -237,22 +237,27 @@ pub async fn execute(
                             ExternalSpendParams {
                                 journal_id: wallet.journal_id,
                                 ledger_account_ids: wallet.ledger_account_ids,
-                                total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
-                                total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
-                                change_sats: change_utxo
-                                    .as_ref()
-                                    .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
-                                    .unwrap_or(Satoshis::ZERO),
-                                fee_sats: unsynced_tx.fee_sats,
                                 reserved_fees,
                                 meta: ExternalSpendMeta {
-                                    wallet_id: wallet.id,
-                                    keychain_id,
                                     encumbered_spending_fee_sats: change_utxo
                                         .as_ref()
                                         .map(|_| fees_to_encumber),
-                                    change_outpoint: change_utxo.as_ref().map(|(u, _)| u.outpoint),
-                                    change_address: change_utxo.map(|(_, a)| a.address),
+                                    tx_summary: TransactionSummary {
+                                        wallet_id: wallet.id,
+                                        keychain_id,
+                                        bitcoin_tx_id: unsynced_tx.tx_id,
+                                        total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
+                                        total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
+                                        change_sats: change_utxo
+                                            .as_ref()
+                                            .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
+                                            .unwrap_or(Satoshis::ZERO),
+                                        fee_sats: unsynced_tx.fee_sats,
+                                        change_outpoint: change_utxo
+                                            .as_ref()
+                                            .map(|(u, _)| u.outpoint),
+                                        change_address: change_utxo.map(|(_, a)| a.address),
+                                    },
                                     confirmation_time: unsynced_tx.confirmation_time,
                                 },
                             },
@@ -265,7 +270,47 @@ pub async fn execute(
 
         loop {
             let mut tx = pool.begin().await?;
-            let min_height = current_height - wallet.config.settle_income_after_n_confs + 1;
+            let min_height = wallet.config.min_change_settle_height(current_height);
+            if let Ok(Some(ConfirmedSpendTransaction {
+                confirmation_time,
+                inputs,
+                outputs,
+                ..
+            })) = bdk_txs.find_confirmed_spend_tx(&mut tx, min_height).await
+            {
+                let change_utxo = outputs
+                    .into_iter()
+                    .find(|u| u.keychain == bitcoin::KeychainKind::Internal);
+                if let Some((pending_out_id, confirmed_out_id)) = deps
+                    .bria_utxos
+                    .confirm_spend(
+                        &mut tx,
+                        keychain_id,
+                        inputs.iter().map(|u| &u.outpoint),
+                        change_utxo,
+                        confirmation_time.height,
+                    )
+                    .await?
+                {
+                    deps.ledger
+                        .confirm_spend(
+                            tx,
+                            confirmed_out_id,
+                            wallet.journal_id,
+                            wallet.ledger_account_ids,
+                            pending_out_id,
+                            confirmation_time,
+                        )
+                        .await?;
+                }
+            } else {
+                break;
+            }
+        }
+
+        loop {
+            let mut tx = pool.begin().await?;
+            let min_height = wallet.config.min_income_settle_height(current_height);
             if let Ok(Some(ConfirmedIncomeUtxo {
                 outpoint,
                 spent,

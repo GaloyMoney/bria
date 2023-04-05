@@ -1,5 +1,5 @@
 use bdk::{bitcoin::Txid, LocalUtxo, TransactionDetails};
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -14,6 +14,13 @@ pub struct UnsyncedTransaction {
     pub fee_sats: Satoshis,
     pub inputs: Vec<(LocalUtxo, u32)>,
     pub outputs: Vec<(LocalUtxo, u32)>,
+}
+
+pub struct ConfirmedSpendTransaction {
+    pub tx_id: bitcoin::Txid,
+    pub confirmation_time: bitcoin::BlockTime,
+    pub inputs: Vec<LocalUtxo>,
+    pub outputs: Vec<LocalUtxo>,
 }
 
 pub struct Transactions {
@@ -82,7 +89,7 @@ impl Transactions {
            SELECT tx_id, details_json, height
            FROM bdk_transactions
            WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)
-           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST
+           ORDER BY height ASC NULLS LAST
            LIMIT 1
            ),
            previous_outputs AS (
@@ -139,6 +146,73 @@ impl Transactions {
             fee_sats,
             confirmation_time,
             sats_per_vbyte_when_created,
+            inputs,
+            outputs,
+        }))
+    }
+
+    #[instrument(name = "bdk_transactions.find_confirmed_spend_tx", skip(self, tx))]
+    pub async fn find_confirmed_spend_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        min_height: u32,
+    ) -> Result<Option<ConfirmedSpendTransaction>, BriaError> {
+        let rows = sqlx::query!(r#"
+            WITH tx_to_sync AS (
+              UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()
+              WHERE keychain_id = $1 AND tx_id IN (
+                SELECT tx_id
+                FROM bdk_transactions
+                WHERE keychain_id = $1
+                AND sent > 0
+                AND height IS NOT NULL
+                AND height <= $2
+                AND confirmation_synced_to_bria = false
+                ORDER BY height ASC
+                LIMIT 1)
+                RETURNING tx_id, details_json
+            ),
+            previous_outputs AS (
+                SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output
+                FROM tx_to_sync
+            )
+            SELECT t.tx_id, details_json, utxo_json, vout,
+                   CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS "is_tx_output!"
+            FROM bdk_utxos u
+            JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(
+                SELECT output FROM previous_outputs
+            ) OR u.tx_id = t.tx_id
+            WHERE u.keychain_id = $1 AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)
+        "#,
+            Uuid::from(self.keychain_id),
+            min_height as i32
+        )
+        .fetch_all(tx)
+        .await?;
+
+        let mut inputs = Vec::new();
+        let mut outputs = Vec::new();
+        let mut tx_id = None;
+        let mut confirmation_time = None;
+
+        for row in rows {
+            let utxo: LocalUtxo = serde_json::from_value(row.utxo_json)?;
+            if row.is_tx_output {
+                outputs.push(utxo);
+            } else {
+                inputs.push(utxo);
+            }
+            if tx_id.is_none() {
+                tx_id = Some(row.tx_id.parse().expect("couldn't parse tx_id"));
+                let details: TransactionDetails = serde_json::from_value(row.details_json)?;
+                confirmation_time = details.confirmation_time;
+            }
+        }
+
+        Ok(tx_id.map(|tx_id| ConfirmedSpendTransaction {
+            tx_id,
+            confirmation_time: confirmation_time
+                .expect("query should always return confirmation_time"),
             inputs,
             outputs,
         }))

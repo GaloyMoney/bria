@@ -42,6 +42,7 @@ impl Ledger {
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
         templates::ExternalSpend::init(&inner).await?;
+        templates::ConfirmSpend::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
 
@@ -113,6 +114,46 @@ impl Ledger {
         self.inner
             .post_transaction_in_tx(tx, tx_id, EXTERNAL_SPEND_CODE, Some(params))
             .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.confirm_spend", skip(self, tx))]
+    pub async fn confirm_spend(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        journal_id: JournalId,
+        ledger_account_ids: WalletLedgerAccountIds,
+        pending_id: LedgerTransactionId,
+        confirmation_time: bitcoin::BlockTime,
+    ) -> Result<(), BriaError> {
+        #[derive(serde::Deserialize)]
+        struct ExtractTxSummary {
+            tx_summary: TransactionSummary,
+        }
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(pending_id))
+            .await?;
+        if let Some(ExtractTxSummary { tx_summary }) = txs[0].metadata()? {
+            self.inner
+                .post_transaction_in_tx(
+                    tx,
+                    tx_id,
+                    CONFIRM_SPEND_CODE,
+                    Some(ConfirmSpendParams {
+                        journal_id,
+                        ledger_account_ids,
+                        pending_id,
+                        meta: ConfirmSpendMeta {
+                            tx_summary,
+                            confirmation_time,
+                        },
+                    }),
+                )
+                .await?;
+        }
         Ok(())
     }
 

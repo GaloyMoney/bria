@@ -111,6 +111,30 @@ impl Utxos {
         Ok(Some((tx_id, tx)))
     }
 
+    #[instrument(name = "utxos.confirm_spend", skip(self, tx, inputs))]
+    pub async fn confirm_spend(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+        inputs: impl Iterator<Item = &OutPoint>,
+        change_utxo: Option<LocalUtxo>,
+        block_height: u32,
+    ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId)>, BriaError> {
+        let spend_tx_id = if let Some(utxo) = change_utxo {
+            self.utxos
+                .mark_utxo_confirmed(tx, keychain_id, utxo.outpoint, utxo.is_spent, block_height)
+                .await?
+                .confirmed_income_ledger_tx_id
+        } else {
+            LedgerTransactionId::new()
+        };
+        let pending_spend_tx_id = self
+            .utxos
+            .confirm_spend(tx, keychain_id, inputs, spend_tx_id)
+            .await?;
+        Ok(pending_spend_tx_id.map(|id| (id, spend_tx_id)))
+    }
+
     #[instrument(name = "utxos.find_keychain_utxos", skip_all)]
     pub async fn find_keychain_utxos(
         &self,
