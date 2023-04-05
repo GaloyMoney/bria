@@ -281,17 +281,20 @@ async fn external_spend() -> anyhow::Result<()> {
     let reserved_fees = Satoshis::from(12_346);
     let encumbered_spending_fee_sats = Satoshis::ONE;
 
+    let pending_id = LedgerTransactionId::new();
     let tx = pool.begin().await?;
     ledger
         .external_spend(
             tx,
-            LedgerTransactionId::new(),
+            pending_id,
             ExternalSpendParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
                 meta: ExternalSpendMeta {
                     tx_summary: TransactionSummary {
+                        wallet_id,
+                        keychain_id,
                         total_utxo_in_sats,
                         total_utxo_settled_in_sats,
                         change_sats,
@@ -299,8 +302,6 @@ async fn external_spend() -> anyhow::Result<()> {
                         change_address: None,
                         change_outpoint: None,
                     },
-                    wallet_id,
-                    keychain_id,
                     encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),
                     confirmation_time: None,
                 },
@@ -335,6 +336,38 @@ async fn external_spend() -> anyhow::Result<()> {
         total_utxo_in_sats - fee_sats
     );
     assert_eq!(summary.pending_incoming_utxos, change_sats);
+
+    let tx = pool.begin().await?;
+    ledger
+        .confirm_spend(
+            tx,
+            LedgerTransactionId::new(),
+            journal_id,
+            wallet_ledger_accounts,
+            pending_id,
+            BlockTime {
+                height: 2,
+                timestamp: 123409,
+            },
+        )
+        .await?;
+
+    let balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
+    let summary = WalletBalanceSummary::from(balances);
+    assert_eq!(summary.logical_pending_outgoing, Satoshis::ZERO);
+    assert_eq!(
+        summary.logical_settled.flip_sign(),
+        total_utxo_in_sats - change_sats
+    );
+    assert_eq!(summary.pending_fees, Satoshis::ZERO);
+    assert_eq!(
+        summary.confirmed_utxos.flip_sign(),
+        total_utxo_in_sats - change_sats
+    );
+    assert_eq!(summary.pending_outgoing_utxos, Satoshis::ZERO);
+    assert_eq!(summary.pending_incoming_utxos, Satoshis::ZERO);
 
     Ok(())
 }

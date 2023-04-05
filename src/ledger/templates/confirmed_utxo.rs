@@ -185,7 +185,7 @@ impl ConfirmedUtxo {
             EntryInput::builder()
                 .entry_type("'CONFIRMED_UTXO_UTXO_SETTLED_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
+                .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.amount")
