@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
+use super::shared_meta::TransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
@@ -15,6 +16,7 @@ pub struct ExternalSpendMeta {
     pub encumbered_spending_fee_sats: Option<Satoshis>,
     pub change_outpoint: Option<bitcoin::OutPoint>,
     pub change_address: Option<bitcoin::Address>,
+    pub tx_summary: TransactionSummary,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -22,10 +24,6 @@ pub struct ExternalSpendMeta {
 pub struct ExternalSpendParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
-    pub total_utxo_in_sats: Satoshis,
-    pub total_utxo_settled_in_sats: Satoshis,
-    pub change_sats: Satoshis,
-    pub fee_sats: Satoshis,
     pub reserved_fees: Satoshis,
     pub meta: ExternalSpendMeta,
 }
@@ -118,10 +116,6 @@ impl From<ExternalSpendParams> for TxParams {
         ExternalSpendParams {
             journal_id,
             ledger_account_ids,
-            total_utxo_in_sats,
-            total_utxo_settled_in_sats,
-            change_sats,
-            fee_sats,
             reserved_fees,
             meta,
         }: ExternalSpendParams,
@@ -137,6 +131,12 @@ impl From<ExternalSpendParams> for TxParams {
             .unwrap_or_else(|| Utc::now().date_naive());
         let encumbered_fee_diff =
             reserved_fees - meta.encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
+        let TransactionSummary {
+            total_utxo_in_sats,
+            total_utxo_settled_in_sats,
+            change_sats,
+            fee_sats,
+        } = meta.tx_summary;
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);

@@ -289,12 +289,14 @@ async fn external_spend() -> anyhow::Result<()> {
             ExternalSpendParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
-                total_utxo_in_sats,
-                total_utxo_settled_in_sats,
-                change_sats,
-                fee_sats,
                 reserved_fees,
                 meta: ExternalSpendMeta {
+                    tx_summary: TransactionSummary {
+                        total_utxo_in_sats,
+                        total_utxo_settled_in_sats,
+                        change_sats,
+                        fee_sats,
+                    },
                     wallet_id,
                     keychain_id,
                     encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),

@@ -237,15 +237,17 @@ pub async fn execute(
                             ExternalSpendParams {
                                 journal_id: wallet.journal_id,
                                 ledger_account_ids: wallet.ledger_account_ids,
-                                total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
-                                total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
-                                change_sats: change_utxo
-                                    .as_ref()
-                                    .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
-                                    .unwrap_or(Satoshis::ZERO),
-                                fee_sats: unsynced_tx.fee_sats,
                                 reserved_fees,
                                 meta: ExternalSpendMeta {
+                                    tx_summary: TransactionSummary {
+                                        total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
+                                        total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
+                                        change_sats: change_utxo
+                                            .as_ref()
+                                            .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
+                                            .unwrap_or(Satoshis::ZERO),
+                                        fee_sats: unsynced_tx.fee_sats,
+                                    },
                                     wallet_id: wallet.id,
                                     keychain_id,
                                     encumbered_spending_fee_sats: change_utxo
