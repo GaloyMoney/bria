@@ -18,13 +18,10 @@ pub struct WalletUtxo {
 
 pub struct ConfirmedUtxo {
     pub keychain_id: KeychainId,
-    pub address_idx: u32,
     pub value: Satoshis,
     pub address: bitcoin::Address,
-    pub block_height: u32,
     pub pending_income_ledger_tx_id: LedgerTransactionId,
     pub confirmed_income_ledger_tx_id: LedgerTransactionId,
-    pub spending_batch_id: Option<BatchId>,
 }
 
 pub struct KeychainUtxos {

@@ -79,7 +79,7 @@ impl UtxoRepo {
             WHERE keychain_id = $4
               AND tx_id = $5
               AND vout = $6
-            RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"#,
+            RETURNING address_idx, value, address, pending_income_ledger_tx_id"#,
             bdk_spent,
             block_height as i32,
             Uuid::from(new_confirmed_ledger_tx_id),
@@ -92,13 +92,10 @@ impl UtxoRepo {
 
         Ok(ConfirmedUtxo {
             keychain_id,
-            address_idx: row.address_idx as u32,
             value: Satoshis::from(row.value),
             address: row.address.parse().expect("couldn't parse address"),
-            block_height,
             pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_income_ledger_tx_id),
             confirmed_income_ledger_tx_id: new_confirmed_ledger_tx_id,
-            spending_batch_id: row.spending_batch_id.map(BatchId::from),
         })
     }
 
