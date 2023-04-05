@@ -66,22 +66,28 @@ teardown_file() {
   # Send funds from LND to the bitcoind address
   lnd_cli sendcoins --addr=${bitcoind_address} --amt=50000000
 
-#   # Wait for Bria to detect the outgoing transaction
-#   for i in {1..30}; do
-#     cache_default_wallet_balance
-#     [[ $(cached_pending_outgoing) == 50000000 ]] && break
-#     sleep 1
-#   done
-#   [[ $(cached_pending_outgoing) == 50000000 ]] || exit 1
+  # Wait for Bria to detect the outgoing transaction
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 50000000 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 50000000 ]] || exit 1
 
-#   # Generate a block to confirm the transaction
-#   bitcoin_cli -generate 1
+  utxos=$(bria_cmd list-utxos -w default)
+  n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
+  change=$(jq -r '.keychains[0].utxos[0].changeOutput' <<< "${utxos}")
 
-#   # Wait for Bria to detect the confirmed outgoing transaction
-#   for i in {1..30}; do
-#     cache_default_wallet_balance
-#     [[ $(cached_current_settled) <= 50000000 ]] && break
-#     sleep 1
-#   done
-#   [[ $(cached_current_settled) <= 50000000 ]] || exit 1
+  [[ "${n_utxos}" == "1" && "${change}" == "true" ]]
+
+  # Generate a block to confirm the transaction
+  bitcoin_cli -generate 1
+
+  # # Wait for Bria to detect the confirmed outgoing transaction
+  # for i in {1..30}; do
+  #   cache_default_wallet_balance
+  #   [[ $(cached_current_settled) <= 50000000 ]] && break
+  #   sleep 1
+  # done
+  # [[ $(cached_current_settled) <= 50000000 ]] || exit 1
 }

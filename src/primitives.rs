@@ -89,6 +89,7 @@ pub struct Satoshis(Decimal);
 
 impl Satoshis {
     pub const ZERO: Self = Self(Decimal::ZERO);
+    pub const ONE: Self = Self(Decimal::ONE);
 
     pub fn to_btc(self) -> Decimal {
         self.0 / SATS_PER_BTC
@@ -104,6 +105,10 @@ impl Satoshis {
 
     pub fn flip_sign(self) -> Self {
         Self(self.0 * Decimal::NEGATIVE_ONE)
+    }
+
+    pub fn abs(&self) -> Self {
+        Self(self.0.abs())
     }
 }
 

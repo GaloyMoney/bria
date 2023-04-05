@@ -1,7 +1,5 @@
 use uuid::{uuid, Uuid};
 
-pub(super) const FEE_ENCUMBERED_POSTFIX: &str = "FEE_ENCUMEBERED_DR";
-
 // Transaction Template Codes
 pub(super) const INCOMING_UTXO_CODE: &str = "INCOMING_UTXO";
 pub(super) const INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
@@ -9,11 +7,14 @@ pub(super) const INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-0000000
 pub(super) const CONFIRMED_UTXO_CODE: &str = "CONFIRMED_UTXO";
 pub(super) const CONFIRMED_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 
+pub(super) const EXTERNAL_SPEND_CODE: &str = "EXTERNAL_SPEND";
+pub(super) const EXTERNAL_SPEND_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
+
 pub(super) const QUEUED_PAYOUT_CODE: &str = "QUEUED_PAYOUT";
-pub(super) const QUEUED_PAYOUD_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
+pub(super) const QUEUED_PAYOUD_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000004");
 
 pub(super) const CREATE_BATCH_CODE: &str = "CREATE_BATCH";
-pub(super) const CREATE_BATCH_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000004");
+pub(super) const CREATE_BATCH_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000005");
 
 // Onchain/Omnibus Ledger Accounts
 pub(super) const ONCHAIN_UTXO_INCOMING_CODE: &str = "ONCHAIN_UTXO_INCOMING";

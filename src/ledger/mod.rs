@@ -41,6 +41,7 @@ impl Ledger {
 
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
+        templates::ExternalSpend::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
 
@@ -102,21 +103,36 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self))]
+    #[instrument(name = "ledger.external_spend", skip(self, tx))]
+    pub async fn external_spend(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: ExternalSpendParams,
+    ) -> Result<(), BriaError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, EXTERNAL_SPEND_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self, tx_ids))]
     pub async fn sum_reserved_fees_in_txs(
         &self,
-        tx_ids: Vec<LedgerTransactionId>,
-        fee_account_id: LedgerAccountId,
+        tx_ids: impl Iterator<Item = LedgerTransactionId>,
     ) -> Result<Satoshis, BriaError> {
         let mut reserved_fees = Satoshis::from(0);
-        let entries = self.inner.entries().list_by_transaction_ids(tx_ids).await?;
-        for entries in entries.values() {
-            if let Some(fee_entry) = entries.iter().find(|entry| {
-                entry.account_id == fee_account_id
-                    && entry.layer == sqlx_ledger::Layer::Encumbered
-                    && entry.entry_type.ends_with(FEE_ENCUMBERED_POSTFIX)
-            }) {
-                reserved_fees += Satoshis::from_btc(fee_entry.units);
+        #[derive(serde::Deserialize)]
+        struct ExtractSpendingFee {
+            encumbered_spending_fee_sats: Option<Satoshis>,
+        }
+        let txs = self.inner.transactions().list_by_ids(tx_ids).await?;
+        for tx in txs {
+            if let Some(ExtractSpendingFee {
+                encumbered_spending_fee_sats,
+            }) = tx.metadata()?
+            {
+                reserved_fees += encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
             }
         }
         Ok(reserved_fees)

@@ -13,6 +13,7 @@ pub struct IncomingUtxoMeta {
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
     pub address: bitcoin::Address,
+    pub encumbered_spending_fee_sats: Satoshis,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -22,7 +23,6 @@ pub struct IncomingUtxoParams {
     pub onchain_incoming_account_id: LedgerAccountId,
     pub logical_incoming_account_id: LedgerAccountId,
     pub onchain_fee_account_id: LedgerAccountId,
-    pub spending_fee_satoshis: Satoshis,
     pub meta: IncomingUtxoMeta,
 }
 
@@ -80,11 +80,11 @@ impl From<IncomingUtxoParams> for TxParams {
             onchain_incoming_account_id,
             logical_incoming_account_id,
             onchain_fee_account_id,
-            spending_fee_satoshis: fees,
             meta,
         }: IncomingUtxoParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
+        let fees = meta.encumbered_spending_fee_sats.to_btc();
         let effective = meta
             .confirmation_time
             .as_ref()
@@ -101,7 +101,7 @@ impl From<IncomingUtxoParams> for TxParams {
         params.insert("logical_incoming_account_id", logical_incoming_account_id);
         params.insert("onchain_fee_account_id", onchain_fee_account_id);
         params.insert("amount", amount);
-        params.insert("encumbered_spending_fees", fees.to_btc());
+        params.insert("encumbered_spending_fees", fees);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -142,7 +142,7 @@ impl IncomingUtxo {
                 .expect("Couldn't build entry"),
             // FEE
             EntryInput::builder()
-                .entry_type(format!("'INCOMING_UTXO_{FEE_ENCUMBERED_POSTFIX}'"))
+                .entry_type("'INCOMING_UTXO_FEE_ENCUMEBERED_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")

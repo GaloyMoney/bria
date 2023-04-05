@@ -45,11 +45,9 @@ pub async fn execute(
     let utxos = included_utxos
         .get(&data.wallet_id)
         .expect("utxos not found");
-    let incoming_tx_ids = bria_utxos
-        .get_pending_ledger_tx_ids_for_utxos(utxos)
-        .await?;
+    let utxos = bria_utxos.list_utxos_by_outpoint(utxos).await?;
     let reserved_fees = ledger
-        .sum_reserved_fees_in_txs(incoming_tx_ids, wallet.ledger_account_ids.fee_id)
+        .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.pending_income_ledger_tx_id))
         .await?;
 
     if let Some((tx, tx_id)) = batches

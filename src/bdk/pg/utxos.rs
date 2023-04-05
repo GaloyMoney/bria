@@ -70,6 +70,24 @@ impl Utxos {
         Ok(())
     }
 
+    #[instrument(name = "bdk_utxos.mark_confirmed", skip(self, tx))]
+    pub async fn mark_confirmed(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        utxo: &LocalUtxo,
+    ) -> Result<(), BriaError> {
+        sqlx::query!(
+            r#"UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()
+            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
+            Uuid::from(self.keychain_id),
+            utxo.outpoint.txid.to_string(),
+            utxo.outpoint.vout as i32,
+        )
+        .execute(&mut *tx)
+        .await?;
+        Ok(())
+    }
+
     #[instrument(name = "bdk_utxos.find_confirmed_income_utxo", skip(self, tx))]
     pub async fn find_confirmed_income_utxo(
         &self,

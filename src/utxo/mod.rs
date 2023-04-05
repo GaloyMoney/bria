@@ -17,25 +17,27 @@ use repo::*;
 #[derive(Clone)]
 pub struct Utxos {
     utxos: UtxoRepo,
+    pool: Pool<Postgres>,
 }
 
 impl Utxos {
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self {
             utxos: UtxoRepo::new(pool.clone()),
+            pool: pool.clone(),
         }
     }
 
-    #[instrument(name = "utxos.new_utxo", skip(self, tx))]
-    pub async fn new_utxo(
+    #[instrument(name = "utxos.new_income_utxo", skip(self))]
+    pub async fn new_income_utxo(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
         sats_per_vbyte_when_created: f32,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+        self_pay: bool,
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
         let new_utxo = NewUtxo::builder()
             .wallet_id(wallet_id)
             .keychain_id(keychain_id)
@@ -43,13 +45,14 @@ impl Utxos {
             .kind(address.keychain)
             .address_idx(address.index)
             .address(address.to_string())
-            .spent(utxo.is_spent)
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
+            .bdk_spent(utxo.is_spent)
             .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
+            .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
-        self.utxos.persist_utxo(tx, new_utxo).await
+        self.utxos.persist_utxo(new_utxo).await
     }
 
     #[instrument(name = "utxos.confirm_utxo", skip(self, tx))]
@@ -58,12 +61,54 @@ impl Utxos {
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         outpoint: OutPoint,
-        spent: bool,
+        bdk_spent: bool,
         block_height: u32,
     ) -> Result<ConfirmedUtxo, BriaError> {
         self.utxos
-            .mark_utxo_confirmed(tx, keychain_id, outpoint, spent, block_height)
+            .mark_utxo_confirmed(tx, keychain_id, outpoint, bdk_spent, block_height)
             .await
+    }
+
+    #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
+    pub async fn mark_spent(
+        &self,
+        wallet_id: WalletId,
+        keychain_id: KeychainId,
+        inputs: impl Iterator<Item = &OutPoint>,
+        change_utxo: Option<&(LocalUtxo, AddressInfo)>,
+        sats_per_vbyte: f32,
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
+        let (tx_id, mut tx) = if let Some((utxo, address)) = change_utxo {
+            let new_utxo = NewUtxo::builder()
+                .wallet_id(wallet_id)
+                .keychain_id(keychain_id)
+                .outpoint(utxo.outpoint)
+                .kind(address.keychain)
+                .address_idx(address.index)
+                .address(address.to_string())
+                .script_hex(format!("{:x}", utxo.txout.script_pubkey))
+                .value(utxo.txout.value)
+                .bdk_spent(utxo.is_spent)
+                .sats_per_vbyte_when_created(sats_per_vbyte)
+                .self_pay(true)
+                .build()
+                .expect("Could not build NewUtxo");
+            let ledger_tx_id = self.utxos.persist_utxo(new_utxo).await?;
+            if ledger_tx_id.is_none() {
+                return Ok(None);
+            }
+            ledger_tx_id.unwrap()
+        } else {
+            (LedgerTransactionId::new(), self.pool.begin().await?)
+        };
+        let persisted = self
+            .utxos
+            .mark_spent(&mut tx, keychain_id, inputs, tx_id)
+            .await?;
+        if !persisted {
+            return Ok(None);
+        }
+        Ok(Some((tx_id, tx)))
     }
 
     #[instrument(name = "utxos.find_keychain_utxos", skip_all)]
@@ -91,7 +136,7 @@ impl Utxos {
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.confirmed_ledger_tx_id.is_none())
+                || (utxo.income_address && utxo.confirmed_income_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
@@ -120,11 +165,11 @@ impl Utxos {
         self.utxos.reserve_utxos_in_batch(tx, batch_id, utxos).await
     }
 
-    #[instrument(name = "utxos.get_pending_ledger_tx_ids_for_utxos", skip(self))]
-    pub async fn get_pending_ledger_tx_ids_for_utxos(
+    #[instrument(name = "utxos.list_utxos_by_outpoint", skip(self))]
+    pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
-    ) -> Result<Vec<LedgerTransactionId>, BriaError> {
-        self.utxos.get_pending_ledger_tx_ids_for_utxos(utxos).await
+    ) -> Result<Vec<WalletUtxo>, BriaError> {
+        self.utxos.list_utxos_by_outpoint(utxos).await
     }
 }
