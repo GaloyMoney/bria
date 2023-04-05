@@ -31,7 +31,7 @@ impl ApiClient {
             Ok(client) => Ok(client),
             Err(err) => {
                 eprintln!(
-                    "Couldn't connect to price server\nAre you sure its running on {}?\n",
+                    "Couldn't connect to daemon\nAre you sure its running on {}?\n",
                     self.config.url
                 );
                 Err(anyhow::anyhow!(err))
