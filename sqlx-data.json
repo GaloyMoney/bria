@@ -1138,6 +1138,51 @@
     },
     "query": "INSERT INTO bria_batches (id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5)"
   },
+  "9f8f6fdc6dbcc22cc0fbecc3d1425016594c632abfcf86a49979296e1cdde3de": {
+    "describe": {
+      "columns": [
+        {
+          "name": "tx_id",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "details_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "vout",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "is_tx_output!",
+          "ordinal": 4,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n            WITH tx_to_sync AS (\n              UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()\n              WHERE keychain_id = $1 AND tx_id IN (\n                SELECT tx_id\n                FROM bdk_transactions\n                WHERE keychain_id = $1\n                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2\n                AND confirmation_synced_to_bria = false\n                ORDER BY (details_json->'confirmation_time'->'height') ASC\n                LIMIT 1)\n                RETURNING tx_id, details_json\n            ),\n            previous_outputs AS (\n                SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n                FROM tx_to_sync\n            )\n            SELECT t.tx_id, details_json, utxo_json, vout,\n                   CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n            FROM bdk_utxos u\n            JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n                SELECT output FROM previous_outputs\n            ) OR u.tx_id = t.tx_id\n            WHERE u.keychain_id = $1 AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
+  },
   "a17c30ab0f4af264c0239ee4f9aee7dbc3d1c90901d0a21c6682131ba5a7742e": {
     "describe": {
       "columns": [
@@ -1192,6 +1237,49 @@
       }
     },
     "query": "INSERT INTO bria_xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
+  },
+  "a9057a7f32515cadb03d5e9cc689f17144351722bba182c649437d71a9708f2d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address_idx",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "value",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "address",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "pending_income_ledger_tx_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Int4",
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id"
   },
   "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
     "describe": {
@@ -1474,55 +1562,6 @@
       }
     },
     "query": "SELECT id\n                 FROM bria_batch_groups\n                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"
-  },
-  "dadf92f232ace36b25eebac9361458d8427ac4d6dcecf58fb9cb69c16737a48a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address_idx",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "value",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "address",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "pending_income_ledger_tx_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "spending_batch_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Int4",
-          "Uuid",
-          "Uuid",
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id, spending_batch_id"
   },
   "e093cc590f538bfdc34657ed4041535f771e6ad41679f068cba67ecff29c6ea5": {
     "describe": {
