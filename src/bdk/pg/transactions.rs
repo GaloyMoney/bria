@@ -5,10 +5,13 @@ use uuid::Uuid;
 
 use crate::{error::*, primitives::*};
 
+#[derive(Debug)]
 pub struct UnsyncedTransaction {
     pub tx_id: bitcoin::Txid,
     pub confirmation_time: Option<bitcoin::BlockTime>,
     pub sats_per_vbyte_when_created: f32,
+    pub total_utxo_in_sats: Satoshis,
+    pub fee_sats: Satoshis,
     pub inputs: Vec<(LocalUtxo, u32)>,
     pub outputs: Vec<(LocalUtxo, u32)>,
 }
@@ -89,12 +92,12 @@ impl Transactions {
            SELECT t.tx_id, details_json, utxo_json, path, vout,
                   CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS "is_tx_output!"
            FROM bdk_utxos u
-           JOIN tx_to_sync t ON CONCAT(u.tx_id, ':', u.vout::text) = ANY(ARRAY(
+           JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(
                SELECT output FROM previous_outputs
-           )) OR u.tx_id = t.tx_id
+           ) OR u.tx_id = t.tx_id
            JOIN bdk_script_pubkeys p
            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
-           WHERE u.keychain_id = $1 AND u.synced_to_bria = false
+           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)
         "#,
         Uuid::from(self.keychain_id),
         &excluded_tx_ids
@@ -110,6 +113,9 @@ impl Transactions {
         let mut confirmation_time = None;
         let mut sats_per_vbyte_when_created = 0.0;
 
+        let mut total_utxo_in_sats = Satoshis::ZERO;
+        let mut fee_sats = Satoshis::ZERO;
+
         for row in rows {
             let utxo: LocalUtxo = serde_json::from_value(row.utxo_json)?;
             if row.is_tx_output {
@@ -120,6 +126,8 @@ impl Transactions {
             if tx_id.is_none() {
                 tx_id = Some(row.tx_id.parse().expect("couldn't parse tx_id"));
                 let details: TransactionDetails = serde_json::from_value(row.details_json)?;
+                total_utxo_in_sats = Satoshis::from(details.sent);
+                fee_sats = Satoshis::from(details.fee.expect("Fee"));
                 sats_per_vbyte_when_created = details.fee.expect("Fee") as f32
                     / details.transaction.expect("transaction").vsize() as f32;
                 confirmation_time = details.confirmation_time;
@@ -127,6 +135,8 @@ impl Transactions {
         }
         Ok(tx_id.map(|tx_id| UnsyncedTransaction {
             tx_id,
+            total_utxo_in_sats,
+            fee_sats,
             confirmation_time,
             sats_per_vbyte_when_created,
             inputs,

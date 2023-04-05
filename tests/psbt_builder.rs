@@ -199,7 +199,6 @@ async fn build_psbt() -> anyhow::Result<()> {
     assert_eq!(other_wallet_total.input_satoshis, wallet_funding_sats);
     assert_eq!(other_wallet_total.change_address, other_change_address);
     assert_eq!(other_wallet_total.fee_satoshis, Satoshis::from(193));
-    dbg!(&unsigned_psbt);
     assert_eq!(
         other_wallet_total
             .change_outpoint

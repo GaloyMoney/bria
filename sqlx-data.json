@@ -651,7 +651,7 @@
     },
     "query": "SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"
   },
-  "5cd3cee4143ce5012c7a669eef7163931dfc964879dd3a26349dd83ade660901": {
+  "615d249f09798303a86ba4f5499901958ac4409ff67a4273e4576a773f47c6f0": {
     "describe": {
       "columns": [
         {
@@ -700,7 +700,7 @@
         ]
       }
     },
-    "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)\n           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON CONCAT(u.tx_id, ':', u.vout::text) = ANY(ARRAY(\n               SELECT output FROM previous_outputs\n           )) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND u.synced_to_bria = false\n        "
+    "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)\n           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n               SELECT output FROM previous_outputs\n           ) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
   },
   "6be0e1f0b1e056688e4e276b13a40d5b6423b960df7dbff0b2a2f5e1bec3dc33": {
     "describe": {

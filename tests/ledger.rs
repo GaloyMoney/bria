@@ -275,9 +275,9 @@ async fn external_spend() -> anyhow::Result<()> {
     tx.commit().await?;
 
     let fee_sats = Satoshis::from(2_346);
-    let total_spent_sats = Satoshis::from(100_000_000);
-    let total_in_sats = Satoshis::from(200_000_000);
-    let total_settled_in_sats = Satoshis::from(200_000_000);
+    let change_sats = Satoshis::from(50_000_000);
+    let total_utxo_in_sats = Satoshis::from(200_000_000);
+    let total_utxo_settled_in_sats = Satoshis::from(200_000_000);
     let reserved_fees = Satoshis::from(12_346);
     let encumbered_spending_fee_sats = Satoshis::ONE;
 
@@ -289,9 +289,9 @@ async fn external_spend() -> anyhow::Result<()> {
             ExternalSpendParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
-                total_in_sats,
-                total_settled_in_sats,
-                total_spent_sats,
+                total_utxo_in_sats,
+                total_utxo_settled_in_sats,
+                change_sats,
                 fee_sats,
                 reserved_fees,
                 meta: ExternalSpendMeta {
@@ -311,22 +311,28 @@ async fn external_spend() -> anyhow::Result<()> {
         .await?;
     let summary = WalletBalanceSummary::from(balances);
 
-    assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
+    assert_eq!(
+        summary.logical_pending_outgoing,
+        total_utxo_in_sats - fee_sats - change_sats
+    );
     assert_eq!(
         summary.logical_settled.flip_sign(),
-        total_spent_sats + fee_sats
+        total_utxo_in_sats - change_sats
     );
     assert_eq!(
         summary.encumbered_fees.flip_sign(),
         reserved_fees - encumbered_spending_fee_sats
     );
     assert_eq!(summary.pending_fees, fee_sats);
-    assert_eq!(summary.confirmed_utxos.flip_sign(), total_settled_in_sats);
-    assert_eq!(summary.pending_outgoing_utxos, total_in_sats - fee_sats);
     assert_eq!(
-        summary.pending_incoming_utxos,
-        total_in_sats - fee_sats - total_spent_sats
+        summary.confirmed_utxos.flip_sign(),
+        total_utxo_settled_in_sats
     );
+    assert_eq!(
+        summary.pending_outgoing_utxos,
+        total_utxo_in_sats - fee_sats
+    );
+    assert_eq!(summary.pending_incoming_utxos, change_sats);
 
     Ok(())
 }

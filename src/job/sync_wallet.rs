@@ -9,7 +9,7 @@ use crate::{
     error::*,
     ledger::*,
     primitives::*,
-    utxo::Utxos,
+    utxo::{Utxos, WalletUtxo},
     wallet::*,
 };
 use std::collections::HashMap;
@@ -71,6 +71,7 @@ pub async fn execute(
     let mut utxos_to_fetch = HashMap::new();
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
+        let fees_to_encumber = fees_for_keychain(&keychain_wallet).await?;
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
@@ -80,6 +81,7 @@ pub async fn execute(
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         let mut txs_to_skip = Vec::new();
         while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&txs_to_skip).await {
+            tracing::info!(?unsynced_tx);
             income_bria_utxos.clear();
             trackers.n_found_txs += 1;
             let mut change = Vec::new();
@@ -125,7 +127,6 @@ pub async fn execute(
                     .await?
                 {
                     trackers.n_pending_utxos += 1;
-                    let fees = fees_for_keychain(&keychain_wallet).await?;
                     bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
                     deps.ledger
                         .incoming_utxo(
@@ -146,7 +147,7 @@ pub async fn execute(
                                     outpoint: local_utxo.outpoint,
                                     satoshis: local_utxo.txout.value.into(),
                                     address: address_info.address,
-                                    encumbered_spending_fee_sats: fees,
+                                    encumbered_spending_fee_sats: fees_to_encumber,
                                     confirmation_time: unsynced_tx.confirmation_time.clone(),
                                 },
                             },
@@ -199,8 +200,65 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                // persist new ledger tx ids in utxos and
-                // persist in ledger
+                let change_utxo = if !change.is_empty() {
+                    let (utxo, path) = change.remove(0);
+                    let address_info = keychain_wallet
+                        .find_address_from_path(path, utxo.keychain)
+                        .await?;
+                    Some((utxo, address_info))
+                } else {
+                    None
+                };
+                if let Some((tx_id, tx)) = deps
+                    .bria_utxos
+                    .mark_spent(
+                        wallet.id,
+                        keychain_id,
+                        income_bria_utxos
+                            .iter()
+                            .map(|WalletUtxo { outpoint, .. }| outpoint),
+                        change_utxo.as_ref(),
+                        unsynced_tx.sats_per_vbyte_when_created,
+                    )
+                    .await?
+                {
+                    let reserved_fees = deps
+                        .ledger
+                        .sum_reserved_fees_in_txs(
+                            income_bria_utxos
+                                .iter()
+                                .map(|u| u.pending_income_ledger_tx_id),
+                        )
+                        .await?;
+                    deps.ledger
+                        .external_spend(
+                            tx,
+                            tx_id,
+                            ExternalSpendParams {
+                                journal_id: wallet.journal_id,
+                                ledger_account_ids: wallet.ledger_account_ids,
+                                total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
+                                total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
+                                change_sats: change_utxo
+                                    .as_ref()
+                                    .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
+                                    .unwrap_or(Satoshis::ZERO),
+                                fee_sats: unsynced_tx.fee_sats,
+                                reserved_fees,
+                                meta: ExternalSpendMeta {
+                                    wallet_id: wallet.id,
+                                    keychain_id,
+                                    encumbered_spending_fee_sats: change_utxo
+                                        .as_ref()
+                                        .map(|_| fees_to_encumber),
+                                    change_outpoint: change_utxo.as_ref().map(|(u, _)| u.outpoint),
+                                    change_address: change_utxo.map(|(_, a)| a.address),
+                                    confirmation_time: unsynced_tx.confirmation_time,
+                                },
+                            },
+                        )
+                        .await?;
+                }
             }
             bdk_txs.mark_as_synced(unsynced_tx.tx_id).await?;
         }

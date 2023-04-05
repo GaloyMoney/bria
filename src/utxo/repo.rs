@@ -102,6 +102,34 @@ impl UtxoRepo {
         })
     }
 
+    pub async fn mark_spent(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        keychain_id: KeychainId,
+        utxos: impl Iterator<Item = &OutPoint>,
+        tx_id: LedgerTransactionId,
+    ) -> Result<bool, BriaError> {
+        let keychain_id = Uuid::from(keychain_id);
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"UPDATE bria_utxos
+            SET bdk_spent = true, modified_at = NOW(), pending_spend_ledger_tx_id = "#,
+        );
+        query_builder.push_bind(Uuid::from(tx_id));
+        query_builder
+            .push("WHERE pending_spend_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
+        let mut rows = 0;
+        query_builder.push_tuples(utxos, |mut builder, out| {
+            rows += 1;
+            builder.push_bind(keychain_id);
+            builder.push_bind(out.txid.to_string());
+            builder.push_bind(out.vout as i32);
+        });
+
+        let query = query_builder.build();
+        let res = query.execute(&mut *tx).await?;
+        Ok(rows == res.rows_affected())
+    }
+
     pub async fn find_keychain_utxos(
         &self,
         keychain_ids: impl Iterator<Item = KeychainId>,

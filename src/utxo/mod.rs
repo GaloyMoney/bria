@@ -17,12 +17,14 @@ use repo::*;
 #[derive(Clone)]
 pub struct Utxos {
     utxos: UtxoRepo,
+    pool: Pool<Postgres>,
 }
 
 impl Utxos {
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self {
             utxos: UtxoRepo::new(pool.clone()),
+            pool: pool.clone(),
         }
     }
 
@@ -65,6 +67,48 @@ impl Utxos {
         self.utxos
             .mark_utxo_confirmed(tx, keychain_id, outpoint, bdk_spent, block_height)
             .await
+    }
+
+    #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
+    pub async fn mark_spent(
+        &self,
+        wallet_id: WalletId,
+        keychain_id: KeychainId,
+        inputs: impl Iterator<Item = &OutPoint>,
+        change_utxo: Option<&(LocalUtxo, AddressInfo)>,
+        sats_per_vbyte: f32,
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
+        let (tx_id, mut tx) = if let Some((utxo, address)) = change_utxo {
+            let new_utxo = NewUtxo::builder()
+                .wallet_id(wallet_id)
+                .keychain_id(keychain_id)
+                .outpoint(utxo.outpoint)
+                .kind(address.keychain)
+                .address_idx(address.index)
+                .address(address.to_string())
+                .script_hex(format!("{:x}", utxo.txout.script_pubkey))
+                .value(utxo.txout.value)
+                .bdk_spent(utxo.is_spent)
+                .sats_per_vbyte_when_created(sats_per_vbyte)
+                .self_pay(true)
+                .build()
+                .expect("Could not build NewUtxo");
+            let ledger_tx_id = self.utxos.persist_utxo(new_utxo).await?;
+            if ledger_tx_id.is_none() {
+                return Ok(None);
+            }
+            ledger_tx_id.unwrap()
+        } else {
+            (LedgerTransactionId::new(), self.pool.begin().await?)
+        };
+        let persisted = self
+            .utxos
+            .mark_spent(&mut tx, keychain_id, inputs, tx_id)
+            .await?;
+        if !persisted {
+            return Ok(None);
+        }
+        Ok(Some((tx_id, tx)))
     }
 
     #[instrument(name = "utxos.find_keychain_utxos", skip_all)]
