@@ -43,7 +43,7 @@ teardown_file() {
 
   [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "null" ]]
 
-  bitcoin_cli -generate 6
+  bitcoin_cli -generate 2
 
   for i in {1..30}; do
     cache_default_wallet_balance
@@ -73,6 +73,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 50000000 ]] || exit 1
+  [[ $(cached_current_settled) == 0 ]] || exit 1
 
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
@@ -83,11 +84,17 @@ teardown_file() {
   # Generate a block to confirm the transaction
   bitcoin_cli -generate 1
 
-  # # Wait for Bria to detect the confirmed outgoing transaction
-  # for i in {1..30}; do
-  #   cache_default_wallet_balance
-  #   [[ $(cached_current_settled) <= 50000000 ]] && break
-  #   sleep 1
-  # done
-  # [[ $(cached_current_settled) <= 50000000 ]] || exit 1
+  # Wait for Bria to detect the confirmed outgoing transaction
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_current_settled) != 0 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 0 ]] || exit 1
+
+  utxos=$(bria_cmd list-utxos -w default)
+  n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
+  utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
+
+  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "203" ]]
 }

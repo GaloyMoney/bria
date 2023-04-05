@@ -295,6 +295,10 @@ async fn external_spend() -> anyhow::Result<()> {
                     tx_summary: TransactionSummary {
                         wallet_id,
                         keychain_id,
+                        bitcoin_tx_id:
+                            "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                                .parse()
+                                .unwrap(),
                         total_utxo_in_sats,
                         total_utxo_settled_in_sats,
                         change_sats,

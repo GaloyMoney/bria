@@ -89,7 +89,7 @@ impl Transactions {
            SELECT tx_id, details_json, height
            FROM bdk_transactions
            WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)
-           ORDER BY (details_json->'confirmation_time'->'height') ASC NULLS LAST
+           ORDER BY height ASC NULLS LAST
            LIMIT 1
            ),
            previous_outputs AS (
@@ -151,11 +151,7 @@ impl Transactions {
         }))
     }
 
-    #[instrument(
-        name = "bdk_transactions.find_confirmed_spend_tx",
-        skip(self),
-        fields(n_rows)
-    )]
+    #[instrument(name = "bdk_transactions.find_confirmed_spend_tx", skip(self, tx))]
     pub async fn find_confirmed_spend_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -168,9 +164,11 @@ impl Transactions {
                 SELECT tx_id
                 FROM bdk_transactions
                 WHERE keychain_id = $1
-                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2
+                AND sent > 0
+                AND height IS NOT NULL
+                AND height <= $2
                 AND confirmation_synced_to_bria = false
-                ORDER BY (details_json->'confirmation_time'->'height') ASC
+                ORDER BY height ASC
                 LIMIT 1)
                 RETURNING tx_id, details_json
             ),
@@ -191,8 +189,6 @@ impl Transactions {
         )
         .fetch_all(tx)
         .await?;
-
-        tracing::Span::current().record("n_rows", &rows.len());
 
         let mut inputs = Vec::new();
         let mut outputs = Vec::new();
