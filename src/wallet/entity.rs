@@ -94,8 +94,8 @@ impl NewWallet {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
-    pub settle_income_after_n_confs: u32,
-    pub settle_change_after_n_confs: u32,
+    settle_income_after_n_confs: u32,
+    settle_change_after_n_confs: u32,
     pub dust_threshold_sats: Satoshis,
 }
 
