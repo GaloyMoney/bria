@@ -14,8 +14,6 @@ pub struct ExternalSpendMeta {
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub encumbered_spending_fee_sats: Option<Satoshis>,
-    pub change_outpoint: Option<bitcoin::OutPoint>,
-    pub change_address: Option<bitcoin::Address>,
     pub tx_summary: TransactionSummary,
     pub confirmation_time: Option<BlockTime>,
 }
@@ -136,6 +134,7 @@ impl From<ExternalSpendParams> for TxParams {
             total_utxo_settled_in_sats,
             change_sats,
             fee_sats,
+            ..
         } = meta.tx_summary;
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();

@@ -239,6 +239,9 @@ pub async fn execute(
                                 ledger_account_ids: wallet.ledger_account_ids,
                                 reserved_fees,
                                 meta: ExternalSpendMeta {
+                                    encumbered_spending_fee_sats: change_utxo
+                                        .as_ref()
+                                        .map(|_| fees_to_encumber),
                                     tx_summary: TransactionSummary {
                                         total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
                                         total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
@@ -247,14 +250,13 @@ pub async fn execute(
                                             .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
                                             .unwrap_or(Satoshis::ZERO),
                                         fee_sats: unsynced_tx.fee_sats,
+                                        change_outpoint: change_utxo
+                                            .as_ref()
+                                            .map(|(u, _)| u.outpoint),
+                                        change_address: change_utxo.map(|(_, a)| a.address),
                                     },
                                     wallet_id: wallet.id,
                                     keychain_id,
-                                    encumbered_spending_fee_sats: change_utxo
-                                        .as_ref()
-                                        .map(|_| fees_to_encumber),
-                                    change_outpoint: change_utxo.as_ref().map(|(u, _)| u.outpoint),
-                                    change_address: change_utxo.map(|(_, a)| a.address),
                                     confirmation_time: unsynced_tx.confirmation_time,
                                 },
                             },
