@@ -1,4 +1,5 @@
 mod entity;
+mod logical_allocation;
 mod repo;
 
 use bdk::{wallet::AddressInfo, LocalUtxo};
@@ -69,6 +70,7 @@ impl Utxos {
             .await
     }
 
+    #[allow(clippy::type_complexity)]
     #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
     pub async fn mark_spent(
         &self,
@@ -77,7 +79,15 @@ impl Utxos {
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxo: Option<&(LocalUtxo, AddressInfo)>,
         sats_per_vbyte: f32,
-    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
+    ) -> Result<
+        Option<(
+            LedgerTransactionId,
+            Satoshis,
+            HashMap<bitcoin::OutPoint, Satoshis>,
+            Transaction<'_, Postgres>,
+        )>,
+        BriaError,
+    > {
         let (tx_id, mut tx) = if let Some((utxo, address)) = change_utxo {
             let new_utxo = NewUtxo::builder()
                 .wallet_id(wallet_id)
@@ -101,14 +111,21 @@ impl Utxos {
         } else {
             (LedgerTransactionId::new(), self.pool.begin().await?)
         };
-        let persisted = self
+        let utxos = self
             .utxos
             .mark_spent(&mut tx, keychain_id, inputs, tx_id)
             .await?;
-        if !persisted {
+        if utxos.is_empty() {
             return Ok(None);
         }
-        Ok(Some((tx_id, tx)))
+        let (total_settled_in, allocations) =
+            logical_allocation::withdraw_from_logical_when_settled(
+                utxos,
+                change_utxo
+                    .map(|(u, _)| Satoshis::from(u.txout.value))
+                    .unwrap_or(Satoshis::ZERO),
+            );
+        Ok(Some((tx_id, total_settled_in, allocations, tx)))
     }
 
     #[instrument(name = "utxos.confirm_spend", skip(self, tx, inputs))]

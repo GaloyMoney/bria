@@ -16,6 +16,7 @@ pub struct ConfirmedUtxoMeta {
     pub satoshis: Satoshis,
     pub address: bitcoin::Address,
     pub confirmation_time: BlockTime,
+    pub already_spent_tx_id: Option<LedgerTransactionId>,
 }
 
 #[derive(Debug)]

@@ -1,4 +1,5 @@
 mod confirm_spend;
+mod confirm_spent_utxo;
 mod confirmed_utxo;
 mod create_batch;
 mod external_spend;
@@ -7,6 +8,7 @@ mod queued_payout;
 mod shared_meta;
 
 pub use confirm_spend::*;
+pub use confirm_spent_utxo::*;
 pub use confirmed_utxo::*;
 pub use create_batch::*;
 pub use external_spend::*;

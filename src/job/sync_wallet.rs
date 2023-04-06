@@ -192,6 +192,7 @@ pub async fn execute(
                                         satoshis: utxo.value,
                                         outpoint: local_utxo.outpoint,
                                         address: utxo.address,
+                                        already_spent_tx_id: utxo.pending_spend_ledger_tx_id,
                                     },
                                 },
                             )
@@ -209,7 +210,7 @@ pub async fn execute(
                 } else {
                     None
                 };
-                if let Some((tx_id, tx)) = deps
+                if let Some((tx_id, settled_sats, allocations, tx)) = deps
                     .bria_utxos
                     .mark_spent(
                         wallet.id,
@@ -242,12 +243,13 @@ pub async fn execute(
                                     encumbered_spending_fee_sats: change_utxo
                                         .as_ref()
                                         .map(|_| fees_to_encumber),
+                                    withdraw_from_logical_when_settled: allocations,
                                     tx_summary: TransactionSummary {
                                         wallet_id: wallet.id,
                                         keychain_id,
                                         bitcoin_tx_id: unsynced_tx.tx_id,
                                         total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
-                                        total_utxo_settled_in_sats: unsynced_tx.total_utxo_in_sats,
+                                        total_utxo_settled_in_sats: settled_sats,
                                         change_sats: change_utxo
                                             .as_ref()
                                             .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
@@ -346,6 +348,7 @@ pub async fn execute(
                                 satoshis: utxo.value,
                                 outpoint,
                                 address: utxo.address,
+                                already_spent_tx_id: utxo.pending_spend_ledger_tx_id,
                             },
                         },
                     )
