@@ -9,6 +9,8 @@ use sqlx_ledger::{
 use tracing::instrument;
 use uuid::Uuid;
 
+use std::collections::HashMap;
+
 use crate::{error::*, primitives::*, wallet::balance::*};
 use constants::*;
 pub use templates::*;
@@ -41,6 +43,7 @@ impl Ledger {
 
         templates::IncomingUtxo::init(&inner).await?;
         templates::ConfirmedUtxo::init(&inner).await?;
+        templates::ConfirmSpentUtxo::init(&inner).await?;
         templates::ExternalSpend::init(&inner).await?;
         templates::ConfirmSpend::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
@@ -72,8 +75,41 @@ impl Ledger {
         tx_id: LedgerTransactionId,
         params: ConfirmedUtxoParams,
     ) -> Result<(), BriaError> {
+        let (code, params) = if let Some(spent_tx) = params.meta.already_spent_tx_id {
+            #[derive(serde::Deserialize)]
+            struct ExtractAllocations {
+                withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
+            }
+            let txs = self
+                .inner
+                .transactions()
+                .list_by_ids(std::iter::once(spent_tx))
+                .await?;
+            let outpoint = params.meta.outpoint;
+            let mut params = sqlx_ledger::tx_template::TxParams::from(params);
+            if let Some(tx) = txs.get(0) {
+                if let Ok(Some(ExtractAllocations {
+                    mut withdraw_from_logical_when_settled,
+                })) = tx.metadata()
+                {
+                    let withdraw_from_logical_settled = withdraw_from_logical_when_settled
+                        .remove(&outpoint)
+                        .unwrap_or(Satoshis::ZERO);
+                    params.insert(
+                        "withdraw_from_logical_settled",
+                        withdraw_from_logical_settled.to_btc(),
+                    );
+                }
+            }
+            (CONFIRM_SPENT_UTXO_CODE, Some(params))
+        } else {
+            (
+                CONFIRMED_UTXO_CODE,
+                Some(sqlx_ledger::tx_template::TxParams::from(params)),
+            )
+        };
         self.inner
-            .post_transaction_in_tx(tx, tx_id, CONFIRMED_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, code, params)
             .await?;
         Ok(())
     }

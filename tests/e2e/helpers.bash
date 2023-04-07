@@ -29,6 +29,10 @@ cached_current_settled() {
   echo ${balance} | jq -r '.confirmedUtxos'
 }
 
+cached_logical_settled() {
+  echo ${balance} | jq -r '.logicalSettled'
+}
+
 cached_pending_outgoing() {
   echo ${balance} | jq -r '.logicalPendingOutgoing'
 }

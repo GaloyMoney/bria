@@ -16,12 +16,22 @@ pub struct WalletUtxo {
     pub spending_batch_id: Option<BatchId>,
 }
 
+#[derive(Debug)]
 pub struct ConfirmedUtxo {
     pub keychain_id: KeychainId,
     pub value: Satoshis,
     pub address: bitcoin::Address,
     pub pending_income_ledger_tx_id: LedgerTransactionId,
     pub confirmed_income_ledger_tx_id: LedgerTransactionId,
+    pub pending_spend_ledger_tx_id: Option<LedgerTransactionId>,
+}
+
+#[derive(Debug)]
+pub(super) struct SpentUtxo {
+    pub outpoint: bitcoin::OutPoint,
+    pub value: Satoshis,
+    pub change_address: bool,
+    pub confirmed: bool,
 }
 
 pub struct KeychainUtxos {

@@ -79,7 +79,7 @@ impl UtxoRepo {
             WHERE keychain_id = $4
               AND tx_id = $5
               AND vout = $6
-            RETURNING address_idx, value, address, pending_income_ledger_tx_id"#,
+            RETURNING address_idx, value, address, pending_income_ledger_tx_id, pending_spend_ledger_tx_id"#,
             bdk_spent,
             block_height as i32,
             Uuid::from(new_confirmed_ledger_tx_id),
@@ -96,6 +96,9 @@ impl UtxoRepo {
             address: row.address.parse().expect("couldn't parse address"),
             pending_income_ledger_tx_id: LedgerTransactionId::from(row.pending_income_ledger_tx_id),
             confirmed_income_ledger_tx_id: new_confirmed_ledger_tx_id,
+            pending_spend_ledger_tx_id: row
+                .pending_spend_ledger_tx_id
+                .map(LedgerTransactionId::from),
         })
     }
 
@@ -105,26 +108,46 @@ impl UtxoRepo {
         keychain_id: KeychainId,
         utxos: impl Iterator<Item = &OutPoint>,
         tx_id: LedgerTransactionId,
-    ) -> Result<bool, BriaError> {
-        let keychain_id = Uuid::from(keychain_id);
+    ) -> Result<Vec<SpentUtxo>, BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"UPDATE bria_utxos
+            r#"WITH updated AS ( UPDATE bria_utxos
             SET bdk_spent = true, modified_at = NOW(), pending_spend_ledger_tx_id = "#,
         );
         query_builder.push_bind(Uuid::from(tx_id));
         query_builder
             .push("WHERE pending_spend_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
-        let mut rows = 0;
+        let mut n_inputs = 0;
         query_builder.push_tuples(utxos, |mut builder, out| {
-            rows += 1;
-            builder.push_bind(keychain_id);
+            n_inputs += 1;
+            builder.push_bind(Uuid::from(keychain_id));
             builder.push_bind(out.txid.to_string());
             builder.push_bind(out.vout as i32);
         });
+        query_builder.push(
+            r#"RETURNING tx_id, vout, value, kind, sats_per_vbyte_when_created, CASE WHEN confirmed_income_ledger_tx_id IS NOT NULL THEN value ELSE 0 END as settled_value )
+            SELECT tx_id, vout, value,
+                CASE WHEN settled_value != 0 THEN true ELSE false END as confirmed,
+                CASE WHEN kind = 'internal' THEN true ELSE false END as change_address
+                FROM updated ORDER BY settled_value DESC, sats_per_vbyte_when_created DESC"#
+        );
 
         let query = query_builder.build();
-        let res = query.execute(&mut *tx).await?;
-        Ok(rows == res.rows_affected())
+        let res = query.fetch_all(&mut *tx).await?;
+        Ok(if n_inputs == res.len() {
+            res.into_iter()
+                .map(|row| SpentUtxo {
+                    outpoint: OutPoint {
+                        txid: row.get::<String, _>("tx_id").parse().unwrap(),
+                        vout: row.get::<i32, _>("vout") as u32,
+                    },
+                    value: Satoshis::from(row.get::<rust_decimal::Decimal, _>("value")),
+                    confirmed: row.get("confirmed"),
+                    change_address: row.get("change_address"),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        })
     }
 
     pub async fn confirm_spend(

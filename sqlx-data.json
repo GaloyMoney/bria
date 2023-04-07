@@ -1193,49 +1193,6 @@
     },
     "query": "INSERT INTO bria_xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
   },
-  "a9057a7f32515cadb03d5e9cc689f17144351722bba182c649437d71a9708f2d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address_idx",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "value",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "address",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "pending_income_ledger_tx_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Bool",
-          "Int4",
-          "Uuid",
-          "Uuid",
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id"
-  },
   "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
     "describe": {
       "columns": [],
@@ -1562,6 +1519,55 @@
       }
     },
     "query": "SELECT id\n                 FROM bria_batch_groups\n                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"
+  },
+  "df53e0612710e7061edd627657b940122ce4f7c790b085f3b81adb86a39a46e1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address_idx",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "value",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "address",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "pending_income_ledger_tx_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "pending_spend_ledger_tx_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Bool",
+          "Int4",
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                confirmed_income_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, pending_income_ledger_tx_id, pending_spend_ledger_tx_id"
   },
   "e093cc590f538bfdc34657ed4041535f771e6ad41679f068cba67ecff29c6ea5": {
     "describe": {

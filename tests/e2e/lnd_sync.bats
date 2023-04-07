@@ -21,7 +21,7 @@ teardown_file() {
   [ "$lnd_address" = "$bria_address" ]
 }
 
-@test "lnd_sync: Incoming tx" {
+@test "lnd_sync: Detects incoming transactions" {
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
   if [ -z "$lnd_address" ]; then
     echo "Failed to get a new address"
@@ -60,13 +60,8 @@ teardown_file() {
 }
 
 @test "lnd_sync: Detects outgoing transactions" {
-  # Get an address from bitcoind (or use a hardcoded regtest address)
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
-
-  # Send funds from LND to the bitcoind address
   lnd_cli sendcoins --addr=${bitcoind_address} --amt=50000000
-
-  # Wait for Bria to detect the outgoing transaction
   for i in {1..30}; do
     cache_default_wallet_balance
     [[ $(cached_pending_outgoing) == 50000000 ]] && break
@@ -81,10 +76,8 @@ teardown_file() {
 
   [[ "${n_utxos}" == "1" && "${change}" == "true" ]]
 
-  # Generate a block to confirm the transaction
   bitcoin_cli -generate 1
 
-  # Wait for Bria to detect the confirmed outgoing transaction
   for i in {1..30}; do
     cache_default_wallet_balance
     [[ $(cached_current_settled) != 0 ]] && break
@@ -97,4 +90,76 @@ teardown_file() {
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
   [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "203" ]]
+}
+
+@test "lnd_sync: Can handle spend from mix of unconfirmed UTXOs" {
+  lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
+  if [ -z "$lnd_address" ]; then
+    echo "Failed to get a new address"
+    exit 1
+  fi
+
+  bitcoin_cli -regtest sendtoaddress ${lnd_address} 1
+  bitcoin_cli -regtest sendtoaddress ${lnd_address} 1
+
+  bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
+  lnd_cli sendcoins --addr=${bitcoind_address} --amt=210000000 --min_confs 0
+
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 210000000 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 210000000 ]] || exit 1
+  [[ $(cached_logical_settled) != 0 ]] || exit 1
+
+  bitcoin_cli -generate 2
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 0 ]] && break
+    sleep 1
+  done
+
+  lnd_balance=$(lnd_cli walletbalance | jq -r '.total_balance')
+  [[ "$(cached_logical_settled)" == "${lnd_balance}" ]] || exit 1
+}
+
+@test "lnd_sync: Can sweep all" {
+  bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
+  lnd_cli sendcoins --addr=${bitcoind_address} --sweepall
+  bitcoin_cli -generate 1
+
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_encumbered_fees) == 0 ]] && break
+    sleep 1
+  done
+  [[ $(cached_encumbered_fees) == 0 ]] || exit 1
+  [[ $(cached_logical_settled) == 0 ]] || exit 1
+}
+
+@test "lnd_sync: Can spend only from unconfirmed" {
+  lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
+  bitcoin_cli -regtest sendtoaddress ${lnd_address} 1
+  bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
+  lnd_cli sendcoins --addr=${bitcoind_address} --amt=60000000 --min_confs 0
+
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 60000000 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 60000000 ]] || exit 1
+  [[ $(cached_logical_settled) == 0 ]] || exit 1
+
+  bitcoin_cli -generate 2
+  for i in {1..30}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_outgoing) == 0 ]] && break
+    sleep 1
+  done
+  [[ $(cached_pending_outgoing) == 0 ]] || exit 1
+  [[ $(cached_logical_settled) == $(cached_current_settled) ]] || exit 1
+  lnd_balance=$(lnd_cli walletbalance | jq -r '.total_balance')
+  [[ "$(cached_logical_settled)" == "${lnd_balance}" ]] || exit 1
 }

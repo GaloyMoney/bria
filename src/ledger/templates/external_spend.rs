@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
+use std::collections::HashMap;
+
 use super::shared_meta::TransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
@@ -13,6 +15,7 @@ use crate::{
 pub struct ExternalSpendMeta {
     pub encumbered_spending_fee_sats: Option<Satoshis>,
     pub tx_summary: TransactionSummary,
+    pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -210,7 +213,7 @@ impl ExternalSpend {
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_settled_in < params.total_utxo_in - params.change ? params.total_utxo_settled_in : params.total_utxo_in - params.change")
+                .units("params.total_utxo_settled_in >= params.total_utxo_in - params.change ? params.total_utxo_in - params.change : params.total_utxo_settled_in >= params.change ? params.total_utxo_settled_in - params.change : 0")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -219,7 +222,7 @@ impl ExternalSpend {
                 .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_settled_in < params.total_utxo_in - params.change ? params.total_utxo_settled_in : params.total_utxo_in - params.change")
+                .units("params.total_utxo_settled_in >= params.total_utxo_in - params.change ? params.total_utxo_in - params.change : params.total_utxo_settled_in >= params.change ? params.total_utxo_settled_in - params.change : 0")
                 .build()
                 .expect("Couldn't build entry"),
             // FEES
