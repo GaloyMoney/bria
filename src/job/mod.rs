@@ -167,7 +167,7 @@ async fn process_batch_group(
                 for id in wallet_ids {
                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
                 }
-                spawn_batch_wallet_signing(&mut tx, BatchWalletSigningData::from(&data)).await?;
+                spawn_batch_wallet_signing(&mut tx, &data).await?;
                 tx.commit().await?;
             }
 
@@ -371,8 +371,9 @@ async fn spawn_batch_wallet_accounting(
 #[instrument(name = "job.spawn_batch_wallet_signing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_wallet_signing(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    data: BatchWalletSigningData,
+    data: impl Into<BatchWalletSigningData>,
 ) -> Result<(), BriaError> {
+    let data = data.into();
     match batch_wallet_signing
         .builder()
         .set_json(&data)
@@ -426,6 +427,7 @@ impl From<&ProcessBatchGroupData> for BatchWalletSigningData {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            tracing_data: crate::tracing::extract_tracing_data(),
         }
     }
 }
