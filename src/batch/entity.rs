@@ -10,6 +10,7 @@ pub struct Batch {
     pub bitcoin_tx_id: bitcoin::Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
+    pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
 }
 
 #[derive(Builder, Clone)]
