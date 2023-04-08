@@ -166,8 +166,8 @@ async fn process_batch_group(
             if let Some((mut tx, wallet_ids)) = res {
                 for id in wallet_ids {
                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
+                    spawn_batch_wallet_signing(&mut tx, (&data, id)).await?;
                 }
-                spawn_batch_wallet_signing(&mut tx, &data).await?;
                 tx.commit().await?;
             }
 
@@ -422,11 +422,12 @@ impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
     }
 }
 
-impl From<&ProcessBatchGroupData> for BatchWalletSigningData {
-    fn from(data: &ProcessBatchGroupData) -> Self {
+impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletSigningData {
+    fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            wallet_id,
             tracing_data: crate::tracing::extract_tracing_data(),
         }
     }

@@ -9,6 +9,7 @@ use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*,
 pub struct BatchWalletSigningData {
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
+    pub(super) wallet_id: WalletId,
     #[serde(flatten)]
     pub(super) tracing_data: HashMap<String, String>,
 }
