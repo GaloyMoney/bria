@@ -46,6 +46,7 @@ pub async fn start_job_runner(
         sync_all_wallets,
         sync_wallet,
         process_all_batch_groups,
+        schedule_process_batch_group,
         process_batch_group,
         batch_wallet_accounting,
         batch_wallet_signing,
@@ -64,7 +65,7 @@ pub async fn start_job_runner(
     Ok(registry.runner(pool).run().await?)
 }
 
-#[job(name = "sync_all_wallets", channel_name = "wallet_sync")]
+#[job(name = "sync_all_wallets")]
 async fn sync_all_wallets(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -75,8 +76,8 @@ async fn sync_all_wallets(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            for id in wallets.all_ids().await? {
-                let _ = spawn_sync_wallet(&pool, SyncWalletData::new(id)).await;
+            for (account_id, wallet_id) in wallets.all_ids().await? {
+                let _ = spawn_sync_wallet(&pool, SyncWalletData::new(account_id, wallet_id)).await;
             }
             Ok::<(), BriaError>(())
         })
@@ -85,7 +86,7 @@ async fn sync_all_wallets(
     Ok(())
 }
 
-#[job(name = "process_all_batch_groups", channel_name = "wallet_sync")]
+#[job(name = "process_all_batch_groups")]
 async fn process_all_batch_groups(
     mut current_job: CurrentJob,
     batch_groups: BatchGroups,
@@ -98,10 +99,12 @@ async fn process_all_batch_groups(
         .execute(|_| async move {
             for group in batch_groups.all().await? {
                 if let Some(delay) = group.spawn_in() {
-                    let _ = spawn_process_batch_group(
+                    let _ = spawn_schedule_process_batch_group(
                         &pool,
-                        ProcessBatchGroupData::new(group.id, group.account_id),
-                        delay,
+                        (group.account_id, group.id),
+                        delay
+                            .checked_sub(std::time::Duration::from_secs(1))
+                            .unwrap_or_default(),
                     )
                     .await;
                 }
@@ -113,12 +116,7 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(
-    name = "sync_wallet",
-    channel_name = "wallet_sync",
-    retries = 20,
-    ordered = true
-)]
+#[job(name = "sync_wallet")]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -138,7 +136,29 @@ async fn sync_wallet(
     Ok(())
 }
 
-#[job(name = "process_batch_group", channel_name = "batch_group")]
+#[job(name = "schedule_process_batch_group")]
+async fn schedule_process_batch_group(mut current_job: CurrentJob) -> Result<(), BriaError> {
+    let pool = current_job.pool().clone();
+    JobExecutor::builder(&mut current_job)
+        .build()
+        .expect("couldn't build JobExecutor")
+        .execute(|data| async move {
+            let mut data: ProcessBatchGroupData = data.expect("no SyncWalletData available");
+            data.tracing_data = crate::tracing::extract_tracing_data();
+            onto_account_utxo_queue(
+                &pool,
+                data.account_id,
+                Uuid::new_v4(),
+                "process_batch_group",
+                data,
+            )
+            .await
+        })
+        .await?;
+    Ok(())
+}
+
+#[job(name = "process_batch_group")]
 async fn process_batch_group(
     mut current_job: CurrentJob,
     payouts: Payouts,
@@ -267,7 +287,7 @@ pub async fn spawn_sync_all_wallets(
     duration: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(SYNC_ALL_WALLETS_ID, "sync_all_wallets")
-        .set_channel_name("wallet_sync")
+        .set_channel_name("sync_all_wallets")
         .set_delay(duration)
         .spawn(pool)
         .await
@@ -283,22 +303,8 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(data.wallet_id), "sync_wallet")
-        .set_channel_name("wallet_sync")
-        .set_channel_args(&data.wallet_id.to_string())
-        .set_ordered(true)
-        .set_json(&data)
-        .expect("Couldn't set json")
-        .spawn(pool)
-        .await
-    {
-        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(()),
-        Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-            Err(e.into())
-        }
-        Ok(_) => Ok(()),
-    }
+    onto_account_utxo_queue(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
+    Ok(())
 }
 
 #[instrument(name = "job.spawn_process_all_batch_groups", skip_all, fields(error, error.level, error.message), err)]
@@ -307,7 +313,7 @@ pub async fn spawn_process_all_batch_groups(
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
     match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batch_groups")
-        .set_channel_name("batch_group")
+        .set_channel_name("process_all_batch_groups")
         .set_delay(delay)
         .spawn(pool)
         .await
@@ -321,21 +327,25 @@ pub async fn spawn_process_all_batch_groups(
     }
 }
 
-#[instrument(name = "job.spawn_process_batch_group", skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_process_batch_group(
+#[instrument(name = "job.schedule_spawn_process_batch_group", skip_all, fields(error, error.level, error.message), err)]
+async fn spawn_schedule_process_batch_group(
     pool: &sqlx::PgPool,
-    data: ProcessBatchGroupData,
+    data: impl Into<ProcessBatchGroupData>,
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(Uuid::from(data.batch_group_id), "process_batch_group")
-        .set_delay(delay)
-        .set_channel_name("batch_group")
-        .set_channel_args(&data.account_id.to_string())
-        .set_ordered(true)
-        .set_json(&data)
-        .expect("Couldn't set json")
-        .spawn(pool)
-        .await
+    let data = data.into();
+    match JobBuilder::new_with_id(
+        Uuid::from(data.batch_group_id),
+        "schedule_process_batch_group",
+    )
+    .set_ordered(true)
+    .set_channel_name("schedule_batch_group")
+    .set_channel_args(&schedule_batch_group_channel_arg(data.batch_group_id))
+    .set_delay(delay)
+    .set_json(&data)
+    .expect("Couldn't set json")
+    .spawn(pool)
+    .await
     {
         Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(()),
         Err(e) => {
@@ -408,6 +418,50 @@ async fn spawn_batch_wallet_finalizing(
             Err(e.into())
         }
         Ok(_) => Ok(()),
+    }
+}
+
+fn schedule_batch_group_channel_arg(batch_group_id: BatchGroupId) -> String {
+    format!("batch_group_id:{batch_group_id}")
+}
+
+async fn onto_account_utxo_queue<D: serde::Serialize>(
+    pool: &sqlx::PgPool,
+    account_id: AccountId,
+    uuid: impl Into<Uuid>,
+    name: &str,
+    data: D,
+) -> Result<D, BriaError> {
+    match JobBuilder::new_with_id(uuid.into(), name)
+        .set_ordered(true)
+        .set_channel_name("account_utxos")
+        .set_channel_args(&account_utxo_channel_arg(account_id))
+        .set_json(&data)
+        .expect("Couldn't set json")
+        .spawn(pool)
+        .await
+    {
+        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(data),
+        Err(e) => {
+            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+            Err(BriaError::from(e))
+        }
+        Ok(_) => Ok(data),
+    }
+}
+
+fn account_utxo_channel_arg(account_id: AccountId) -> String {
+    format!("account_id:{account_id}")
+}
+
+impl From<(AccountId, BatchGroupId)> for ProcessBatchGroupData {
+    fn from((account_id, batch_group_id): (AccountId, BatchGroupId)) -> Self {
+        Self {
+            batch_group_id,
+            account_id,
+            batch_id: BatchId::new(),
+            tracing_data: crate::tracing::extract_tracing_data(),
+        }
     }
 }
 

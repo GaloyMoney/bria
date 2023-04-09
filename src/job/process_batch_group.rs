@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{batch::*, batch_group::*, error::*, payout::*, primitives::*, utxo::*, wallet::*};
@@ -8,16 +9,8 @@ pub struct ProcessBatchGroupData {
     pub(super) batch_group_id: BatchGroupId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
-}
-
-impl ProcessBatchGroupData {
-    pub fn new(batch_group_id: BatchGroupId, account_id: AccountId) -> Self {
-        Self {
-            batch_group_id,
-            account_id,
-            batch_id: BatchId::new(),
-        }
-    }
+    #[serde(flatten)]
+    pub(super) tracing_data: HashMap<String, String>,
 }
 
 #[instrument(
