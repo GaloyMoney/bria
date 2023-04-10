@@ -16,12 +16,16 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncWalletData {
+    pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
 }
 
 impl SyncWalletData {
-    pub fn new(id: WalletId) -> Self {
-        SyncWalletData { wallet_id: id }
+    pub fn new(account_id: AccountId, wallet_id: WalletId) -> Self {
+        SyncWalletData {
+            account_id,
+            wallet_id,
+        }
     }
 }
 

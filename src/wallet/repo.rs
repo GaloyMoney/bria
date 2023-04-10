@@ -112,11 +112,17 @@ impl Wallets {
         })
     }
 
-    pub async fn all_ids(&self) -> Result<impl Iterator<Item = WalletId>, BriaError> {
-        let rows = sqlx::query!(r#"SELECT distinct(id) FROM bria_wallets"#,)
-            .fetch_all(&self.pool)
-            .await?;
-        Ok(rows.into_iter().map(|row| WalletId::from(row.id)))
+    pub async fn all_ids(&self) -> Result<impl Iterator<Item = (AccountId, WalletId)>, BriaError> {
+        let rows =
+            sqlx::query!(r#"SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"#,)
+                .fetch_all(&self.pool)
+                .await?;
+        Ok(rows.into_iter().map(|row| {
+            (
+                AccountId::from(row.account_id),
+                WalletId::from(row.wallet_id),
+            )
+        }))
     }
 
     pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {

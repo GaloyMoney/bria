@@ -209,6 +209,30 @@
     },
     "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
   },
+  "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "account_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"
+  },
   "1e5a38689d22733b68e1e66320a8cdbdc5d6d692e44e72c735bafe657e7ddf1f": {
     "describe": {
       "columns": [
@@ -439,24 +463,6 @@
       }
     },
     "query": "WITH latest AS (\n             SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n             FROM bria_payouts\n             WHERE wallet_id = $1\n           ) SELECT bria_payouts.id, batch_group_id, bria_batch_payouts.batch_id as \"batch_id?\", satoshis, destination_data, external_id, metadata FROM bria_payouts\n             LEFT JOIN bria_batch_payouts ON bria_payouts.id = bria_batch_payouts.payout_id\n             WHERE (bria_payouts.id, version) IN (SELECT * FROM latest)\n             ORDER BY created_at"
-  },
-  "2fa457a8cb724012819382713463f08be00258a86067984914abe8ebee3d38fa": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT distinct(id) FROM bria_wallets"
   },
   "316920ab6db6dd6b3aa325b40c6908d1e166792781dde5289f0d26113bb76428": {
     "describe": {
