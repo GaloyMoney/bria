@@ -85,6 +85,7 @@ stop_daemon() {
 bria_init() {
   bria_cmd admin bootstrap
   bria_cmd admin create-account -n default
+  sleep 3
   bria_cmd import-xpub -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -n key1 -d m/84h/0h/0h
 	bria_cmd create-wallet -n default -x key1
 
