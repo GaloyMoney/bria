@@ -28,6 +28,7 @@ groups:
   - test-e2e
   - build-edge-image
   - build-provision-admin-sidecar-image
+  - bump-image-in-chart
 
 jobs:
 - #@ rust_check_code()
@@ -96,6 +97,55 @@ jobs:
     params:
       image: image/image.tar
 
+- name: bump-image-in-chart
+  plan:
+  - in_parallel:
+    - get: edge-image
+      passed: [ build-edge-image ]
+      params: { skip_download: true }
+    - get: repo
+      trigger: true
+      passed: [ build-edge-image, build-provision-admin-sidecar-image ]
+    - get: charts-repo
+      params: { skip_download: true }
+    - get: pipeline-tasks
+  - task: bump-image-digest-in-values
+    config:
+      platform: linux
+      image_resource: #@ nodejs_task_image_config()
+      inputs:
+      - name: repo
+      - name: edge-image
+      - name: pipeline-tasks
+      - name: charts-repo
+      - name: version
+      outputs:
+        - name: charts-repo
+      params:
+        BRANCH: #@ data.values.git_charts_branch
+        CHARTS_SUBDIR: "bria"
+      run:
+        path: pipeline-tasks/ci/tasks/bump-image-digest.sh
+  - put: charts-repo-bot-branch
+    params:
+      repository: charts-repo
+      force: true
+  - task: open-charts-pr
+    config:
+      platform: linux
+      image_resource: #@ nodejs_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: edge-image
+      - name: charts-repo
+      params:
+        GH_TOKEN: #@ data.values.github_token
+        BRANCH: #@ data.values.git_charts_branch
+        BOT_BRANCH: #@ data.values.git_charts_bot_branch
+        CHARTS_SUBDIR: "bria"
+      run:
+        path: pipeline-tasks/ci/tasks/open-charts-pr.sh
+
 resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
@@ -109,6 +159,9 @@ resources:
     username: #@ data.values.docker_registry_user
     password: #@ data.values.docker_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository + "-provision-admin-sidecar"
+
+- #@ charts_repo_resource()
+- #@ charts_repo_bot_branch()
 
 resource_types:
 - #@ slack_resource_type()
