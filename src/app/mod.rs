@@ -229,7 +229,7 @@ impl App {
         println!("Index: {}, Depth: {:?}, ", index_height, depth);
 
         let end_index = index_height + 1;
-        let start_index = (end_index - depth.unwrap_or(20)).max(0);
+        let start_index = end_index.checked_sub(depth.unwrap_or(20)).unwrap_or(0);
         let mut addresses = Vec::new();
 
         for index in start_index..end_index {
