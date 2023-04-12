@@ -226,7 +226,7 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
 
         let end_index = index_height + 1;
-        let start_index = end_index.checked_sub(depth.unwrap_or(20)).unwrap_or(0);
+        let start_index = end_index.saturating_sub(depth.unwrap_or(20));
         let mut addresses = Vec::new();
 
         for index in start_index..end_index {
