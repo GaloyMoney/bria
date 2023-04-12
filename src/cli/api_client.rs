@@ -140,6 +140,19 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn list_addresses(&self, wallet: String, path: u32) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListAddressesRequest {
+            wallet_name: wallet,
+            path,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_addresses(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn create_batch_group(
         &self,

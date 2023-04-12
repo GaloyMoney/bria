@@ -128,6 +128,25 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_addresses(
+        &self,
+        request: Request<ListAddressesRequest>,
+    ) -> Result<Response<ListAddressesResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let account_id = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let (wallet_id, addresses) = self
+            .app
+            .list_addresses(account_id, request.wallet_name, request.path)
+            .await?;
+
+        Ok(Response::new(ListAddressesResponse {
+            wallet_id: wallet_id.to_string(),
+            addresses,
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_batch_group(
         &self,
         request: Request<CreateBatchGroupRequest>,

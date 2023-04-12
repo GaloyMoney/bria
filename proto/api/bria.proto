@@ -11,6 +11,7 @@ service BriaService {
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
+  rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
@@ -62,6 +63,11 @@ message ListUtxosRequest {
   string wallet_name = 1;
 }
 
+message ListAddressesRequest {
+  string wallet_name = 1;
+  uint32 path = 2;
+}
+
 message Utxo {
   string outpoint = 1;
   uint32 address_idx = 2;
@@ -86,6 +92,11 @@ message ListUtxosResponse {
   repeated KeychainUtxos keychains = 2;
 }
 
+
+message ListAddressesResponse {
+  string wallet_id = 1;
+  repeated string addresses = 2;
+}
 
 message GetWalletBalanceSummaryRequest {
   string wallet_name = 1;

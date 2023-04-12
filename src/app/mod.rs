@@ -1,5 +1,6 @@
 mod config;
 
+use bdk::KeychainKind;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
@@ -192,6 +193,7 @@ impl App {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
+        println!("AddrInfo: {:?}", addr);
         Ok(addr.to_string())
     }
 
@@ -211,6 +213,40 @@ impl App {
             .filter_map(|keychain_id| utxos.remove(&keychain_id))
             .collect();
         Ok((wallet.id, ordered_utxos))
+    }
+
+    #[instrument(name = "app.list_addresses", skip(self), err)]
+    pub async fn list_addresses(
+        &self,
+        account_id: AccountId,
+        wallet_name: String,
+        path: u32,
+    ) -> Result<(WalletId, Vec<String>), BriaError> {
+        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
+
+        let start_index = 0;
+        let end_index = path + 1;
+        let mut addresses = Vec::new();
+
+        for index in start_index..end_index {
+            // Find the address information for the current index and external keychain
+            let address_info = keychain_wallet
+                .find_address_from_path(index, KeychainKind::External)
+                .await?;
+
+            println!(
+                "Index: {}, KeychainKind: {:?}, AddrInfo: {:?}",
+                index,
+                KeychainKind::External,
+                address_info
+            );
+
+            // Add the address to the list of addresses
+            addresses.push(address_info.to_string());
+        }
+
+        Ok((wallet.id, addresses))
     }
 
     #[instrument(name = "app.create_batch_group", skip(self), err)]

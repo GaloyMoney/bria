@@ -147,6 +147,23 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// List external addresses up to a given path index
+    ListAddresses {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+        #[clap(short, long)]
+        path: u32,
+    },
     CreateBatchGroup {
         #[clap(
             short,
@@ -340,6 +357,15 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(url, api_key);
             client.list_utxos(wallet).await?;
+        }
+        Command::ListAddresses {
+            url,
+            api_key,
+            wallet,
+            path,
+        } => {
+            let client = api_client(url, api_key);
+            client.list_addresses(wallet, path).await?;
         }
         Command::CreateBatchGroup {
             url,
