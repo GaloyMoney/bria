@@ -140,10 +140,16 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn list_addresses(&self, wallet: String, path: u32) -> anyhow::Result<()> {
+    pub async fn list_addresses(
+        &self,
+        wallet: String,
+        index_height: u32,
+        depth: Option<u32>,
+    ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListAddressesRequest {
             wallet_name: wallet,
-            path,
+            index_height,
+            depth,
         });
         let response = self
             .connect()

@@ -137,7 +137,12 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let (wallet_id, addresses) = self
             .app
-            .list_addresses(account_id, request.wallet_name, request.path)
+            .list_addresses(
+                account_id,
+                request.wallet_name,
+                request.index_height,
+                request.depth,
+            )
             .await?;
 
         let proto_addresses: Vec<proto::WalletAddress> =

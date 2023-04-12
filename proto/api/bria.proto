@@ -65,7 +65,8 @@ message ListUtxosRequest {
 
 message ListAddressesRequest {
   string wallet_name = 1;
-  uint32 path = 2;
+  uint32 index_height = 2;
+  optional uint32 depth = 3;
 }
 
 message Utxo {

@@ -220,13 +220,16 @@ impl App {
         &self,
         account_id: AccountId,
         wallet_name: String,
-        path: u32,
+        index_height: u32,
+        depth: Option<u32>,
     ) -> Result<(WalletId, Vec<AddressInfo>), BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
 
-        let start_index = 0;
-        let end_index = path + 1;
+        println!("Index: {}, Depth: {:?}, ", index_height, depth);
+
+        let end_index = index_height + 1;
+        let start_index = (end_index - depth.unwrap_or(20)).max(0);
         let mut addresses = Vec::new();
 
         for index in start_index..end_index {

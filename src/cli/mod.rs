@@ -162,7 +162,9 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
         #[clap(short, long)]
-        path: u32,
+        index_height: u32,
+        #[clap(short, long)]
+        depth: Option<u32>,
     },
     CreateBatchGroup {
         #[clap(
@@ -362,10 +364,11 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
-            path,
+            index_height,
+            depth,
         } => {
             let client = api_client(url, api_key);
-            client.list_addresses(wallet, path).await?;
+            client.list_addresses(wallet, index_height, depth).await?;
         }
         Command::CreateBatchGroup {
             url,
