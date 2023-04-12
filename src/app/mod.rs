@@ -221,7 +221,7 @@ impl App {
         account_id: AccountId,
         wallet_name: String,
         path: u32,
-    ) -> Result<(WalletId, Vec<String>), BriaError> {
+    ) -> Result<(WalletId, Vec<WalletAddress>), BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
 
@@ -242,8 +242,9 @@ impl App {
                 address_info
             );
 
-            // Add the address to the list of addresses
-            addresses.push(address_info.to_string());
+            let wallet_address = WalletAddress::from(address_info);
+
+            addresses.push(wallet_address);
         }
 
         Ok((wallet.id, addresses))

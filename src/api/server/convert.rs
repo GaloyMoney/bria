@@ -86,6 +86,16 @@ impl From<KeychainUtxos> for proto::KeychainUtxos {
     }
 }
 
+impl From<WalletAddress> for proto::WalletAddress {
+    fn from(w: WalletAddress) -> Self {
+        Self {
+            address_idx: w.address_idx,
+            address: w.address,
+            keychain_kind: w.keychain_kind as i32,
+        }
+    }
+}
+
 impl From<Payout> for proto::Payout {
     fn from(payout: Payout) -> Self {
         let destination = match payout.destination {

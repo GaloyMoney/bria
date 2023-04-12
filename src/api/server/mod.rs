@@ -140,9 +140,12 @@ impl BriaService for Bria {
             .list_addresses(account_id, request.wallet_name, request.path)
             .await?;
 
+        let proto_addresses: Vec<proto::WalletAddress> =
+            addresses.into_iter().map(Into::into).collect();
+
         Ok(Response::new(ListAddressesResponse {
             wallet_id: wallet_id.to_string(),
-            addresses,
+            addresses: proto_addresses,
         }))
     }
 

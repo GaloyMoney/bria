@@ -77,6 +77,12 @@ message Utxo {
   optional uint32 block_height = 6;
 }
 
+message WalletAddress {
+  uint32 address_idx = 1;
+  string address = 2;
+  KeychainKind keychain_kind = 3;
+}
+
 message KeychainUtxos {
   string keychain_id = 1;
   repeated Utxo utxos = 2;
@@ -95,7 +101,7 @@ message ListUtxosResponse {
 
 message ListAddressesResponse {
   string wallet_id = 1;
-  repeated string addresses = 2;
+  repeated WalletAddress addresses = 2;
 }
 
 message GetWalletBalanceSummaryRequest {
