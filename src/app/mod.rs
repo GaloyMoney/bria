@@ -193,7 +193,6 @@ impl App {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
-        println!("AddrInfo: {:?}", addr);
         Ok(addr.to_string())
     }
 
@@ -226,8 +225,6 @@ impl App {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
 
-        println!("Index: {}, Depth: {:?}, ", index_height, depth);
-
         let end_index = index_height + 1;
         let start_index = end_index.checked_sub(depth.unwrap_or(20)).unwrap_or(0);
         let mut addresses = Vec::new();
@@ -237,13 +234,6 @@ impl App {
             let address_info = keychain_wallet
                 .find_address_from_path(index, KeychainKind::External)
                 .await?;
-
-            println!(
-                "Index: {}, KeychainKind: {:?}, AddrInfo: {:?}",
-                index,
-                KeychainKind::External,
-                address_info
-            );
 
             addresses.push(address_info);
         }
