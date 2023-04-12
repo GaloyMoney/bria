@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use bdk::wallet::AddressInfo;
+
 use super::proto;
 use crate::{
     batch_group::*,
@@ -86,12 +88,11 @@ impl From<KeychainUtxos> for proto::KeychainUtxos {
     }
 }
 
-impl From<WalletAddress> for proto::WalletAddress {
-    fn from(w: WalletAddress) -> Self {
+impl From<AddressInfo> for proto::WalletAddress {
+    fn from(a: AddressInfo) -> Self {
         Self {
-            address_idx: w.address_idx,
-            address: w.address,
-            keychain_kind: w.keychain_kind as i32,
+            address: a.address.to_string(),
+            address_idx: a.index,
         }
     }
 }

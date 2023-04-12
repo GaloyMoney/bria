@@ -1,22 +1,5 @@
 use crate::primitives::{bitcoin::*, *};
-use bdk::wallet::AddressInfo;
 use derive_builder::Builder;
-
-pub struct WalletAddress {
-    pub address_idx: u32,
-    pub address: String,
-    pub keychain_kind: KeychainKind,
-}
-
-impl From<AddressInfo> for WalletAddress {
-    fn from(p: AddressInfo) -> Self {
-        Self {
-            address_idx: p.index,
-            address: p.address.to_string(),
-            keychain_kind: p.keychain,
-        }
-    }
-}
 
 pub struct WalletUtxo {
     pub wallet_id: WalletId,

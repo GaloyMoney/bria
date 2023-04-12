@@ -78,9 +78,8 @@ message Utxo {
 }
 
 message WalletAddress {
-  uint32 address_idx = 1;
-  string address = 2;
-  KeychainKind keychain_kind = 3;
+  string address = 1;
+  uint32 address_idx = 2;
 }
 
 message KeychainUtxos {
