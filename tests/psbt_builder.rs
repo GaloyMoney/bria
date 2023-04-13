@@ -55,15 +55,12 @@ async fn build_psbt() -> anyhow::Result<()> {
     let bitcoind = helpers::bitcoind_client()?;
     let wallet_funding = 7;
     let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
-    dbg!("one");
     helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
     helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 2)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
-    dbg!("two");
     let blockchain = helpers::electrum_blockchain().await?;
-    dbg!("3");
     for _ in 0..5 {
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
         other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
