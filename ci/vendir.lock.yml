@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
-      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
+      commitTitle: auto sync warning
+      sha: 6b4d451a362b18d267ef5993083eae763e5b1a05
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
-      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
+      commitTitle: auto sync warning
+      sha: 6b4d451a362b18d267ef5993083eae763e5b1a05
     path: .
   path: ./vendor
 kind: LockConfig
