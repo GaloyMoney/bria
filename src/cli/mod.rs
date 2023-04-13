@@ -4,7 +4,7 @@ mod config;
 mod token_store;
 
 use anyhow::Context;
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use std::path::PathBuf;
 use url::Url;
 
@@ -162,9 +162,11 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
         #[clap(short, long)]
-        index_height: u32,
+        from_index: u32,
         #[clap(short, long)]
         depth: Option<u32>,
+        #[clap(short, long, action = ArgAction::SetTrue)]
+        internal: bool,
     },
     CreateBatchGroup {
         #[clap(
@@ -364,11 +366,14 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
-            index_height,
+            from_index,
             depth,
+            internal,
         } => {
             let client = api_client(url, api_key);
-            client.list_addresses(wallet, index_height, depth).await?;
+            client
+                .list_addresses(wallet, from_index, depth, internal)
+                .await?;
         }
         Command::CreateBatchGroup {
             url,

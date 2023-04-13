@@ -219,20 +219,27 @@ impl App {
         &self,
         account_id: AccountId,
         wallet_name: String,
-        index_height: u32,
+        from_index: u32,
         depth: Option<u32>,
+        internal: bool,
     ) -> Result<(WalletId, Vec<AddressInfo>), BriaError> {
         let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
 
-        let end_index = index_height + 1;
+        let end_index = from_index + 1;
         let start_index = end_index.saturating_sub(depth.unwrap_or(20));
         let mut addresses = Vec::new();
 
         for index in start_index..end_index {
             // Find the address information for the current index and external keychain
             let address_info = keychain_wallet
-                .find_address_from_path(index, KeychainKind::External)
+                .find_address_from_path(
+                    index,
+                    match internal {
+                        true => KeychainKind::Internal,
+                        false => KeychainKind::External,
+                    },
+                )
                 .await?;
 
             addresses.push(address_info);

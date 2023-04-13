@@ -140,8 +140,9 @@ impl BriaService for Bria {
             .list_addresses(
                 account_id,
                 request.wallet_name,
-                request.index_height,
+                request.from_index,
                 request.depth,
+                request.internal,
             )
             .await?;
 
