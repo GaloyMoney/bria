@@ -55,15 +55,12 @@ async fn build_psbt() -> anyhow::Result<()> {
     let bitcoind = helpers::bitcoind_client()?;
     let wallet_funding = 7;
     let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
-    dbg!("one");
     helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
     helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 2)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
-    dbg!("two");
     let blockchain = helpers::electrum_blockchain().await?;
-    dbg!("3");
     for _ in 0..5 {
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
         other_wallet_deprecated_keychain.sync(&blockchain, Default::default())?;
@@ -85,7 +82,6 @@ async fn build_psbt() -> anyhow::Result<()> {
         .fee_rate(fee)
         .accept_wallets();
 
-    dbg!("4");
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
     let other_wallet_id = WalletId::new();
@@ -126,16 +122,13 @@ async fn build_psbt() -> anyhow::Result<()> {
         },
     ];
 
-    dbg!("5");
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)
         .accept_current_keychain();
-    dbg!("6");
     let builder = domain_current_keychain
         .dispatch_bdk_wallet(builder)
         .await?
         .next_wallet();
-    dbg!("7");
     let other_wallet_current_keychain_id =
         uuid::uuid!("00000000-0000-0000-0000-000000000001").into();
     let other_wallet_deprecated_keychain_id =
@@ -159,7 +152,6 @@ async fn build_psbt() -> anyhow::Result<()> {
         fee_satoshis,
         ..
     } = builder.finish();
-    dbg!("8");
     assert_eq!(
         included_payouts
             .get(&domain_wallet_id)
@@ -237,17 +229,13 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     other_wallet_current_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
     other_wallet_deprecated_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
-    dbg!("9");
     let mut lnd_client = helpers::lnd_signing_client().await?;
-    dbg!("10");
     let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
     let tx = domain_current_keychain
         .finalize_psbt(signed_psbt)
         .await?
         .extract_tx();
-    dbg!("11");
     helpers::electrum_blockchain().await?.broadcast(&tx)?;
-    dbg!("12");
 
     Ok(())
 }
