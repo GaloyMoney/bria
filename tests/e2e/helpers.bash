@@ -1,5 +1,6 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-${REPO_ROOT##*/}}"
+BRIA_HOME="${BRIA_HOME:-.bria}"
 if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
@@ -77,8 +78,8 @@ start_daemon() {
 }
 
 stop_daemon() {
-  if [[ -f .bria/daemon_pid ]]; then
-    kill -9 $(cat .bria/daemon_pid) || true
+  if [[ -f ${BRIA_HOME}/daemon_pid ]]; then
+    kill -9 $(cat ${BRIA_HOME}/daemon_pid) || true
   fi
 }
 

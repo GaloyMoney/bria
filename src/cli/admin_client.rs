@@ -19,11 +19,16 @@ impl Default for AdminApiClientConfig {
 pub struct AdminApiClient {
     config: AdminApiClientConfig,
     key: String,
+    bria_home: String,
 }
 
 impl AdminApiClient {
-    pub fn new(config: AdminApiClientConfig, key: String) -> Self {
-        Self { config, key }
+    pub fn new(bria_home: String, config: AdminApiClientConfig, key: String) -> Self {
+        Self {
+            bria_home,
+            config,
+            key,
+        }
     }
 
     async fn connect(&self) -> anyhow::Result<ProtoClient> {
@@ -44,7 +49,7 @@ impl AdminApiClient {
         mut request: tonic::Request<T>,
     ) -> anyhow::Result<tonic::Request<T>> {
         let key = if self.key.is_empty() {
-            token_store::load_admin_token()?
+            token_store::load_admin_token(&self.bria_home)?
         } else {
             self.key.clone()
         };
@@ -61,7 +66,7 @@ impl AdminApiClient {
         let request = tonic::Request::new(proto::BootstrapRequest {});
         let response = self.connect().await?.bootstrap(request).await?;
         let key = response.into_inner().key.context("No key in response")?;
-        token_store::store_admin_token(&key.key)?;
+        token_store::store_admin_token(&self.bria_home, &key.key)?;
         print_admin_api_key(key);
         Ok(())
     }
@@ -74,7 +79,7 @@ impl AdminApiClient {
             .account_create(self.inject_admin_auth_token(request)?)
             .await?;
         let key = response.into_inner().key.context("No key in response")?;
-        token_store::store_account_token(&key.key)?;
+        token_store::store_account_token(&self.bria_home, &key.key)?;
         print_account(key);
         Ok(())
     }

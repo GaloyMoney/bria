@@ -31,6 +31,7 @@ services:
       - cargo-cache:/usr/local/cargo
     environment:
       - HOST_PROJECT_PATH=${PWD}
+      - BRIA_HOME=/bria
       - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
       - BRIA_CONFIG=docker
       - RUST_LOG=error

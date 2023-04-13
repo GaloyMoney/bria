@@ -16,6 +16,16 @@ use config::*;
 struct Cli {
     #[clap(subcommand)]
     command: Command,
+
+    /// Directory for storing tokens + pid file
+    #[clap(
+        short,
+        long,
+        env = "BRIA_HOME",
+        default_value = ".bria",
+        value_name = "DIRECTORY"
+    )]
+    bria_home: String,
 }
 
 #[derive(Subcommand)]
@@ -241,7 +251,10 @@ pub async fn run() -> anyhow::Result<()> {
             db_con,
         } => {
             let config = Config::from_path(config, EnvOverride { db_con })?;
-            match (run_cmd(config.clone()).await, crash_report_config) {
+            match (
+                run_cmd(&cli.bria_home, config.clone()).await,
+                crash_report_config,
+            ) {
                 (Err(e), Some(true)) => {
                     println!("Bria was started with the following config:");
                     println!("{}", serde_yaml::to_string(&config).unwrap());
@@ -257,6 +270,7 @@ pub async fn run() -> anyhow::Result<()> {
             admin_api_key,
         } => {
             let client = admin_client::AdminApiClient::new(
+                cli.bria_home,
                 url.map(|url| admin_client::AdminApiClientConfig { url })
                     .unwrap_or_else(admin_client::AdminApiClientConfig::default),
                 admin_api_key,
@@ -277,7 +291,7 @@ pub async fn run() -> anyhow::Result<()> {
             name,
             derivation,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.import_xpub(name, xpub, derivation).await?;
         }
         Command::SetSignerConfig {
@@ -286,7 +300,7 @@ pub async fn run() -> anyhow::Result<()> {
             xpub,
             command,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             match command {
                 SetSignerConfigCommand::Lnd {
                     endpoint,
@@ -314,7 +328,7 @@ pub async fn run() -> anyhow::Result<()> {
             xpub,
             name,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.create_wallet(name, xpub).await?;
         }
         Command::WalletBalance {
@@ -322,7 +336,7 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             wallet: name,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.get_wallet_balance_summary(name).await?;
         }
         Command::NewAddress {
@@ -330,7 +344,7 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             wallet,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.new_address(wallet).await?;
         }
         Command::ListUtxos {
@@ -338,7 +352,7 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             wallet,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.list_utxos(wallet).await?;
         }
         Command::CreateBatchGroup {
@@ -352,7 +366,7 @@ pub async fn run() -> anyhow::Result<()> {
             immediate_trigger,
             interval_trigger,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client
                 .create_batch_group(
                     name,
@@ -373,7 +387,7 @@ pub async fn run() -> anyhow::Result<()> {
             destination,
             amount,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client
                 .queue_payout(wallet, group_name, destination, amount)
                 .await?;
@@ -383,21 +397,23 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             wallet,
         } => {
-            let client = api_client(url, api_key);
+            let client = api_client(cli.bria_home, url, api_key);
             client.list_payouts(wallet).await?;
         }
     }
     Ok(())
 }
 
-fn api_client(url: Option<Url>, api_key: String) -> api_client::ApiClient {
+fn api_client(bria_home: String, url: Option<Url>, api_key: String) -> api_client::ApiClient {
     api_client::ApiClient::new(
+        bria_home,
         url.map(|url| api_client::ApiClientConfig { url })
             .unwrap_or_else(api_client::ApiClientConfig::default),
         api_key,
     )
 }
 async fn run_cmd(
+    bria_home: &str,
     Config {
         tracing,
         db_con,
@@ -409,7 +425,7 @@ async fn run_cmd(
     }: Config,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
-    token_store::store_daemon_pid(std::process::id())?;
+    token_store::store_daemon_pid(bria_home, std::process::id())?;
     println!("Starting server processes");
     let (send, mut receive) = tokio::sync::mpsc::channel(1);
     let mut handles = Vec::new();

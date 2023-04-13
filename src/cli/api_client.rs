@@ -19,11 +19,16 @@ impl Default for ApiClientConfig {
 pub struct ApiClient {
     config: ApiClientConfig,
     key: String,
+    bria_home: String,
 }
 
 impl ApiClient {
-    pub fn new(config: ApiClientConfig, key: String) -> Self {
-        Self { config, key }
+    pub fn new(bria_home: String, config: ApiClientConfig, key: String) -> Self {
+        Self {
+            config,
+            key,
+            bria_home,
+        }
     }
 
     async fn connect(&self) -> anyhow::Result<ProtoClient> {
@@ -44,7 +49,7 @@ impl ApiClient {
         mut request: tonic::Request<T>,
     ) -> anyhow::Result<tonic::Request<T>> {
         let key = if self.key.is_empty() {
-            token_store::load_account_token()?
+            token_store::load_account_token(&self.bria_home)?
         } else {
             self.key.clone()
         };
