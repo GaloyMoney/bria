@@ -96,13 +96,27 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
+pub async fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
 
-    let cfg = ConfigBuilder::new().retry(50).timeout(Some(4))?.build();
-    let client = Client::from_config(&electrum_url, cfg)?;
-    Ok(ElectrumBlockchain::from(client))
+    let cfg = ConfigBuilder::new().retry(10).timeout(Some(4))?.build();
+    let mut retries = 0;
+
+    loop {
+        match Client::from_config(&electrum_url, cfg.clone()) {
+            Ok(client) => {
+                return Ok(ElectrumBlockchain::from(client));
+            }
+            Err(err) if retries >= 10 => {
+                return Err(err.into());
+            }
+            _ => {
+                retries += 1;
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
 }
 
 pub fn random_bdk_wallet() -> anyhow::Result<bdk::Wallet<MemoryDatabase>> {
