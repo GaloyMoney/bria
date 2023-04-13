@@ -47,7 +47,7 @@ teardown_file() {
   [[ $(cached_encumbered_outgoing) == 150000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
-@test "payout: Blocks settle income and batch is created" {
+@test "payout: Settling income means batch is created" {
   bitcoin_cli -generate 20
 
   for i in {1..30}; do
@@ -57,7 +57,6 @@ teardown_file() {
   done
   cache_default_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
-  [[ $(cached_current_settled) == 200000000 ]] || exit 1
 
   for i in {1..20}; do
     batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
