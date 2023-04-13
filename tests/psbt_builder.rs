@@ -62,7 +62,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     helpers::gen_blocks(&bitcoind, 10)?;
 
     dbg!("two");
-    let blockchain = helpers::electrum_blockchain().await?;
+    let blockchain = helpers::electrum_blockchain()?;
     dbg!("3");
     for _ in 0..5 {
         other_wallet_current_keychain.sync(&blockchain, Default::default())?;
@@ -238,7 +238,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         .finalize_psbt(signed_psbt)
         .await?
         .extract_tx();
-    helpers::electrum_blockchain().await?.broadcast(&tx)?;
+    helpers::electrum_blockchain()?.broadcast(&tx)?;
 
     Ok(())
 }

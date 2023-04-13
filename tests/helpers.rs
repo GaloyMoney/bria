@@ -96,11 +96,11 @@ pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
+pub fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
 
-    let cfg = ConfigBuilder::new().retry(10).timeout(Some(4))?.build();
+    let cfg = ConfigBuilder::new().retry(50).timeout(Some(4))?.build();
     let client = Client::from_config(&electrum_url, cfg)?;
     Ok(ElectrumBlockchain::from(client))
 }
