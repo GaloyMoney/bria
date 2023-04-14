@@ -29,6 +29,7 @@ groups:
   - release
   - release-docker
   - set-dev-version
+  - bump-image-in-chart
   - build-edge-image
   - build-edge-provision-admin-sidecar-image
 
@@ -313,6 +314,62 @@ jobs:
       repository: repo
       rebase: true
 
+- name: bump-image-in-chart
+  plan:
+  - in_parallel:
+    - get: latest-image
+      passed: [ release-docker ]
+      params: { skip_download: true }
+    - get: latest-provision-admin-sidecar-image
+      passed: [ release-docker ]
+      params: { skip_download: true }
+    - get: repo
+      trigger: true
+      passed: [ release-docker ]
+    - get: version
+      trigger: true
+      passed: [ release-docker ]
+    - get: charts-repo
+      params: { skip_download: true }
+    - get: pipeline-tasks
+  - task: bump-image-digest-in-values
+    config:
+      platform: linux
+      image_resource: #@ nodejs_task_image_config()
+      inputs:
+      - name: repo
+      - name: latest-image
+      - name: latest-provision-admin-sidecar-image
+      - name: pipeline-tasks
+      - name: charts-repo
+      - name: version
+      outputs:
+        - name: charts-repo
+      params:
+        BRANCH: #@ data.values.git_charts_branch
+        CHARTS_SUBDIR: "bria"
+      run:
+        path: pipeline-tasks/ci/tasks/bump-image-digest.sh
+  - put: charts-repo-bot-branch
+    params:
+      repository: charts-repo
+      force: true
+  - task: open-charts-pr
+    config:
+      platform: linux
+      image_resource: #@ nodejs_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: latest-image
+      - name: charts-repo
+      params:
+        GH_TOKEN: #@ data.values.github_token
+        BRANCH: #@ data.values.git_charts_branch
+        BOT_BRANCH: #@ data.values.git_charts_bot_branch
+        CHARTS_SUBDIR: "bria"
+      run:
+        path: pipeline-tasks/ci/tasks/open-charts-pr.sh
+
 resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
@@ -341,6 +398,8 @@ resources:
     username: #@ data.values.docker_registry_user
     password: #@ data.values.docker_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository + "-provision-admin-sidecar"
+- #@ charts_repo_resource()
+- #@ charts_repo_bot_branch()
 
 resource_types:
 - #@ slack_resource_type()
