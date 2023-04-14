@@ -9,8 +9,7 @@ RUN mkdir bria && cd bria \
 
 FROM gcr.io/distroless/static
   COPY --from=load /usr/local/bin/bria /bin/bria
-  RUN mkdir /bria
-  RUN chown -R 1000 /bria && chmod -R u+w /bria
+  COPY --from=load --chown=1000:0 --chmod=700 /usr/local/bin/bria /bria
   USER 1000
   ARG VERSION
   ARG BUILDTIME

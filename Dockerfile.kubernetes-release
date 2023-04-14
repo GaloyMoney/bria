@@ -3,7 +3,7 @@ FROM ubuntu
 ARG VERSION
 ENV VERSION ${VERSION}
 
-RUN apt update && apt install curl --yes
+RUN apt update && apt install curl wget --yes
 RUN mkdir bria && cd bria \
   && wget https://github.com/GaloyMoney/bria/releases/download/${VERSION}/bria-x86_64-unknown-linux-musl-${VERSION}.tar.gz -O bria.tar.gz \
   && tar --strip-components=1 -xf bria.tar.gz \
