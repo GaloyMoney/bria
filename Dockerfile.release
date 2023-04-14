@@ -1,0 +1,22 @@
+FROM alpine:latest as load
+
+ARG VERSION
+ENV VERSION ${VERSION}
+RUN mkdir bria && cd bria \
+  && wget https://github.com/GaloyMoney/bria/releases/download/${VERSION}/bria-x86_64-unknown-linux-musl-${VERSION}.tar.gz -O bria.tar.gz \
+  && tar --strip-components=1 -xf bria.tar.gz \
+  && mv bria /usr/local/bin && cd ../ && rm -rf ./bria
+
+FROM gcr.io/distroless/static
+  COPY --from=load /usr/local/bin/bria /bin/bria
+  RUN mkdir /bria
+  RUN chown -R 1000 /bria && chmod -R u+w /bria
+  USER 1000
+  ARG VERSION
+  ARG BUILDTIME
+  ARG COMMITHASH
+  ENV VERSION ${VERSION}
+  ENV BUILDTIME ${BUILDTIME}
+  ENV COMMITHASH ${COMMITHASH}
+  ENV BRIA_HOME /bria
+  CMD ["bria"]

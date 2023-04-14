@@ -30,7 +30,7 @@ groups:
   - release-docker
   - set-dev-version
   - build-edge-image
-  - build-provision-admin-sidecar-image
+  - build-edge-provision-admin-sidecar-image
 
 jobs:
 - #@ rust_check_code()
@@ -61,7 +61,7 @@ jobs:
   on_failure: #@ slack_failure_notification()
 
 - #@ build_edge_image()
-- name: build-provision-admin-sidecar-image
+- name: build-edge-provision-admin-sidecar-image
   serial: true
   plan:
   - in_parallel:
@@ -95,7 +95,7 @@ jobs:
         DOCKERFILE: repo/Dockerfile.kubernetes
       run:
         path: build
-  - put: provision-admin-sidecar-image
+  - put: edge-provision-admin-sidecar-image
     params:
       image: image/image.tar
 
@@ -236,29 +236,54 @@ jobs:
       outputs:
       - name: repo
       run:
-        path: pipeline-tasks/ci/vendor/tasks/prep-docker-build-env.sh
-  - task: build
-    privileged: true
-    config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: vito/oci-build-task
-      inputs:
-      - name: repo
-      outputs:
-      - name: image
-      params:
-        CONTEXT: repo
-        BUILD_ARGS_FILE: repo/.env
-        DOCKERFILE: "repo/Dockerfile.release"
-      run:
-        path: build
-  - put: latest-image
-    params:
-      image: image/image.tar
-      additional_tags: version/version
+        path: pipeline-tasks/ci/tasks/prep-docker-build-env.sh
+  - in_parallel:
+    - do:
+      - task: build
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: vito/oci-build-task
+          inputs:
+          - name: repo
+          outputs:
+          - name: image
+          params:
+            CONTEXT: repo
+            BUILD_ARGS_FILE: repo/.env
+            DOCKERFILE: "repo/Dockerfile.release"
+          run:
+            path: build
+      - put: latest-image
+        params:
+          image: image/image.tar
+          additional_tags: version/version
+    - do:
+      - task: build
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: vito/oci-build-task
+          inputs:
+          - name: repo
+          outputs:
+          - name: image
+          params:
+            CONTEXT: repo
+            BUILD_ARGS_FILE: repo/.env
+            DOCKERFILE: "repo/Dockerfile.kubernetes-release"
+          run:
+            path: build
+      - put: latest-provision-admin-sidecar-image
+        params:
+          image: image/image.tar
+          additional_tags: version/version
 
 - name: set-dev-version
   plan:
@@ -302,10 +327,17 @@ resources:
     username: #@ data.values.docker_registry_user
     password: #@ data.values.docker_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository
-- name: provision-admin-sidecar-image
+- name: edge-provision-admin-sidecar-image
   type: registry-image
   source:
-    tag: provision-admin-sidecar
+    tag: edge
+    username: #@ data.values.docker_registry_user
+    password: #@ data.values.docker_registry_password
+    repository: #@ public_docker_registry() + "/" + data.values.gh_repository + "-provision-admin-sidecar"
+- name: latest-provision-admin-sidecar-image
+  type: registry-image
+  source:
+    tag: latest
     username: #@ data.values.docker_registry_user
     password: #@ data.values.docker_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository + "-provision-admin-sidecar"
