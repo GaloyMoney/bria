@@ -1,22 +1,18 @@
 use sqlx::{Pool, Postgres, Transaction};
-use tracing::instrument;
 use uuid::Uuid;
 
 use super::entity::*;
 use crate::{admin::error::*, primitives::*};
 
 pub struct Accounts {
-    _pool: Pool<Postgres>,
+    pool: Pool<Postgres>,
 }
 
 impl Accounts {
     pub fn new(pool: &Pool<Postgres>) -> Self {
-        Self {
-            _pool: pool.clone(),
-        }
+        Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "accounts.create", skip(self, tx))]
     pub async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -36,5 +32,21 @@ impl Accounts {
             name: account_name,
             id: AccountId::from(record.id),
         })
+    }
+
+    pub async fn list(&self) -> Result<Vec<Account>, AdminApiError> {
+        let records = sqlx::query!(r#"SELECT id, name FROM bria_accounts"#)
+            .fetch_all(&self.pool)
+            .await?;
+
+        let accounts = records
+            .into_iter()
+            .map(|record| Account {
+                id: AccountId::from(record.id),
+                name: record.name,
+            })
+            .collect();
+
+        Ok(accounts)
     }
 }

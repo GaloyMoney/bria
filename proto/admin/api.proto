@@ -1,11 +1,12 @@
 syntax = "proto3";
 package services.bria_admin.v1;
 
-option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/adminv1";
+option go_package = "github.com/GaloyMoney/terraform-provider-briaadmin/client/proto/adminv1";
 
 service AdminService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}
   rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse) {}
 }
 
 message BootstrapRequest {}
@@ -26,6 +27,17 @@ message AccountCreateRequest {
 
 message AccountCreateResponse {
   AccountApiKey key = 1;
+}
+
+message ListAccountsRequest {}
+
+message ListAccountsResponse {
+  repeated Account accounts = 1;
+}
+
+message Account {
+  string id = 1;
+  string name = 2;
 }
 
 message AccountApiKey {

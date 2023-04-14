@@ -52,6 +52,26 @@ impl AdminService for Admin {
             }),
         }))
     }
+
+    #[instrument(skip_all, err)]
+    async fn list_accounts(
+        &self,
+        request: Request<ListAccountsRequest>,
+    ) -> Result<Response<ListAccountsResponse>, Status> {
+        let admin_api_key = extract_api_token(&request)?;
+        self.app.authenticate(admin_api_key).await?;
+        let accounts = self.app.list_accounts().await?;
+        let response_accounts = accounts
+            .into_iter()
+            .map(|account| Account {
+                id: account.id.to_string(),
+                name: account.name,
+            })
+            .collect();
+        Ok(Response::new(ListAccountsResponse {
+            accounts: response_accounts,
+        }))
+    }
 }
 
 pub(crate) async fn start(

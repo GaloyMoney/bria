@@ -570,6 +570,30 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"
   },
+  "431e9fcdf2f16e554ab6da696c0ad807bbc296b96d3d8bceb1e2826786e949da": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id, name FROM bria_accounts"
+  },
   "45ae4f218ab3a64c547f6b93d06003de96f1d2136f44e6936e450463ecde0fc1": {
     "describe": {
       "columns": [],
