@@ -26,6 +26,9 @@ groups:
   - check-code
   - test-integration
   - test-e2e
+  - release
+  - release-docker
+  - set-dev-version
   - build-edge-image
   - build-provision-admin-sidecar-image
 
@@ -96,12 +99,209 @@ jobs:
     params:
       image: image/image.tar
 
+- name: release
+  serial: true
+  plan:
+  - in_parallel:
+    - get: repo
+      passed:
+      - test-integration
+      - test-e2e
+      - check-code
+    - get: pipeline-tasks
+    - get: version
+  - task: prep-release
+    config:
+      platform: linux
+      image_resource: #@ release_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: repo
+      - name: version
+      outputs:
+      - name: version
+      - name: artifacts
+      run:
+        path: pipeline-tasks/ci/vendor/tasks/prep-release-src.sh
+  - task: update-repo
+    config:
+      platform: linux
+      image_resource: #@ rust_task_image_config()
+      inputs:
+      - name: artifacts
+      - name: pipeline-tasks
+      - name: repo
+      - name: version
+      outputs:
+      - name: repo
+      run:
+        path: pipeline-tasks/ci/tasks/update-repo.sh
+  - in_parallel:
+    - task: build-osx-release
+      privileged: true
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source:
+            username: #@ data.values.osxcross_docker_username
+            password: #@ data.values.osxcross_docker_password
+            repository: #@ data.values.osxcross_repository
+        inputs:
+        - name: version
+        - name: pipeline-tasks
+        - name: repo
+        outputs:
+        - name: x86_64-apple-darwin
+        caches:
+        - path: cargo-home
+        - path: cargo-target-dir
+        params:
+          TARGET: x86_64-apple-darwin
+          OUT: x86_64-apple-darwin
+        run:
+          path: pipeline-tasks/ci/tasks/build-release.sh
+    - task: build-static-release
+      privileged: true
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: clux/muslrust, tag: stable }
+        inputs:
+        - name: version
+        - name: pipeline-tasks
+        - name: repo
+        outputs:
+        - name: x86_64-unknown-linux-musl
+        caches:
+        - path: cargo-home
+        - path: cargo-target-dir
+        params:
+          TARGET: x86_64-unknown-linux-musl
+          OUT: x86_64-unknown-linux-musl
+        run:
+          path: pipeline-tasks/ci/tasks/build-release.sh
+  - put: repo
+    params:
+      tag: artifacts/gh-release-tag
+      repository: repo
+      merge: true
+  - put: version
+    params:
+      file: version/version
+  - task: github-release
+    config:
+      image_resource: #@ rust_task_image_config()
+      platform: linux
+      inputs:
+      - name: x86_64-apple-darwin
+      - name: x86_64-unknown-linux-musl
+      - name: version
+      - name: pipeline-tasks
+      - name: artifacts
+      outputs:
+      - name: artifacts
+      params:
+        BRANCH: #@ data.values.git_branch
+      run:
+        path: pipeline-tasks/ci/tasks/github-release.sh
+  - put: gh-release
+    params:
+      name: artifacts/gh-release-name
+      tag: artifacts/gh-release-tag
+      body: artifacts/gh-release-notes.md
+      globs: [artifacts/binaries/*]
+
+- name: release-docker
+  serial: true
+  plan:
+  - in_parallel:
+    - get: repo
+      passed:
+      - release
+    - get: version
+      passed:
+      - release
+      trigger: true
+    - get: pipeline-tasks
+  - task: prepare-docker-build
+    config:
+      platform: linux
+      image_resource: #@ rust_task_image_config()
+      inputs:
+      - name: pipeline-tasks
+      - name: version
+      - name: repo
+      outputs:
+      - name: repo
+      run:
+        path: pipeline-tasks/ci/vendor/tasks/prep-docker-build-env.sh
+  - task: build
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: vito/oci-build-task
+      inputs:
+      - name: repo
+      outputs:
+      - name: image
+      params:
+        CONTEXT: repo
+        BUILD_ARGS_FILE: repo/.env
+        DOCKERFILE: "repo/Dockerfile.release"
+      run:
+        path: build
+  - put: latest-image
+    params:
+      image: image/image.tar
+      additional_tags: version/version
+
+- name: set-dev-version
+  plan:
+  - in_parallel:
+    - { get: repo, passed: [release] }
+    - { get: pipeline-tasks }
+    - get: version
+      trigger: true
+      params: { bump: patch }
+      passed: [release]
+  - task: set-dev-version
+    config:
+      image_resource: #@ release_task_image_config()
+      platform: linux
+      inputs:
+      - name: version
+      - name: repo
+      - name: pipeline-tasks
+      outputs:
+      - name: repo
+      run:
+        path: pipeline-tasks/ci/tasks/set-dev-version.sh
+      params:
+        BRANCH: #@ data.values.git_branch
+  - put: repo
+    params:
+      repository: repo
+      rebase: true
+
 resources:
 - #@ repo_resource()
 - #@ pipeline_tasks_resource()
 - #@ slack_resource()
-
+- #@ version_resource()
+- #@ gh_release_resource()
 - #@ edge_image_resource()
+- name: latest-image
+  type: registry-image
+  source:
+    tag: latest
+    username: #@ data.values.docker_registry_user
+    password: #@ data.values.docker_registry_password
+    repository: #@ public_docker_registry() + "/" + data.values.gh_repository
 - name: provision-admin-sidecar-image
   type: registry-image
   source:

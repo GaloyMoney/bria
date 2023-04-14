@@ -8,6 +8,9 @@ github_token: ((github.api_token))
 docker_registry: us.gcr.io/galoy-org
 docker_registry_user: ((docker-creds.username))
 docker_registry_password: ((docker-creds.password))
+osxcross_docker_username: ((osxcross-image.username))
+osxcross_docker_password: ((osxcross-image.password))
+osxcross_repository: ((osxcross-image.repository))
 
 docker_host_ip: ((staging-ssh.docker_host_ip))
 artifacts_bucket_name: ((staging-gcp-creds.bucket_name))
