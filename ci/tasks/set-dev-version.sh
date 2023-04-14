@@ -4,7 +4,7 @@ VERSION="$(cat version/version)-dev"
 
 pushd repo
 
-sed -i'' "0,/version/{s/version.*/version = \"${VERSION}\"/}" Cargo.toml
+sed -i'' "0,/version/{s/version.*/version = \"${VERSION}\"/}" ./Cargo.toml
 sed -i'' "/^name = \"bria/,/version/{s/version.*/version = \"${VERSION}\"/}" ./Cargo.lock
 
 if [[ -z $(git config --global user.email) ]]; then
