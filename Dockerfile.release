@@ -2,14 +2,14 @@ FROM alpine:latest as load
 
 ARG VERSION
 ENV VERSION ${VERSION}
-RUN mkdir bria && cd bria \
+RUN mkdir bria-home && mkdir bria && cd bria \
   && wget https://github.com/GaloyMoney/bria/releases/download/${VERSION}/bria-x86_64-unknown-linux-musl-${VERSION}.tar.gz -O bria.tar.gz \
   && tar --strip-components=1 -xf bria.tar.gz \
   && mv bria /usr/local/bin && cd ../ && rm -rf ./bria
 
 FROM gcr.io/distroless/static
   COPY --from=load /usr/local/bin/bria /bin/bria
-  COPY --from=load --chown=1000:0 --chmod=700 /usr/local/bin/bria /bria
+  COPY --from=load --chown=1000:0 --chmod=755 /bria-home /bria
   USER 1000
   ARG VERSION
   ARG BUILDTIME

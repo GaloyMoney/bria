@@ -17,9 +17,9 @@ RUN curl -LO https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl 
     && chmod +x ./kubectl \
     && mv ./kubectl /usr/local/bin
 
-ENV BRIA_HOME /bria
 RUN mkdir /bria
 RUN chown -R 1000 /bria && chmod -R u+w /bria
+ENV BRIA_HOME /bria
 USER 1000
 WORKDIR /bria
 CMD ["bria"]
