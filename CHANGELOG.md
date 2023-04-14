@@ -1,3 +1,14 @@
+# [bria release v0.0.6](https://github.com/GaloyMoney/bria/releases/tag/0.0.6)
+
+
+### Features
+
+- List accounts
+
+### Miscellaneous Tasks
+
+- Rename AccountCreate -> CreateAccount
+
 # [bria release v0.0.5](https://github.com/GaloyMoney/bria/releases/tag/0.0.5)
 
 
