@@ -36,14 +36,14 @@ impl AdminService for Admin {
     }
 
     #[instrument(skip_all, err)]
-    async fn account_create(
+    async fn create_account(
         &self,
-        request: Request<AccountCreateRequest>,
-    ) -> Result<Response<AccountCreateResponse>, Status> {
+        request: Request<CreateAccountRequest>,
+    ) -> Result<Response<CreateAccountResponse>, Status> {
         let admin_api_key = extract_api_token(&request)?;
         self.app.authenticate(admin_api_key).await?;
         let keys = self.app.create_account(request.into_inner().name).await?;
-        Ok(Response::new(AccountCreateResponse {
+        Ok(Response::new(CreateAccountResponse {
             key: Some(AccountApiKey {
                 id: keys.id.to_string(),
                 name: keys.name,

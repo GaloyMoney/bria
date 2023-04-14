@@ -5,7 +5,7 @@ option go_package = "github.com/GaloyMoney/terraform-provider-briaadmin/client/p
 
 service AdminService {
   rpc Bootstrap(BootstrapRequest) returns (BootstrapResponse) {}
-  rpc AccountCreate(AccountCreateRequest) returns (AccountCreateResponse) {}
+  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse) {}
   rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse) {}
 }
 
@@ -21,11 +21,11 @@ message AdminApiKey {
   string key = 3;
 }
 
-message AccountCreateRequest {
+message CreateAccountRequest {
   string name = 1;
 }
 
-message AccountCreateResponse {
+message CreateAccountResponse {
   AccountApiKey key = 1;
 }
 

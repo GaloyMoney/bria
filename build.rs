@@ -8,7 +8,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".", "#[serde(rename_all = \"camelCase\")]")
         .compile(&["proto/api/bria.proto"], &["proto"])?;
 
-    tonic_build::compile_protos("proto/admin/api.proto")?;
+    tonic_build::configure()
+        .type_attribute(".", "#[derive(serde::Serialize)]")
+        .type_attribute(".", "#[serde(rename_all = \"camelCase\")]")
+        .compile(&["proto/admin/api.proto"], &["proto"])?;
 
     Ok(())
 }

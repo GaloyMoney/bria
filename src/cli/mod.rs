@@ -227,6 +227,7 @@ enum AdminCommand {
         #[clap(short, long)]
         name: String,
     },
+    ListAccounts {},
 }
 
 #[derive(Subcommand)]
@@ -281,6 +282,9 @@ pub async fn run() -> anyhow::Result<()> {
                 }
                 AdminCommand::CreateAccount { name } => {
                     client.account_create(name).await?;
+                }
+                AdminCommand::ListAccounts {} => {
+                    client.list_accounts().await?;
                 }
             }
         }

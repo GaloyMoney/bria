@@ -72,16 +72,26 @@ impl AdminApiClient {
     }
 
     pub async fn account_create(&self, name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::AccountCreateRequest { name });
+        let request = tonic::Request::new(proto::CreateAccountRequest { name });
         let response = self
             .connect()
             .await?
-            .account_create(self.inject_admin_auth_token(request)?)
+            .create_account(self.inject_admin_auth_token(request)?)
             .await?;
         let key = response.into_inner().key.context("No key in response")?;
         token_store::store_account_token(&self.bria_home, &key.key)?;
         print_account(key);
         Ok(())
+    }
+
+    pub async fn list_accounts(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListAccountsRequest {});
+        let response = self
+            .connect()
+            .await?
+            .list_accounts(self.inject_admin_auth_token(request)?)
+            .await?;
+        output_json(response)
     }
 }
 
@@ -96,4 +106,9 @@ pub fn print_account(key: proto::AccountApiKey) {
         "---\nname: {}\nid: {}\nkey: {}\nkey_id: {}",
         key.name, key.account_id, key.key, key.id,
     );
+}
+
+fn output_json<T: serde::Serialize>(response: tonic::Response<T>) -> anyhow::Result<()> {
+    println!("{}", serde_json::to_string_pretty(&response.into_inner())?);
+    Ok(())
 }
