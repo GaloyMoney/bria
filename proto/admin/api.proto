@@ -26,7 +26,7 @@ message CreateAccountRequest {
 }
 
 message CreateAccountResponse {
-  AccountApiKey key = 1;
+  ProfileApiKey key = 1;
 }
 
 message ListAccountsRequest {}
@@ -40,8 +40,8 @@ message Account {
   string name = 2;
 }
 
-message AccountApiKey {
-  string id = 1;
+message ProfileApiKey {
+  string profile_id = 1;
   string name = 2;
   string key = 3;
   string account_id = 4;

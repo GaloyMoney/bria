@@ -6,6 +6,7 @@ use crate::{
     error::BriaError,
     payout::*,
     primitives::{bitcoin::*, *},
+    profile::*,
     utxo::*,
     wallet::balance::WalletBalanceSummary,
     xpub::*,
@@ -14,6 +15,15 @@ use crate::{
 impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {
         tonic::Status::new(tonic::Code::Unknown, format!("{err}"))
+    }
+}
+
+impl From<Profile> for proto::Profile {
+    fn from(p: Profile) -> Self {
+        Self {
+            id: p.id.to_string(),
+            name: p.name,
+        }
     }
 }
 

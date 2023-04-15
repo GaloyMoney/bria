@@ -16,6 +16,7 @@ pub mod ledger;
 mod macros;
 pub mod payout;
 pub mod primitives;
+pub mod profile;
 mod tracing;
 pub mod utxo;
 pub mod wallet;

@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 pub use sqlx_ledger::{AccountId as LedgerAccountId, TransactionId as LedgerTransactionId};
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
-crate::entity_id! { AccountApiKeyId }
+crate::entity_id! { ProfileId }
+crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }

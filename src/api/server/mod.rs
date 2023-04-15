@@ -22,12 +22,42 @@ pub struct Bria {
 #[tonic::async_trait]
 impl BriaService for Bria {
     #[instrument(skip_all, err)]
+    async fn create_profile(
+        &self,
+        request: Request<CreateProfileRequest>,
+    ) -> Result<Response<CreateProfileResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let profile = self.app.create_profile(profile, request.name).await?;
+        Ok(Response::new(CreateProfileResponse {
+            id: profile.id.to_string(),
+        }))
+    }
+
+    #[instrument(skip_all, err)]
+    async fn list_profiles(
+        &self,
+        request: Request<ListProfilesRequest>,
+    ) -> Result<Response<ListProfilesResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let profiles = self.app.list_profiles(profile).await?;
+        let profile_messages: Vec<proto::Profile> =
+            profiles.into_iter().map(proto::Profile::from).collect();
+        let response = ListProfilesResponse {
+            profiles: profile_messages,
+        };
+        Ok(Response::new(response))
+    }
+
+    #[instrument(skip_all, err)]
     async fn import_xpub(
         &self,
         request: Request<ImportXpubRequest>,
     ) -> Result<Response<ImportXpubResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let ImportXpubRequest {
             name,
             xpub,
@@ -40,7 +70,7 @@ impl BriaService for Bria {
         };
         let id = self
             .app
-            .import_xpub(account_id, name, xpub, derivation)
+            .import_xpub(profile, name, xpub, derivation)
             .await?;
         Ok(Response::new(ImportXpubResponse { id: id.to_string() }))
     }
@@ -51,10 +81,10 @@ impl BriaService for Bria {
         request: Request<SetSignerConfigRequest>,
     ) -> Result<Response<SetSignerConfigResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let SetSignerConfigRequest { xpub_ref, config } = request.into_inner();
         self.app
-            .set_signer_config(account_id, xpub_ref, config.try_into()?)
+            .set_signer_config(profile, xpub_ref, config.try_into()?)
             .await?;
         Ok(Response::new(SetSignerConfigResponse {}))
     }
@@ -65,11 +95,11 @@ impl BriaService for Bria {
         request: Request<CreateWalletRequest>,
     ) -> Result<Response<CreateWalletResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let id = self
             .app
-            .create_wallet(account_id, request.name, request.xpub_refs)
+            .create_wallet(profile, request.name, request.xpub_refs)
             .await?;
         Ok(Response::new(CreateWalletResponse { id: id.to_string() }))
     }
@@ -80,11 +110,11 @@ impl BriaService for Bria {
         request: Request<GetWalletBalanceSummaryRequest>,
     ) -> Result<Response<GetWalletBalanceSummaryResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let balance = self
             .app
-            .get_wallet_balance_summary(account_id, request.wallet_name)
+            .get_wallet_balance_summary(profile, request.wallet_name)
             .await?;
 
         Ok(Response::new(GetWalletBalanceSummaryResponse::from(
@@ -98,12 +128,9 @@ impl BriaService for Bria {
         request: Request<NewAddressRequest>,
     ) -> Result<Response<NewAddressResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let address = self
-            .app
-            .new_address(account_id, request.wallet_name)
-            .await?;
+        let address = self.app.new_address(profile, request.wallet_name).await?;
         Ok(Response::new(NewAddressResponse { address }))
     }
 
@@ -113,10 +140,9 @@ impl BriaService for Bria {
         request: Request<ListUtxosRequest>,
     ) -> Result<Response<ListUtxosResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let (wallet_id, keychain_utxos) =
-            self.app.list_utxos(account_id, request.wallet_name).await?;
+        let (wallet_id, keychain_utxos) = self.app.list_utxos(profile, request.wallet_name).await?;
 
         let proto_keychains: Vec<proto::KeychainUtxos> =
             keychain_utxos.into_iter().map(Into::into).collect();
@@ -133,12 +159,12 @@ impl BriaService for Bria {
         request: Request<CreateBatchGroupRequest>,
     ) -> Result<Response<CreateBatchGroupResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let id = self
             .app
             .create_batch_group(
-                account_id,
+                profile,
                 request.name,
                 request.description,
                 request.config.map(batch_group::BatchGroupConfig::from),
@@ -155,7 +181,7 @@ impl BriaService for Bria {
         request: Request<QueuePayoutRequest>,
     ) -> Result<Response<QueuePayoutResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let QueuePayoutRequest {
             wallet_name,
@@ -167,7 +193,7 @@ impl BriaService for Bria {
         let id = self
             .app
             .queue_payout(
-                account_id,
+                profile,
                 wallet_name,
                 batch_group_name,
                 destination.try_into()?,
@@ -185,10 +211,10 @@ impl BriaService for Bria {
         request: Request<ListPayoutsRequest>,
     ) -> Result<Response<ListPayoutsResponse>, Status> {
         let key = extract_api_token(&request)?;
-        let account_id = self.app.authenticate(key).await?;
+        let profile = self.app.authenticate(key).await?;
         let payouts = self
             .app
-            .list_payouts(account_id, request.into_inner().wallet_name)
+            .list_payouts(profile, request.into_inner().wallet_name)
             .await?;
 
         let payout_messages: Vec<proto::Payout> =

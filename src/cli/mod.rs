@@ -57,6 +57,34 @@ enum Command {
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
     },
+    /// Create a new profile
+    CreateProfile {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        name: String,
+    },
+    /// List all profiles
+    ListProfiles {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+    },
     /// Import an xpub
     ImportXpub {
         #[clap(
@@ -203,7 +231,7 @@ enum Command {
         #[clap(short, long)]
         amount: u64,
     },
-    /// List Unspent Transaction Outputs of a wallet
+    /// List pending Payouts
     ListPayouts {
         #[clap(
             short,
@@ -287,6 +315,14 @@ pub async fn run() -> anyhow::Result<()> {
                     client.list_accounts().await?;
                 }
             }
+        }
+        Command::CreateProfile { url, api_key, name } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.create_profile(name).await?;
+        }
+        Command::ListProfiles { url, api_key } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.list_profiles().await?;
         }
         Command::ImportXpub {
             url,

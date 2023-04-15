@@ -5,6 +5,8 @@ package services.bria.v1;
 option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/briav1";
 
 service BriaService {
+  rpc CreateProfile (CreateProfileRequest) returns (CreateProfileResponse) {}
+  rpc ListProfiles (ListProfilesRequest) returns (ListProfilesResponse) {}
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
@@ -14,6 +16,25 @@ service BriaService {
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
+}
+
+message CreateProfileRequest {
+  string name = 1;
+}
+
+message CreateProfileResponse {
+  string id = 1;
+}
+
+message ListProfilesRequest {}
+
+message Profile {
+  string id = 1;
+  string name = 2;
+}
+
+message ListProfilesResponse {
+  repeated Profile profiles = 1;
 }
 
 message ImportXpubRequest {

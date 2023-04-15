@@ -7,7 +7,7 @@ use bria::{app::*, payout::*, primitives::*, xpub::*};
 #[tokio::test]
 async fn test_payout() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
-    let account_id = helpers::create_test_account(&pool).await?;
+    let profile = helpers::create_test_account(&pool).await?;
 
     let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
     let wallet_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
@@ -16,7 +16,7 @@ async fn test_payout() -> anyhow::Result<()> {
     let id = repo
         .persist(
             NewXPub::builder()
-                .account_id(account_id)
+                .account_id(profile.account_id)
                 .key_name(wallet_name.clone())
                 .value(xpub)
                 .build()
@@ -31,12 +31,12 @@ async fn test_payout() -> anyhow::Result<()> {
         WalletsConfig::default(),
     )
     .await?;
-    app.create_wallet(account_id, wallet_name.clone(), vec![id.to_string()])
+    app.create_wallet(profile.clone(), wallet_name.clone(), vec![id.to_string()])
         .await?;
 
     let group_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let _ = app
-        .create_batch_group(account_id, group_name.clone(), None, None)
+        .create_batch_group(profile.clone(), group_name.clone(), None, None)
         .await?;
 
     let destination = PayoutDestination::OnchainAddress {
@@ -44,7 +44,7 @@ async fn test_payout() -> anyhow::Result<()> {
     };
     let _ = app
         .queue_payout(
-            account_id,
+            profile,
             wallet_name,
             group_name,
             destination,

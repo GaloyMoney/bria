@@ -62,6 +62,26 @@ impl ApiClient {
         Ok(request)
     }
 
+    pub async fn create_profile(&self, name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CreateProfileRequest { name });
+        let response = self
+            .connect()
+            .await?
+            .create_profile(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    pub async fn list_profiles(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListProfilesRequest {});
+        let response = self
+            .connect()
+            .await?
+            .list_profiles(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn import_xpub(
         &self,
         name: String,
