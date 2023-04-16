@@ -209,38 +209,6 @@
     },
     "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
   },
-  "1a76d04b1041114c87a0332df9ed7c335134411ae83d093f35cdb81f591df557": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT p.id, p.account_id, p.name FROM bria_profiles p JOIN bria_profile_api_keys k ON k.profile_id = p.id WHERE k.encrypted_key = crypt($1, encrypted_key)"
-  },
   "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
     "describe": {
       "columns": [
@@ -1746,6 +1714,38 @@
       }
     },
     "query": "INSERT INTO bria_admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
+  },
+  "e9b1d1648ca75ee2bede0753abbf6d7f16a2537d968f46da9fb416e4ca403e4e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT p.id, p.account_id, p.name\n               FROM bria_profiles p\n               JOIN bria_profile_api_keys k ON k.profile_id = p.id\n               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"
   },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {

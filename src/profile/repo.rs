@@ -83,7 +83,10 @@ impl Profiles {
 
     pub async fn find_by_key(&self, key: &str) -> Result<Profile, BriaError> {
         let record = sqlx::query!(
-            r#"SELECT p.id, p.account_id, p.name FROM bria_profiles p JOIN bria_profile_api_keys k ON k.profile_id = p.id WHERE k.encrypted_key = crypt($1, encrypted_key)"#,
+            r#"SELECT p.id, p.account_id, p.name
+               FROM bria_profiles p
+               JOIN bria_profile_api_keys k ON k.profile_id = p.id
+               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"#,
             key
         )
         .fetch_one(&self.pool)
