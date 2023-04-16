@@ -23,6 +23,8 @@ pub enum BriaError {
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
+    #[error("BriaError - ProfileNotFound")]
+    ProfileNotFound,
     #[error("BriaError - CouldNotRetrieveWalletBalance")]
     CouldNotRetrieveWalletBalance,
     #[error("BriaError - BatchGroupNotFound")]

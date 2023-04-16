@@ -85,6 +85,21 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
     },
+    /// Generate a new Api Key for the given profile name
+    GenApiKey {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        profile: String,
+    },
     /// Import an xpub
     ImportXpub {
         #[clap(
@@ -323,6 +338,14 @@ pub async fn run() -> anyhow::Result<()> {
         Command::ListProfiles { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_profiles().await?;
+        }
+        Command::GenApiKey {
+            url,
+            api_key,
+            profile,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.create_profile_api_key(profile).await?;
         }
         Command::ImportXpub {
             url,

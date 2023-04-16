@@ -58,6 +58,28 @@ impl Profiles {
         Ok(profiles)
     }
 
+    pub async fn find_by_name(
+        &self,
+        account_id: AccountId,
+        name: String,
+    ) -> Result<Profile, BriaError> {
+        let record = sqlx::query!(
+            r#"SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"#,
+            Uuid::from(account_id),
+            name
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        record
+            .map(|row| Profile {
+                id: ProfileId::from(row.id),
+                account_id,
+                name: row.name,
+            })
+            .ok_or(BriaError::ProfileNotFound)
+    }
+
     pub async fn create_key_for_profile_in_tx(
         &self,
         tx: &mut sqlx::Transaction<'_, Postgres>,

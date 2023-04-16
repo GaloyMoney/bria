@@ -82,6 +82,16 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn create_profile_api_key(&self, profile_name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CreateProfileApiKeyRequest { profile_name });
+        let response = self
+            .connect()
+            .await?
+            .create_profile_api_key(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn import_xpub(
         &self,
         name: String,

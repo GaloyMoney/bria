@@ -108,6 +108,25 @@ impl App {
         Ok(profiles)
     }
 
+    #[instrument(name = "app.create_profile_api_key", skip(self), err)]
+    pub async fn create_profile_api_key(
+        &self,
+        profile: Profile,
+        profile_name: String,
+    ) -> Result<ProfileApiKey, BriaError> {
+        let found_profile = self
+            .profiles
+            .find_by_name(profile.account_id, profile_name)
+            .await?;
+        let mut tx = self.pool.begin().await?;
+        let key = self
+            .profiles
+            .create_key_for_profile_in_tx(&mut tx, found_profile)
+            .await?;
+        tx.commit().await?;
+        Ok(key)
+    }
+
     #[instrument(name = "app.import_xpub", skip(self), err)]
     pub async fn import_xpub(
         &self,

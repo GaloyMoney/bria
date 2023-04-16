@@ -52,6 +52,24 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn create_profile_api_key(
+        &self,
+        request: Request<CreateProfileApiKeyRequest>,
+    ) -> Result<Response<CreateProfileApiKeyResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let key = self
+            .app
+            .create_profile_api_key(profile, request.profile_name)
+            .await?;
+        Ok(Response::new(CreateProfileApiKeyResponse {
+            id: key.id.to_string(),
+            key: key.key,
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn import_xpub(
         &self,
         request: Request<ImportXpubRequest>,

@@ -1670,6 +1670,33 @@
     },
     "query": "SELECT keychain_id,\n               CASE WHEN kind = 'external' THEN true ELSE false END as income_address,\n               tx_id, vout, spending_batch_id, confirmed_income_ledger_tx_id\n               FROM bria_utxos\n               WHERE keychain_id = ANY($1) AND bdk_spent = false\n               FOR UPDATE"
   },
+  "e1dfebd338910bea5b6c89fc03acc042b3a380bb12de33426383279d51e5a902": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"
+  },
   "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
     "describe": {
       "columns": [],

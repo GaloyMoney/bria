@@ -7,6 +7,7 @@ option go_package = "github.com/GaloyMoney/terraform-provider-bria/client/proto/
 service BriaService {
   rpc CreateProfile (CreateProfileRequest) returns (CreateProfileResponse) {}
   rpc ListProfiles (ListProfilesRequest) returns (ListProfilesResponse) {}
+  rpc CreateProfileApiKey (CreateProfileApiKeyRequest) returns (CreateProfileApiKeyResponse) {}
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
@@ -24,6 +25,15 @@ message CreateProfileRequest {
 
 message CreateProfileResponse {
   string id = 1;
+}
+
+message CreateProfileApiKeyRequest {
+  string profile_name = 1;
+}
+
+message CreateProfileApiKeyResponse {
+  string id = 1;
+  string key = 2;
 }
 
 message ListProfilesRequest {}
