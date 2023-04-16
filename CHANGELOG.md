@@ -1,3 +1,23 @@
+# [bria release v0.0.7](https://github.com/GaloyMoney/bria/releases/tag/0.0.7)
+
+
+### Bug Fixes
+
+- Missing commit call
+- Only auth with active keys
+
+### Features
+
+- Introduce profile
+
+### Miscellaneous Tasks
+
+- Expose create profile api key
+
+### Refactor
+
+- Rename account -> profile in token_store
+
 # [bria release v0.0.6](https://github.com/GaloyMoney/bria/releases/tag/0.0.6)
 
 
