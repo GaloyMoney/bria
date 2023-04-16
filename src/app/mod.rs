@@ -99,6 +99,7 @@ impl App {
             .profiles
             .create_in_tx(&mut tx, profile.account_id, name)
             .await?;
+        tx.commit().await?;
         Ok(new_profile)
     }
 
