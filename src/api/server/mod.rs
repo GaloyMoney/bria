@@ -13,7 +13,7 @@ use proto::{bria_service_server::BriaService, *};
 use super::config::*;
 use crate::{app::*, batch_group, error::*, primitives::*};
 
-pub const ACCOUNT_API_KEY_HEADER: &str = "x-bria-api-key";
+pub const PROFILE_API_KEY_HEADER: &str = "x-bria-api-key";
 
 pub struct Bria {
     app: App,
@@ -237,12 +237,12 @@ pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), Bria
 }
 
 pub fn extract_api_token<T>(request: &Request<T>) -> Result<&str, Status> {
-    match request.metadata().get(ACCOUNT_API_KEY_HEADER) {
+    match request.metadata().get(PROFILE_API_KEY_HEADER) {
         Some(value) => value
             .to_str()
             .map_err(|_| Status::unauthenticated("Bad token")),
         None => Err(Status::unauthenticated(format!(
-            "{ACCOUNT_API_KEY_HEADER} missing"
+            "{PROFILE_API_KEY_HEADER} missing"
         ))),
     }
 }

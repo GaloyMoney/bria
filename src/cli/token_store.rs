@@ -15,16 +15,16 @@ pub fn store_admin_token(bria_home: &str, token: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn store_account_token(bria_home: &str, token: &str) -> anyhow::Result<()> {
-    println!("Writing account token to {bria_home}/account-api-key");
+pub fn store_profile_token(bria_home: &str, token: &str) -> anyhow::Result<()> {
+    println!("Writing profile token to {bria_home}/profile-api-key");
     create_token_dir(bria_home)?;
-    let _ = fs::remove_file(format!("{bria_home}/account-api-key"));
-    fs::write(format!("{bria_home}/account-api-key"), token).context("Writing Account API Key")?;
+    let _ = fs::remove_file(format!("{bria_home}/profile-api-key"));
+    fs::write(format!("{bria_home}/profile-api-key"), token).context("Writing Profile API Key")?;
     Ok(())
 }
 
-pub fn load_account_token(bria_home: &str) -> anyhow::Result<String> {
-    let token = fs::read_to_string(format!("{bria_home}/account-api-key"))?;
+pub fn load_profile_token(bria_home: &str) -> anyhow::Result<String> {
+    let token = fs::read_to_string(format!("{bria_home}/profile-api-key"))?;
     Ok(token)
 }
 

@@ -79,7 +79,7 @@ impl AdminApiClient {
             .create_account(self.inject_admin_auth_token(request)?)
             .await?;
         let key = response.into_inner().key.context("No key in response")?;
-        token_store::store_account_token(&self.bria_home, &key.key)?;
+        token_store::store_profile_token(&self.bria_home, &key.key)?;
         print_account(key);
         Ok(())
     }
