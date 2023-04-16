@@ -42,13 +42,14 @@ impl AdminService for Admin {
     ) -> Result<Response<CreateAccountResponse>, Status> {
         let admin_api_key = extract_api_token(&request)?;
         self.app.authenticate(admin_api_key).await?;
-        let keys = self.app.create_account(request.into_inner().name).await?;
+        let name = request.into_inner().name;
+        let key = self.app.create_account(name.clone()).await?;
         Ok(Response::new(CreateAccountResponse {
-            key: Some(AccountApiKey {
-                id: keys.id.to_string(),
-                name: keys.name,
-                key: keys.key,
-                account_id: keys.account_id.to_string(),
+            key: Some(ProfileApiKey {
+                profile_id: key.profile_id.to_string(),
+                name,
+                key: key.key,
+                account_id: key.account_id.to_string(),
             }),
         }))
     }

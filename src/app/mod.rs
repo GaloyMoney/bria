@@ -6,7 +6,6 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
-    account::keys::*,
     batch::*,
     batch_group::*,
     error::*,
@@ -14,6 +13,7 @@ use crate::{
     ledger::*,
     payout::*,
     primitives::*,
+    profile::*,
     utxo::*,
     wallet::{balance::*, *},
     xpub::*,
@@ -22,7 +22,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct App {
     _runner: OwnedHandle,
-    keys: AccountApiKeys,
+    profiles: Profiles,
     xpubs: XPubs,
     wallets: Wallets,
     batch_groups: BatchGroups,
@@ -69,7 +69,7 @@ impl App {
         )
         .await?;
         Ok(Self {
-            keys: AccountApiKeys::new(&pool),
+            profiles: Profiles::new(&pool),
             xpubs: XPubs::new(&pool),
             wallets,
             batch_groups,
@@ -83,22 +83,62 @@ impl App {
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
-    pub async fn authenticate(&self, key: &str) -> Result<AccountId, BriaError> {
-        let key = self.keys.find_by_key(key).await?;
-        Ok(key.account_id)
+    pub async fn authenticate(&self, key: &str) -> Result<Profile, BriaError> {
+        let profile = self.profiles.find_by_key(key).await?;
+        Ok(profile)
+    }
+
+    #[instrument(name = "app.create_profile", skip(self), err)]
+    pub async fn create_profile(
+        &self,
+        profile: Profile,
+        name: String,
+    ) -> Result<Profile, BriaError> {
+        let mut tx = self.pool.begin().await?;
+        let new_profile = self
+            .profiles
+            .create_in_tx(&mut tx, profile.account_id, name)
+            .await?;
+        tx.commit().await?;
+        Ok(new_profile)
+    }
+
+    #[instrument(name = "app.list_profiles", skip(self), err)]
+    pub async fn list_profiles(&self, profile: Profile) -> Result<Vec<Profile>, BriaError> {
+        let profiles = self.profiles.list_for_account(profile.account_id).await?;
+        Ok(profiles)
+    }
+
+    #[instrument(name = "app.create_profile_api_key", skip(self), err)]
+    pub async fn create_profile_api_key(
+        &self,
+        profile: Profile,
+        profile_name: String,
+    ) -> Result<ProfileApiKey, BriaError> {
+        let found_profile = self
+            .profiles
+            .find_by_name(profile.account_id, profile_name)
+            .await?;
+        let mut tx = self.pool.begin().await?;
+        let key = self
+            .profiles
+            .create_key_for_profile_in_tx(&mut tx, found_profile)
+            .await?;
+        tx.commit().await?;
+        Ok(key)
     }
 
     #[instrument(name = "app.import_xpub", skip(self), err)]
     pub async fn import_xpub(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         key_name: String,
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
         let value = XPub::try_from((xpub, derivation))?;
         let xpub = NewXPub::builder()
-            .account_id(account_id)
+            .account_id(profile.account_id)
             .key_name(key_name)
             .value(value)
             .build()
@@ -110,18 +150,21 @@ impl App {
     #[instrument(name = "app.set_signer_config", skip(self), err)]
     pub async fn set_signer_config(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), BriaError> {
-        let xpub = self.xpubs.find_from_ref(account_id, xpub_ref).await?;
+        let xpub = self
+            .xpubs
+            .find_from_ref(profile.account_id, xpub_ref)
+            .await?;
         let new_signer = NewSigner::builder()
             .xpub_name(xpub.key_name)
             .config(config)
             .build()
             .expect("Couldn't build signer");
         self.xpubs
-            .set_signer_for_xpub(account_id, new_signer)
+            .set_signer_for_xpub(profile.account_id, new_signer)
             .await?;
         Ok(())
     }
@@ -129,13 +172,17 @@ impl App {
     #[instrument(name = "app.create_wallet", skip(self), err)]
     pub async fn create_wallet(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
         xpub_refs: Vec<String>,
     ) -> Result<WalletId, BriaError> {
         let mut xpubs = Vec::new();
         for xpub_ref in xpub_refs {
-            xpubs.push(self.xpubs.find_from_ref(account_id, xpub_ref).await?);
+            xpubs.push(
+                self.xpubs
+                    .find_from_ref(profile.account_id, xpub_ref)
+                    .await?,
+            );
         }
 
         if xpubs.len() != 1 {
@@ -159,7 +206,7 @@ impl App {
             .expect("Couldn't build NewWallet");
         let wallet_id = self
             .wallets
-            .create_in_tx(&mut tx, account_id, new_wallet)
+            .create_in_tx(&mut tx, profile.account_id, new_wallet)
             .await?;
 
         tx.commit().await?;
@@ -170,10 +217,13 @@ impl App {
     #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]
     pub async fn get_wallet_balance_summary(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
     ) -> Result<WalletBalanceSummary, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
         let wallet_ledger_account_balances = self
             .ledger
             .get_wallet_ledger_account_balances(wallet.journal_id, wallet.ledger_account_ids)
@@ -186,10 +236,13 @@ impl App {
     #[instrument(name = "app.new_address", skip(self), err)]
     pub async fn new_address(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
     ) -> Result<String, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
         Ok(addr.to_string())
@@ -198,10 +251,13 @@ impl App {
     #[instrument(name = "app.list_utxos", skip(self), err)]
     pub async fn list_utxos(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
     ) -> Result<(WalletId, Vec<KeychainUtxos>), BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
         let mut utxos = self
             .utxos
             .find_keychain_utxos(wallet.keychain_ids())
@@ -216,14 +272,14 @@ impl App {
     #[instrument(name = "app.create_batch_group", skip(self), err)]
     pub async fn create_batch_group(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         batch_group_name: String,
         description: Option<String>,
         config: Option<BatchGroupConfig>,
     ) -> Result<BatchGroupId, BriaError> {
         let mut builder = NewBatchGroup::builder();
         builder
-            .account_id(account_id)
+            .account_id(profile.account_id)
             .name(batch_group_name)
             .description(description);
         if let Some(config) = config {
@@ -238,7 +294,7 @@ impl App {
     #[allow(clippy::too_many_arguments)]
     pub async fn queue_payout(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
         group_name: String,
         destination: PayoutDestination,
@@ -246,10 +302,13 @@ impl App {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<PayoutId, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
         let group_id = self
             .batch_groups
-            .find_by_name(account_id, group_name)
+            .find_by_name(profile.account_id, group_name)
             .await?;
         let mut builder = NewPayout::builder();
         builder
@@ -265,7 +324,7 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let id = self
             .payouts
-            .create_in_tx(&mut tx, account_id, new_payout)
+            .create_in_tx(&mut tx, profile.account_id, new_payout)
             .await?;
         self.ledger
             .queued_payout(
@@ -292,10 +351,13 @@ impl App {
     #[instrument(name = "app.list_payouts", skip_all, err)]
     pub async fn list_payouts(
         &self,
-        account_id: AccountId,
+        profile: Profile,
         wallet_name: String,
     ) -> Result<Vec<Payout>, BriaError> {
-        let wallet = self.wallets.find_by_name(account_id, wallet_name).await?;
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
         self.payouts.list_for_wallet(wallet.id).await
     }
 

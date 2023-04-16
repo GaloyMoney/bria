@@ -79,7 +79,7 @@ impl AdminApiClient {
             .create_account(self.inject_admin_auth_token(request)?)
             .await?;
         let key = response.into_inner().key.context("No key in response")?;
-        token_store::store_account_token(&self.bria_home, &key.key)?;
+        token_store::store_profile_token(&self.bria_home, &key.key)?;
         print_account(key);
         Ok(())
     }
@@ -100,11 +100,11 @@ pub fn print_admin_api_key(key: proto::AdminApiKey) {
     println!("---\nname: {}\nkey: {}\nid: {}", key.name, key.key, key.id,);
 }
 
-pub fn print_account(key: proto::AccountApiKey) {
+pub fn print_account(key: proto::ProfileApiKey) {
     println!("New Account");
     println!(
-        "---\nname: {}\nid: {}\nkey: {}\nkey_id: {}",
-        key.name, key.account_id, key.key, key.id,
+        "---\nname: {}\nid: {}\nkey: {}\nprofile_id: {}",
+        key.name, key.account_id, key.key, key.profile_id,
     );
 }
 

@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use bdk::descriptor::IntoWalletDescriptor;
-use bdk::miniscript::Segwitv0;
 use bdk::{
     bitcoin::{
         secp256k1::{rand, Secp256k1},
@@ -9,11 +7,13 @@ use bdk::{
     },
     blockchain::ElectrumBlockchain,
     database::MemoryDatabase,
+    descriptor::IntoWalletDescriptor,
     electrum_client::{Client, ConfigBuilder},
     keys::{GeneratableKey, GeneratedKey, PrivateKeyGenerateOptions},
+    miniscript::Segwitv0,
 };
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
-use bria::{admin::*, primitives::*, xpub::*};
+use bria::{admin::*, primitives::*, profile::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
@@ -23,14 +23,19 @@ pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
     Ok(pool)
 }
 
-pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<AccountId> {
+pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile> {
     let name = format!(
         "TEST_{}",
         Alphanumeric.sample_string(&mut rand::thread_rng(), 32)
     );
     let app = AdminApp::new(pool.clone());
 
-    Ok(app.create_account(name).await?.account_id)
+    let profile_key = app.create_account(name.clone()).await?;
+    Ok(Profile {
+        id: profile_key.profile_id,
+        account_id: profile_key.account_id,
+        name,
+    })
 }
 
 const BITCOIND_WALLET_NAME: &str = "bria";

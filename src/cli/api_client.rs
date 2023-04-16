@@ -49,17 +49,47 @@ impl ApiClient {
         mut request: tonic::Request<T>,
     ) -> anyhow::Result<tonic::Request<T>> {
         let key = if self.key.is_empty() {
-            token_store::load_account_token(&self.bria_home)?
+            token_store::load_profile_token(&self.bria_home)?
         } else {
             self.key.clone()
         };
 
         request.metadata_mut().insert(
-            crate::api::ACCOUNT_API_KEY_HEADER,
+            crate::api::PROFILE_API_KEY_HEADER,
             tonic::metadata::MetadataValue::try_from(&key)
                 .context("Couldn't create MetadataValue")?,
         );
         Ok(request)
+    }
+
+    pub async fn create_profile(&self, name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CreateProfileRequest { name });
+        let response = self
+            .connect()
+            .await?
+            .create_profile(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    pub async fn list_profiles(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListProfilesRequest {});
+        let response = self
+            .connect()
+            .await?
+            .list_profiles(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    pub async fn create_profile_api_key(&self, profile_name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CreateProfileApiKeyRequest { profile_name });
+        let response = self
+            .connect()
+            .await?
+            .create_profile_api_key(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
     }
 
     pub async fn import_xpub(

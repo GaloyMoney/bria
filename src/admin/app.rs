@@ -1,7 +1,4 @@
-use crate::{
-    account::{keys::*, *},
-    ledger::Ledger,
-};
+use crate::{account::*, ledger::Ledger, profile::*};
 use tracing::instrument;
 
 use super::{error::*, keys::*};
@@ -11,7 +8,7 @@ const BOOTSTRAP_KEY_NAME: &str = "admin_bootstrap_key";
 pub struct AdminApp {
     keys: AdminApiKeys,
     accounts: Accounts,
-    account_keys: AccountApiKeys,
+    profiles: Profiles,
     ledger: Ledger,
     pool: sqlx::PgPool,
 }
@@ -21,7 +18,7 @@ impl AdminApp {
         Self {
             keys: AdminApiKeys::new(&pool),
             accounts: Accounts::new(&pool),
-            account_keys: AccountApiKeys::new(&pool),
+            profiles: Profiles::new(&pool),
             ledger: Ledger::new(&pool),
             pool,
         }
@@ -44,7 +41,7 @@ impl AdminApp {
     pub async fn create_account(
         &self,
         account_name: String,
-    ) -> Result<AccountApiKey, AdminApiError> {
+    ) -> Result<ProfileApiKey, AdminApiError> {
         let mut tx = self.pool.begin().await?;
         let account = self
             .accounts
@@ -53,12 +50,16 @@ impl AdminApp {
         self.ledger
             .create_journal_for_account(&mut tx, account.id, account.name.clone())
             .await?;
-        let keys = self
-            .account_keys
-            .create_in_tx(&mut tx, account_name, account.id)
+        let profile = self
+            .profiles
+            .create_in_tx(&mut tx, account.id, account.name)
+            .await?;
+        let key = self
+            .profiles
+            .create_key_for_profile_in_tx(&mut tx, profile)
             .await?;
         tx.commit().await?;
-        Ok(keys)
+        Ok(key)
     }
 
     #[instrument(name = "admin_app.list_accounts", skip(self), err)]

@@ -19,10 +19,18 @@ CREATE TABLE bria_accounts (
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE bria_account_api_keys (
+CREATE TABLE bria_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(account_id, name)
+);
+
+CREATE TABLE bria_profile_api_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
   encrypted_key VARCHAR NOT NULL,
   active BOOL NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
