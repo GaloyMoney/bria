@@ -229,7 +229,9 @@ impl ApiClient {
         batch_group_name: String,
         on_chain_address: String,
         satoshis: u64,
+        metadata: serde_json::Value,
     ) -> anyhow::Result<()> {
+        println!("HERE: {:?}", metadata);
         let request = tonic::Request::new(proto::QueuePayoutRequest {
             wallet_name,
             batch_group_name,

@@ -245,6 +245,8 @@ enum Command {
         destination: String,
         #[clap(short, long)]
         amount: u64,
+        #[clap(short, long, value_parser = parse_json)]
+        metadata: serde_json::Value,
     },
     /// List pending Payouts
     ListPayouts {
@@ -449,10 +451,11 @@ pub async fn run() -> anyhow::Result<()> {
             group_name,
             destination,
             amount,
+            metadata,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
-                .queue_payout(wallet, group_name, destination, amount)
+                .queue_payout(wallet, group_name, destination, amount, metadata)
                 .await?;
         }
         Command::ListPayouts {
@@ -528,4 +531,8 @@ fn read_to_base64(path: PathBuf) -> anyhow::Result<String> {
     reader.read_to_end(&mut buffer)?;
     use base64::{engine::general_purpose, Engine};
     Ok(general_purpose::STANDARD.encode(buffer))
+}
+
+fn parse_json(src: &str) -> Result<serde_json::Value, serde_json::Error> {
+    serde_json::from_str(src)
 }
