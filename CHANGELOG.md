@@ -1,3 +1,10 @@
+# [bria release v0.0.9](https://github.com/GaloyMoney/bria/releases/tag/0.0.9)
+
+
+### Miscellaneous Tasks
+
+- Return error on ElectrumBlockchain config
+
 # [bria release v0.0.8](https://github.com/GaloyMoney/bria/releases/tag/0.0.8)
 
 
