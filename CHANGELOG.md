@@ -1,3 +1,10 @@
+# [bria release v0.0.8](https://github.com/GaloyMoney/bria/releases/tag/0.0.8)
+
+
+### Bug Fixes
+
+- Support for vpub import
+
 # [bria release v0.0.7](https://github.com/GaloyMoney/bria/releases/tag/0.0.7)
 
 
