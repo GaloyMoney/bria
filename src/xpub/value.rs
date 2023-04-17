@@ -42,7 +42,10 @@ impl<O: Into<String>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
         let original = original.into();
         let derivation: Option<DerivationPath> = derivation.map(|d| d.as_ref().parse().unwrap());
-        let inner: ExtendedPubKey = original.parse()?;
+        use bdk::bitcoin::util::base58;
+        let mut xpub_data = base58::from_check(&original).map_err(BriaError::XPubParseError)?;
+        fix_version_bits_for_rust_bitcoin(&mut xpub_data);
+        let inner = ExtendedPubKey::decode(&xpub_data)?;
         if let Some(ref d) = derivation {
             if d.len() != inner.depth as usize {
                 return Err(BriaError::XPubDepthMismatch(inner.depth, d.len()));
@@ -67,6 +70,26 @@ impl std::ops::Deref for XPub {
     }
 }
 
+fn fix_version_bits_for_rust_bitcoin(data: &mut [u8]) {
+    match data {
+        // zpub => xpub
+        [0x04u8, 0xB2, 0x47, 0x46, ..] => {
+            data[0] = 0x04u8;
+            data[1] = 0x88;
+            data[2] = 0xB2;
+            data[3] = 0x1E;
+        }
+        // Transfer vpub => tpub
+        [0x04u8, 0x5F, 0x1C, 0xF6, ..] => {
+            data[0] = 0x04u8;
+            data[1] = 0x35;
+            data[2] = 0x87;
+            data[3] = 0xCF;
+        }
+        _ => (),
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,5 +101,12 @@ mod tests {
              Some("m/84'/0'/0'"))).unwrap();
         assert_eq!(xpub.to_string(),
         "[8df69d29/84'/0'/0']tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4");
+    }
+
+    #[test]
+    fn test_import_vpub() {
+        let original = "vpub5YdbDxAzXv4io9b5t4kRRFwLfhjFiFJAcUnDMbYGRLDHr5AzxFYBqa19AkkFfasDn9qXUuHBcw5JQWmE23GXahvuWixoLxsNe4Du85UGsp7";
+        let xpub = XPub::try_from((original, Some("m/84'/0'/0'"))).expect("Create vpub");
+        assert_eq!(xpub.original, original);
     }
 }

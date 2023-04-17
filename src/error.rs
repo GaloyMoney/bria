@@ -39,6 +39,8 @@ pub enum BriaError {
     BitcoinAddressParseError(#[from] AddressError),
     #[error("BriaError - XPubDepthMismatch: expected depth {0}, got {1}")]
     XPubDepthMismatch(u8, usize),
+    #[error("BriaError - XPubParseError: {0}")]
+    XPubParseError(bdk::bitcoin::util::base58::Error),
     #[error("BriaError - JoinError: {0}")]
     JoinError(#[from] tokio::task::JoinError),
     #[error("BriaError - BdkError: {0}")]
