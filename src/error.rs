@@ -19,6 +19,8 @@ pub enum BriaError {
     SqlxLedger(#[from] sqlx_ledger::SqlxLedgerError),
     #[error("BriaError - SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("BriaError - ElectrumClient: {0}")]
+    ElectrumClient(#[from] electrum_client::Error),
     #[error("BriaError - Bip32: {0}")]
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]

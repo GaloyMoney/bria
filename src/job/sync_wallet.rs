@@ -382,17 +382,14 @@ where
 }
 
 async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BriaError> {
-    let blockchain = ElectrumBlockchain::from(
-        Client::from_config(
-            electrum_url,
-            ConfigBuilder::new()
-                .retry(10)
-                .timeout(Some(4))
-                .expect("couldn't set electrum timeout")
-                .build(),
-        )
-        .unwrap(),
-    );
+    let blockchain = ElectrumBlockchain::from(Client::from_config(
+        electrum_url,
+        ConfigBuilder::new()
+            .retry(10)
+            .timeout(Some(4))
+            .expect("couldn't set electrum timeout")
+            .build(),
+    )?);
     let current_height = blockchain.get_height()?;
     Ok((blockchain, current_height))
 }
