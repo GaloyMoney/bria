@@ -136,20 +136,24 @@ impl Utxos {
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxo: Option<LocalUtxo>,
         block_height: u32,
-    ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId)>, BriaError> {
-        let spend_tx_id = if let Some(utxo) = change_utxo {
-            self.utxos
+    ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId, bool)>, BriaError> {
+        let (spend_tx_id, change_spent) = if let Some(utxo) = change_utxo {
+            let confirmed_utxo = self
+                .utxos
                 .mark_utxo_confirmed(tx, keychain_id, utxo.outpoint, utxo.is_spent, block_height)
-                .await?
-                .confirmed_income_ledger_tx_id
+                .await?;
+            (
+                confirmed_utxo.confirmed_income_ledger_tx_id,
+                confirmed_utxo.pending_spend_ledger_tx_id.is_some(),
+            )
         } else {
-            LedgerTransactionId::new()
+            (LedgerTransactionId::new(), false)
         };
         let pending_spend_tx_id = self
             .utxos
             .confirm_spend(tx, keychain_id, inputs, spend_tx_id)
             .await?;
-        Ok(pending_spend_tx_id.map(|id| (id, spend_tx_id)))
+        Ok(pending_spend_tx_id.map(|id| (id, spend_tx_id, change_spent)))
     }
 
     #[instrument(name = "utxos.find_keychain_utxos", skip_all)]

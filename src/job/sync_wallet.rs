@@ -80,6 +80,7 @@ pub async fn execute(
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
         let (blockchain, current_height) = init_electrum(&deps.blockchain_cfg.electrum_url).await?;
+        let latest_change_settle_height = wallet.config.latest_change_settle_height(current_height);
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
@@ -159,8 +160,8 @@ pub async fn execute(
                         .await?;
                     let conf_time = match unsynced_tx.confirmation_time.as_ref() {
                         Some(t)
-                            if wallet.config.min_settle_height(current_height, spend_tx)
-                                <= t.height =>
+                            if t.height
+                                <= wallet.config.latest_settle_height(current_height, spend_tx) =>
                         {
                             Some(t)
                         }
@@ -206,7 +207,7 @@ pub async fn execute(
             }
             if spend_tx {
                 let change_utxo = if !change.is_empty() {
-                    let (utxo, path) = change.remove(0);
+                    let (utxo, path) = change[0].clone();
                     let address_info = keychain_wallet
                         .find_address_from_path(path, utxo.keychain)
                         .await?;
@@ -264,7 +265,7 @@ pub async fn execute(
                                             .map(|(u, _)| u.outpoint),
                                         change_address: change_utxo.map(|(_, a)| a.address),
                                     },
-                                    confirmation_time: unsynced_tx.confirmation_time,
+                                    confirmation_time: unsynced_tx.confirmation_time.clone(),
                                 },
                             },
                         )
@@ -272,32 +273,23 @@ pub async fn execute(
                 }
             }
             bdk_txs.mark_as_synced(unsynced_tx.tx_id).await?;
-        }
-
-        loop {
-            let mut tx = pool.begin().await?;
-            let min_height = wallet.config.min_change_settle_height(current_height);
-            if let Ok(Some(ConfirmedSpendTransaction {
-                confirmation_time,
-                inputs,
-                outputs,
-                ..
-            })) = bdk_txs.find_confirmed_spend_tx(&mut tx, min_height).await
-            {
-                let change_utxo = outputs
-                    .into_iter()
-                    .find(|u| u.keychain == bitcoin::KeychainKind::Internal);
-                if let Some((pending_out_id, confirmed_out_id)) = deps
+            if let Some(conf_time) = unsynced_tx.confirmation_time {
+                if !spend_tx || conf_time.height > latest_change_settle_height {
+                    continue;
+                }
+                let mut tx = pool.begin().await?;
+                if let Some((pending_out_id, confirmed_out_id, change_spent)) = deps
                     .bria_utxos
                     .confirm_spend(
                         &mut tx,
                         keychain_id,
-                        inputs.iter().map(|u| &u.outpoint),
-                        change_utxo,
-                        confirmation_time.height,
+                        utxos_to_fetch.get(&keychain_id).unwrap().iter(),
+                        change.get(0).as_ref().map(|(u, _)| u.clone()),
+                        conf_time.height,
                     )
                     .await?
                 {
+                    bdk_txs.mark_confirmed(&mut tx, unsynced_tx.tx_id).await?;
                     deps.ledger
                         .confirm_spend(
                             tx,
@@ -305,18 +297,17 @@ pub async fn execute(
                             wallet.journal_id,
                             wallet.ledger_account_ids,
                             pending_out_id,
-                            confirmation_time,
+                            conf_time,
+                            change_spent,
                         )
                         .await?;
                 }
-            } else {
-                break;
             }
         }
 
         loop {
             let mut tx = pool.begin().await?;
-            let min_height = wallet.config.min_income_settle_height(current_height);
+            let min_height = wallet.config.latest_income_settle_height(current_height);
             if let Ok(Some(ConfirmedIncomeUtxo {
                 outpoint,
                 spent,
@@ -357,6 +348,47 @@ pub async fn execute(
                         },
                     )
                     .await?;
+            } else {
+                break;
+            }
+        }
+
+        loop {
+            let mut tx = pool.begin().await?;
+            let min_height = wallet.config.latest_change_settle_height(current_height);
+            if let Ok(Some(ConfirmedSpendTransaction {
+                confirmation_time,
+                inputs,
+                outputs,
+                ..
+            })) = bdk_txs.find_confirmed_spend_tx(&mut tx, min_height).await
+            {
+                let change_utxo = outputs
+                    .into_iter()
+                    .find(|u| u.keychain == bitcoin::KeychainKind::Internal);
+                if let Some((pending_out_id, confirmed_out_id, change_spent)) = deps
+                    .bria_utxos
+                    .confirm_spend(
+                        &mut tx,
+                        keychain_id,
+                        inputs.iter().map(|u| &u.outpoint),
+                        change_utxo,
+                        confirmation_time.height,
+                    )
+                    .await?
+                {
+                    deps.ledger
+                        .confirm_spend(
+                            tx,
+                            confirmed_out_id,
+                            wallet.journal_id,
+                            wallet.ledger_account_ids,
+                            pending_out_id,
+                            confirmation_time,
+                            change_spent,
+                        )
+                        .await?;
+                }
             } else {
                 break;
             }

@@ -460,6 +460,7 @@ async fn external_spend() -> anyhow::Result<()> {
                 height: 2,
                 timestamp: 123409,
             },
+            false,
         )
         .await?;
 
@@ -507,6 +508,14 @@ async fn external_spend_unconfirmed() -> anyhow::Result<()> {
     let change_sats = Satoshis::from(40_000_000);
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
+    let outpoint = OutPoint {
+        txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap(),
+        vout: 0,
+    };
+    let deferred_sats = Satoshis::from(50_000);
+    let withdraw_from_logical_when_settled = std::iter::once((outpoint, deferred_sats)).collect();
     let reserved_fees = Satoshis::from(12_346);
     let encumbered_spending_fee_sats = Satoshis::ONE;
 
@@ -521,7 +530,7 @@ async fn external_spend_unconfirmed() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
                 meta: ExternalSpendMeta {
-                    withdraw_from_logical_when_settled: HashMap::new(),
+                    withdraw_from_logical_when_settled,
                     tx_summary: TransactionSummary {
                         wallet_id,
                         keychain_id,
@@ -554,93 +563,7 @@ async fn external_spend_unconfirmed() -> anyhow::Result<()> {
     );
     assert_eq!(
         summary.logical_settled.flip_sign(),
-        total_utxo_settled_in_sats - change_sats
-    );
-    assert_eq!(
-        summary.confirmed_utxos.flip_sign(),
-        total_utxo_settled_in_sats
-    );
-    assert_eq!(
-        summary.pending_outgoing_utxos,
-        total_utxo_in_sats - fee_sats
-    );
-    assert_eq!(summary.pending_incoming_utxos, change_sats);
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn external_spend_unconfirmed_large_change() -> anyhow::Result<()> {
-    let pool = helpers::init_pool().await?;
-
-    let ledger = Ledger::init(&pool).await?;
-
-    let account_id = AccountId::new();
-    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
-    let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
-        .await?;
-    let wallet_id = WalletId::new();
-    let keychain_id = KeychainId::new();
-    let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
-        .await?;
-
-    tx.commit().await?;
-
-    let fee_sats = Satoshis::from(2_346);
-    let change_sats = Satoshis::from(110_000_000);
-    let total_utxo_in_sats = Satoshis::from(200_000_000);
-    let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
-    let reserved_fees = Satoshis::from(12_346);
-    let encumbered_spending_fee_sats = Satoshis::ONE;
-
-    let pending_id = LedgerTransactionId::new();
-    let tx = pool.begin().await?;
-    ledger
-        .external_spend(
-            tx,
-            pending_id,
-            ExternalSpendParams {
-                journal_id,
-                ledger_account_ids: wallet_ledger_accounts,
-                reserved_fees,
-                meta: ExternalSpendMeta {
-                    withdraw_from_logical_when_settled: HashMap::new(),
-                    tx_summary: TransactionSummary {
-                        wallet_id,
-                        keychain_id,
-                        bitcoin_tx_id:
-                            "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
-                                .parse()
-                                .unwrap(),
-                        total_utxo_in_sats,
-                        total_utxo_settled_in_sats,
-                        change_sats,
-                        fee_sats,
-                        change_address: None,
-                        change_outpoint: None,
-                    },
-                    encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),
-                    confirmation_time: None,
-                },
-            },
-        )
-        .await?;
-
-    let balances = ledger
-        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
-        .await?;
-    let summary = WalletBalanceSummary::from(balances);
-
-    assert_eq!(
-        summary.logical_pending_outgoing,
-        total_utxo_in_sats - fee_sats - change_sats
-    );
-    assert_eq!(
-        summary.logical_settled.flip_sign(),
-        total_utxo_in_sats - change_sats
+        total_utxo_in_sats - change_sats - deferred_sats
     );
     assert_eq!(
         summary.confirmed_utxos.flip_sign(),

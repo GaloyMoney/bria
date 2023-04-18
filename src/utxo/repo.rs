@@ -164,7 +164,7 @@ impl UtxoRepo {
         );
         query_builder.push_bind(Uuid::from(tx_id));
         query_builder
-            .push("WHERE confirmed_spend_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
+            .push(" WHERE confirmed_spend_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
         let mut rows = 0;
         query_builder.push_tuples(utxos, |mut builder, out| {
             rows += 1;

@@ -100,19 +100,19 @@ pub struct WalletConfig {
 }
 
 impl WalletConfig {
-    pub fn min_income_settle_height(&self, current_height: u32) -> u32 {
+    pub fn latest_income_settle_height(&self, current_height: u32) -> u32 {
         current_height - self.settle_income_after_n_confs.max(1) + 1
     }
 
-    pub fn min_change_settle_height(&self, current_height: u32) -> u32 {
+    pub fn latest_change_settle_height(&self, current_height: u32) -> u32 {
         current_height - self.settle_change_after_n_confs.max(1) + 1
     }
 
-    pub fn min_settle_height(&self, current_height: u32, self_pay: bool) -> u32 {
+    pub fn latest_settle_height(&self, current_height: u32, self_pay: bool) -> u32 {
         if self_pay {
-            self.min_change_settle_height(current_height)
+            self.latest_change_settle_height(current_height)
         } else {
-            self.min_income_settle_height(current_height)
+            self.latest_income_settle_height(current_height)
         }
     }
 }

@@ -92,6 +92,11 @@ impl ExternalSpendParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("logical_settled_out")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("change")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
@@ -137,6 +142,10 @@ impl From<ExternalSpendParams> for TxParams {
             fee_sats,
             ..
         } = meta.tx_summary;
+        let deferred_logical_settled = meta
+            .withdraw_from_logical_when_settled
+            .values()
+            .fold(Satoshis::ZERO, |t, d| t + *d);
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
@@ -169,6 +178,10 @@ impl From<ExternalSpendParams> for TxParams {
         params.insert("fees", fee_sats.to_btc());
         params.insert("total_utxo_in", total_utxo_in_sats.to_btc());
         params.insert("total_utxo_settled_in", total_utxo_settled_in_sats.to_btc());
+        params.insert(
+            "logical_settled_out",
+            (total_utxo_in_sats - change_sats - deferred_logical_settled).to_btc(),
+        );
         params.insert("change", change_sats.to_btc());
         params.insert("effective", effective);
         params
@@ -208,21 +221,21 @@ impl ExternalSpend {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'EXTERNAL_SEND_LOGICAL_SETTLED_DR'")
+                .entry_type("'EXTERNAL_SPEND_LOGICAL_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_settled_in >= params.total_utxo_in - params.change ? params.total_utxo_in - params.change : params.total_utxo_settled_in >= params.change ? params.total_utxo_settled_in - params.change : 0")
+                .units("params.logical_settled_out")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'EXTERNAL_SEND_LOGICAL_SETTLED_CR'")
+                .entry_type("'EXTERNAL_SPEND_LOGICAL_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_settled_in >= params.total_utxo_in - params.change ? params.total_utxo_in - params.change : params.total_utxo_settled_in >= params.change ? params.total_utxo_settled_in - params.change : 0")
+                .units("params.logical_settled_out")
                 .build()
                 .expect("Couldn't build entry"),
             // FEES

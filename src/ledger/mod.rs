@@ -154,6 +154,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.confirm_spend", skip(self, tx))]
+    #[allow(clippy::too_many_arguments)]
     pub async fn confirm_spend(
         &self,
         tx: Transaction<'_, Postgres>,
@@ -162,6 +163,7 @@ impl Ledger {
         ledger_account_ids: WalletLedgerAccountIds,
         pending_id: LedgerTransactionId,
         confirmation_time: bitcoin::BlockTime,
+        change_spent: bool,
     ) -> Result<(), BriaError> {
         #[derive(serde::Deserialize)]
         struct ExtractTxSummary {
@@ -182,6 +184,7 @@ impl Ledger {
                         journal_id,
                         ledger_account_ids,
                         pending_id,
+                        change_spent,
                         meta: ConfirmSpendMeta {
                             tx_summary,
                             confirmation_time,
