@@ -1,4 +1,8 @@
+#! Auto synced from Shared CI Resources repository
+#! Don't change this file, instead change it in github.com/GaloyMoney/concourse-shared
+
 name: Audit
+
 on:
   pull_request:
     branches: [ main ]
@@ -7,7 +11,7 @@ jobs:
   security_audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

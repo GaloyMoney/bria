@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
-      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
+      commitTitle: 'chore: unpack_deps function for rust'
+      sha: f866f388e2bc4508e518d442b4782a2c8f25d2f8
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: pipeline-fragments are not in sync with filenames'
-      sha: 0b076acf7ae5eb1ad13cf55b60de083491af5233
+      commitTitle: 'chore: unpack_deps function for rust'
+      sha: f866f388e2bc4508e518d442b4782a2c8f25d2f8
     path: .
   path: ./vendor
 kind: LockConfig
