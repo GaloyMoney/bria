@@ -40,13 +40,16 @@ impl XPubs {
         account_id: AccountId,
         xpub_ref: String,
     ) -> Result<AccountXPub, BriaError> {
-        let (name, derivation_path, original, bytes) = match (
+        let (name, derivation_path, original, bytes, signer_cfg) = match (
             bitcoin::Fingerprint::from_str(&xpub_ref),
             bitcoin::ExtendedPubKey::from_str(&xpub_ref),
         ) {
             (Ok(fp), _) => {
                 let record = sqlx::query!(
-                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
+                    r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
+                       FROM bria_xpubs x
+                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       WHERE x.account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
@@ -57,12 +60,16 @@ impl XPubs {
                     record.derivation_path,
                     record.original,
                     record.xpub,
+                    record.signer_cfg,
                 )
             }
 
             (_, Ok(key)) => {
                 let record = sqlx::query!(
-                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND xpub = $2"#,
+                    r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
+                       FROM bria_xpubs x
+                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       WHERE x.account_id = $1 AND x.xpub = $2"#,
                     Uuid::from(account_id),
                     &key.encode()
                 )
@@ -73,11 +80,15 @@ impl XPubs {
                     record.derivation_path,
                     record.original,
                     record.xpub,
+                    record.signer_cfg,
                 )
             }
             _ => {
                 let record = sqlx::query!(
-                    r#"SELECT name, derivation_path, original, xpub FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
+                    r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
+                       FROM bria_xpubs x
+                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       WHERE x.account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
                     xpub_ref
                 )
@@ -88,6 +99,7 @@ impl XPubs {
                     record.derivation_path,
                     record.original,
                     record.xpub,
+                    record.signer_cfg,
                 )
             }
         };
@@ -100,6 +112,10 @@ impl XPubs {
                 original,
                 inner: bitcoin::ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
+            signer: signer_cfg.map(|cfg| {
+                serde_json::from_value::<SignerConfig>(cfg)
+                    .expect("Could not deserialize signer config")
+            }),
         })
     }
 
@@ -111,12 +127,12 @@ impl XPubs {
     ) -> Result<SignerId, BriaError> {
         sqlx::query!(
             r#"
-            INSERT INTO bria_xpub_signers (id, account_id, xpub_name, signer_cfg)
-            VALUES ($1, $2, (SELECT name FROM bria_xpubs WHERE account_id = $2 AND name = $3), $4)
+            INSERT INTO bria_xpub_signers (id, account_id, xpub, signer_cfg)
+            VALUES ($1, $2, (SELECT xpub FROM bria_xpubs WHERE account_id = $2 AND xpub = $3), $4)
             "#,
             Uuid::from(signer.id),
             Uuid::from(account_id),
-            signer.xpub_name,
+            &signer.xpub.inner.encode(),
             serde_json::to_value(signer.config)?,
         )
         .execute(&self.pool)

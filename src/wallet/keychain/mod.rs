@@ -11,6 +11,15 @@ pub enum WalletKeyChainConfig {
     Tr(TrKeyChainConfig),
 }
 
+impl WalletKeyChainConfig {
+    pub fn xpubs(&self) -> Vec<XPub> {
+        match self {
+            WalletKeyChainConfig::Wpkh(cfg) => vec![cfg.xpub.clone()],
+            WalletKeyChainConfig::Tr(cfg) => vec![cfg.xpub.clone()],
+        }
+    }
+}
+
 impl ToExternalDescriptor for WalletKeyChainConfig {
     fn to_external_descriptor(&self) -> String {
         match self {

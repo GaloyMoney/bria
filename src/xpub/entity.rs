@@ -1,12 +1,13 @@
 use derive_builder::Builder;
 
-use super::value::XPub as XPubValue;
+use super::{signer::SignerConfig, value::XPub as XPubValue};
 use crate::primitives::*;
 
 pub struct AccountXPub {
     pub account_id: AccountId,
     pub key_name: String,
     pub value: XPubValue,
+    pub signer: Option<SignerConfig>,
 }
 
 #[derive(Builder, Clone, Debug)]

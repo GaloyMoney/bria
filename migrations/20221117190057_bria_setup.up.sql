@@ -55,10 +55,10 @@ CREATE TABLE bria_xpub_signers (
   id UUID PRIMARY KEY NOT NULL,
   version INT NOT NULL DEFAULT 1,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  xpub_name VARCHAR NOT NULL,
+  xpub BYTEA NOT NULL,
   signer_cfg JSONB NOT NULL,
-  FOREIGN KEY (account_id, xpub_name) REFERENCES bria_xpubs (account_id, name),
-  UNIQUE(account_id, xpub_name, version)
+  FOREIGN KEY (account_id, xpub) REFERENCES bria_xpubs (account_id, xpub),
+  UNIQUE(account_id, xpub, version)
 );
 
 CREATE TABLE bria_wallets (

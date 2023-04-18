@@ -1,13 +1,13 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use super::signing_client::LndSignerConfig;
+use super::{signing_client::LndSignerConfig, value::XPub as XPubValue};
 use crate::primitives::*;
 
 #[derive(Builder, Debug, Clone)]
 pub struct NewSigner {
     pub(super) id: SignerId,
-    pub(super) xpub_name: String,
+    pub(super) xpub: XPubValue,
     pub(super) config: SignerConfig,
 }
 
