@@ -167,6 +167,7 @@ impl Transactions {
                 AND sent > 0
                 AND height IS NOT NULL
                 AND height <= $2
+                AND synced_to_bria = true
                 AND confirmation_synced_to_bria = false
                 ORDER BY height ASC
                 LIMIT 1)
@@ -227,6 +228,23 @@ impl Transactions {
             tx_id.to_string(),
         )
         .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "bdk_transactions.mark_confirmed", skip(self))]
+    pub async fn mark_confirmed(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        tx_id: bitcoin::Txid,
+    ) -> Result<(), BriaError> {
+        sqlx::query!(
+            r#"UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()
+            WHERE keychain_id = $1 AND tx_id = $2"#,
+            Uuid::from(self.keychain_id),
+            tx_id.to_string(),
+        )
+        .execute(&mut *tx)
         .await?;
         Ok(())
     }
