@@ -6,6 +6,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .type_attribute(".", "#[derive(serde::Serialize)]")
         .type_attribute(".", "#[serde(rename_all = \"camelCase\")]")
+        .extern_path(".google.protobuf.Struct", "::prost_wkt_types::Struct")
         .compile(&["proto/api/bria.proto"], &["proto"])?;
 
     tonic_build::configure()

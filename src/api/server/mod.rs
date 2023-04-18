@@ -206,6 +206,7 @@ impl BriaService for Bria {
             batch_group_name,
             destination,
             satoshis,
+            metadata,
         } = request;
 
         let id = self
@@ -217,7 +218,7 @@ impl BriaService for Bria {
                 destination.try_into()?,
                 Satoshis::from(satoshis),
                 None,
-                None,
+                metadata.map(|metadata| serde_json::to_value(metadata).unwrap()),
             )
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
