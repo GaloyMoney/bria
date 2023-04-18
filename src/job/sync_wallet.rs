@@ -278,7 +278,7 @@ pub async fn execute(
                     continue;
                 }
                 let mut tx = pool.begin().await?;
-                if let Some((pending_out_id, confirmed_out_id)) = deps
+                if let Some((pending_out_id, confirmed_out_id, change_spent)) = deps
                     .bria_utxos
                     .confirm_spend(
                         &mut tx,
@@ -298,6 +298,7 @@ pub async fn execute(
                             wallet.ledger_account_ids,
                             pending_out_id,
                             conf_time,
+                            change_spent,
                         )
                         .await?;
                 }

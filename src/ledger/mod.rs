@@ -154,6 +154,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.confirm_spend", skip(self, tx))]
+    #[allow(clippy::too_many_arguments)]
     pub async fn confirm_spend(
         &self,
         tx: Transaction<'_, Postgres>,
