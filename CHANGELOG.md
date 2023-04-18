@@ -1,3 +1,18 @@
+# [bria release v0.0.10](https://github.com/GaloyMoney/bria/releases/tag/0.0.10)
+
+
+### Bug Fixes
+
+- Check-code
+- Handle spent change utxo
+- Correct deferred logical out
+
+### Miscellaneous Tasks
+
+- Sync tx confirmation in line
+- Bump tonic from 0.9.1 to 0.9.2
+- Bump clap from 4.2.1 to 4.2.2
+
 # [bria release v0.0.9](https://github.com/GaloyMoney/bria/releases/tag/0.0.9)
 
 
