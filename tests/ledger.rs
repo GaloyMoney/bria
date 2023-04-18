@@ -460,6 +460,7 @@ async fn external_spend() -> anyhow::Result<()> {
                 height: 2,
                 timestamp: 123409,
             },
+            false,
         )
         .await?;
 

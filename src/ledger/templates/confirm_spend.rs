@@ -20,6 +20,7 @@ pub struct ConfirmSpendParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub pending_id: LedgerTransactionId,
+    pub change_spent: bool,
     pub meta: ConfirmSpendMeta,
 }
 
@@ -72,6 +73,11 @@ impl ConfirmSpendParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("change_spent")
+                .r#type(ParamDataType::BOOLEAN)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("correlation_id")
                 .r#type(ParamDataType::UUID)
                 .build()
@@ -96,6 +102,7 @@ impl From<ConfirmSpendParams> for TxParams {
             journal_id,
             ledger_account_ids,
             pending_id,
+            change_spent,
             meta,
         }: ConfirmSpendParams,
     ) -> Self {
@@ -133,6 +140,7 @@ impl From<ConfirmSpendParams> for TxParams {
         params.insert("fees", fee_sats.to_btc());
         params.insert("total_utxo_in", total_utxo_in_sats.to_btc());
         params.insert("change", change_sats.to_btc());
+        params.insert("change_spent", change_spent);
         params.insert("correlation_id", pending_id);
         params.insert("effective", effective);
         params
@@ -298,6 +306,24 @@ impl ConfirmSpend {
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.change")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CONFIRM_SPEND_UTXO_SETTLED_DR'")
+                .currency("'BTC'")
+                .account_id("params.onchain_at_rest_account_id")
+                .direction("DEBIT")
+                .layer("SETTLED")
+                .units("params.change_spent ? params.change : 0")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'CONFIRM_SPEND_UTXO_SETTLED_CR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
+                .direction("CREDIT")
+                .layer("SETTLED")
+                .units("params.change_spent ? params.change : 0")
                 .build()
                 .expect("Couldn't build entry"),
         ];
