@@ -209,6 +209,13 @@ impl BriaService for Bria {
             metadata,
         } = request;
 
+        let metadata_json = metadata
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|_| {
+                Status::invalid_argument("'metadata' argument could not be converted to JSON")
+            })?;
+
         let id = self
             .app
             .queue_payout(
@@ -218,7 +225,7 @@ impl BriaService for Bria {
                 destination.try_into()?,
                 Satoshis::from(satoshis),
                 None,
-                metadata.map(|metadata| serde_json::to_value(metadata).unwrap()),
+                metadata_json,
             )
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
