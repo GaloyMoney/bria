@@ -12,14 +12,14 @@ pub struct SigningSessions {
 }
 
 impl SigningSessions {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+    pub fn new(pool: &Pool<Postgres>) -> Self {
+        Self { pool: pool.clone() }
     }
 
     pub async fn find_for_batch(
         &self,
         batch_id: BatchId,
-    ) -> Result<BatchSigningSession, BriaError> {
+    ) -> Result<Option<BatchSigningSession>, BriaError> {
         let entity_events = {
             let rows = sqlx::query!(
                 r#"
@@ -58,6 +58,10 @@ impl SigningSessions {
             };
             xpub_sessions.insert(xpub_id, session);
         }
-        Ok(BatchSigningSession { xpub_sessions })
+        if xpub_sessions.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(BatchSigningSession { xpub_sessions }))
+        }
     }
 }

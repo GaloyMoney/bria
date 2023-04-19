@@ -14,6 +14,7 @@ use crate::{
     payout::*,
     primitives::*,
     profile::*,
+    signing_session::*,
     utxo::*,
     wallet::{balance::*, *},
     xpub::*,
@@ -50,12 +51,14 @@ impl App {
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let utxos = Utxos::new(&pool);
+        let signing_sessions = SigningSessions::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
             xpubs.clone(),
             batch_groups.clone(),
             batches,
+            signing_sessions,
             payouts.clone(),
             ledger.clone(),
             utxos.clone(),
