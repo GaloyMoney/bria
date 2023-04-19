@@ -206,7 +206,13 @@ impl BriaService for Bria {
             batch_group_name,
             destination,
             satoshis,
+            metadata,
         } = request;
+
+        let metadata_json = metadata
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(BriaError::CouldNotParseIncomingMetadata)?;
 
         let id = self
             .app
@@ -217,7 +223,7 @@ impl BriaService for Bria {
                 destination.try_into()?,
                 Satoshis::from(satoshis),
                 None,
-                None,
+                metadata_json,
             )
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))

@@ -424,6 +424,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-jaeger",
  "prost 0.11.8",
+ "prost-wkt-types",
  "protobuf-src",
  "rand",
  "reqwest",
@@ -712,6 +713,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd4056f63fce3b82d852c3da92b08ea59959890813a7f4ce9c0ff85b10cf301b"
+dependencies = [
+ "quote",
+ "syn 2.0.12",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -950,6 +961,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "erased-serde"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f2b0c2380453a92ea8b6c8e5f64ecaafccddde8ceab55ff7a8ac1029f894569"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1150,6 +1170,17 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
+]
+
+[[package]]
+name = "ghost"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e77ac7b51b8e6313251737fcef4b1c01a2ea102bde68415b62c0ee9268fec357"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.12",
 ]
 
 [[package]]
@@ -1403,6 +1434,16 @@ name = "integer-encoding"
 version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bb03732005da905c88227371639bf1ad885cc712789c011c31c5fb3ab3ccf02"
+
+[[package]]
+name = "inventory"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7741301a6d6a9b28ce77c0fb77a4eb116b6bc8f3bef09923f7743d059c4157d3"
+dependencies = [
+ "ctor",
+ "ghost",
+]
 
 [[package]]
 name = "io-lifetimes"
@@ -2080,6 +2121,50 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "379119666929a1afd7a043aa6cf96fa67a6dce9af60c88095a4686dbce4c9c88"
 dependencies = [
  "prost 0.11.8",
+]
+
+[[package]]
+name = "prost-wkt"
+version = "0.4.1"
+source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+dependencies = [
+ "chrono",
+ "inventory",
+ "prost 0.11.8",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "typetag",
+]
+
+[[package]]
+name = "prost-wkt-build"
+version = "0.4.1"
+source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+dependencies = [
+ "heck 0.4.1",
+ "prost 0.11.8",
+ "prost-build 0.11.8",
+ "prost-types 0.11.8",
+ "quote",
+]
+
+[[package]]
+name = "prost-wkt-types"
+version = "0.4.1"
+source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+dependencies = [
+ "chrono",
+ "prost 0.11.8",
+ "prost-build 0.11.8",
+ "prost-types 0.11.8",
+ "prost-wkt",
+ "prost-wkt-build",
+ "protobuf-src",
+ "regex",
+ "serde",
+ "serde_derive",
+ "serde_json",
 ]
 
 [[package]]
@@ -3385,6 +3470,30 @@ name = "typenum"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
+
+[[package]]
+name = "typetag"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edc3ebbaab23e6cc369cb48246769d031f5bd85f1b28141f32982e3c0c7b33cf"
+dependencies = [
+ "erased-serde",
+ "inventory",
+ "once_cell",
+ "serde",
+ "typetag-impl",
+]
+
+[[package]]
+name = "typetag-impl"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb01b60fcc3f5e17babb1a9956263f3ccd2cadc3e52908400231441683283c1d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.12",
+]
 
 [[package]]
 name = "unicode-bidi"

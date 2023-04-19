@@ -229,6 +229,7 @@ impl ApiClient {
         batch_group_name: String,
         on_chain_address: String,
         satoshis: u64,
+        metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::QueuePayoutRequest {
             wallet_name,
@@ -237,6 +238,7 @@ impl ApiClient {
                 on_chain_address,
             )),
             satoshis,
+            metadata: metadata.map(serde_json::from_value).transpose()?,
         });
         let response = self
             .connect()
