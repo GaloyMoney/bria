@@ -533,6 +533,6 @@ fn read_to_base64(path: PathBuf) -> anyhow::Result<String> {
     Ok(general_purpose::STANDARD.encode(buffer))
 }
 
-fn parse_json(src: &str) -> Result<serde_json::Value, serde_json::Error> {
-    serde_json::from_str(src)
+fn parse_json(src: &str) -> anyhow::Result<serde_json::Value> {
+    Ok(serde_json::from_str(src)?)
 }

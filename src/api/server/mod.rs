@@ -212,9 +212,7 @@ impl BriaService for Bria {
         let metadata_json = metadata
             .map(serde_json::to_value)
             .transpose()
-            .map_err(|_| {
-                Status::invalid_argument("'metadata' argument could not be converted to JSON")
-            })?;
+            .map_err(BriaError::CouldNotParseIncomingMetadata)?;
 
         let id = self
             .app

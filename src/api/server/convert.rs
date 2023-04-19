@@ -14,7 +14,12 @@ use crate::{
 
 impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {
-        tonic::Status::new(tonic::Code::Unknown, format!("{err}"))
+        match err {
+            BriaError::CouldNotParseIncomingMetadata(err) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
+            _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
+        }
     }
 }
 

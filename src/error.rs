@@ -53,6 +53,8 @@ pub enum BriaError {
     FeeEstimation(reqwest::Error),
     #[error("BriaError - CouldNotCombinePsbts: {0}")]
     CouldNotCombinePsbts(psbt::Error),
+    #[error("BriaError - CouldNotParseIncomingMetadata: {0}")]
+    CouldNotParseIncomingMetadata(serde_json::Error),
 }
 
 impl JobExecutionError for BriaError {}
