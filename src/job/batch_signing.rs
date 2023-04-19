@@ -30,28 +30,42 @@ pub async fn execute(
     wallets: Wallets,
     xpubs: XPubs,
 ) -> Result<BatchSigningData, BriaError> {
-    let sessions =
-        if let Some(batch_session) = signing_sessions.find_for_batch(data.batch_id).await? {
-            batch_session.xpub_sessions;
-        } else {
-            // if let Some(keychain_utxos) = batch.included_utxos.get(&data.wallet_id) {
-            //     let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
-            //     for (keychain_id, keychain_xpubs) in keychain_xpubs.into_iter() {
-            //         for xpub in keychain_xpubs.into_iter() {
-            //             let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id().to_string());
-            //             let new_session = NewSigningSession::builder()
-            //                 .account_id(data.account_id)
-            //                 .batch_id(data.batch_id)
-            //                 .xpub(xpub)
-            //                 .build()
-            //                 .expect("Could not build signing session");
-            //         }
-            //     }
-            // }
-            unimplemented!();
-        };
+    let sessions = if let Some(batch_session) = signing_sessions
+        .find_for_batch(data.account_id, data.batch_id)
+        .await?
+    {
+        (batch_session.xpub_sessions, HashMap::new())
+    } else {
+        let mut new_sessions = Vec::new();
+        let mut account_xpubs = HashMap::new();
+        let batch = batches.find_by_id(data.batch_id).await?;
+        let unsigned_psbt = batch.unsigned_psbt;
+        for (wallet_id, keychain_utxos) in batch.included_utxos {
+            let wallet = wallets.find_by_id(wallet_id).await?;
+            let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
+            for (keychain_id, keychain_xpubs) in keychain_xpubs.into_iter() {
+                for xpub in keychain_xpubs.into_iter() {
+                    let account_xpub = xpubs
+                        .find_from_ref(data.account_id, xpub.id().to_string())
+                        .await?;
+                    let new_session = NewSigningSession::builder()
+                        .account_id(data.account_id)
+                        .batch_id(data.batch_id)
+                        .wallet_id(wallet_id)
+                        .keychain_id(keychain_id)
+                        .xpub(xpub)
+                        .unsigned_psbt(unsigned_psbt.clone())
+                        .build()
+                        .expect("Could not build signing session");
+                    new_sessions.push(new_session);
+                    account_xpubs.insert(account_xpub.id(), account_xpub);
+                }
+            }
+        }
 
-    // let batch = batches.find_by_id(data.batch_id).await?;
+        (HashMap::new(), account_xpubs)
+    };
+
     // let wallet = wallets.find_by_id(data.wallet_id).await?;
     // if let Some(keychain_utxos) = batch.included_utxos.get(&data.wallet_id) {
     //     let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());

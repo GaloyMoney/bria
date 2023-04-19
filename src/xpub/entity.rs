@@ -10,6 +10,12 @@ pub struct AccountXPub {
     pub signer: Option<SignerConfig>,
 }
 
+impl AccountXPub {
+    pub fn id(&self) -> XPubId {
+        self.value.id()
+    }
+}
+
 #[derive(Builder, Clone, Debug)]
 pub struct NewXPub {
     pub(super) account_id: AccountId,

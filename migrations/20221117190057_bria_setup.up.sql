@@ -194,9 +194,11 @@ CREATE TABLE bria_signing_session (
   id UUID PRIMARY KEY NOT NULL,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
+  wallet_id UUID NOT NULL,
+  keychain_id UUID NOT NULL,
   xpub_fingerprint BYTEA NOT NULL,
   unsigned_psbt BYTEA NOT NULL,
-  UNIQUE(account_id, batch_id)
+  UNIQUE(account_id, batch_id, wallet_id, keychain_id, xpub_fingerprint)
 );
 
 CREATE TABLE bria_signing_session_events (

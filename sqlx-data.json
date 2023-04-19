@@ -1683,6 +1683,81 @@
     },
     "query": "SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"
   },
+  "e1f82248a94576112f017d5cde061a63db83ae4c713850c23dfe8640bf95f1bd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "xpub_fingerprint",
+          "ordinal": 5,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "unsigned_psbt",
+          "ordinal": 6,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event_type",
+          "ordinal": 8,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "event?",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event_type, e.event as \"event?\"\n              FROM bria_signing_session b\n              JOIN bria_signing_session_events e ON b.id = e.id\n              WHERE account_id = $1 AND batch_id = $2\n              ORDER BY b.id, sequence"
+  },
   "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
     "describe": {
       "columns": [],

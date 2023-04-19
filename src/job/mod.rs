@@ -394,6 +394,8 @@ async fn spawn_batch_signing(
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
+        .set_ordered(true)
+        .set_channel_args(&format!("batch_id:{}", data.batch_id))
         .spawn(&mut tx)
         .await
     {

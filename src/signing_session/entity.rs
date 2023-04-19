@@ -15,7 +15,10 @@ pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
     pub batch_id: BatchId,
+    pub wallet_id: WalletId,
+    pub keychain_id: KeychainId,
     pub xpub_id: XPubId,
+    pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub(super) events: EntityEvents<SigningSessionEvent>,
 }
 
@@ -27,7 +30,10 @@ pub struct BatchSigningSession {
 pub struct NewSigningSession {
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
+    pub(super) wallet_id: WalletId,
+    pub(super) keychain_id: KeychainId,
     pub(super) xpub: XPub,
+    pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     #[builder(private)]
     pub(super) events: Vec<SigningSessionEvent>,
 }
