@@ -11,7 +11,7 @@ use uuid::{uuid, Uuid};
 
 use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
-    primitives::*, utxo::Utxos, wallet::*,
+    primitives::*, utxo::Utxos, wallet::*, xpub::*,
 };
 use batch_wallet_accounting::BatchWalletAccountingData;
 use batch_wallet_finalizing::BatchWalletFinalizingData;
@@ -33,6 +33,7 @@ struct ProcessAllBatchesDelay(std::time::Duration);
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
     wallets: Wallets,
+    xpubs: XPubs,
     batch_groups: BatchGroups,
     batches: Batches,
     payouts: Payouts,
@@ -56,6 +57,7 @@ pub async fn start_job_runner(
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
     registry.set_context(blockchain_cfg);
     registry.set_context(wallets);
+    registry.set_context(xpubs);
     registry.set_context(batch_groups);
     registry.set_context(batches);
     registry.set_context(payouts);
@@ -228,9 +230,9 @@ async fn batch_wallet_accounting(
 async fn batch_wallet_signing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
-    ledger: Ledger,
-    wallets: Wallets,
     batches: Batches,
+    wallets: Wallets,
+    xpubs: XPubs,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -242,9 +244,9 @@ async fn batch_wallet_signing(
                 pool.clone(),
                 data,
                 blockchain_cfg,
-                ledger,
-                wallets,
                 batches,
+                wallets,
+                xpubs,
             )
             .await?;
 

@@ -3,7 +3,10 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use crate::{app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, wallet::*};
+use crate::{
+    app::BlockchainConfig, batch::*, error::*, primitives::*, signing_session::*, wallet::*,
+    xpub::*,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchWalletSigningData {
@@ -16,16 +19,16 @@ pub struct BatchWalletSigningData {
 
 #[instrument(
     name = "job.batch_wallet_signing",
-    skip(_pool, _wallets, _batches, _ledger),
+    skip(pool, wallets, batches, xpubs),
     err
 )]
 pub async fn execute(
-    _pool: sqlx::PgPool,
+    pool: sqlx::PgPool,
     data: BatchWalletSigningData,
     blockchain_cfg: BlockchainConfig,
-    _ledger: Ledger,
-    _wallets: Wallets,
-    _batches: Batches,
+    batches: Batches,
+    wallets: Wallets,
+    xpubs: XPubs,
 ) -> Result<BatchWalletSigningData, BriaError> {
     // load and sign psbt
     Ok(data)

@@ -44,6 +44,7 @@ impl App {
             sqlx::migrate!().run(&pool).await?;
         }
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
+        let xpubs = XPubs::new(&pool);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
@@ -52,6 +53,7 @@ impl App {
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
+            xpubs.clone(),
             batch_groups.clone(),
             batches,
             payouts.clone(),
@@ -70,7 +72,7 @@ impl App {
         .await?;
         Ok(Self {
             profiles: Profiles::new(&pool),
-            xpubs: XPubs::new(&pool),
+            xpubs,
             wallets,
             batch_groups,
             payouts,

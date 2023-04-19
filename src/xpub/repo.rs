@@ -6,6 +6,7 @@ use uuid::Uuid;
 use super::{entity::*, signer::*, value::*};
 use crate::{error::*, primitives::*};
 
+#[derive(Clone)]
 pub struct XPubs {
     pool: Pool<Postgres>,
 }
