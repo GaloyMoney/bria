@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use std::collections::HashMap;
@@ -14,6 +14,29 @@ pub struct SigningSessions {
 impl SigningSessions {
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self { pool: pool.clone() }
+    }
+
+    pub async fn persist_new_sessions(
+        &self,
+        sessions: HashMap<XPubId, NewSigningSession>,
+    ) -> Result<BatchSigningSession, BriaError> {
+        let mut tx = self.pool.begin().await?;
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"INSERT INTO bria_signing_session
+            (id, account_id, batch_id, xpub_fingerprint, unsigned_psbt)"#,
+        );
+        query_builder.push_values(sessions, |mut builder, (xpub_id, session)| {
+            builder.push_bind(Uuid::from(session.id));
+            builder.push_bind(Uuid::from(session.account_id));
+            builder.push_bind(Uuid::from(session.batch_id));
+            builder.push_bind(xpub_id.as_bytes().to_owned());
+            builder.push_bind(bitcoin::consensus::encode::serialize(
+                &session.unsigned_psbt,
+            ));
+        });
+        let query = query_builder.build();
+        query.execute(&mut tx).await?;
+        unimplemented!()
     }
 
     pub async fn find_for_batch(
@@ -54,8 +77,6 @@ impl SigningSessions {
             let session = SigningSession {
                 id: SigningSessionId::from(id),
                 account_id: AccountId::from(first_row.account_id),
-                wallet_id: WalletId::from(first_row.wallet_id),
-                keychain_id: KeychainId::from(first_row.keychain_id),
                 batch_id,
                 xpub_id,
                 unsigned_psbt: bitcoin::consensus::deserialize(&first_row.unsigned_psbt)?,

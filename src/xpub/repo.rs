@@ -49,7 +49,8 @@ impl XPubs {
                 let record = sqlx::query!(
                     r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
                        FROM bria_xpubs x
-                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       LEFT JOIN bria_xpub_signers s
+                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint
                        WHERE x.account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
                     fp.as_bytes()
@@ -69,7 +70,8 @@ impl XPubs {
                 let record = sqlx::query!(
                     r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
                        FROM bria_xpubs x
-                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       LEFT JOIN bria_xpub_signers s
+                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint
                        WHERE x.account_id = $1 AND x.xpub = $2"#,
                     Uuid::from(account_id),
                     &key.encode()
@@ -88,7 +90,8 @@ impl XPubs {
                 let record = sqlx::query!(
                     r#"SELECT name, derivation_path, original, x.xpub, signer_cfg as "signer_cfg?"
                        FROM bria_xpubs x
-                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub
+                       LEFT JOIN bria_xpub_signers s
+                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint
                        WHERE x.account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
                     xpub_ref
@@ -128,12 +131,12 @@ impl XPubs {
     ) -> Result<SignerId, BriaError> {
         sqlx::query!(
             r#"
-            INSERT INTO bria_xpub_signers (id, account_id, xpub, signer_cfg)
-            VALUES ($1, $2, (SELECT xpub FROM bria_xpubs WHERE account_id = $2 AND xpub = $3), $4)
+            INSERT INTO bria_xpub_signers (id, account_id, xpub_fingerprint, signer_cfg)
+            VALUES ($1, $2, (SELECT fingerprint FROM bria_xpubs WHERE account_id = $2 AND fingerprint = $3), $4)
             "#,
             Uuid::from(signer.id),
             Uuid::from(account_id),
-            &signer.xpub.inner.encode(),
+            signer.xpub_id.as_bytes(),
             serde_json::to_value(signer.config)?,
         )
         .execute(&self.pool)

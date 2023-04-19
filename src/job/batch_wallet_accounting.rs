@@ -36,7 +36,7 @@ pub async fn execute(
         wallet_summaries,
         included_utxos,
         ..
-    } = batches.find_by_id(data.batch_id).await?;
+    } = batches.find_by_id(data.account_id, data.batch_id).await?;
 
     let wallet_summary = wallet_summaries
         .get(&data.wallet_id)

@@ -6,6 +6,7 @@ use crate::primitives::*;
 
 pub struct Batch {
     pub id: BatchId,
+    pub account_id: AccountId,
     pub batch_group_id: BatchGroupId,
     pub bitcoin_tx_id: bitcoin::Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
@@ -16,6 +17,7 @@ pub struct Batch {
 #[derive(Builder, Clone)]
 pub struct NewBatch {
     pub id: BatchId,
+    pub(super) account_id: AccountId,
     pub(super) batch_group_id: BatchGroupId,
     pub(super) tx_id: bitcoin::Txid,
     pub(super) total_fee_sats: Satoshis,

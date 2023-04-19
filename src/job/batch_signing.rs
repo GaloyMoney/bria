@@ -36,9 +36,9 @@ pub async fn execute(
     {
         (batch_session.xpub_sessions, HashMap::new())
     } else {
-        let mut new_sessions = Vec::new();
+        let mut new_sessions = HashMap::new();
         let mut account_xpubs = HashMap::new();
-        let batch = batches.find_by_id(data.batch_id).await?;
+        let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
         let unsigned_psbt = batch.unsigned_psbt;
         for (wallet_id, keychain_utxos) in batch.included_utxos {
             let wallet = wallets.find_by_id(wallet_id).await?;
@@ -51,18 +51,17 @@ pub async fn execute(
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
-                        .wallet_id(wallet_id)
-                        .keychain_id(keychain_id)
                         .xpub(xpub)
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");
-                    new_sessions.push(new_session);
+                    new_sessions.insert(account_xpub.id(), new_session);
                     account_xpubs.insert(account_xpub.id(), account_xpub);
                 }
             }
         }
 
+        signing_sessions.persist_new_sessions(new_sessions).await?;
         (HashMap::new(), account_xpubs)
     };
 

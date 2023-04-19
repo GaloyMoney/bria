@@ -15,8 +15,6 @@ pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
     pub batch_id: BatchId,
-    pub wallet_id: WalletId,
-    pub keychain_id: KeychainId,
     pub xpub_id: XPubId,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub(super) events: EntityEvents<SigningSessionEvent>,
@@ -28,6 +26,8 @@ pub struct BatchSigningSession {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewSigningSession {
+    #[builder(private)]
+    pub(super) id: SigningSessionId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
     pub(super) wallet_id: WalletId,
@@ -41,6 +41,7 @@ pub struct NewSigningSession {
 impl NewSigningSession {
     pub fn builder() -> NewSigningSessionBuilder {
         let mut builder = NewSigningSessionBuilder::default();
+        builder.id(SigningSessionId::new());
         builder.events(vec![SigningSessionEvent::SigningSessionInitialized]);
         builder
     }

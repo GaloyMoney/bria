@@ -254,21 +254,6 @@
     },
     "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
   },
-  "15955e4be1f7b2990ce455ccaa886062daadcac84be8bc716c5f3b7d5e0eb225": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Bytea",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO bria_xpub_signers (id, account_id, xpub, signer_cfg)\n            VALUES ($1, $2, (SELECT xpub FROM bria_xpubs WHERE account_id = $2 AND xpub = $3), $4)\n            "
-  },
   "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
     "describe": {
       "columns": [
@@ -663,51 +648,6 @@
     },
     "query": "INSERT INTO bria_wallet_keychains (account_id, wallet_id, keychain_cfg)\n            VALUES ($1, $2, $3)"
   },
-  "4e93a289afd460e8adcd09cd8384cb329928d62ef792e19dfc7bcfa94c43dbb1": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "derivation_path",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "original",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "xpub",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "signer_cfg?",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub\n                       WHERE x.account_id = $1 AND fingerprint = $2"
-  },
   "5dbd5de5f1ac830c6c8dd3dfb328ec469894930d36804207d6942f134da58ab2": {
     "describe": {
       "columns": [
@@ -729,51 +669,6 @@
       }
     },
     "query": "INSERT INTO bria_profiles (id, account_id, name)\n            VALUES ($1, $2, $3)\n            RETURNING (id)"
-  },
-  "713d42297c4afe2f746929252d718ecc189410a32749a98dfac7f5d196c604c3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "derivation_path",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "original",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "xpub",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "signer_cfg?",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub\n                       WHERE x.account_id = $1 AND x.xpub = $2"
   },
   "73e658dc30bd137f4aa6b118aa8919ff6b9d5cfd9a63dd147d7cc2e2a71bd182": {
     "describe": {
@@ -828,6 +723,123 @@
       }
     },
     "query": "INSERT INTO bria_accounts (id, name, journal_id)\n            VALUES ($1, $2, $1)\n            RETURNING (id)"
+  },
+  "7619d9cfb201034c29b28877748a4e8d902a9dec6ef48f2698e5b42fd1f4e41c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "batch_group_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "unsigned_psbt",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "bitcoin_tx_id",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "total_in_sats",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "total_spent_sats",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_sats",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_address",
+          "ordinal": 8,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "change_vout",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "change_keychain_id",
+          "ordinal": 10,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "fee_sats",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "create_batch_ledger_tx_id",
+          "ordinal": 12,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "submitted_ledger_tx_id",
+          "ordinal": 13,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "tx_id",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "vout",
+          "ordinal": 15,
+          "type_info": "Int4"
+        },
+        {
+          "name": "keychain_id",
+          "ordinal": 16,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT batch_group_id, unsigned_psbt, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id\n            FROM bria_batch_spent_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1 AND b.account_id = $2"
   },
   "79b2407aa9d9a2aa44448d5baf73bc0d35b216894a108858ffb4b0aecc22a4c7": {
     "describe": {
@@ -1000,6 +1012,23 @@
     },
     "query": "UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2"
   },
+  "7b42f9dc1c50d42990796270a1472cee8a251388b594d1ff039d81571686e1d2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Int8",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_batches (id, account_id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5, $6)"
+  },
   "7b607fb78d590c932a28997018de6b10432b399c9c42a1278179dffd8720cfbf": {
     "describe": {
       "columns": [
@@ -1085,109 +1114,37 @@
     },
     "query": "SELECT id, account_id, name, batch_cfg\n                 FROM bria_batch_groups\n                 WHERE id = $1 ORDER BY version DESC LIMIT 1"
   },
-  "7e77d34cd597d85c4ccc6efd388afd93c0363e5988151a878710cccc206e618f": {
+  "7df254ae8d6a7c96f0215907b543d61c995e8c7c7f8ec344042c3c63094d11a0": {
     "describe": {
       "columns": [
         {
-          "name": "batch_group_id",
+          "name": "name",
           "ordinal": 0,
-          "type_info": "Uuid"
+          "type_info": "Varchar"
         },
         {
-          "name": "unsigned_psbt",
+          "name": "derivation_path",
           "ordinal": 1,
-          "type_info": "Bytea"
+          "type_info": "Varchar"
         },
         {
-          "name": "bitcoin_tx_id",
+          "name": "original",
           "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 3,
           "type_info": "Bytea"
         },
         {
-          "name": "batch_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
+          "name": "signer_cfg?",
           "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "total_in_sats",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "total_spent_sats",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_sats",
-          "ordinal": 7,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_address",
-          "ordinal": 8,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "change_vout",
-          "ordinal": 9,
-          "type_info": "Int4"
-        },
-        {
-          "name": "change_keychain_id",
-          "ordinal": 10,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "fee_sats",
-          "ordinal": 11,
-          "type_info": "Int8"
-        },
-        {
-          "name": "create_batch_ledger_tx_id",
-          "ordinal": 12,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "submitted_ledger_tx_id",
-          "ordinal": 13,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "tx_id",
-          "ordinal": 14,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "vout",
-          "ordinal": 15,
-          "type_info": "Int4"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 16,
-          "type_info": "Uuid"
+          "type_info": "Jsonb"
         }
       ],
       "nullable": [
         false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true,
         true,
         false,
         false,
@@ -1195,11 +1152,27 @@
       ],
       "parameters": {
         "Left": [
-          "Uuid"
+          "Uuid",
+          "Bytea"
         ]
       }
     },
-    "query": "SELECT batch_group_id, unsigned_psbt, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id\n            FROM bria_batch_spent_utxos u\n            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id\n            LEFT JOIN bria_batches b ON b.id = u.batch_id\n            WHERE u.batch_id = $1"
+    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s\n                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint\n                       WHERE x.account_id = $1 AND x.xpub = $2"
+  },
+  "7e97b1547960f2bb6403a159b2d0841a7f268a72affd2c0e40b45cc1f05ad5d4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Bytea",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO bria_xpub_signers (id, account_id, xpub_fingerprint, signer_cfg)\n            VALUES ($1, $2, (SELECT fingerprint FROM bria_xpubs WHERE account_id = $2 AND fingerprint = $3), $4)\n            "
   },
   "80ea413a3e70ea8046dc38bfa249dc526b98329d189ba02abfcc2d00ade20c77": {
     "describe": {
@@ -1252,6 +1225,51 @@
     },
     "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)\n           ORDER BY height ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n               SELECT output FROM previous_outputs\n           ) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
   },
+  "82188e1ee62d98cdbec6eab890e48d50c9498791ec4f7309f4d246a70a0d0041": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "derivation_path",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "original",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 3,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "signer_cfg?",
+          "ordinal": 4,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s\n                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint\n                       WHERE x.account_id = $1 AND name = $2"
+  },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
       "columns": [],
@@ -1298,22 +1316,6 @@
       }
     },
     "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
-  },
-  "9e38db9fbc99cd77dd9df1ac60513d37e2c31bef5876113dff5842f3daa9c308": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Int8",
-          "Bytea",
-          "Bytea"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_batches (id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5)"
   },
   "a17c30ab0f4af264c0239ee4f9aee7dbc3d1c90901d0a21c6682131ba5a7742e": {
     "describe": {
@@ -1369,6 +1371,51 @@
       }
     },
     "query": "INSERT INTO bria_xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)"
+  },
+  "a8fa2f6759e6a6648474442a25db52f1372da8602d94f0a4e5b12be9c0a29c97": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "derivation_path",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "original",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "xpub",
+          "ordinal": 3,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "signer_cfg?",
+          "ordinal": 4,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s\n                       ON x.account_id = s.account_id AND x.fingerprint = s.xpub_fingerprint\n                       WHERE x.account_id = $1 AND fingerprint = $2"
   },
   "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
     "describe": {
@@ -1702,24 +1749,24 @@
           "type_info": "Uuid"
         },
         {
-          "name": "wallet_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
           "name": "xpub_fingerprint",
-          "ordinal": 5,
+          "ordinal": 3,
           "type_info": "Bytea"
         },
         {
           "name": "unsigned_psbt",
-          "ordinal": 6,
+          "ordinal": 4,
           "type_info": "Bytea"
+        },
+        {
+          "name": "modified_at",
+          "ordinal": 5,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
         },
         {
           "name": "sequence",
@@ -1834,51 +1881,6 @@
       }
     },
     "query": "SELECT p.id, p.account_id, p.name\n               FROM bria_profiles p\n               JOIN bria_profile_api_keys k ON k.profile_id = p.id\n               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"
-  },
-  "ec6b907c84faa74df31d355b346d2e1e7729978a1dc0da826a518406c3927c24": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "derivation_path",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "original",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "xpub",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "signer_cfg?",
-          "ordinal": 4,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT name, derivation_path, original, x.xpub, signer_cfg as \"signer_cfg?\"\n                       FROM bria_xpubs x\n                       LEFT JOIN bria_xpub_signers s ON x.account_id = s.account_id AND x.xpub = s.xpub\n                       WHERE x.account_id = $1 AND name = $2"
   },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {

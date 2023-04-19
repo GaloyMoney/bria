@@ -164,7 +164,7 @@ impl App {
             .find_from_ref(profile.account_id, xpub_ref)
             .await?;
         let new_signer = NewSigner::builder()
-            .xpub(xpub.value)
+            .xpub_id(xpub.value.id())
             .config(config)
             .build()
             .expect("Couldn't build signer");

@@ -28,9 +28,10 @@ impl Batches {
         batch: NewBatch,
     ) -> Result<BatchId, BriaError> {
         sqlx::query!(
-            r#"INSERT INTO bria_batches (id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)
-            VALUES ($1, $2, $3, $4, $5)"#,
+            r#"INSERT INTO bria_batches (id, account_id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)
+            VALUES ($1, $2, $3, $4, $5, $6)"#,
             Uuid::from(batch.id),
+            Uuid::from(batch.account_id),
             Uuid::from(batch.batch_group_id),
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
@@ -91,14 +92,15 @@ impl Batches {
     }
 
     #[instrument(name = "batches.find_by_id", skip_all)]
-    pub async fn find_by_id(&self, id: BatchId) -> Result<Batch, BriaError> {
+    pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
             r#"SELECT batch_group_id, unsigned_psbt, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id
             FROM bria_batch_spent_utxos u
             LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
             LEFT JOIN bria_batches b ON b.id = u.batch_id
-            WHERE u.batch_id = $1"#,
-            Uuid::from(id)
+            WHERE u.batch_id = $1 AND b.account_id = $2"#,
+            Uuid::from(id),
+            Uuid::from(account_id)
         ).fetch_all(&self.pool).await?;
 
         if rows.is_empty() {
@@ -144,6 +146,7 @@ impl Batches {
 
         Ok(Batch {
             id,
+            account_id,
             batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
             bitcoin_tx_id,
             unsigned_psbt,
