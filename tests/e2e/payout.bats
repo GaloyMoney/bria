@@ -37,7 +37,7 @@ teardown_file() {
 @test "payout: Create batch group and have two queued payouts on it" {
   bria_cmd create-batch-group --name high --interval-trigger 5
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
-  bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 75000000
+  bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 75000000 --metadata '{"foo":{"bar":"baz"}}'
 
   n_payouts=$(bria_cmd list-payouts -w default | jq '.payouts | length')
   [[ "${n_payouts}" == "2" ]] || exit 1
