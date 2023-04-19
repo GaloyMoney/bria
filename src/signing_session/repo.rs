@@ -22,10 +22,16 @@ impl SigningSessions {
     ) -> Result<BatchSigningSession, BriaError> {
         let mut tx = self.pool.begin().await?;
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"INSERT INTO bria_signing_session
+            r#"INSERT INTO bria_signing_sessions
             (id, account_id, batch_id, xpub_fingerprint, unsigned_psbt)"#,
         );
-        query_builder.push_values(sessions, |mut builder, (xpub_id, session)| {
+        let mut account_id = None;
+        let mut batch_id = None;
+        query_builder.push_values(sessions.iter(), |mut builder, (xpub_id, session)| {
+            if account_id.is_none() && batch_id.is_none() {
+                account_id = Some(session.account_id);
+                batch_id = Some(session.batch_id);
+            }
             builder.push_bind(Uuid::from(session.id));
             builder.push_bind(Uuid::from(session.account_id));
             builder.push_bind(Uuid::from(session.batch_id));
@@ -36,7 +42,32 @@ impl SigningSessions {
         });
         let query = query_builder.build();
         query.execute(&mut tx).await?;
-        unimplemented!()
+        query_builder = sqlx::QueryBuilder::new(
+            r#"INSERT INTO bria_signing_session_events
+            (id, sequence, event_type, event)"#,
+        );
+        query_builder.push_values(
+            sessions
+                .values()
+                .flat_map(|session| session.events.new_serialized_events(session.id)),
+            |mut builder, (id, sequence, event_type, event)| {
+                builder.push_bind(id);
+                builder.push_bind(sequence);
+                builder.push_bind(event_type);
+                builder.push_bind(event);
+            },
+        );
+        let query = query_builder.build();
+        query.execute(&mut tx).await?;
+        tx.commit().await?;
+        if let (Some(account_id), Some(batch_id)) = (account_id, batch_id) {
+            Ok(self
+                .find_for_batch(account_id, batch_id)
+                .await?
+                .expect("New session not found"))
+        } else {
+            unreachable!()
+        }
     }
 
     pub async fn find_for_batch(
@@ -48,7 +79,7 @@ impl SigningSessions {
             let rows = sqlx::query!(
                 r#"
               SELECT b.*, e.sequence, e.event_type, e.event as "event?"
-              FROM bria_signing_session b
+              FROM bria_signing_sessions b
               JOIN bria_signing_session_events e ON b.id = e.id
               WHERE account_id = $1 AND batch_id = $2
               ORDER BY b.id, sequence"#,
@@ -75,12 +106,12 @@ impl SigningSessions {
                 first_row.xpub_fingerprint.as_ref(),
             ));
             let session = SigningSession {
-                id: SigningSessionId::from(id),
+                id,
                 account_id: AccountId::from(first_row.account_id),
                 batch_id,
                 xpub_id,
                 unsigned_psbt: bitcoin::consensus::deserialize(&first_row.unsigned_psbt)?,
-                events,
+                _events: events,
             };
             xpub_sessions.insert(xpub_id, session);
         }

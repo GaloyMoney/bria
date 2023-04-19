@@ -18,11 +18,11 @@ pub struct BatchSigningData {
 
 #[instrument(
     name = "job.batch_wallet_signing",
-    skip(pool, wallets, signing_sessions, batches, xpubs),
+    skip(_pool, wallets, signing_sessions, batches, xpubs),
     err
 )]
 pub async fn execute(
-    pool: sqlx::PgPool,
+    _pool: sqlx::PgPool,
     data: BatchSigningData,
     blockchain_cfg: BlockchainConfig,
     batches: Batches,
@@ -30,7 +30,7 @@ pub async fn execute(
     wallets: Wallets,
     xpubs: XPubs,
 ) -> Result<BatchSigningData, BriaError> {
-    let sessions = if let Some(batch_session) = signing_sessions
+    let _sessions = if let Some(batch_session) = signing_sessions
         .find_for_batch(data.account_id, data.batch_id)
         .await?
     {
@@ -43,7 +43,7 @@ pub async fn execute(
         for (wallet_id, keychain_utxos) in batch.included_utxos {
             let wallet = wallets.find_by_id(wallet_id).await?;
             let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
-            for (keychain_id, keychain_xpubs) in keychain_xpubs.into_iter() {
+            for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
                     let account_xpub = xpubs
                         .find_from_ref(data.account_id, xpub.id().to_string())
@@ -51,7 +51,6 @@ pub async fn execute(
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
-                        .xpub(xpub)
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");
@@ -61,8 +60,13 @@ pub async fn execute(
             }
         }
 
-        signing_sessions.persist_new_sessions(new_sessions).await?;
-        (HashMap::new(), account_xpubs)
+        (
+            signing_sessions
+                .persist_new_sessions(new_sessions)
+                .await?
+                .xpub_sessions,
+            account_xpubs,
+        )
     };
 
     // let wallet = wallets.find_by_id(data.wallet_id).await?;
