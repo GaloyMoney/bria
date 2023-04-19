@@ -17,6 +17,7 @@ pub mod ledger;
 pub mod payout;
 pub mod primitives;
 pub mod profile;
+pub mod signing_session;
 mod tracing;
 pub mod utxo;
 pub mod wallet;

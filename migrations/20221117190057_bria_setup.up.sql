@@ -189,3 +189,20 @@ CREATE TABLE bria_batch_spent_utxos (
   vout INTEGER NOT NULL,
   UNIQUE(keychain_id, tx_id, vout)
 );
+
+CREATE TABLE bria_signing_session (
+  id UUID PRIMARY KEY NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
+  xpub_fingerprint BYTEA NOT NULL,
+  unsigned_psbt BYTEA NOT NULL,
+  UNIQUE(account_id, batch_id)
+);
+
+CREATE TABLE bria_signing_session_events (
+  id UUID REFERENCES bria_signing_session(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  UNIQUE(id, sequence)
+);
