@@ -1606,6 +1606,34 @@
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
   },
+  "ce9e2b1cad0b231867297267b6fcb238555b903f9a3113de73209eac0df03529": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Int4",
+          "Varchar",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, address_string, keychain_id, kind, address_index, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7)"
+  },
   "cea08e173999feced38d8c3d7039b2d2ea3bf7a26f7df74d33da7b2c0b772117": {
     "describe": {
       "columns": [
