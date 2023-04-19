@@ -1,3 +1,7 @@
+mod event;
+
+pub use event::*;
+
 #[macro_export]
 macro_rules! entity_id {
     ($name:ident) => {
