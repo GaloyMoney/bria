@@ -170,7 +170,7 @@ message QueuePayoutRequest {
     string onchain_address = 3;
   };
   uint64 satoshis = 4;
-  google.protobuf.Struct metadata = 5;
+  optional google.protobuf.Struct metadata = 5;
 }
 
 message QueuePayoutResponse {

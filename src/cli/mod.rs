@@ -246,7 +246,7 @@ enum Command {
         #[clap(short, long)]
         amount: u64,
         #[clap(short, long, value_parser = parse_json)]
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     },
     /// List pending Payouts
     ListPayouts {

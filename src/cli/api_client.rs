@@ -229,9 +229,10 @@ impl ApiClient {
         batch_group_name: String,
         on_chain_address: String,
         satoshis: u64,
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
-        let metadata_struct = serde_json::from_value(metadata)?;
+        let metadata_struct: Option<prost_wkt_types::Struct> =
+            metadata.map(serde_json::from_value).transpose()?;
 
         let request = tonic::Request::new(proto::QueuePayoutRequest {
             wallet_name,
@@ -240,7 +241,7 @@ impl ApiClient {
                 on_chain_address,
             )),
             satoshis,
-            metadata: Some(metadata_struct),
+            metadata: metadata_struct,
         });
         let response = self
             .connect()
