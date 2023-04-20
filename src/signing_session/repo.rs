@@ -147,4 +147,27 @@ impl SigningSessions {
             Ok(Some(BatchSigningSession { xpub_sessions }))
         }
     }
+
+    pub async fn list_batch_ids_for(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        account_id: AccountId,
+        xpub_id: XPubId,
+    ) -> Result<Vec<BatchId>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+          SELECT batch_id
+          FROM bria_signing_sessions
+          WHERE account_id = $1 AND xpub_fingerprint = $2 FOR UPDATE"#,
+            Uuid::from(account_id),
+            xpub_id.as_bytes()
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| BatchId::from(row.batch_id))
+            .collect())
+    }
 }

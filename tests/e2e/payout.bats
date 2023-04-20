@@ -79,4 +79,6 @@ teardown_file() {
     signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
 
     [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
+
+    bria_cmd set-signer-config --xpub lnd_key lnd --endpoint "${LND_ENDPOINT}" --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" --cert-file "./dev/lnd/tls.cert"
 }

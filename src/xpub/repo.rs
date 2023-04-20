@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 use std::str::FromStr;
 use tracing::instrument;
 use uuid::Uuid;
@@ -126,6 +126,7 @@ impl XPubs {
     #[instrument(name = "xpubs.set_signer_for_xpub", skip(self))]
     pub async fn set_signer_for_xpub(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         signer: NewSigner,
     ) -> Result<SignerId, BriaError> {
@@ -139,7 +140,7 @@ impl XPubs {
             signer.xpub_id.as_bytes(),
             serde_json::to_value(signer.config)?,
         )
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
 
         Ok(signer.id)

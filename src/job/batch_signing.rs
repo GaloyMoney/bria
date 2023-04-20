@@ -86,7 +86,7 @@ pub async fn execute(
             Ok(None) => {
                 session.attempt_failed(SigningFailureReason::SignerConfigMissing);
                 stalled = true;
-                tracing::error!("signer_config_missing");
+                tracing::warn!("signer_config_missing");
                 continue;
             }
             Err(err) => {

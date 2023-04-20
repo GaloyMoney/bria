@@ -410,6 +410,25 @@ async fn spawn_batch_signing(
     }
 }
 
+#[instrument(name = "job.spawn_all_batch_signings", skip_all, fields(error, error.level, error.message), err)]
+pub async fn spawn_all_batch_signings(
+    mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
+    jobs: impl Iterator<Item = impl Into<BatchSigningData>>,
+) -> Result<(), BriaError> {
+    for job in jobs {
+        let data = job.into();
+        batch_signing
+            .builder()
+            .set_json(&data)
+            .expect("Couldn't set json")
+            .set_ordered(true)
+            .set_channel_args(&format!("batch_id:{}", data.batch_id))
+            .spawn(&mut tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(())
+}
 #[instrument(name = "job.spawn_batch_finalizing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_finalizing(
     mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
@@ -493,6 +512,15 @@ impl From<&ProcessBatchGroupData> for BatchSigningData {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            tracing_data: crate::tracing::extract_tracing_data(),
+        }
+    }
+}
+impl From<(AccountId, BatchId)> for BatchSigningData {
+    fn from((account_id, batch_id): (AccountId, BatchId)) -> Self {
+        Self {
+            batch_id,
+            account_id,
             tracing_data: crate::tracing::extract_tracing_data(),
         }
     }

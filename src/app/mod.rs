@@ -166,12 +166,19 @@ impl App {
             .find_from_ref(profile.account_id, xpub_ref)
             .await?;
         let new_signer = NewSigner::builder()
-            .xpub_id(xpub.value.id())
+            .xpub_id(xpub.id())
             .config(config)
             .build()
             .expect("Couldn't build signer");
+        let mut tx = self.pool.begin().await?;
         self.xpubs
-            .set_signer_for_xpub(profile.account_id, new_signer)
+            .set_signer_for_xpub(&mut tx, profile.account_id, new_signer)
+            .await?;
+        let batch_ids = self
+            .signing_sessions
+            .list_batch_ids_for(&mut tx, profile.account_id, xpub.id())
+            .await?;
+        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
             .await?;
         Ok(())
     }
