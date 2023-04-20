@@ -1,7 +1,7 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use crate::{entity::*, primitives::*};
 
@@ -9,6 +9,7 @@ use crate::{entity::*, primitives::*};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SigningSessionEvent {
     SigningSessionInitialized,
+    SigningAttemptFailed { reason: SigningFailureReason },
 }
 
 pub struct SigningSession {
@@ -17,7 +18,29 @@ pub struct SigningSession {
     pub batch_id: BatchId,
     pub xpub_id: XPubId,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
-    pub(super) _events: EntityEvents<SigningSessionEvent>,
+    pub(super) events: EntityEvents<SigningSessionEvent>,
+}
+
+impl SigningSession {
+    pub fn signer_config_missing(&mut self) -> SigningFailureReason {
+        self.events.push(SigningSessionEvent::SigningAttemptFailed {
+            reason: SigningFailureReason::SignerConfigMissing,
+        });
+        SigningFailureReason::SignerConfigMissing
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SigningFailureReason {
+    SignerConfigMissing,
+}
+
+impl fmt::Display for SigningFailureReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let value = serde_json::to_value(self).expect("Could not serialize SigningFailureReason");
+        write!(f, "{}", value.as_str().expect("Could not convert to str"))
+    }
 }
 
 pub struct BatchSigningSession {

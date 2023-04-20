@@ -3,6 +3,7 @@ use thiserror::Error;
 use crate::{
     job::JobExecutionError,
     primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+    signing_session::SigningFailureReason,
 };
 
 #[derive(Error, Debug)]
@@ -55,6 +56,8 @@ pub enum BriaError {
     CouldNotCombinePsbts(psbt::Error),
     #[error("BriaError - CouldNotParseIncomingMetadata: {0}")]
     CouldNotParseIncomingMetadata(serde_json::Error),
+    #[error("BriaError - SigningSessionStalled: {0}")]
+    SigningSessionStalled(SigningFailureReason),
 }
 
 impl JobExecutionError for BriaError {}

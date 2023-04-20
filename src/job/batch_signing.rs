@@ -30,7 +30,9 @@ pub async fn execute(
     wallets: Wallets,
     xpubs: XPubs,
 ) -> Result<BatchSigningData, BriaError> {
-    let _sessions = if let Some(batch_session) = signing_sessions
+    let mut last_err = None;
+    let any_non_stalled_error = false;
+    let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .find_for_batch(data.account_id, data.batch_id)
         .await?
     {
@@ -69,27 +71,28 @@ pub async fn execute(
         )
     };
 
-    // let wallet = wallets.find_by_id(data.wallet_id).await?;
-    // if let Some(keychain_utxos) = batch.included_utxos.get(&data.wallet_id) {
-    //     let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
-    //     for (keychain_id, keychain_xpubs) in keychain_xpubs.into_iter() {
-    //         for xpub in keychain_xpubs.into_iter() {
-    //             let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id().to_string());
-    //             let new_session = NewSigningSession::builder()
-    //                 .account_id(data.account_id)
-    //                 .batch_id(data.batch_id)
-    //                 .xpub(xpub)
-    //                 .build()
-    //                 .expect("Could not build signing session");
-    //         }
-    //     }
-    // }
-    // let wallet.xpubs_for_keychains
-    // load and sign psbt
-    // for each spent utxo
-    // for each keychain_id => fetch all xpubs
-    // => for each xpub fetch signing config
-    // => sign psbt
-    // => persist signed psbt
-    Ok(data)
+    for (xpub_id, session) in sessions.iter_mut() {
+        let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
+            xpub
+        } else {
+            xpubs
+                .find_from_ref(data.account_id, xpub_id.to_string())
+                .await?
+        };
+        if let Some(_signer) = account_xpub.signer {
+            //
+        } else if !any_non_stalled_error {
+            last_err = Some(BriaError::SigningSessionStalled(
+                session.signer_config_missing(),
+            ));
+        }
+    }
+
+    signing_sessions.update_sessions(sessions).await?;
+
+    if let Some(last_err) = last_err {
+        Err(last_err)
+    } else {
+        Ok(data)
+    }
 }

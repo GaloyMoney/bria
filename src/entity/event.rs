@@ -21,6 +21,10 @@ impl<T: DeserializeOwned + Serialize + Clone> EntityEvents<T> {
         }
     }
 
+    pub fn push(&mut self, event: T) {
+        self.events.push(event);
+    }
+
     pub fn load_event(
         &mut self,
         sequence: usize,

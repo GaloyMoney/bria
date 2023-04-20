@@ -70,6 +70,30 @@ impl SigningSessions {
         }
     }
 
+    pub async fn update_sessions(
+        &self,
+        sessions: HashMap<XPubId, SigningSession>,
+    ) -> Result<(), BriaError> {
+        let mut query_builder = sqlx::QueryBuilder::new(
+            r#"INSERT INTO bria_signing_session_events
+            (id, sequence, event_type, event)"#,
+        );
+        query_builder.push_values(
+            sessions
+                .values()
+                .flat_map(|session| session.events.new_serialized_events(session.id)),
+            |mut builder, (id, sequence, event_type, event)| {
+                builder.push_bind(id);
+                builder.push_bind(sequence);
+                builder.push_bind(event_type);
+                builder.push_bind(event);
+            },
+        );
+        let query = query_builder.build();
+        query.execute(&self.pool).await?;
+        Ok(())
+    }
+
     pub async fn find_for_batch(
         &self,
         account_id: AccountId,
@@ -111,7 +135,7 @@ impl SigningSessions {
                 batch_id,
                 xpub_id,
                 unsigned_psbt: bitcoin::consensus::deserialize(&first_row.unsigned_psbt)?,
-                _events: events,
+                events,
             };
             xpub_sessions.insert(xpub_id, session);
         }
