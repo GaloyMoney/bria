@@ -28,6 +28,7 @@ pub struct App {
     wallets: Wallets,
     batch_groups: BatchGroups,
     payouts: Payouts,
+    signing_sessions: SigningSessions,
     ledger: Ledger,
     utxos: Utxos,
     pool: sqlx::PgPool,
@@ -58,7 +59,7 @@ impl App {
             xpubs.clone(),
             batch_groups.clone(),
             batches,
-            signing_sessions,
+            signing_sessions.clone(),
             payouts.clone(),
             ledger.clone(),
             utxos.clone(),
@@ -79,6 +80,7 @@ impl App {
             wallets,
             batch_groups,
             payouts,
+            signing_sessions,
             pool,
             ledger,
             utxos,
@@ -364,6 +366,20 @@ impl App {
             .find_by_name(profile.account_id, wallet_name)
             .await?;
         self.payouts.list_for_wallet(wallet.id).await
+    }
+
+    #[instrument(name = "app.list_signing_sessions", skip_all, err)]
+    pub async fn list_signing_sessions(
+        &self,
+        profile: Profile,
+        batch_id: BatchId,
+    ) -> Result<Vec<SigningSession>, BriaError> {
+        Ok(self
+            .signing_sessions
+            .find_for_batch(profile.account_id, batch_id)
+            .await?
+            .map(|BatchSigningSession { xpub_sessions }| xpub_sessions.into_values().collect())
+            .unwrap_or_default())
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

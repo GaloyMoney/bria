@@ -248,6 +248,34 @@ impl BriaService for Bria {
         };
         Ok(Response::new(response))
     }
+
+    #[instrument(skip_all, err)]
+    async fn list_signing_sessions(
+        &self,
+        request: Request<ListSigningSessionsRequest>,
+    ) -> Result<Response<ListSigningSessionsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let batch_id = request.into_inner().batch_id;
+        let sessions = self
+            .app
+            .list_signing_sessions(
+                profile,
+                batch_id
+                    .parse()
+                    .map_err(BriaError::CouldNotParseIncomingUuid)?,
+            )
+            .await?;
+
+        let session_messages: Vec<proto::SigningSession> = sessions
+            .into_iter()
+            .map(proto::SigningSession::from)
+            .collect();
+        let response = ListSigningSessionsResponse {
+            sessions: session_messages,
+        };
+        Ok(Response::new(response))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {

@@ -25,6 +25,10 @@ impl<T: DeserializeOwned + Serialize + Clone> EntityEvents<T> {
         self.events.push(event);
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.events.iter()
+    }
+
     pub fn load_event(
         &mut self,
         sequence: usize,

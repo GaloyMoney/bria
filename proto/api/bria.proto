@@ -19,6 +19,7 @@ service BriaService {
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
+  rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
 }
 
 message CreateProfileRequest {
@@ -196,4 +197,20 @@ message Payout {
 
 message ListPayoutsResponse {
   repeated Payout payouts = 1;
+}
+
+message ListSigningSessionsRequest {
+  string batch_id = 1;
+}
+
+message SigningSession {
+  string id = 1;
+  string batch_id = 2;
+  string xpub_id = 3;
+  string state = 4;
+  optional string failure_reason = 5;
+}
+
+message ListSigningSessionsResponse {
+  repeated SigningSession sessions = 1;
 }

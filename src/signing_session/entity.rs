@@ -12,6 +12,13 @@ pub enum SigningSessionEvent {
     SigningAttemptFailed { reason: SigningFailureReason },
 }
 
+#[derive(Debug)]
+pub enum SigningSessionState {
+    Initialized,
+    Failed,
+    Complete,
+}
+
 pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
@@ -28,9 +35,29 @@ impl SigningSession {
         });
         SigningFailureReason::SignerConfigMissing
     }
+
+    pub fn failure_reason(&self) -> Option<SigningFailureReason> {
+        let mut ret = None;
+        for event in self.events.iter() {
+            if let SigningSessionEvent::SigningAttemptFailed { reason } = event {
+                ret = Some(*reason);
+            }
+        }
+        ret
+    }
+
+    pub fn state(&self) -> SigningSessionState {
+        let mut ret = SigningSessionState::Initialized;
+        for event in self.events.iter() {
+            if let SigningSessionEvent::SigningAttemptFailed { .. } = event {
+                ret = SigningSessionState::Failed
+            }
+        }
+        ret
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SigningFailureReason {
     SignerConfigMissing,
