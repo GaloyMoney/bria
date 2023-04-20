@@ -271,6 +271,7 @@ async fn batch_signing(
 async fn batch_finalizing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
+    signing_sessions: SigningSessions,
     ledger: Ledger,
     wallets: Wallets,
     batches: Batches,
@@ -281,7 +282,16 @@ async fn batch_finalizing(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchFinalizingData = data.expect("no BatchFinalizingData available");
-            batch_finalizing::execute(pool, data, blockchain_cfg, ledger, wallets, batches).await
+            batch_finalizing::execute(
+                pool,
+                data,
+                blockchain_cfg,
+                signing_sessions,
+                ledger,
+                wallets,
+                batches,
+            )
+            .await
         })
         .await?;
     Ok(())
