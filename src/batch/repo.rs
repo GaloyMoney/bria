@@ -155,26 +155,6 @@ impl Batches {
         })
     }
 
-    #[instrument(name = "batches.find_containing_utxo", skip(self))]
-    pub async fn find_containing_utxo(
-        &self,
-        keychain_id: KeychainId,
-        utxo: OutPoint,
-    ) -> Result<Option<BatchId>, BriaError> {
-        let row = sqlx::query!(
-            r#"SELECT batch_id
-            FROM bria_batch_spent_utxos
-            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
-            Uuid::from(keychain_id),
-            utxo.txid.to_string(),
-            utxo.vout as i32
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(row.map(|row| BatchId::from(row.batch_id)))
-    }
-
     #[instrument(name = "batches.set_create_batch_ledger_tx_id", skip(self))]
     pub async fn set_create_batch_ledger_tx_id(
         &self,
@@ -200,5 +180,55 @@ impl Batches {
         } else {
             Ok(None)
         }
+    }
+
+    #[instrument(name = "batches.set_submitted_ledger_tx_id", skip(self))]
+    pub async fn set_submitted_ledger_tx_id(
+        &self,
+        bitcoin_tx_id: bitcoin::Txid,
+        wallet_id: WalletId,
+    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId)>, BriaError> {
+        let mut tx = self.pool.begin().await?;
+        let row = sqlx::query!(
+            r#"WITH b AS (
+                 SELECT id FROM bria_batches
+                 WHERE bitcoin_tx_id = $1
+               )
+               SELECT b.id, s.submitted_ledger_tx_id as "ledger_id?"
+               FROM b
+               LEFT JOIN (
+                   SELECT batch_id, submitted_ledger_tx_id
+                   FROM bria_batch_wallet_summaries
+                   WHERE wallet_id = $2 AND batch_id = ANY(SELECT id FROM b)
+                   FOR UPDATE
+               ) s
+               ON b.id = s.batch_id"#,
+            bitcoin_tx_id.as_ref(),
+            Uuid::from(wallet_id)
+        )
+        .fetch_optional(&mut tx)
+        .await?;
+        if row.is_none() {
+            return Ok(None);
+        }
+        let row = row.unwrap();
+        let batch_id = row.id;
+        if row.ledger_id.is_some() {
+            return Ok(Some((tx, LedgerTxId::from(row.ledger_id.unwrap()))));
+        }
+        let ledger_transaction_id = Uuid::new_v4();
+        sqlx::query!(
+            r#"UPDATE bria_batch_wallet_summaries
+               SET submitted_ledger_tx_id = $1
+               WHERE bria_batch_wallet_summaries.batch_id = $2
+                 AND bria_batch_wallet_summaries.wallet_id = $3"#,
+            ledger_transaction_id,
+            Uuid::from(batch_id),
+            Uuid::from(wallet_id),
+        )
+        .execute(&mut tx)
+        .await?;
+
+        Ok(Some((tx, LedgerTxId::from(ledger_transaction_id))))
     }
 }

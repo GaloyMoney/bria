@@ -3,10 +3,7 @@ use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::{
-    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, signing_session::*,
-    wallet::*,
-};
+use crate::{app::BlockchainConfig, error::*, primitives::*, signing_session::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchFinalizingData {
@@ -14,19 +11,11 @@ pub struct BatchFinalizingData {
     pub(super) batch_id: BatchId,
 }
 
-#[instrument(
-    name = "job.batch_finalizing",
-    skip(_pool, signing_sessions, _wallets, _batches, _ledger),
-    err
-)]
+#[instrument(name = "job.batch_finalizing", skip(signing_sessions), err)]
 pub async fn execute(
-    _pool: sqlx::PgPool,
     data: BatchFinalizingData,
     blockchain_cfg: BlockchainConfig,
     signing_sessions: SigningSessions,
-    _ledger: Ledger,
-    _wallets: Wallets,
-    _batches: Batches,
 ) -> Result<BatchFinalizingData, BriaError> {
     let blockchain = init_electrum(&blockchain_cfg.electrum_url).await?;
     let sessions = signing_sessions

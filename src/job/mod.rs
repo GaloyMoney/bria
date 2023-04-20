@@ -127,6 +127,7 @@ async fn sync_wallet(
     blockchain_cfg: BlockchainConfig,
     utxos: Utxos,
     ledger: Ledger,
+    batches: Batches,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -134,7 +135,7 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(pool, wallets, blockchain_cfg, utxos, ledger, data).await
+            sync_wallet::execute(pool, wallets, blockchain_cfg, utxos, ledger, batches, data).await
         })
         .await?;
     Ok(())
@@ -272,26 +273,13 @@ async fn batch_finalizing(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
     signing_sessions: SigningSessions,
-    ledger: Ledger,
-    wallets: Wallets,
-    batches: Batches,
 ) -> Result<(), BriaError> {
-    let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchFinalizingData = data.expect("no BatchFinalizingData available");
-            batch_finalizing::execute(
-                pool,
-                data,
-                blockchain_cfg,
-                signing_sessions,
-                ledger,
-                wallets,
-                batches,
-            )
-            .await
+            batch_finalizing::execute(data, blockchain_cfg, signing_sessions).await
         })
         .await?;
     Ok(())

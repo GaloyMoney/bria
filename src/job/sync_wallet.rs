@@ -5,6 +5,7 @@ use tracing::instrument;
 
 use crate::{
     app::BlockchainConfig,
+    batch::*,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
     ledger::*,
@@ -52,7 +53,7 @@ struct Deps {
 
 #[instrument(
     name = "job.sync_wallet",
-    skip(pool, wallets, bria_utxos, ledger),
+    skip(pool, wallets, _batches, bria_utxos, ledger),
     fields(n_pending_utxos, n_confirmed_utxos, n_found_txs),
     err
 )]
@@ -62,6 +63,7 @@ pub async fn execute(
     blockchain_cfg: BlockchainConfig,
     bria_utxos: Utxos,
     ledger: Ledger,
+    _batches: Batches,
     data: SyncWalletData,
 ) -> Result<SyncWalletData, BriaError> {
     let span = tracing::Span::current();

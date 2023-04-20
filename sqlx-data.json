@@ -222,28 +222,6 @@
     },
     "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT u.tx_id, vout\n                FROM bdk_utxos u\n                JOIN bdk_transactions t\n                ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id\n                WHERE u.keychain_id = $1\n                AND utxo_json->>'keychain' = 'External'\n                AND u.synced_to_bria = true\n                AND u.confirmation_synced_to_bria = false\n                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2\n                ORDER BY t.height ASC NULLS LAST\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT u.tx_id, utxo_json, details_json\n            FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
   },
-  "1071eb38b4d772554beb04d7bb3c3a563829d105b9657b67ba36c9d7b55d825e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "batch_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Int4"
-        ]
-      }
-    },
-    "query": "SELECT batch_id\n            FROM bria_batch_spent_utxos\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
-  },
   "115999f874d3397311d1ebc501e47eef0a01993a7f573873b6d0a5d87cbb0866": {
     "describe": {
       "columns": [
@@ -406,6 +384,20 @@
       }
     },
     "query": "SELECT wallet_id, keychain_id, tx_id, vout, kind as \"kind: pg::PgKeychainKind\", address_idx, value, address, bdk_spent,\n                  CASE\n                      WHEN kind = 'external' THEN address\n                      ELSE NULL\n                  END as optional_address,\n                  block_height, pending_income_ledger_tx_id, confirmed_income_ledger_tx_id, spending_batch_id\n           FROM bria_utxos\n           WHERE keychain_id = ANY($1) AND bdk_spent = false\n           ORDER BY created_at DESC"
+  },
+  "26070a82fbf1ed7594bdcf8adfc40cc98be26d1457b312cd8dbac08e8f9ce57d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE bria_batch_wallet_summaries\n               SET submitted_ledger_tx_id = $1\n               WHERE bria_batch_wallet_summaries.batch_id = $2\n                 AND bria_batch_wallet_summaries.wallet_id = $3"
   },
   "277091eb889c9bfe2dac75ef4f634ff9a22328710da5608e39c79d2f212d1995": {
     "describe": {
@@ -1437,6 +1429,33 @@
       }
     },
     "query": "INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json, is_spent)\n            VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id, vout)\n            DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = $5, modified_at = NOW()"
+  },
+  "a7e0e3d22c098944a681dc0b4496b50013eb79cf2eeffab7e1ab27107c3f4a67": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "ledger_id?",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "WITH b AS (\n                 SELECT id FROM bria_batches\n                 WHERE bitcoin_tx_id = $1\n               )\n               SELECT b.id, s.submitted_ledger_tx_id as \"ledger_id?\"\n               FROM b\n               LEFT JOIN (\n                   SELECT batch_id, submitted_ledger_tx_id\n                   FROM bria_batch_wallet_summaries\n                   WHERE wallet_id = $2 AND batch_id = ANY(SELECT id FROM b)\n                   FOR UPDATE\n               ) s\n               ON b.id = s.batch_id"
   },
   "a8eb9dddd47a58ae77b39f1e0a33a6c7007ff6a631c043dd03941efad2b313e1": {
     "describe": {
