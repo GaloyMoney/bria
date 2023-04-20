@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, QueryBuilder};
+use sqlx::{Pool, Postgres, QueryBuilder, Transaction};
 use uuid::Uuid;
 
 use std::collections::HashMap;
@@ -46,10 +46,11 @@ impl SigningSessions {
             r#"INSERT INTO bria_signing_session_events
             (id, sequence, event_type, event)"#,
         );
+        let initial_events = NewSigningSession::initial_events();
         query_builder.push_values(
             sessions
                 .values()
-                .flat_map(|session| session.events.new_serialized_events(session.id)),
+                .flat_map(|session| initial_events.new_serialized_events(session.id)),
             |mut builder, (id, sequence, event_type, event)| {
                 builder.push_bind(id);
                 builder.push_bind(sequence);
@@ -72,6 +73,7 @@ impl SigningSessions {
 
     pub async fn update_sessions(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         sessions: HashMap<XPubId, SigningSession>,
     ) -> Result<(), BriaError> {
         let mut query_builder = sqlx::QueryBuilder::new(
@@ -90,7 +92,7 @@ impl SigningSessions {
             },
         );
         let query = query_builder.build();
-        query.execute(&self.pool).await?;
+        query.execute(&mut *tx).await?;
         Ok(())
     }
 

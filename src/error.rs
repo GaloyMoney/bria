@@ -3,6 +3,7 @@ use thiserror::Error;
 use crate::{
     job::JobExecutionError,
     primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+    xpub::SigningClientError,
 };
 
 #[derive(Error, Debug)]
@@ -21,6 +22,8 @@ pub enum BriaError {
     SerdeJson(#[from] serde_json::Error),
     #[error("BriaError - ElectrumClient: {0}")]
     ElectrumClient(#[from] electrum_client::Error),
+    #[error("BriaError - SigningClientError: {0}")]
+    SigningClient(#[from] SigningClientError),
     #[error("BriaError - Bip32: {0}")]
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]

@@ -19,7 +19,7 @@ pub struct LndRemoteSigner {
 }
 
 impl LndRemoteSigner {
-    pub async fn connect(cfg: LndSignerConfig) -> Result<Self, SigningClientError> {
+    pub async fn connect(cfg: &LndSignerConfig) -> Result<Self, SigningClientError> {
         use base64::{engine::general_purpose, Engine};
         use std::{io::Write, os::unix::fs::OpenOptionsExt};
         let tmpdir = tempfile::tempdir()?;
@@ -38,7 +38,7 @@ impl LndRemoteSigner {
             .mode(0o600)
             .open(&macaroon_file)?;
         macaroon.write_all(&general_purpose::STANDARD.decode(&cfg.macaroon_base64)?)?;
-        let client = tonic_lnd::connect(cfg.endpoint, cert_file, macaroon_file)
+        let client = tonic_lnd::connect(cfg.endpoint.clone(), cert_file, macaroon_file)
             .await
             .map_err(|e| {
                 SigningClientError::CouldNotConnect(format!("Failed to connect to lnd: {e}"))

@@ -1,12 +1,12 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-#[derive(Clone, Debug)]
-pub struct EntityEvents<T: DeserializeOwned + Serialize + Clone> {
+#[derive(Debug)]
+pub struct EntityEvents<T: DeserializeOwned + Serialize> {
     last_persisted_sequence: usize,
     events: Vec<T>,
 }
 
-impl<T: DeserializeOwned + Serialize + Clone> EntityEvents<T> {
+impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
     pub fn new() -> Self {
         Self {
             last_persisted_sequence: 0,

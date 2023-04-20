@@ -242,7 +242,7 @@ async fn batch_signing(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchSigningData = data.expect("no BatchSigningData available");
-            let (data, stalled) = batch_signing::execute(
+            let (data, tx) = batch_signing::execute(
                 pool.clone(),
                 data,
                 blockchain_cfg,
@@ -253,10 +253,8 @@ async fn batch_signing(
             )
             .await?;
 
-            if !stalled {
-                let mut tx = pool.clone().begin().await?;
-                spawn_batch_finalizing(&mut tx, BatchFinalizingData::from(data.clone())).await?;
-                tx.commit().await?;
+            if let Some(tx) = tx {
+                spawn_batch_finalizing(tx, BatchFinalizingData::from(data.clone())).await?;
             }
 
             Ok::<_, BriaError>(data)
@@ -414,21 +412,24 @@ async fn spawn_batch_signing(
 
 #[instrument(name = "job.spawn_batch_finalizing", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_batch_finalizing(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
     data: BatchFinalizingData,
 ) -> Result<(), BriaError> {
     match batch_finalizing
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
-        .spawn(&mut *tx)
+        .spawn(&mut tx)
         .await
     {
         Err(e) => {
             crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
             Err(e.into())
         }
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            tx.commit().await?;
+            Ok(())
+        }
     }
 }
 

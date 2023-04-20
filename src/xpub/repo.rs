@@ -116,7 +116,7 @@ impl XPubs {
                 original,
                 inner: bitcoin::ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
-            signer: signer_cfg.map(|cfg| {
+            signing_cfg: signer_cfg.map(|cfg| {
                 serde_json::from_value::<SignerConfig>(cfg)
                     .expect("Could not deserialize signer config")
             }),

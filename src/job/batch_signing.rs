@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sqlx::{Postgres, Transaction};
 use tracing::instrument;
 
 use std::collections::HashMap;
@@ -18,20 +19,21 @@ pub struct BatchSigningData {
 
 #[instrument(
     name = "job.batch_signing",
-    skip(_pool, wallets, signing_sessions, batches, xpubs),
+    skip(pool, wallets, signing_sessions, batches, xpubs),
     fields(stalled),
     err
 )]
 pub async fn execute(
-    _pool: sqlx::PgPool,
+    pool: sqlx::PgPool,
     data: BatchSigningData,
     blockchain_cfg: BlockchainConfig,
     batches: Batches,
     signing_sessions: SigningSessions,
     wallets: Wallets,
     xpubs: XPubs,
-) -> Result<(BatchSigningData, bool), BriaError> {
+) -> Result<(BatchSigningData, Option<Transaction<'static, Postgres>>), BriaError> {
     let mut stalled = false;
+    let mut last_err = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .find_for_batch(data.account_id, data.batch_id)
         .await?
@@ -71,7 +73,7 @@ pub async fn execute(
         )
     };
 
-    for (xpub_id, session) in sessions.iter_mut() {
+    for (xpub_id, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
         let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
             xpub
         } else {
@@ -79,16 +81,45 @@ pub async fn execute(
                 .find_from_ref(data.account_id, xpub_id.to_string())
                 .await?
         };
-        if let Some(_signer) = account_xpub.signer {
-            //
-        } else {
-            session.signer_config_missing();
-            stalled = true;
+        let mut client = match account_xpub.remote_signing_client().await {
+            Ok(Some(client)) => client,
+            Ok(None) => {
+                session.attempt_failed(SigningFailureReason::SignerConfigMissing);
+                stalled = true;
+                tracing::error!("signer_config_missing");
+                continue;
+            }
+            Err(err) => {
+                session.attempt_failed(&err);
+                tracing::error!("{}", err.to_string());
+                last_err = Some(err);
+                continue;
+            }
+        };
+        match client.sign_psbt(&session.unsigned_psbt).await {
+            Ok(psbt) => {
+                session.remote_signing_complete(psbt);
+            }
+            Err(err) => {
+                session.attempt_failed(&err);
+                tracing::error!("{}", err.to_string());
+                last_err = Some(err);
+                continue;
+            }
         }
     }
 
-    signing_sessions.update_sessions(sessions).await?;
+    let mut tx = pool.begin().await?;
+    signing_sessions.update_sessions(&mut tx, sessions).await?;
 
     tracing::Span::current().record("stalled", stalled);
-    Ok((data, stalled))
+    if let Some(err) = last_err {
+        tx.commit().await?;
+        Err(err.into())
+    } else if stalled {
+        tx.commit().await?;
+        Ok((data, None))
+    } else {
+        Ok((data, Some(tx)))
+    }
 }

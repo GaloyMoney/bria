@@ -78,5 +78,5 @@ teardown_file() {
     batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
     signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
 
-    [[ "${signing_failure_reason}" == "signer_config_missing" ]] || exit 1
+    [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 }

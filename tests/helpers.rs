@@ -76,7 +76,7 @@ pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
         macaroon_base64,
         cert_base64,
     };
-    Ok(LndRemoteSigner::connect(cfg).await?)
+    Ok(LndRemoteSigner::connect(&cfg).await?)
 }
 
 pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyhow::Result<()> {

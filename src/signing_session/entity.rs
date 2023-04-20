@@ -1,15 +1,25 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
 
-use crate::{entity::*, primitives::*};
+use crate::{
+    entity::*,
+    primitives::{bitcoin::psbt, *},
+    xpub::SigningClientError,
+};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SigningSessionEvent {
     SigningSessionInitialized,
-    SigningAttemptFailed { reason: SigningFailureReason },
+    SigningAttemptFailed {
+        reason: SigningFailureReason,
+    },
+    RemoteSigningCompleted {
+        signed_psbt: psbt::PartiallySignedTransaction,
+    },
 }
 
 #[derive(Debug)]
@@ -24,24 +34,47 @@ pub struct SigningSession {
     pub account_id: AccountId,
     pub batch_id: BatchId,
     pub xpub_id: XPubId,
-    pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
+    pub unsigned_psbt: psbt::PartiallySignedTransaction,
     pub(super) events: EntityEvents<SigningSessionEvent>,
 }
 
 impl SigningSession {
-    pub fn signer_config_missing(&mut self) -> SigningFailureReason {
+    pub fn attempt_failed(&mut self, reason: impl Into<SigningFailureReason>) {
         self.events.push(SigningSessionEvent::SigningAttemptFailed {
-            reason: SigningFailureReason::SignerConfigMissing,
+            reason: reason.into(),
         });
-        SigningFailureReason::SignerConfigMissing
     }
 
-    pub fn failure_reason(&self) -> Option<SigningFailureReason> {
+    pub fn remote_signing_complete(&mut self, signed_psbt: psbt::PartiallySignedTransaction) {
+        self.events
+            .push(SigningSessionEvent::RemoteSigningCompleted { signed_psbt })
+    }
+
+    pub fn is_completed(&self) -> bool {
+        self.signed_psbt().is_some()
+    }
+
+    pub fn signed_psbt(&self) -> Option<&psbt::PartiallySignedTransaction> {
+        let mut ret = None;
+        for event in self.events.iter() {
+            if let SigningSessionEvent::RemoteSigningCompleted { signed_psbt } = event {
+                ret = Some(signed_psbt);
+            }
+        }
+        ret
+    }
+
+    pub fn failure_reason(&self) -> Option<&SigningFailureReason> {
         let mut ret = None;
         for event in self.events.iter() {
             if let SigningSessionEvent::SigningAttemptFailed { reason } = event {
-                ret = Some(*reason);
+                ret = Some(reason);
             }
+            ret = match event {
+                SigningSessionEvent::SigningAttemptFailed { reason } => Some(reason),
+                SigningSessionEvent::RemoteSigningCompleted { .. } => None,
+                _ => ret,
+            };
         }
         ret
     }
@@ -49,24 +82,30 @@ impl SigningSession {
     pub fn state(&self) -> SigningSessionState {
         let mut ret = SigningSessionState::Initialized;
         for event in self.events.iter() {
-            if let SigningSessionEvent::SigningAttemptFailed { .. } = event {
-                ret = SigningSessionState::Failed
-            }
+            ret = match event {
+                SigningSessionEvent::SigningAttemptFailed { .. } => SigningSessionState::Failed,
+                SigningSessionEvent::RemoteSigningCompleted { .. } => SigningSessionState::Complete,
+                _ => ret,
+            };
         }
         ret
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Error, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SigningFailureReason {
+    #[error("SignerConfigMissing")]
     SignerConfigMissing,
+    #[error("{err}")]
+    SigningClientError { err: String },
 }
 
-impl fmt::Display for SigningFailureReason {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let value = serde_json::to_value(self).expect("Could not serialize SigningFailureReason");
-        write!(f, "{}", value.as_str().expect("Could not convert to str"))
+impl From<&SigningClientError> for SigningFailureReason {
+    fn from(err: &SigningClientError) -> Self {
+        Self::SigningClientError {
+            err: err.to_string(),
+        }
     }
 }
 
@@ -80,18 +119,17 @@ pub struct NewSigningSession {
     pub(super) id: SigningSessionId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
-    pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
-    #[builder(private)]
-    pub(super) events: EntityEvents<SigningSessionEvent>,
+    pub(super) unsigned_psbt: psbt::PartiallySignedTransaction,
 }
 
 impl NewSigningSession {
     pub fn builder() -> NewSigningSessionBuilder {
         let mut builder = NewSigningSessionBuilder::default();
         builder.id(SigningSessionId::new());
-        builder.events(EntityEvents::init(
-            SigningSessionEvent::SigningSessionInitialized,
-        ));
         builder
+    }
+
+    pub(super) fn initial_events() -> EntityEvents<SigningSessionEvent> {
+        EntityEvents::init(SigningSessionEvent::SigningSessionInitialized)
     }
 }
