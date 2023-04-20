@@ -73,3 +73,10 @@ teardown_file() {
   [[ $(cached_pending_fees) != 0 ]] || exit 1
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
 }
+
+@test "payout: Add signing config to complete payout" {
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
+    signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
+
+    [[ "${signing_failure_reason}" == "signer_config_missing" ]] || exit 1
+}

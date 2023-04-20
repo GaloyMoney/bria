@@ -242,7 +242,7 @@ async fn batch_signing(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchSigningData = data.expect("no BatchSigningData available");
-            let data = batch_signing::execute(
+            let (data, stalled) = batch_signing::execute(
                 pool.clone(),
                 data,
                 blockchain_cfg,
@@ -253,9 +253,11 @@ async fn batch_signing(
             )
             .await?;
 
-            let mut tx = pool.clone().begin().await?;
-            spawn_batch_finalizing(&mut tx, BatchFinalizingData::from(data.clone())).await?;
-            tx.commit().await?;
+            if !stalled {
+                let mut tx = pool.clone().begin().await?;
+                spawn_batch_finalizing(&mut tx, BatchFinalizingData::from(data.clone())).await?;
+                tx.commit().await?;
+            }
 
             Ok::<_, BriaError>(data)
         })

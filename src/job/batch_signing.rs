@@ -17,8 +17,9 @@ pub struct BatchSigningData {
 }
 
 #[instrument(
-    name = "job.batch_wallet_signing",
+    name = "job.batch_signing",
     skip(_pool, wallets, signing_sessions, batches, xpubs),
+    fields(stalled),
     err
 )]
 pub async fn execute(
@@ -29,9 +30,8 @@ pub async fn execute(
     signing_sessions: SigningSessions,
     wallets: Wallets,
     xpubs: XPubs,
-) -> Result<BatchSigningData, BriaError> {
-    let mut last_err = None;
-    let any_non_stalled_error = false;
+) -> Result<(BatchSigningData, bool), BriaError> {
+    let mut stalled = false;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .find_for_batch(data.account_id, data.batch_id)
         .await?
@@ -81,18 +81,14 @@ pub async fn execute(
         };
         if let Some(_signer) = account_xpub.signer {
             //
-        } else if !any_non_stalled_error {
-            last_err = Some(BriaError::SigningSessionStalled(
-                session.signer_config_missing(),
-            ));
+        } else {
+            session.signer_config_missing();
+            stalled = true;
         }
     }
 
     signing_sessions.update_sessions(sessions).await?;
 
-    if let Some(last_err) = last_err {
-        Err(last_err)
-    } else {
-        Ok(data)
-    }
+    tracing::Span::current().record("stalled", stalled);
+    Ok((data, stalled))
 }
