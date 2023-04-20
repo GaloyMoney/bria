@@ -217,9 +217,11 @@ pub async fn execute(
                 } else {
                     None
                 };
-                if let Some((tx_id, settled_sats, allocations, tx)) = deps
+                let mut tx = pool.begin().await?;
+                if let Some((tx_id, settled_sats, allocations)) = deps
                     .bria_utxos
                     .mark_spent(
+                        &mut tx,
                         wallet.id,
                         keychain_id,
                         income_bria_utxos
