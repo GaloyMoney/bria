@@ -159,6 +159,8 @@ impl ApiClient {
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::NewAddressRequest {
             wallet_name: wallet,
+            external_id,
+            metadata: metadata.map(serde_json::from_value).transpose()?,
         });
         let response = self
             .connect()

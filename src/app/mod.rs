@@ -257,6 +257,8 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
     ) -> Result<String, BriaError> {
         let wallet = self
             .wallets
@@ -270,8 +272,8 @@ impl App {
             .keychain_id(keychain_wallet.keychain_id)
             .kind(bitcoin::pg::PgKeychainKind::External)
             .address_idx(addr.index)
-            .external_id(None)
-            .metadata(None)
+            .external_id(external_id)
+            .metadata(metadata)
             .build()
             .expect("Couldn't build NewAddress");
         let tx = self.addresses.persist_address(new_address).await?;

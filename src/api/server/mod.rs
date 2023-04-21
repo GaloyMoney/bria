@@ -148,7 +148,24 @@ impl BriaService for Bria {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let address = self.app.new_address(profile, request.wallet_name).await?;
+        let NewAddressRequest {
+            wallet_name,
+            external_id,
+            metadata,
+        } = request;
+
+        let address = self
+            .app
+            .new_address(
+                profile,
+                wallet_name,
+                external_id,
+                metadata
+                    .map(serde_json::to_value)
+                    .transpose()
+                    .map_err(BriaError::CouldNotParseIncomingMetadata)?,
+            )
+            .await?;
         Ok(Response::new(NewAddressResponse { address }))
     }
 
@@ -209,11 +226,6 @@ impl BriaService for Bria {
             metadata,
         } = request;
 
-        let metadata_json = metadata
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(BriaError::CouldNotParseIncomingMetadata)?;
-
         let id = self
             .app
             .queue_payout(
@@ -223,7 +235,10 @@ impl BriaService for Bria {
                 destination.try_into()?,
                 Satoshis::from(satoshis),
                 None,
-                metadata_json,
+                metadata
+                    .map(serde_json::to_value)
+                    .transpose()
+                    .map_err(BriaError::CouldNotParseIncomingMetadata)?,
             )
             .await?;
         Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
