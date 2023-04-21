@@ -712,6 +712,35 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"
   },
+  "3b182f7b6cef6bc62896c285c27c9a0b4b90d21585a1417e324d866f3826f1f7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Uuid",
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Int4",
+          "Varchar",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, address_string, profile_id, keychain_id, kind, address_index, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+  },
   "431e9fcdf2f16e554ab6da696c0ad807bbc296b96d3d8bceb1e2826786e949da": {
     "describe": {
       "columns": [
@@ -1605,34 +1634,6 @@
       }
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
-  },
-  "ce9e2b1cad0b231867297267b6fcb238555b903f9a3113de73209eac0df03529": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Int4",
-          "Varchar",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_addresses\n               (id, address_string, keychain_id, kind, address_index, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7)"
   },
   "cea08e173999feced38d8c3d7039b2d2ea3bf7a26f7df74d33da7b2c0b772117": {
     "describe": {

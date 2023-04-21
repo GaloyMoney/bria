@@ -4,6 +4,7 @@ use derive_builder::Builder;
 pub struct Address {
     pub id: AddressId,
     pub address_string: String,
+    pub profile_id: ProfileId,
     pub keychain_id: KeychainId,
     pub kind: pg::PgKeychainKind,
     pub address_idx: u32,
@@ -16,6 +17,7 @@ pub struct NewAddress {
     pub id: AddressId,
     #[builder(setter(into))]
     pub address_string: String,
+    pub profile_id: ProfileId,
     pub keychain_id: KeychainId,
     pub kind: pg::PgKeychainKind,
     pub address_idx: u32,

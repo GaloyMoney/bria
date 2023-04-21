@@ -216,6 +216,7 @@ CREATE TABLE bria_signing_session_events (
 CREATE TABLE bria_addresses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   address_string VARCHAR UNIQUE NOT NULL,
+  profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
   keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   kind KeychainKind NOT NULL,
   address_index INTEGER NOT NULL,
