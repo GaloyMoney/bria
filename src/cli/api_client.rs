@@ -151,7 +151,12 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn new_address(&self, wallet: String) -> anyhow::Result<()> {
+    pub async fn new_address(
+        &self,
+        wallet: String,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::NewAddressRequest {
             wallet_name: wallet,
         });

@@ -184,6 +184,10 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
+        #[clap(short, long)]
+        external_id: Option<String>,
+        #[clap(short, long, value_parser = parse_json)]
+        metadata: Option<serde_json::Value>,
     },
     /// List Unspent Transaction Outputs of a wallet
     ListUtxos {
@@ -423,9 +427,11 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
+            external_id,
+            metadata,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.new_address(wallet).await?;
+            client.new_address(wallet, external_id, metadata).await?;
         }
         Command::ListUtxos {
             url,
