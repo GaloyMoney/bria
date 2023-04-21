@@ -73,6 +73,7 @@ impl Utxos {
     }
 
     #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
+    #[allow(clippy::type_complexity)]
     pub async fn mark_spent(
         &self,
         tx: &mut Transaction<'_, Postgres>,

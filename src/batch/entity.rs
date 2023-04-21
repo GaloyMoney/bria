@@ -12,6 +12,15 @@ pub struct Batch {
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
+    pub signed_tx: Option<bitcoin::Transaction>,
+}
+
+impl Batch {
+    pub fn accounting_complete(&self) -> bool {
+        self.wallet_summaries
+            .values()
+            .all(|s| s.create_batch_ledger_tx_id.is_some())
+    }
 }
 
 #[derive(Builder, Clone)]

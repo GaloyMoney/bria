@@ -155,6 +155,7 @@ CREATE TABLE bria_batches (
   total_fee_sats BIGINT NOT NULL,
   bitcoin_tx_id BYTEA NOT NULL,
   unsigned_psbt BYTEA NOT NULL,
+  signed_tx BYTEA DEFAULT NULL,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(account_id, id)

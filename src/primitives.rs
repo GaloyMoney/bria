@@ -37,7 +37,7 @@ pub mod bitcoin {
         bitcoin::{
             blockdata::{
                 script::Script,
-                transaction::{OutPoint, TxOut},
+                transaction::{OutPoint, Transaction, TxOut},
             },
             consensus,
             hash_types::Txid,

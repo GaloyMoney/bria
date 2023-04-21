@@ -81,4 +81,10 @@ teardown_file() {
     [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 
     bria_cmd set-signer-config --xpub lnd_key lnd --endpoint "${LND_ENDPOINT}" --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" --cert-file "./dev/lnd/tls.cert"
+
+  for i in {1..20}; do
+    signing_status=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].state')
+    [[ "${signing_status}" != "Complete" ]] && break
+    sleep 1
+  done
 }

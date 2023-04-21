@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{Postgres, Transaction};
 use tracing::instrument;
 
 use std::collections::HashMap;
@@ -31,7 +30,7 @@ pub async fn execute(
     signing_sessions: SigningSessions,
     wallets: Wallets,
     xpubs: XPubs,
-) -> Result<(BatchSigningData, Option<Transaction<'static, Postgres>>), BriaError> {
+) -> Result<(BatchSigningData, bool), BriaError> {
     let mut stalled = false;
     let mut last_err = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
@@ -73,7 +72,9 @@ pub async fn execute(
         )
     };
 
+    let mut any_updated = false;
     for (xpub_id, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
+        any_updated = true;
         let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
             xpub
         } else {
@@ -109,17 +110,34 @@ pub async fn execute(
         }
     }
 
-    let mut tx = pool.begin().await?;
-    signing_sessions.update_sessions(&mut tx, sessions).await?;
+    if any_updated {
+        let mut tx = pool.begin().await?;
+        signing_sessions.update_sessions(&mut tx, &sessions).await?;
+        tx.commit().await?;
+    }
 
     tracing::Span::current().record("stalled", stalled);
     if let Some(err) = last_err {
-        tx.commit().await?;
-        Err(err.into())
+        return Err(err.into());
     } else if stalled {
-        tx.commit().await?;
-        Ok((data, None))
-    } else {
-        Ok((data, Some(tx)))
+        return Ok((data, false));
     }
+
+    let mut sessions = sessions.into_values();
+    let mut first_psbt = sessions
+        .next()
+        .and_then(|s| s.signed_psbt().cloned())
+        .ok_or(BriaError::PsbtMissingInSigningSessions)?;
+    for s in sessions {
+        first_psbt.combine(
+            s.signed_psbt()
+                .ok_or(BriaError::PsbtMissingInSigningSessions)?
+                .clone(),
+        )?;
+    }
+
+    let tx = first_psbt.extract_tx();
+    batches.set_signed_tx(data.batch_id, tx).await?;
+
+    Ok((data, true))
 }

@@ -74,7 +74,7 @@ impl SigningSessions {
     pub async fn update_sessions(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        sessions: HashMap<XPubId, SigningSession>,
+        sessions: &HashMap<XPubId, SigningSession>,
     ) -> Result<(), BriaError> {
         let mut query_builder = sqlx::QueryBuilder::new(
             r#"INSERT INTO bria_signing_session_events

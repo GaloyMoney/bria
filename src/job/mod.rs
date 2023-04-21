@@ -1,4 +1,4 @@
-mod batch_finalizing;
+mod batch_broadcasting;
 mod batch_signing;
 mod batch_wallet_accounting;
 mod executor;
@@ -13,7 +13,7 @@ use crate::{
     app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
     primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*,
 };
-use batch_finalizing::BatchFinalizingData;
+use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
 use batch_wallet_accounting::BatchWalletAccountingData;
 pub use executor::JobExecutionError;
@@ -52,7 +52,7 @@ pub async fn start_job_runner(
         process_batch_group,
         batch_wallet_accounting,
         batch_signing,
-        batch_finalizing,
+        batch_broadcasting,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
@@ -203,7 +203,7 @@ async fn process_batch_group(
 
 #[job(
     name = "batch_wallet_accounting",
-    channel_name = "sync_wallet",
+    channel_name = "wallet_accounting",
     retries = 20,
     ordered = true
 )]
@@ -215,14 +215,24 @@ async fn batch_wallet_accounting(
     utxos: Utxos,
     batches: Batches,
 ) -> Result<(), BriaError> {
+    let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchWalletAccountingData =
                 data.expect("no BatchWalletAccountingData available");
-            batch_wallet_accounting::execute(data, blockchain_cfg, ledger, wallets, utxos, batches)
-                .await
+            let res = batch_wallet_accounting::execute(
+                data.clone(),
+                blockchain_cfg,
+                ledger,
+                wallets,
+                utxos,
+                batches,
+            )
+            .await;
+            spawn_batch_broadcasting(pool.begin().await?, data.clone()).await?;
+            res
         })
         .await?;
     Ok(())
@@ -243,7 +253,7 @@ async fn batch_signing(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchSigningData = data.expect("no BatchSigningData available");
-            let (data, tx) = batch_signing::execute(
+            let (data, complete) = batch_signing::execute(
                 pool.clone(),
                 data,
                 blockchain_cfg,
@@ -254,8 +264,8 @@ async fn batch_signing(
             )
             .await?;
 
-            if let Some(tx) = tx {
-                spawn_batch_finalizing(tx, BatchFinalizingData::from(data.clone())).await?;
+            if complete {
+                spawn_batch_broadcasting(pool.begin().await?, data.clone()).await?;
             }
 
             Ok::<_, BriaError>(data)
@@ -265,21 +275,22 @@ async fn batch_signing(
 }
 
 #[job(
-    name = "batch_finalizing",
-    channel_name = "batch_finalizing",
-    retries = 20
+    name = "batch_broadcasting",
+    channel_name = "batch_broadcasting",
+    retries = 20,
+    ordered = true
 )]
-async fn batch_finalizing(
+async fn batch_broadcasting(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
-    signing_sessions: SigningSessions,
+    batches: Batches,
 ) -> Result<(), BriaError> {
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
-            let data: BatchFinalizingData = data.expect("no BatchFinalizingData available");
-            batch_finalizing::execute(data, blockchain_cfg, signing_sessions).await
+            let data: BatchBroadcastingData = data.expect("no BatchBroadcastingData available");
+            batch_broadcasting::execute(data, blockchain_cfg, batches).await
         })
         .await?;
     Ok(())
@@ -370,7 +381,7 @@ async fn spawn_batch_wallet_accounting(
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
-        .set_channel_args(&data.wallet_id.to_string())
+        .set_channel_args(&format!("wallet_id:{}", data.wallet_id))
         .spawn(&mut *tx)
         .await
     {
@@ -427,15 +438,17 @@ pub async fn spawn_all_batch_signings(
     tx.commit().await?;
     Ok(())
 }
-#[instrument(name = "job.spawn_batch_finalizing", skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_batch_finalizing(
+#[instrument(name = "job.spawn_batch_broadcasting", skip_all, fields(error, error.level, error.message), err)]
+async fn spawn_batch_broadcasting(
     mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
-    data: BatchFinalizingData,
+    data: impl Into<BatchBroadcastingData>,
 ) -> Result<(), BriaError> {
-    match batch_finalizing
+    let data = data.into();
+    match batch_broadcasting
         .builder()
         .set_json(&data)
         .expect("Couldn't set json")
+        .set_channel_args(&format!("batch_id:{}", data.batch_id))
         .spawn(&mut tx)
         .await
     {
@@ -524,7 +537,16 @@ impl From<(AccountId, BatchId)> for BatchSigningData {
     }
 }
 
-impl From<BatchSigningData> for BatchFinalizingData {
+impl From<BatchWalletAccountingData> for BatchBroadcastingData {
+    fn from(data: BatchWalletAccountingData) -> Self {
+        Self {
+            account_id: data.account_id,
+            batch_id: data.batch_id,
+        }
+    }
+}
+
+impl From<BatchSigningData> for BatchBroadcastingData {
     fn from(data: BatchSigningData) -> Self {
         Self {
             account_id: data.account_id,
