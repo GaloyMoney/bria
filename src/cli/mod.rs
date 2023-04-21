@@ -263,6 +263,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// List signing sessions for batch
+    ListSigningSessions {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        batch_id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -465,6 +480,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_payouts(wallet).await?;
+        }
+        Command::ListSigningSessions {
+            url,
+            api_key,
+            batch_id,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.list_signing_sessions(batch_id).await?;
         }
     }
     Ok(())

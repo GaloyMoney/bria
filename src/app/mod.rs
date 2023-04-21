@@ -14,6 +14,7 @@ use crate::{
     payout::*,
     primitives::*,
     profile::*,
+    signing_session::*,
     utxo::*,
     wallet::{balance::*, *},
     xpub::*,
@@ -27,6 +28,7 @@ pub struct App {
     wallets: Wallets,
     batch_groups: BatchGroups,
     payouts: Payouts,
+    signing_sessions: SigningSessions,
     ledger: Ledger,
     utxos: Utxos,
     pool: sqlx::PgPool,
@@ -44,16 +46,20 @@ impl App {
             sqlx::migrate!().run(&pool).await?;
         }
         let wallets = Wallets::new(&pool, blockchain_cfg.network);
+        let xpubs = XPubs::new(&pool);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
         let utxos = Utxos::new(&pool);
+        let signing_sessions = SigningSessions::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
+            xpubs.clone(),
             batch_groups.clone(),
             batches,
+            signing_sessions.clone(),
             payouts.clone(),
             ledger.clone(),
             utxos.clone(),
@@ -70,10 +76,11 @@ impl App {
         .await?;
         Ok(Self {
             profiles: Profiles::new(&pool),
-            xpubs: XPubs::new(&pool),
+            xpubs,
             wallets,
             batch_groups,
             payouts,
+            signing_sessions,
             pool,
             ledger,
             utxos,
@@ -159,12 +166,19 @@ impl App {
             .find_from_ref(profile.account_id, xpub_ref)
             .await?;
         let new_signer = NewSigner::builder()
-            .xpub_name(xpub.key_name)
+            .xpub_id(xpub.id())
             .config(config)
             .build()
             .expect("Couldn't build signer");
+        let mut tx = self.pool.begin().await?;
         self.xpubs
-            .set_signer_for_xpub(profile.account_id, new_signer)
+            .set_signer_for_xpub(&mut tx, profile.account_id, new_signer)
+            .await?;
+        let batch_ids = self
+            .signing_sessions
+            .list_batch_ids_for(&mut tx, profile.account_id, xpub.id())
+            .await?;
+        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
             .await?;
         Ok(())
     }
@@ -359,6 +373,20 @@ impl App {
             .find_by_name(profile.account_id, wallet_name)
             .await?;
         self.payouts.list_for_wallet(wallet.id).await
+    }
+
+    #[instrument(name = "app.list_signing_sessions", skip_all, err)]
+    pub async fn list_signing_sessions(
+        &self,
+        profile: Profile,
+        batch_id: BatchId,
+    ) -> Result<Vec<SigningSession>, BriaError> {
+        Ok(self
+            .signing_sessions
+            .find_for_batch(profile.account_id, batch_id)
+            .await?
+            .map(|BatchSigningSession { xpub_sessions }| xpub_sessions.into_values().collect())
+            .unwrap_or_default())
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

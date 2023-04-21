@@ -53,7 +53,9 @@ impl Utxos {
             .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
-        self.utxos.persist_utxo(new_utxo).await
+        let mut tx = self.pool.begin().await?;
+        let tx_id = self.utxos.persist_utxo(&mut tx, new_utxo).await?;
+        Ok(tx_id.map(|id| (id, tx)))
     }
 
     #[instrument(name = "utxos.confirm_utxo", skip(self, tx))]
@@ -70,10 +72,11 @@ impl Utxos {
             .await
     }
 
-    #[allow(clippy::type_complexity)]
     #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
+    #[allow(clippy::type_complexity)]
     pub async fn mark_spent(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         inputs: impl Iterator<Item = &OutPoint>,
@@ -84,11 +87,10 @@ impl Utxos {
             LedgerTransactionId,
             Satoshis,
             HashMap<bitcoin::OutPoint, Satoshis>,
-            Transaction<'_, Postgres>,
         )>,
         BriaError,
     > {
-        let (tx_id, mut tx) = if let Some((utxo, address)) = change_utxo {
+        let tx_id = if let Some((utxo, address)) = change_utxo {
             let new_utxo = NewUtxo::builder()
                 .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
@@ -103,17 +105,17 @@ impl Utxos {
                 .self_pay(true)
                 .build()
                 .expect("Could not build NewUtxo");
-            let ledger_tx_id = self.utxos.persist_utxo(new_utxo).await?;
+            let ledger_tx_id = self.utxos.persist_utxo(tx, new_utxo).await?;
             if ledger_tx_id.is_none() {
                 return Ok(None);
             }
             ledger_tx_id.unwrap()
         } else {
-            (LedgerTransactionId::new(), self.pool.begin().await?)
+            LedgerTransactionId::new()
         };
         let utxos = self
             .utxos
-            .mark_spent(&mut tx, keychain_id, inputs, tx_id)
+            .mark_spent(tx, keychain_id, inputs, tx_id)
             .await?;
         if utxos.is_empty() {
             return Ok(None);
@@ -125,7 +127,7 @@ impl Utxos {
                     .map(|(u, _)| Satoshis::from(u.txout.value))
                     .unwrap_or(Satoshis::ZERO),
             );
-        Ok(Some((tx_id, total_settled_in, allocations, tx)))
+        Ok(Some((tx_id, total_settled_in, allocations)))
     }
 
     #[instrument(name = "utxos.confirm_spend", skip(self, tx, inputs))]

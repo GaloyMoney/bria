@@ -6,16 +6,27 @@ use crate::primitives::*;
 
 pub struct Batch {
     pub id: BatchId,
+    pub account_id: AccountId,
     pub batch_group_id: BatchGroupId,
     pub bitcoin_tx_id: bitcoin::Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
+    pub signed_tx: Option<bitcoin::Transaction>,
+}
+
+impl Batch {
+    pub fn accounting_complete(&self) -> bool {
+        self.wallet_summaries
+            .values()
+            .all(|s| s.create_batch_ledger_tx_id.is_some())
+    }
 }
 
 #[derive(Builder, Clone)]
 pub struct NewBatch {
     pub id: BatchId,
+    pub(super) account_id: AccountId,
     pub(super) batch_group_id: BatchGroupId,
     pub(super) tx_id: bitcoin::Txid,
     pub(super) total_fee_sats: Satoshis,

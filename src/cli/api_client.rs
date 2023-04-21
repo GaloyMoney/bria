@@ -259,6 +259,16 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
+
+    pub async fn list_signing_sessions(&self, batch_id: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListSigningSessionsRequest { batch_id });
+        let response = self
+            .connect()
+            .await?
+            .list_signing_sessions(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
 }
 
 fn output_json<T: serde::Serialize>(response: tonic::Response<T>) -> anyhow::Result<()> {

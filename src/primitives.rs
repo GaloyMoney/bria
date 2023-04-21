@@ -7,6 +7,7 @@ crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
 crate::entity_id! { ProfileId }
 crate::entity_id! { ProfileApiKeyId }
+crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }
@@ -14,12 +15,29 @@ crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+pub struct XPubId(bitcoin::Fingerprint);
+
+impl From<bitcoin::Fingerprint> for XPubId {
+    fn from(fp: bitcoin::Fingerprint) -> Self {
+        Self(fp)
+    }
+}
+
+impl std::ops::Deref for XPubId {
+    type Target = bitcoin::Fingerprint;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 pub mod bitcoin {
     pub use bdk::{
         bitcoin::{
             blockdata::{
                 script::Script,
-                transaction::{OutPoint, TxOut},
+                transaction::{OutPoint, Transaction, TxOut},
             },
             consensus,
             hash_types::Txid,
@@ -55,21 +73,6 @@ pub mod bitcoin {
                 }
             }
         }
-    }
-}
-pub struct XPubId(bitcoin::Fingerprint);
-
-impl From<bitcoin::Fingerprint> for XPubId {
-    fn from(fp: bitcoin::Fingerprint) -> Self {
-        Self(fp)
-    }
-}
-
-impl std::ops::Deref for XPubId {
-    type Target = bitcoin::Fingerprint;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }
 

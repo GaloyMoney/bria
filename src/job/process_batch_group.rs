@@ -112,6 +112,7 @@ pub async fn execute<'a>(
         let wallet_ids = wallet_totals.keys().copied().collect();
         span.record("batch_id", &tracing::field::display(data.batch_id));
         let batch = NewBatch::builder()
+            .account_id(data.account_id)
             .id(data.batch_id)
             .batch_group_id(data.batch_group_id)
             .tx_id(tx_id)

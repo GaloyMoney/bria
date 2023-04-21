@@ -29,9 +29,9 @@ impl UtxoRepo {
 
     pub async fn persist_utxo(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         utxo: NewUtxo,
-    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
-        let mut tx = self.pool.begin().await?;
+    ) -> Result<Option<LedgerTransactionId>, BriaError> {
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
                (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id)
@@ -54,7 +54,7 @@ impl UtxoRepo {
         .await?;
 
         Ok(if result.rows_affected() > 0 {
-            Some((utxo.income_pending_ledger_tx_id, tx))
+            Some(utxo.income_pending_ledger_tx_id)
         } else {
             None
         })

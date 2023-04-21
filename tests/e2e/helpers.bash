@@ -4,6 +4,8 @@ BRIA_HOME="${BRIA_HOME:-.bria}"
 if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
+LND_HOST="${LND_HOST:-localhost}"
+LND_ENDPOINT="https://${LND_HOST}:10009"
 
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
@@ -87,8 +89,8 @@ bria_init() {
   bria_cmd admin bootstrap
   bria_cmd admin create-account -n default
   sleep 3
-  bria_cmd import-xpub -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -n key1 -d m/84h/0h/0h
-	bria_cmd create-wallet -n default -x key1
+  bria_cmd import-xpub -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -n lnd_key -d m/84h/0h/0h
+  bria_cmd create-wallet -n default -x lnd_key
 
   echo "Bria Initialization Complete"
 }

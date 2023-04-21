@@ -7,6 +7,7 @@ use crate::{
     payout::*,
     primitives::{bitcoin::*, *},
     profile::*,
+    signing_session::*,
     utxo::*,
     wallet::balance::WalletBalanceSummary,
     xpub::*,
@@ -16,6 +17,9 @@ impl From<BriaError> for tonic::Status {
     fn from(err: BriaError) -> Self {
         match err {
             BriaError::CouldNotParseIncomingMetadata(err) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
+            BriaError::CouldNotParseIncomingUuid(err) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
             _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
@@ -117,6 +121,18 @@ impl From<Payout> for proto::Payout {
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
             external_id: payout.external_id,
+        }
+    }
+}
+
+impl From<SigningSession> for proto::SigningSession {
+    fn from(session: SigningSession) -> Self {
+        proto::SigningSession {
+            id: session.id.to_string(),
+            batch_id: session.batch_id.to_string(),
+            xpub_id: session.xpub_id.to_string(),
+            failure_reason: session.failure_reason().map(|r| r.to_string()),
+            state: format!("{:?}", session.state()),
         }
     }
 }

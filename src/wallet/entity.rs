@@ -2,8 +2,10 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
+use std::collections::HashMap;
+
 use super::{balance::WalletLedgerAccountIds, keychain::*};
-use crate::primitives::*;
+use crate::{primitives::*, xpub::XPub};
 
 pub struct Wallet {
     pub id: WalletId,
@@ -22,9 +24,7 @@ impl Wallet {
             self.keychains.push((id, cfg));
         }
     }
-}
 
-impl Wallet {
     pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
         self.keychains.iter().map(|(id, _)| *id)
     }
@@ -53,6 +53,19 @@ impl Wallet {
             .iter()
             .skip(1)
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
+    }
+
+    pub fn xpubs_for_keychains<'a>(
+        &self,
+        keychain_ids: impl Iterator<Item = &'a KeychainId>,
+    ) -> HashMap<KeychainId, Vec<XPub>> {
+        let mut ret = HashMap::new();
+        for find_id in keychain_ids {
+            if let Some((_, cfg)) = self.keychains.iter().find(|(id, _)| id == find_id) {
+                ret.insert(*find_id, cfg.xpubs());
+            }
+        }
+        ret
     }
 
     pub fn is_dust_utxo(&self, value: Satoshis) -> bool {

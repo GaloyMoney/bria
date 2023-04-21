@@ -3,6 +3,7 @@ use thiserror::Error;
 use crate::{
     job::JobExecutionError,
     primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+    xpub::SigningClientError,
 };
 
 #[derive(Error, Debug)]
@@ -19,20 +20,28 @@ pub enum BriaError {
     SqlxLedger(#[from] sqlx_ledger::SqlxLedgerError),
     #[error("BriaError - SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("BriaError - psbt::Error: {0}")]
+    PsbtError(#[from] psbt::Error),
     #[error("BriaError - ElectrumClient: {0}")]
     ElectrumClient(#[from] electrum_client::Error),
+    #[error("BriaError - SigningClientError: {0}")]
+    SigningClient(#[from] SigningClientError),
     #[error("BriaError - Bip32: {0}")]
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
     #[error("BriaError - ProfileNotFound")]
     ProfileNotFound,
+    #[error("BriaError - BatchSigningSessionNotFound")]
+    BatchSigningSessionNotFound,
     #[error("BriaError - CouldNotRetrieveWalletBalance")]
     CouldNotRetrieveWalletBalance,
     #[error("BriaError - BatchGroupNotFound")]
     BatchGroupNotFound,
     #[error("BriaError - BatchNotFound")]
     BatchNotFound,
+    #[error("BriaError - PsbtMissingInSigningSessions")]
+    PsbtMissingInSigningSessions,
     #[error("BriaError - BitcoinConsensusEncodeError: {0}")]
     BitcoinConsensusEncodeError(#[from] consensus::encode::Error),
     #[error("BriaError - TryFromIntError")]
@@ -55,6 +64,8 @@ pub enum BriaError {
     CouldNotCombinePsbts(psbt::Error),
     #[error("BriaError - CouldNotParseIncomingMetadata: {0}")]
     CouldNotParseIncomingMetadata(serde_json::Error),
+    #[error("BriaError - CouldNotParseIncomingUuid: {0}")]
+    CouldNotParseIncomingUuid(uuid::Error),
 }
 
 impl JobExecutionError for BriaError {}

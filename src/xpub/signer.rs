@@ -7,7 +7,7 @@ use crate::primitives::*;
 #[derive(Builder, Debug, Clone)]
 pub struct NewSigner {
     pub(super) id: SignerId,
-    pub(super) xpub_name: String,
+    pub(super) xpub_id: XPubId,
     pub(super) config: SignerConfig,
 }
 
