@@ -220,7 +220,7 @@ CREATE TABLE bria_addresses (
   keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   kind KeychainKind NOT NULL,
   address_index INTEGER NOT NULL,
-  external_id VARCHAR UNIQUE,
+  external_id VARCHAR UNIQUE NOT NULL,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),

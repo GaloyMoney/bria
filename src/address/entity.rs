@@ -22,14 +22,12 @@ pub struct NewAddress {
     pub kind: pg::PgKeychainKind,
     pub address_idx: u32,
     #[builder(setter(into))]
-    pub external_id: Option<String>,
+    pub external_id: String,
     pub metadata: Option<serde_json::Value>,
 }
 
 impl NewAddress {
     pub fn builder() -> NewAddressBuilder {
-        let mut builder = NewAddressBuilder::default();
-        builder.id(AddressId::new());
-        builder
+        NewAddressBuilder::default()
     }
 }

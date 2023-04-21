@@ -267,13 +267,15 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
 
+        let new_address_id = AddressId::new();
         let new_address = NewAddress::builder()
+            .id(new_address_id)
             .address_string(addr.to_string())
             .profile_id(profile.id)
             .keychain_id(keychain_wallet.keychain_id)
             .kind(bitcoin::pg::PgKeychainKind::External)
             .address_idx(addr.index)
-            .external_id(external_id)
+            .external_id(external_id.unwrap_or(new_address_id.to_string()))
             .metadata(metadata)
             .build()
             .expect("Couldn't build NewAddress");
