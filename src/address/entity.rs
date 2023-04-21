@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use crate::primitives::{bitcoin::*, *};
 use derive_builder::Builder;
 
@@ -15,6 +17,12 @@ impl AddressCreationInfo {
             address_idx,
             kind,
         }
+    }
+}
+
+impl Display for AddressCreationInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.address_string)
     }
 }
 
