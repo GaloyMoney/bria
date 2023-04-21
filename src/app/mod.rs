@@ -265,22 +265,20 @@ impl App {
             .find_by_name(profile.account_id, wallet_name)
             .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
-        let addr = keychain_wallet.new_external_address().await?;
+        let address_creation_info = keychain_wallet.new_external_address().await?;
 
         let new_address = NewAddress::builder()
-            .address_string(addr.to_string())
+            .from_address_creation_info(address_creation_info)
             .keychain_id(keychain_wallet.keychain_id)
-            .kind(bitcoin::pg::PgKeychainKind::External)
-            .address_idx(addr.index)
             .external_id(external_id)
             .metadata(metadata)
             .build()
             .expect("Couldn't build NewAddress");
-        let tx = self.addresses.persist_address(new_address).await?;
+        let tx = self.addresses.persist_address(&new_address).await?;
 
         tx.commit().await?;
 
-        Ok(addr.to_string())
+        Ok(new_address.address_string)
     }
 
     #[instrument(name = "app.list_utxos", skip(self), err)]

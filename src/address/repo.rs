@@ -16,7 +16,7 @@ impl Addresses {
 
     pub async fn persist_address(
         &self,
-        address: NewAddress,
+        address: &NewAddress,
     ) -> Result<Transaction<'_, Postgres>, BriaError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(

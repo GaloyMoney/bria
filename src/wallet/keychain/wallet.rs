@@ -8,6 +8,7 @@ use sqlx::PgPool;
 use tracing::instrument;
 
 use crate::{
+    address::AddressCreationInfo,
     bdk::pg::SqlxWalletDb,
     error::*,
     primitives::{bitcoin::*, *},
@@ -66,11 +67,11 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
     }
 
     #[instrument(name = "keychain_wallet.new_external_address", skip_all)]
-    pub async fn new_external_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
+    pub async fn new_external_address(&self) -> Result<AddressCreationInfo, BriaError> {
         let addr = self
             .with_wallet(|wallet| wallet.get_address(AddressIndex::New))
             .await??;
-        Ok(addr)
+        Ok(AddressCreationInfo::from(addr))
     }
 
     #[instrument(name = "keychain_wallet.new_internal_address", skip_all)]
