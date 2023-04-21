@@ -15,7 +15,7 @@ teardown_file() {
 }
 
 @test "payout: Fund an address and see if the balance is reflected" {
-  bria_address=$(bria_cmd new-address -w default -e test_external_id -m '{"foo":{"bar":"baz"}}' | jq -r '.address')
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
   if [ -z "$bria_address" ]; then
     echo "Failed to get a new address"
     exit 1
