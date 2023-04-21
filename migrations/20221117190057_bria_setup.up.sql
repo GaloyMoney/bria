@@ -215,7 +215,7 @@ CREATE TABLE bria_signing_session_events (
 
 CREATE TABLE bria_addresses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  address_string VARCHAR UNIQUE NOT NULL,
+  address_string VARCHAR NOT NULL,
   profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
   keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   kind KeychainKind NOT NULL,
@@ -223,5 +223,6 @@ CREATE TABLE bria_addresses (
   external_id VARCHAR UNIQUE,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(address_string, keychain_id)
 );
