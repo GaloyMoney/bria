@@ -21,7 +21,6 @@ pub struct CreateBatchParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub encumbered_fees: Satoshis,
-    pub correlation_id: Uuid,
     pub meta: CreateBatchMeta,
 }
 
@@ -113,7 +112,6 @@ impl From<CreateBatchParams> for TxParams {
             journal_id,
             ledger_account_ids,
             encumbered_fees,
-            correlation_id,
             meta,
         }: CreateBatchParams,
     ) -> Self {
@@ -123,6 +121,7 @@ impl From<CreateBatchParams> for TxParams {
             total_utxo_in_sats,
             ..
         } = meta.tx_summary;
+        let batch_id = meta.batch_id;
         let total_utxo_in = total_utxo_in_sats.to_btc();
         let change = change_sats.to_btc();
         let fee_sats = fee_sats.to_btc();
@@ -156,7 +155,7 @@ impl From<CreateBatchParams> for TxParams {
         params.insert("change", change);
         params.insert("fees", fee_sats);
         params.insert("encumbered_fees", encumbered_fees);
-        params.insert("correlation_id", correlation_id);
+        params.insert("correlation_id", Uuid::from(batch_id));
         params.insert("meta", meta);
         params.insert("effective", effective);
         params

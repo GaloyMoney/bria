@@ -48,6 +48,7 @@ impl Ledger {
         templates::ConfirmSpend::init(&inner).await?;
         templates::QueuedPayout::init(&inner).await?;
         templates::CreateBatch::init(&inner).await?;
+        templates::SubmitBatch::init(&inner).await?;
 
         Ok(Self {
             inner,

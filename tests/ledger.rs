@@ -315,7 +315,6 @@ async fn create_batch() -> anyhow::Result<()> {
             CreateBatchParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
-                correlation_id: Uuid::from(batch_id),
                 encumbered_fees,
                 meta: CreateBatchMeta {
                     batch_id,

@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{
     app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, utxo::*, wallet::*,
@@ -62,7 +61,6 @@ pub async fn execute(
                 CreateBatchParams {
                     journal_id: wallet.journal_id,
                     ledger_account_ids: wallet.ledger_account_ids,
-                    correlation_id: Uuid::from(data.batch_id),
                     encumbered_fees,
                     meta: CreateBatchMeta {
                         batch_id: id,
