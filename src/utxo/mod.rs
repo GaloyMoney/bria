@@ -74,26 +74,22 @@ impl Utxos {
 
     #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
     #[allow(clippy::type_complexity)]
+    #[allow(clippy::too_many_arguments)]
     pub async fn mark_spent(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         wallet_id: WalletId,
         keychain_id: KeychainId,
+        tx_id: LedgerTransactionId,
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxo: Option<&(LocalUtxo, AddressInfo)>,
         sats_per_vbyte: f32,
-    ) -> Result<
-        Option<(
-            LedgerTransactionId,
-            Satoshis,
-            HashMap<bitcoin::OutPoint, Satoshis>,
-        )>,
-        BriaError,
-    > {
-        let tx_id = if let Some((utxo, address)) = change_utxo {
+    ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, BriaError> {
+        if let Some((utxo, address)) = change_utxo {
             let new_utxo = NewUtxo::builder()
                 .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
+                .income_pending_ledger_tx_id(tx_id)
                 .outpoint(utxo.outpoint)
                 .kind(address.keychain)
                 .address_idx(address.index)
@@ -105,14 +101,11 @@ impl Utxos {
                 .self_pay(true)
                 .build()
                 .expect("Could not build NewUtxo");
-            let ledger_tx_id = self.utxos.persist_utxo(tx, new_utxo).await?;
-            if ledger_tx_id.is_none() {
+            let res = self.utxos.persist_utxo(tx, new_utxo).await?;
+            if res.is_none() {
                 return Ok(None);
             }
-            ledger_tx_id.unwrap()
-        } else {
-            LedgerTransactionId::new()
-        };
+        }
         let utxos = self
             .utxos
             .mark_spent(tx, keychain_id, inputs, tx_id)
@@ -127,7 +120,7 @@ impl Utxos {
                     .map(|(u, _)| Satoshis::from(u.txout.value))
                     .unwrap_or(Satoshis::ZERO),
             );
-        Ok(Some((tx_id, total_settled_in, allocations)))
+        Ok(Some((total_settled_in, allocations)))
     }
 
     #[instrument(name = "utxos.confirm_spend", skip(self, tx, inputs))]

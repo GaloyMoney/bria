@@ -141,6 +141,47 @@ impl Ledger {
         Ok(())
     }
 
+    #[instrument(name = "ledger.submit_batch", skip(self, tx))]
+    pub async fn submit_batch(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        create_batch_tx_id: LedgerTransactionId,
+        submit_tx_id: LedgerTransactionId,
+        fees_to_encumber: Satoshis,
+        ledger_account_ids: WalletLedgerAccountIds,
+    ) -> Result<(), BriaError> {
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(create_batch_tx_id))
+            .await?;
+        if let Some(CreateBatchMeta {
+            batch_id,
+            batch_group_id,
+            tx_summary,
+        }) = txs[0].metadata()?
+        {
+            let params = SubmitBatchParams {
+                journal_id: txs[0].journal_id,
+                ledger_account_ids,
+                meta: SubmitBatchMeta {
+                    batch_id,
+                    batch_group_id,
+                    encumbered_spending_fee_sats: tx_summary
+                        .change_address
+                        .as_ref()
+                        .map(|_| fees_to_encumber),
+                    tx_summary,
+                    withdraw_from_logical_when_settled: HashMap::new(),
+                },
+            };
+            self.inner
+                .post_transaction_in_tx(tx, submit_tx_id, SUBMIT_BATCH_CODE, Some(params))
+                .await?;
+        }
+        Ok(())
+    }
+
     #[instrument(name = "ledger.external_spend", skip(self, tx))]
     pub async fn external_spend(
         &self,

@@ -1,8 +1,8 @@
-use bdk::BlockTime;
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
+use uuid::Uuid;
 
 use std::collections::HashMap;
 
@@ -18,7 +18,6 @@ pub struct SubmitBatchMeta {
     pub encumbered_spending_fee_sats: Option<Satoshis>,
     pub tx_summary: TransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
-    pub confirmation_time: Option<BlockTime>,
 }
 
 #[derive(Debug)]
@@ -48,8 +47,7 @@ impl SubmitBatchParams {
                 .unwrap(),
             ParamDefinition::builder()
                 .name("encumbered_spending_fees")
-                .default_expr("true")
-                .r#type(ParamDataType::BOOLEAN)
+                .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -84,30 +82,24 @@ impl From<SubmitBatchParams> for TxParams {
             meta,
         }: SubmitBatchParams,
     ) -> Self {
-        let effective = meta
-            .confirmation_time
-            .as_ref()
-            .map(|t| {
-                NaiveDateTime::from_timestamp_opt(t.timestamp as i64, 0)
-                    .expect("Couldn't convert blocktime to NaiveDateTime")
-                    .date()
-            })
-            .unwrap_or_else(|| Utc::now().date_naive());
+        let effective = Utc::now().date_naive();
         let change = meta.tx_summary.change_sats.to_btc();
         let fees = meta
             .encumbered_spending_fee_sats
             .unwrap_or(Satoshis::ZERO)
             .to_btc();
+        let batch_id = Uuid::from(meta.batch_id);
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert(
-            "onchain_incoming_account_id",
+            "onchain_income_account_id",
             ledger_account_ids.onchain_incoming_id,
         );
         params.insert("onchain_fee_account_id", ledger_account_ids.fee_id);
         params.insert("change", change);
         params.insert("encumbered_spending_fees", fees);
+        params.insert("correlation_id", batch_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -123,7 +115,7 @@ impl SubmitBatch {
             .journal_id("params.journal_id")
             .effective("params.effective")
             .metadata("params.meta")
-            .description("'External Spend'")
+            .description("'Submit Batch'")
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![

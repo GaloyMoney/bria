@@ -80,6 +80,9 @@ teardown_file() {
 
     [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 
+    cache_default_wallet_balance
+    [[ $(cached_pending_income) == 0 ]] || exit 1
+
     bria_cmd set-signer-config --xpub lnd_key lnd --endpoint "${LND_ENDPOINT}" --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" --cert-file "./dev/lnd/tls.cert"
 
   for i in {1..20}; do
@@ -87,4 +90,22 @@ teardown_file() {
     [[ "${signing_status}" != "Complete" ]] && break
     sleep 1
   done
+
+  for i in {1..20}; do
+    cache_default_wallet_balance
+    [[ $(cached_pending_income) != 0 ]] && break;
+    sleep 1
+  done
+
+  [[ $(cached_pending_income) != 0 ]] || exit 1
+  [[ $(cached_current_settled) == 0 ]] || exit 1
+  bitcoin_cli -generate 2
+
+  for i in {1..20}; do
+    cache_default_wallet_balance
+    [[ $(cached_current_settled) != 0 ]] && break;
+    sleep 1
+  done
+
+  [[ $(cached_current_settled) != 0 ]] || exit 1;
 }

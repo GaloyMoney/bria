@@ -8,7 +8,6 @@ use bria::{
     wallet::balance::WalletBalanceSummary,
 };
 use rand::distributions::{Alphanumeric, DistString};
-use uuid::Uuid;
 
 use std::collections::HashMap;
 

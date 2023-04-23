@@ -33,6 +33,7 @@ pub async fn execute(
 ) -> Result<(BatchSigningData, bool), BriaError> {
     let mut stalled = false;
     let mut last_err = None;
+    let mut current_keychain = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .find_for_batch(data.account_id, data.batch_id)
         .await?
@@ -45,6 +46,9 @@ pub async fn execute(
         let unsigned_psbt = batch.unsigned_psbt;
         for (wallet_id, keychain_utxos) in batch.included_utxos {
             let wallet = wallets.find_by_id(wallet_id).await?;
+            if current_keychain.is_none() {
+                current_keychain = Some(wallet.current_keychain_wallet(&pool));
+            }
             let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
             for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
@@ -136,7 +140,18 @@ pub async fn execute(
         )?;
     }
 
-    let tx = first_psbt.extract_tx();
+    if current_keychain.is_none() {
+        let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
+        let wallet_id = batch.wallet_summaries.into_keys().next().unwrap();
+        let wallet = wallets.find_by_id(wallet_id).await?;
+        current_keychain = Some(wallet.current_keychain_wallet(&pool));
+    }
+
+    let tx = current_keychain
+        .unwrap()
+        .finalize_psbt(first_psbt)
+        .await?
+        .extract_tx();
     batches.set_signed_tx(data.batch_id, tx).await?;
 
     Ok((data, true))
