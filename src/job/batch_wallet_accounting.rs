@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{
     app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, utxo::*, wallet::*,
@@ -47,7 +46,7 @@ pub async fn execute(
         .get(&data.wallet_id)
         .expect("utxos not found");
     let utxos = bria_utxos.list_utxos_by_outpoint(utxos).await?;
-    let reserved_fees = ledger
+    let encumbered_fees = ledger
         .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.pending_income_ledger_tx_id))
         .await?;
 
@@ -62,21 +61,24 @@ pub async fn execute(
                 CreateBatchParams {
                     journal_id: wallet.journal_id,
                     ledger_account_ids: wallet.ledger_account_ids,
-                    fee_sats: wallet_summary.fee_sats,
-                    total_spent_sats: wallet_summary.total_spent_sats,
-                    total_in_sats: wallet_summary.total_in_sats,
-                    correlation_id: Uuid::from(data.batch_id),
-                    reserved_fees,
+                    encumbered_fees,
                     meta: CreateBatchMeta {
                         batch_id: id,
                         batch_group_id,
-                        bitcoin_tx_id,
-                        change_keychain_id: wallet_summary.change_keychain_id,
-                        change_outpoint: wallet_summary.change_outpoint,
-                        change_address: wallet_summary
-                            .change_outpoint
-                            .as_ref()
-                            .map(|_| wallet_summary.change_address.clone()),
+                        tx_summary: TransactionSummary {
+                            wallet_id: wallet_summary.wallet_id,
+                            keychain_id: wallet_summary.change_keychain_id,
+                            fee_sats: wallet_summary.fee_sats,
+                            bitcoin_tx_id,
+                            total_utxo_in_sats: wallet_summary.total_in_sats,
+                            total_utxo_settled_in_sats: wallet_summary.total_in_sats,
+                            change_sats: wallet_summary.change_sats,
+                            change_outpoint: wallet_summary.change_outpoint,
+                            change_address: wallet_summary
+                                .change_outpoint
+                                .as_ref()
+                                .map(|_| wallet_summary.change_address.clone()),
+                        },
                     },
                 },
             )

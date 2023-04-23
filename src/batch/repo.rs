@@ -210,17 +210,17 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId)>, BriaError> {
+    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId, LedgerTxId)>, BriaError> {
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (
                  SELECT id FROM bria_batches
                  WHERE bitcoin_tx_id = $1
                )
-               SELECT b.id, s.submitted_ledger_tx_id as "ledger_id?"
+               SELECT b.id, s.submitted_ledger_tx_id as "ledger_id?", s.create_batch_ledger_tx_id
                FROM b
                LEFT JOIN (
-                   SELECT batch_id, submitted_ledger_tx_id
+                   SELECT batch_id, submitted_ledger_tx_id, create_batch_ledger_tx_id
                    FROM bria_batch_wallet_summaries
                    WHERE wallet_id = $2 AND batch_id = ANY(SELECT id FROM b)
                    FOR UPDATE
@@ -231,13 +231,18 @@ impl Batches {
         )
         .fetch_optional(&mut tx)
         .await?;
-        if row.is_none() {
+        if row.is_none() || row.as_ref().unwrap().create_batch_ledger_tx_id.is_none() {
             return Ok(None);
         }
         let row = row.unwrap();
+        let create_batch_ledger_tx_id = LedgerTxId::from(row.create_batch_ledger_tx_id.unwrap());
         let batch_id = row.id;
         if row.ledger_id.is_some() {
-            return Ok(Some((tx, LedgerTxId::from(row.ledger_id.unwrap()))));
+            return Ok(Some((
+                tx,
+                create_batch_ledger_tx_id,
+                LedgerTxId::from(row.ledger_id.unwrap()),
+            )));
         }
         let ledger_transaction_id = Uuid::new_v4();
         sqlx::query!(
@@ -252,6 +257,10 @@ impl Batches {
         .execute(&mut tx)
         .await?;
 
-        Ok(Some((tx, LedgerTxId::from(ledger_transaction_id))))
+        Ok(Some((
+            tx,
+            create_batch_ledger_tx_id,
+            LedgerTxId::from(ledger_transaction_id),
+        )))
     }
 }

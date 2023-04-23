@@ -8,7 +8,6 @@ use bria::{
     wallet::balance::WalletBalanceSummary,
 };
 use rand::distributions::{Alphanumeric, DistString};
-use uuid::Uuid;
 
 use std::collections::HashMap;
 
@@ -303,8 +302,9 @@ async fn create_batch() -> anyhow::Result<()> {
     let batch_id = BatchId::new();
     let fee_sats = Satoshis::from(2_346);
     let total_spent_sats = Satoshis::from(100_000_000);
-    let total_in_sats = Satoshis::from(200_000_000);
-    let reserved_fees = Satoshis::from(12_346);
+    let total_utxo_in_sats = Satoshis::from(200_000_000);
+    let change_sats = total_utxo_in_sats - total_spent_sats - fee_sats;
+    let encumbered_fees = Satoshis::from(12_346);
 
     let tx = pool.begin().await?;
     ledger
@@ -314,21 +314,24 @@ async fn create_batch() -> anyhow::Result<()> {
             CreateBatchParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
-                total_in_sats,
-                total_spent_sats,
-                fee_sats,
-                correlation_id: Uuid::from(batch_id),
-                reserved_fees,
+                encumbered_fees,
                 meta: CreateBatchMeta {
                     batch_id,
                     batch_group_id: BatchGroupId::new(),
-                    bitcoin_tx_id:
-                        "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
-                            .parse()
-                            .unwrap(),
-                    change_address: None,
-                    change_outpoint: None,
-                    change_keychain_id: KeychainId::new(),
+                    tx_summary: TransactionSummary {
+                        wallet_id,
+                        bitcoin_tx_id:
+                            "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                                .parse()
+                                .unwrap(),
+                        total_utxo_settled_in_sats: total_utxo_in_sats,
+                        total_utxo_in_sats,
+                        change_sats,
+                        fee_sats,
+                        change_address: None,
+                        change_outpoint: None,
+                        keychain_id: KeychainId::new(),
+                    },
                 },
             },
         )
@@ -348,14 +351,17 @@ async fn create_batch() -> anyhow::Result<()> {
         summary.logical_encumbered_outgoing.flip_sign(),
         total_spent_sats
     );
-    assert_eq!(summary.encumbered_fees.flip_sign(), reserved_fees);
+    assert_eq!(summary.encumbered_fees.flip_sign(), encumbered_fees);
     assert_eq!(summary.pending_fees, fee_sats);
     assert_eq!(
         summary.encumbered_incoming_utxos,
-        total_in_sats - fee_sats - total_spent_sats
+        total_utxo_in_sats - fee_sats - total_spent_sats
     );
-    assert_eq!(summary.confirmed_utxos.flip_sign(), total_in_sats);
-    assert_eq!(summary.pending_outgoing_utxos, total_in_sats - fee_sats);
+    assert_eq!(summary.confirmed_utxos.flip_sign(), total_utxo_in_sats);
+    assert_eq!(
+        summary.pending_outgoing_utxos,
+        total_utxo_in_sats - fee_sats
+    );
 
     Ok(())
 }

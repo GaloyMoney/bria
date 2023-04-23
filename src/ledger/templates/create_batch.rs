@@ -4,6 +4,7 @@ use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 use uuid::Uuid;
 
+use super::shared_meta::TransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
@@ -12,21 +13,14 @@ use crate::{
 pub struct CreateBatchMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
-    pub bitcoin_tx_id: bitcoin::Txid,
-    pub change_keychain_id: KeychainId,
-    pub change_outpoint: Option<bitcoin::OutPoint>,
-    pub change_address: Option<bitcoin::Address>,
+    pub tx_summary: TransactionSummary,
 }
 
 #[derive(Debug)]
 pub struct CreateBatchParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
-    pub total_in_sats: Satoshis,
-    pub total_spent_sats: Satoshis,
-    pub fee_sats: Satoshis,
-    pub reserved_fees: Satoshis,
-    pub correlation_id: Uuid,
+    pub encumbered_fees: Satoshis,
     pub meta: CreateBatchMeta,
 }
 
@@ -69,17 +63,12 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("total_in")
+                .name("total_utxo_in")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("total_in_settled")
-                .r#type(ParamDataType::DECIMAL)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
-                .name("total_spent")
+                .name("total_utxo_settled_in")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -89,7 +78,12 @@ impl CreateBatchParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("reserved_fees")
+                .name("change")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("encumbered_fees")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -117,18 +111,21 @@ impl From<CreateBatchParams> for TxParams {
         CreateBatchParams {
             journal_id,
             ledger_account_ids,
-            total_in_sats,
-            total_spent_sats,
-            fee_sats,
-            reserved_fees,
-            correlation_id,
+            encumbered_fees,
             meta,
         }: CreateBatchParams,
     ) -> Self {
-        let total_in = total_in_sats.to_btc();
-        let total_spent = total_spent_sats.to_btc();
+        let TransactionSummary {
+            fee_sats,
+            change_sats,
+            total_utxo_in_sats,
+            ..
+        } = meta.tx_summary;
+        let batch_id = meta.batch_id;
+        let total_utxo_in = total_utxo_in_sats.to_btc();
+        let change = change_sats.to_btc();
         let fee_sats = fee_sats.to_btc();
-        let reserved_fees = reserved_fees.to_btc();
+        let encumbered_fees = encumbered_fees.to_btc();
         let effective = Utc::now().date_naive();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
@@ -154,11 +151,11 @@ impl From<CreateBatchParams> for TxParams {
             "onchain_at_rest_account_id",
             ledger_account_ids.onchain_at_rest_id,
         );
-        params.insert("total_in", total_in);
-        params.insert("total_spent", total_spent);
+        params.insert("total_utxo_in", total_utxo_in);
+        params.insert("change", change);
         params.insert("fees", fee_sats);
-        params.insert("reserved_fees", reserved_fees);
-        params.insert("correlation_id", correlation_id);
+        params.insert("encumbered_fees", encumbered_fees);
+        params.insert("correlation_id", Uuid::from(batch_id));
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -186,7 +183,7 @@ impl CreateBatch {
                 .account_id("params.logical_outgoing_account_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
-                .units("params.total_spent")
+                .units("params.total_utxo_in - params.change - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -195,7 +192,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
-                .units("params.total_spent")
+                .units("params.total_utxo_in - params.change - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -204,7 +201,7 @@ impl CreateBatch {
                 .account_id("params.logical_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("PENDING")
-                .units("params.total_spent")
+                .units("params.total_utxo_in - params.change - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -213,7 +210,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
-                .units("params.total_spent")
+                .units("params.total_utxo_in - params.change - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -222,7 +219,7 @@ impl CreateBatch {
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.total_spent + params.fees")
+                .units("params.total_utxo_in - params.change")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -231,7 +228,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.total_spent + params.fees")
+                .units("params.total_utxo_in - params.change")
                 .build()
                 .expect("Couldn't build entry"),
             // FEES
@@ -259,7 +256,7 @@ impl CreateBatch {
                 .account_id("params.onchain_fee_account_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
-                .units("params.reserved_fees")
+                .units("params.encumbered_fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -268,7 +265,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
-                .units("params.reserved_fees")
+                .units("params.encumbered_fees")
                 .build()
                 .expect("Couldn't build entry"),
             // UTXO
@@ -278,7 +275,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
-                .units("params.total_in - params.fees")
+                .units("params.total_utxo_in - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -287,7 +284,7 @@ impl CreateBatch {
                 .account_id("params.onchain_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("PENDING")
-                .units("params.total_in - params.fees")
+                .units("params.total_utxo_in - params.fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -296,7 +293,7 @@ impl CreateBatch {
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.total_in")
+                .units("params.total_utxo_in")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -305,7 +302,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.total_in")
+                .units("params.total_utxo_in")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -314,7 +311,7 @@ impl CreateBatch {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
-                .units("params.total_in - params.fees - params.total_spent")
+                .units("params.change")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -323,7 +320,7 @@ impl CreateBatch {
                 .account_id("params.onchain_income_account_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
-                .units("params.total_in - params.fees - params.total_spent")
+                .units("params.change")
                 .build()
                 .expect("Couldn't build entry"),
         ];
