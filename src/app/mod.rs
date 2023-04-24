@@ -267,18 +267,20 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
 
-        let new_address_id = AddressId::new();
-        let new_address = NewAddress::builder()
-            .id(new_address_id)
-            .address_string(addr.to_string())
+        let mut builder = NewAddress::builder();
+        builder
+            .address(addr.to_string())
+            .account_id(profile.account_id)
+            .wallet_id(wallet.id)
             .profile_id(profile.id)
             .keychain_id(keychain_wallet.keychain_id)
-            .kind(bitcoin::pg::PgKeychainKind::External)
+            .kind(bitcoin::KeychainKind::External)
             .address_idx(addr.index)
-            .external_id(external_id.unwrap_or(new_address_id.to_string()))
-            .metadata(metadata)
-            .build()
-            .expect("Couldn't build NewAddress");
+            .metadata(metadata);
+        if let Some(external_id) = external_id {
+            builder.external_id(external_id);
+        }
+        let new_address = builder.build().expect("Couldn't build NewAddress");
         let tx = self.addresses.persist_address(new_address).await?;
 
         tx.commit().await?;

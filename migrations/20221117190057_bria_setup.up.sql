@@ -81,6 +81,34 @@ CREATE TABLE bria_wallets (
   UNIQUE(account_id, name, version)
 );
 
+
+CREATE TABLE bria_wallet_keychains (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id UUID NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  sequence INT NOT NULL DEFAULT 0,
+  keychain_cfg JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(wallet_id, sequence)
+);
+
+CREATE TABLE bria_addresses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL,
+  wallet_id UUID NOT NULL,
+  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
+  profile_id UUID,
+  address VARCHAR NOT NULL,
+  kind KeychainKind NOT NULL,
+  address_index INTEGER NOT NULL,
+  external_id VARCHAR UNIQUE NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(address, keychain_id)
+);
+
 CREATE TABLE bria_utxos (
     idx SERIAL PRIMARY KEY,
     wallet_id UUID NOT NULL,
@@ -104,18 +132,6 @@ CREATE TABLE bria_utxos (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(keychain_id, tx_id, vout)
-);
-
-
-CREATE TABLE bria_wallet_keychains (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_id UUID NOT NULL,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  sequence INT NOT NULL DEFAULT 0,
-  keychain_cfg JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(wallet_id, sequence)
 );
 
 CREATE TABLE bria_batch_groups (
@@ -211,18 +227,4 @@ CREATE TABLE bria_signing_session_events (
   event JSONB NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(id, sequence)
-);
-
-CREATE TABLE bria_addresses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  address_string VARCHAR NOT NULL,
-  profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
-  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
-  kind KeychainKind NOT NULL,
-  address_index INTEGER NOT NULL,
-  external_id VARCHAR UNIQUE NOT NULL,
-  metadata JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(address_string, keychain_id)
 );

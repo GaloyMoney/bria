@@ -21,13 +21,16 @@ impl Addresses {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"INSERT INTO bria_addresses
-               (id, address_string, profile_id, keychain_id, kind, address_index, external_id, metadata)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
+               (id, account_id, wallet_id, keychain_id, profile_id, address,
+               kind, address_index, external_id, metadata)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
             Uuid::from(address.id),
-            address.address_string,
-            Uuid::from(address.profile_id),
+            Uuid::from(address.account_id),
+            Uuid::from(address.wallet_id),
             Uuid::from(address.keychain_id),
-            address.kind as pg::PgKeychainKind,
+            address.profile_id.map(Uuid::from),
+            address.address,
+            pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.address_idx as i32,
             address.external_id,
             address.metadata,
