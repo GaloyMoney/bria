@@ -1936,6 +1936,36 @@
     },
     "query": "SELECT p.id, p.account_id, p.name\n               FROM bria_profiles p\n               JOIN bria_profile_api_keys k ON k.profile_id = p.id\n               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"
   },
+  "f16e305c670de2cc6eb4cda2faa150f041359d73a17a406bc52b1ac6b1e11cd7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
+  },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {
       "columns": [
@@ -2045,36 +2075,5 @@
       }
     },
     "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_hex, script_fmt)\n            VALUES ($1, $2, $3, $4, ENCODE($4, 'hex'), $5) ON CONFLICT DO NOTHING"
-  },
-  "fe30edb7b19d95bb5bf60db76affb2376d9c3a8cb707831faf4dd23f556ba103": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Int4",
-          "Varchar",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address,\n               kind, address_index, external_id, metadata)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"
   }
 }

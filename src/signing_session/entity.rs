@@ -130,6 +130,6 @@ impl NewSigningSession {
     }
 
     pub(super) fn initial_events() -> EntityEvents<SigningSessionEvent> {
-        EntityEvents::init(SigningSessionEvent::SigningSessionInitialized)
+        EntityEvents::init([SigningSessionEvent::SigningSessionInitialized])
     }
 }
