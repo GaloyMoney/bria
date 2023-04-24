@@ -10,8 +10,8 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger, payout::*,
-    primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*,
+    address::Addresses, app::BlockchainConfig, batch::*, batch_group::*, error::*, ledger::Ledger,
+    payout::*, primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
@@ -40,6 +40,7 @@ pub async fn start_job_runner(
     payouts: Payouts,
     ledger: Ledger,
     utxos: Utxos,
+    addresses: Addresses,
     sync_all_wallets_delay: std::time::Duration,
     process_all_batch_groups_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
@@ -65,6 +66,7 @@ pub async fn start_job_runner(
     registry.set_context(payouts);
     registry.set_context(ledger);
     registry.set_context(utxos);
+    registry.set_context(addresses);
 
     Ok(registry.runner(pool).run().await?)
 }

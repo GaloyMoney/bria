@@ -6,6 +6,7 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
+    address::*,
     batch::*,
     batch_group::*,
     error::*,
@@ -31,6 +32,7 @@ pub struct App {
     signing_sessions: SigningSessions,
     ledger: Ledger,
     utxos: Utxos,
+    addresses: Addresses,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
 }
@@ -53,6 +55,7 @@ impl App {
         let ledger = Ledger::init(&pool).await?;
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
+        let addresses = Addresses::new(&pool);
         let runner = job::start_job_runner(
             &pool,
             wallets.clone(),
@@ -63,6 +66,7 @@ impl App {
             payouts.clone(),
             ledger.clone(),
             utxos.clone(),
+            addresses.clone(),
             wallets_cfg.sync_all_wallets_delay,
             wallets_cfg.process_all_batch_groups_delay,
             blockchain_cfg.clone(),
@@ -84,6 +88,7 @@ impl App {
             pool,
             ledger,
             utxos,
+            addresses,
             _runner: runner,
             blockchain_cfg,
         })
@@ -252,6 +257,8 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
     ) -> Result<String, BriaError> {
         let wallet = self
             .wallets
@@ -259,6 +266,23 @@ impl App {
             .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
+
+        let new_address_id = AddressId::new();
+        let new_address = NewAddress::builder()
+            .id(new_address_id)
+            .address_string(addr.to_string())
+            .profile_id(profile.id)
+            .keychain_id(keychain_wallet.keychain_id)
+            .kind(bitcoin::pg::PgKeychainKind::External)
+            .address_idx(addr.index)
+            .external_id(external_id.unwrap_or(new_address_id.to_string()))
+            .metadata(metadata)
+            .build()
+            .expect("Couldn't build NewAddress");
+        let tx = self.addresses.persist_address(new_address).await?;
+
+        tx.commit().await?;
+
         Ok(addr.to_string())
     }
 

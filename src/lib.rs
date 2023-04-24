@@ -2,6 +2,7 @@
 #![cfg_attr(feature = "fail-on-warnings", deny(clippy::all))]
 
 pub mod account;
+pub mod address;
 pub mod admin;
 mod api;
 pub mod app;
