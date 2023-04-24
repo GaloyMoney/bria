@@ -1,3 +1,75 @@
+# [bria release v0.0.11](https://github.com/GaloyMoney/bria/releases/tag/0.0.11)
+
+
+### Bug Fixes
+
+- Clippy
+- NewUtxo field visibility
+
+### Features
+
+- List-addresses cli cmd
+- Add addresses repository
+- Pass metadata json arg in to grpc service
+- Add 'metadata' arg to queue-payout cmd
+
+### Miscellaneous Tasks
+
+- Sync addresses in sync_wallet job
+- Bump tracing-subscriber from 0.3.16 to 0.3.17
+- Improve address entity
+- Submit batch execution
+- Update 'h2' for RUSTSEC-2023-0034 vulnerability
+- Implement Display trait on AddressCreationInfo
+- Submit_batch template
+- Use tx_summary in create_batch template
+- Bump clap from 4.2.2 to 4.2.4
+- Signing finalized / broadcasting broadcasts
+- Bump tonic-build from 0.9.1 to 0.9.2
+- Some pre-accounting cleanup
+- Batch_finalizing
+- Set-signer-config triggers batch-signing
+- Batch_signing
+- Bump tonic-build from 0.9.1 to 0.9.2
+- List-signing-sessions cli cmd
+- List-signing-sessions
+- Persist updated sessions
+- Complete persistance of new signing sessions
+- Some signing boilerplate
+- Move jobs to singular
+- Add signing_session module
+- Pass XPubs to jobs
+- Introduce entity module
+- Access xpubs via wallet
+- Add bitcoind/signet.conf
+- Bump prost from 0.11.8 to 0.11.9
+- Use forked prost-wkt-types
+- Improve rust idioms
+- Handle json conversion error in ApiClient::queue_payout
+- Handle struct parsing error in Bria::queue_payout
+- Add prost-types
+
+### Refactor
+
+- Make external_id is address by default
+- Persist address via events
+- Persist_new_session -> persist_sessions
+- Assign address_id to external_id if none is passed in
+- Make (address_string, keychain_id) combination unique
+- Add 'profile_id' to Address entity
+- Change 'new_external_address' return to domain AddressCreationInfo type
+- Add new props to NewAddress grpc request
+- Add new props to new-address cli command
+- Pass in pg tx to utxo use cases
+- Restructure foreign references
+- Make queue_payout metadata prop optional
+
+### Testing
+
+- Add list-addresses to e2e tests
+- Add new args to new-address test
+- Add metadata arg to queue-payout test
+
 # [bria release v0.0.10](https://github.com/GaloyMoney/bria/releases/tag/0.0.10)
 
 
