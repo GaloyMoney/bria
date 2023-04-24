@@ -45,12 +45,13 @@ impl WalletAddress {
 #[derive(Builder, Clone, Debug)]
 pub struct NewAddress {
     pub(super) id: AddressId,
+    #[builder(setter(custom))]
     pub(super) address: bitcoin::Address,
     #[builder(setter(into))]
     pub(super) address_idx: u32,
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
-    #[builder(setter(strip_option))]
+    #[builder(setter(strip_option), default)]
     pub(super) profile_id: Option<ProfileId>,
     pub(super) keychain_id: KeychainId,
     #[builder(setter(into))]
@@ -63,7 +64,6 @@ impl NewAddress {
     pub fn builder() -> NewAddressBuilder {
         let mut builder = NewAddressBuilder::default();
         let new_address_id = AddressId::new();
-        builder.external_id(new_address_id.to_string());
         builder.id(new_address_id);
         builder
     }
@@ -79,5 +79,15 @@ impl NewAddress {
             events.push(AddressEvent::AddressMetadataUpdated { metadata })
         }
         events
+    }
+}
+
+impl NewAddressBuilder {
+    pub fn address(&mut self, address: bitcoin::Address) -> &mut Self {
+        if self.external_id.is_none() {
+            self.external_id = Some(address.to_string());
+        }
+        self.address = Some(address);
+        self
     }
 }

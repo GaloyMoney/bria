@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use std::collections::HashMap;
@@ -39,6 +39,43 @@ impl Addresses {
         .execute(&mut tx)
         .await?;
 
+        Self::persist_events(&mut tx, address).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
+    pub async fn persist_if_not_present(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        address: NewAddress,
+    ) -> Result<(), BriaError> {
+        let res = sqlx::query!(
+            r#"INSERT INTO bria_addresses
+               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"#,
+            Uuid::from(address.id),
+            Uuid::from(address.account_id),
+            Uuid::from(address.wallet_id),
+            Uuid::from(address.keychain_id),
+            address.profile_id.map(Uuid::from),
+            address.address.to_string(),
+            address.address_idx as i32,
+            pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
+            address.external_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if res.rows_affected() == 0 {
+            return Ok(());
+        }
+        Self::persist_events(tx, address).await
+    }
+
+    async fn persist_events(
+        tx: &mut Transaction<'_, Postgres>,
+        address: NewAddress,
+    ) -> Result<(), BriaError> {
         let mut query_builder = sqlx::QueryBuilder::new(
             r#"INSERT INTO bria_address_events
             (id, sequence, event_type, event)"#,
@@ -54,8 +91,7 @@ impl Addresses {
             },
         );
         let query = query_builder.build();
-        query.execute(&mut tx).await?;
-        tx.commit().await?;
+        query.execute(&mut *tx).await?;
         Ok(())
     }
 

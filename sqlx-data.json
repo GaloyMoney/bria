@@ -954,6 +954,36 @@
     },
     "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id, bdk_spent)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
   },
+  "6ea731a8b33bbf1a94465449780ceffbf1cd448fd1d4bd97e3d53642a04cd57e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Int4",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"
+  },
   "73e658dc30bd137f4aa6b118aa8919ff6b9d5cfd9a63dd147d7cc2e2a71bd182": {
     "describe": {
       "columns": [

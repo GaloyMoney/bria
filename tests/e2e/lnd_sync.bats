@@ -40,6 +40,8 @@ teardown_file() {
   done
   [[ $(cached_pending_income) == 100000000 ]] || exit 1
 
+  n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
+  [ "$n_addresses" = "2" ] || exit 1
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
