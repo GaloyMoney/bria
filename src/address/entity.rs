@@ -50,7 +50,7 @@ pub struct NewAddress {
     pub(super) address_idx: u32,
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
-    #[builder(setter(strip_option))]
+    #[builder(setter(strip_option), default)]
     pub(super) profile_id: Option<ProfileId>,
     pub(super) keychain_id: KeychainId,
     #[builder(setter(into))]

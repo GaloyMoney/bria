@@ -127,6 +127,7 @@ async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
+    addresses: Addresses,
     utxos: Utxos,
     ledger: Ledger,
     batches: Batches,
@@ -137,7 +138,17 @@ async fn sync_wallet(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(pool, wallets, blockchain_cfg, utxos, ledger, batches, data).await
+            sync_wallet::execute(
+                pool,
+                wallets,
+                blockchain_cfg,
+                utxos,
+                addresses,
+                ledger,
+                batches,
+                data,
+            )
+            .await
         })
         .await?;
     Ok(())

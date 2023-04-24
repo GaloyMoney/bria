@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use crate::{
+    address::*,
     app::BlockchainConfig,
     batch::*,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
@@ -47,21 +48,24 @@ impl InstrumentationTrackers {
 
 struct Deps {
     blockchain_cfg: BlockchainConfig,
+    bria_addresses: Addresses,
     bria_utxos: Utxos,
     ledger: Ledger,
 }
 
 #[instrument(
     name = "job.sync_wallet",
-    skip(pool, wallets, batches, bria_utxos, ledger),
+    skip(pool, wallets, batches, bria_utxos, bria_addresses, ledger),
     fields(n_pending_utxos, n_confirmed_utxos, n_found_txs),
     err
 )]
+#[allow(clippy::too_many_arguments)]
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
     blockchain_cfg: BlockchainConfig,
     bria_utxos: Utxos,
+    bria_addresses: Addresses,
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
@@ -71,6 +75,7 @@ pub async fn execute(
     let mut trackers = InstrumentationTrackers::new();
     let deps = Deps {
         blockchain_cfg,
+        bria_addresses,
         bria_utxos,
         ledger,
     };
@@ -121,6 +126,16 @@ pub async fn execute(
                 let address_info = keychain_wallet
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
+                let found_addr = NewAddress::builder()
+                    .account_id(data.account_id)
+                    .wallet_id(data.wallet_id)
+                    .keychain_id(keychain_id)
+                    .address(address_info.address.clone())
+                    .kind(address_info.keychain)
+                    .address_idx(address_info.index)
+                    .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
+                    .build()
+                    .expect("Could not build new address in sync wallet");
                 if let Some((pending_id, mut tx)) = deps
                     .bria_utxos
                     .new_income_utxo(
@@ -134,6 +149,9 @@ pub async fn execute(
                     .await?
                 {
                     trackers.n_pending_utxos += 1;
+                    deps.bria_addresses
+                        .persist_if_not_present(&mut tx, found_addr)
+                        .await?;
                     bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
                     deps.ledger
                         .incoming_utxo(
@@ -208,14 +226,24 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let change_utxo = if !change.is_empty() {
+                let (change_utxo, found_addr) = if !change.is_empty() {
                     let (utxo, path) = change[0].clone();
                     let address_info = keychain_wallet
                         .find_address_from_path(path, utxo.keychain)
                         .await?;
-                    Some((utxo, address_info))
+                    let found_address = NewAddress::builder()
+                        .account_id(data.account_id)
+                        .wallet_id(data.wallet_id)
+                        .keychain_id(keychain_id)
+                        .address(address_info.address.clone())
+                        .kind(address_info.keychain)
+                        .address_idx(address_info.index)
+                        .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
+                        .build()
+                        .expect("Could not build new address in sync wallet");
+                    (Some((utxo, address_info)), Some(found_address))
                 } else {
-                    None
+                    (None, None)
                 };
                 let (mut tx, create_batch_tx_id, tx_id) =
                     if let Some((tx, create_batch_tx_id, tx_id)) = batches
@@ -241,6 +269,11 @@ pub async fn execute(
                     )
                     .await?
                 {
+                    if let Some(found_addr) = found_addr {
+                        deps.bria_addresses
+                            .persist_if_not_present(&mut tx, found_addr)
+                            .await?;
+                    }
                     if let Some(create_batch_tx_id) = create_batch_tx_id {
                         deps.ledger
                             .submit_batch(
@@ -449,4 +482,12 @@ async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), 
     )?);
     let current_height = blockchain.get_height()?;
     Ok((blockchain, current_height))
+}
+
+fn address_metadata(tx_id: &bitcoin::Txid) -> serde_json::Value {
+    serde_json::json! {
+        {
+            "synced_in_tx": tx_id.to_string(),
+        }
+    }
 }
