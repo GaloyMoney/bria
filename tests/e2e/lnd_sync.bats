@@ -19,6 +19,9 @@ teardown_file() {
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
 
   [ "$lnd_address" = "$bria_address" ]
+
+  n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
+  [ "$n_addresses" = "1" ] || exit 1
 }
 
 @test "lnd_sync: Detects incoming transactions" {
