@@ -41,19 +41,19 @@ pub struct KeychainUtxos {
 
 #[derive(Builder)]
 pub struct NewUtxo {
-    pub wallet_id: WalletId,
-    pub keychain_id: KeychainId,
-    pub outpoint: OutPoint,
-    pub kind: KeychainKind,
-    pub address_idx: u32,
+    pub(super) wallet_id: WalletId,
+    pub(super) keychain_id: KeychainId,
+    pub(super) outpoint: OutPoint,
+    pub(super) kind: KeychainKind,
+    pub(super) address_idx: u32,
     #[builder(setter(into))]
-    pub value: Satoshis,
-    pub address: String,
-    pub script_hex: String,
-    pub sats_per_vbyte_when_created: f32,
-    pub self_pay: bool,
-    pub bdk_spent: bool,
-    pub income_pending_ledger_tx_id: LedgerTransactionId,
+    pub(super) value: Satoshis,
+    pub(super) address: String,
+    pub(super) script_hex: String,
+    pub(super) sats_per_vbyte_when_created: f32,
+    pub(super) self_pay: bool,
+    pub(super) bdk_spent: bool,
+    pub(super) income_pending_ledger_tx_id: LedgerTransactionId,
 }
 
 impl NewUtxo {

@@ -34,8 +34,8 @@ impl UtxoRepo {
     ) -> Result<Option<LedgerTransactionId>, BriaError> {
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id, bdk_spent)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           Uuid::from(utxo.wallet_id),
           Uuid::from(utxo.keychain_id),
@@ -48,7 +48,8 @@ impl UtxoRepo {
           utxo.value.into_inner(),
           utxo.address.to_string(),
           utxo.script_hex,
-          Uuid::from(utxo.income_pending_ledger_tx_id)
+          Uuid::from(utxo.income_pending_ledger_tx_id),
+          utxo.bdk_spent
         )
         .execute(&mut *tx)
         .await?;
