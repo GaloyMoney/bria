@@ -170,6 +170,18 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn list_addresses(&self, wallet: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListAddressesRequest {
+            wallet_name: wallet,
+        });
+        let response = self
+            .connect()
+            .await?
+            .list_addresses(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn list_utxos(&self, wallet: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListUtxosRequest {
             wallet_name: wallet,

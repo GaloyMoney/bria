@@ -58,7 +58,7 @@ mod tests {
         let outpoint1 = OutPoint { txid, vout: 0 };
 
         let inputs = vec![SpentUtxo {
-            outpoint: outpoint1.clone(),
+            outpoint: outpoint1,
             value: Satoshis::from(10000),
             change_address: false,
             confirmed: true,
@@ -81,19 +81,19 @@ mod tests {
 
         let inputs = vec![
             SpentUtxo {
-                outpoint: outpoint1.clone(),
+                outpoint: outpoint1,
                 value: Satoshis::from(40000),
                 change_address: true,
                 confirmed: true,
             },
             SpentUtxo {
-                outpoint: outpoint2.clone(),
+                outpoint: outpoint2,
                 value: one_btc,
                 change_address: false,
                 confirmed: false,
             },
             SpentUtxo {
-                outpoint: outpoint3.clone(),
+                outpoint: outpoint3,
                 value: one_btc,
                 change_address: false,
                 confirmed: false,

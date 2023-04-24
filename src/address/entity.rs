@@ -14,6 +14,34 @@ pub enum AddressEvent {
     AddressMetadataUpdated { metadata: serde_json::Value },
 }
 
+pub struct WalletAddress {
+    pub address: bitcoin::Address,
+    pub wallet_id: WalletId,
+    pub(super) events: EntityEvents<AddressEvent>,
+}
+
+impl WalletAddress {
+    pub fn external_id(&self) -> String {
+        let mut ret = None;
+        for event in self.events.iter() {
+            if let AddressEvent::AddressExternalIdUpdated { external_id } = event {
+                ret = Some(external_id.clone())
+            }
+        }
+        ret.expect("external_id not set")
+    }
+
+    pub fn metadata(&self) -> Option<&serde_json::Value> {
+        let mut ret = None;
+        for event in self.events.iter() {
+            if let AddressEvent::AddressMetadataUpdated { metadata } = event {
+                ret = Some(metadata)
+            }
+        }
+        ret
+    }
+}
+
 #[derive(Builder, Clone, Debug)]
 pub struct NewAddress {
     pub(super) id: AddressId,

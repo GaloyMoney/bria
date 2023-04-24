@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use super::proto;
 use crate::{
+    address::*,
     batch_group::*,
     error::BriaError,
     payout::*,
@@ -79,6 +80,18 @@ impl TryFrom<Option<proto::queue_payout_request::Destination>> for PayoutDestina
                 tonic::Code::InvalidArgument,
                 "missing destination",
             )),
+        }
+    }
+}
+
+impl From<WalletAddress> for proto::WalletAddress {
+    fn from(addr: WalletAddress) -> Self {
+        Self {
+            address: addr.address.to_string(),
+            external_id: addr.external_id(),
+            metadata: addr.metadata().map(|json| {
+                serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
+            }),
         }
     }
 }

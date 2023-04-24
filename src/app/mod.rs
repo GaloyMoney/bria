@@ -286,6 +286,24 @@ impl App {
         Ok(addr.to_string())
     }
 
+    #[instrument(name = "app.list_addresses", skip(self), err)]
+    pub async fn list_external_addresses(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+    ) -> Result<(WalletId, Vec<WalletAddress>), BriaError> {
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
+        let addresses = self
+            .addresses
+            .find_external_by_wallet_id(profile.account_id, wallet.id)
+            .await?;
+
+        Ok((wallet.id, addresses))
+    }
+
     #[instrument(name = "app.list_utxos", skip(self), err)]
     pub async fn list_utxos(
         &self,
