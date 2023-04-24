@@ -189,6 +189,21 @@ enum Command {
         #[clap(short, long, value_parser = parse_json)]
         metadata: Option<serde_json::Value>,
     },
+    /// List external addresses up to a given path index
+    ListAddresses {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+    },
     /// List Unspent Transaction Outputs of a wallet
     ListUtxos {
         #[clap(
@@ -432,6 +447,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.new_address(wallet, external_id, metadata).await?;
+        }
+        Command::ListAddresses {
+            url,
+            api_key,
+            wallet,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.list_addresses(wallet).await?;
         }
         Command::ListUtxos {
             url,

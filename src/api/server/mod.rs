@@ -170,6 +170,29 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_addresses(
+        &self,
+        request: Request<ListAddressesRequest>,
+    ) -> Result<Response<ListAddressesResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let wallet_name = request.into_inner().wallet_name;
+
+        let (wallet_id, addresses) = self
+            .app
+            .list_external_addresses(profile, wallet_name)
+            .await?;
+        let proto_addresses: Vec<proto::WalletAddress> = addresses
+            .into_iter()
+            .map(proto::WalletAddress::from)
+            .collect();
+        Ok(Response::new(ListAddressesResponse {
+            wallet_id: wallet_id.to_string(),
+            addresses: proto_addresses,
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn list_utxos(
         &self,
         request: Request<ListUtxosRequest>,
@@ -179,8 +202,10 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let (wallet_id, keychain_utxos) = self.app.list_utxos(profile, request.wallet_name).await?;
 
-        let proto_keychains: Vec<proto::KeychainUtxos> =
-            keychain_utxos.into_iter().map(Into::into).collect();
+        let proto_keychains: Vec<proto::KeychainUtxos> = keychain_utxos
+            .into_iter()
+            .map(proto::KeychainUtxos::from)
+            .collect();
 
         Ok(Response::new(ListUtxosResponse {
             wallet_id: wallet_id.to_string(),

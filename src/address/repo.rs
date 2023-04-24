@@ -1,8 +1,14 @@
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use std::collections::HashMap;
+
 use super::entity::*;
-use crate::{error::*, primitives::bitcoin::*};
+use crate::{
+    entity::*,
+    error::*,
+    primitives::{bitcoin::*, *},
+};
 
 #[derive(Clone)]
 pub struct Addresses {
@@ -51,5 +57,48 @@ impl Addresses {
         query.execute(&mut tx).await?;
         tx.commit().await?;
         Ok(())
+    }
+
+    pub async fn find_external_by_wallet_id(
+        &self,
+        account_id: AccountId,
+        wallet_id: WalletId,
+    ) -> Result<Vec<WalletAddress>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.id, b.address, b.external_id, e.sequence, e.event_type, e.event as "event?"
+              FROM bria_addresses b
+              JOIN bria_address_events e ON b.id = e.id
+              WHERE account_id = $1 AND wallet_id = $2 AND kind = 'external'
+              ORDER BY b.created_at, b.id, sequence"#,
+            Uuid::from(account_id),
+            Uuid::from(wallet_id)
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut entity_events = HashMap::new();
+        let mut ids = Vec::new();
+        for mut row in rows {
+            let id = AddressId::from(row.id);
+            let address: bitcoin::Address = row.address.parse()?;
+            ids.push((id, address));
+            let sequence = row.sequence;
+            let event = row.event.take().expect("Missing event");
+            let events = entity_events
+                .entry(id)
+                .or_insert_with(|| EntityEvents::<AddressEvent>::new());
+            events.load_event(sequence as usize, event)?;
+        }
+        let mut ret = Vec::new();
+        for (id, address) in ids {
+            if let Some(events) = entity_events.remove(&id) {
+                ret.push(WalletAddress {
+                    address,
+                    wallet_id,
+                    events,
+                })
+            }
+        }
+        Ok(ret)
     }
 }

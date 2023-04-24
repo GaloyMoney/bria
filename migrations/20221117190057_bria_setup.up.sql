@@ -103,6 +103,7 @@ CREATE TABLE bria_addresses (
   address_idx INTEGER NOT NULL,
   kind KeychainKind NOT NULL,
   external_id VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(account_id, address),
   UNIQUE(account_id, external_id)
 );
