@@ -86,7 +86,7 @@ impl Addresses {
             let event = row.event.take().expect("Missing event");
             let events = entity_events
                 .entry(id)
-                .or_insert_with(|| EntityEvents::<AddressEvent>::new());
+                .or_insert_with(EntityEvents::<AddressEvent>::new);
             events.load_event(sequence as usize, event)?;
         }
         let mut ret = Vec::new();

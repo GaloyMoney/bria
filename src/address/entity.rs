@@ -24,11 +24,8 @@ impl WalletAddress {
     pub fn external_id(&self) -> String {
         let mut ret = None;
         for event in self.events.iter() {
-            match event {
-                AddressEvent::AddressExternalIdUpdated { external_id } => {
-                    ret = Some(external_id.clone())
-                }
-                _ => {}
+            if let AddressEvent::AddressExternalIdUpdated { external_id } = event {
+                ret = Some(external_id.clone())
             }
         }
         ret.expect("external_id not set")
@@ -37,9 +34,8 @@ impl WalletAddress {
     pub fn metadata(&self) -> Option<&serde_json::Value> {
         let mut ret = None;
         for event in self.events.iter() {
-            match event {
-                AddressEvent::AddressMetadataUpdated { metadata } => ret = Some(metadata),
-                _ => {}
+            if let AddressEvent::AddressMetadataUpdated { metadata } = event {
+                ret = Some(metadata)
             }
         }
         ret
