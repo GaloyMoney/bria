@@ -16,7 +16,7 @@ impl SigningSessions {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_new_sessions(
+    pub async fn persist_sessions(
         &self,
         sessions: HashMap<XPubId, NewSigningSession>,
     ) -> Result<BatchSigningSession, BriaError> {

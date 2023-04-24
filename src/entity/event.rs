@@ -7,6 +7,7 @@ pub struct EntityEvents<T: DeserializeOwned + Serialize> {
 }
 
 impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
             last_persisted_sequence: 0,
@@ -14,10 +15,10 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         }
     }
 
-    pub fn init(initial_event: T) -> Self {
+    pub fn init(initial_events: impl IntoIterator<Item = T>) -> Self {
         Self {
             last_persisted_sequence: 0,
-            events: vec![initial_event],
+            events: initial_events.into_iter().collect(),
         }
     }
 

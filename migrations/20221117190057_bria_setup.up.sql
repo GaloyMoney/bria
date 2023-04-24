@@ -100,13 +100,20 @@ CREATE TABLE bria_addresses (
   keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
   profile_id UUID,
   address VARCHAR NOT NULL,
+  address_idx INTEGER NOT NULL,
   kind KeychainKind NOT NULL,
-  address_index INTEGER NOT NULL,
-  external_id VARCHAR UNIQUE NOT NULL,
-  metadata JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(address, keychain_id)
+  external_id VARCHAR NOT NULL,
+  UNIQUE(account_id, address),
+  UNIQUE(account_id, external_id)
+);
+
+CREATE TABLE bria_address_events (
+  id UUID REFERENCES bria_addresses(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
 );
 
 CREATE TABLE bria_utxos (

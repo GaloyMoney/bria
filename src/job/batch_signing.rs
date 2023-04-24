@@ -69,7 +69,7 @@ pub async fn execute(
 
         (
             signing_sessions
-                .persist_new_sessions(new_sessions)
+                .persist_sessions(new_sessions)
                 .await?
                 .xpub_sessions,
             account_xpubs,

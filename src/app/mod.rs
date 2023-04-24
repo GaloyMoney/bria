@@ -269,7 +269,7 @@ impl App {
 
         let mut builder = NewAddress::builder();
         builder
-            .address(addr.to_string())
+            .address(addr.address.clone())
             .account_id(profile.account_id)
             .wallet_id(wallet.id)
             .profile_id(profile.id)
@@ -281,9 +281,7 @@ impl App {
             builder.external_id(external_id);
         }
         let new_address = builder.build().expect("Couldn't build NewAddress");
-        let tx = self.addresses.persist_address(new_address).await?;
-
-        tx.commit().await?;
+        self.addresses.persist_address(new_address).await?;
 
         Ok(addr.to_string())
     }
