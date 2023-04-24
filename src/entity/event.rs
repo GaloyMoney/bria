@@ -60,4 +60,23 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
                 (id, (i + 1) as i32, event_type, event_json)
             })
     }
+
+    pub async fn persist(
+        table_name: &str,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        events: impl Iterator<Item = (uuid::Uuid, i32, String, serde_json::Value)> + '_,
+    ) -> Result<(), sqlx::Error> {
+        let mut query_builder = sqlx::QueryBuilder::new(format!(
+            "INSERT INTO {table_name} (id, sequence, event_type, event)"
+        ));
+        query_builder.push_values(events, |mut builder, (id, sequence, event_type, event)| {
+            builder.push_bind(id);
+            builder.push_bind(sequence);
+            builder.push_bind(event_type);
+            builder.push_bind(event);
+        });
+        let query = query_builder.build();
+        query.execute(&mut *tx).await?;
+        Ok(())
+    }
 }

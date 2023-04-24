@@ -34,7 +34,8 @@ impl XPubs {
         )
         .fetch_one(&mut tx)
         .await?;
-        Self::persist_events(
+        EntityEvents::<XPubEvent>::persist(
+            "bria_xpub_events",
             &mut tx,
             NewXPub::initial_events().new_serialized_events(row.id),
         )
@@ -48,26 +49,12 @@ impl XPubs {
         tx: &mut Transaction<'_, Postgres>,
         xpub: AccountXPub,
     ) -> Result<(), BriaError> {
-        Self::persist_events(tx, xpub.events.new_serialized_events(xpub.db_uuid)).await
-    }
-
-    async fn persist_events(
-        tx: &mut Transaction<'_, Postgres>,
-        events: impl Iterator<Item = (uuid::Uuid, i32, String, serde_json::Value)> + '_,
-    ) -> Result<(), BriaError> {
-        let mut query_builder = sqlx::QueryBuilder::new(
-            r#"INSERT INTO bria_xpub_events
-            (id, sequence, event_type, event)"#,
-        );
-        query_builder.push_values(events, |mut builder, (id, sequence, event_type, event)| {
-            builder.push_bind(id);
-            builder.push_bind(sequence);
-            builder.push_bind(event_type);
-            builder.push_bind(event);
-        });
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
-        Ok(())
+        Ok(EntityEvents::<XPubEvent>::persist(
+            "bria_xpub_events",
+            tx,
+            xpub.events.new_serialized_events(xpub.db_uuid),
+        )
+        .await?)
     }
 
     pub async fn find_from_ref(
