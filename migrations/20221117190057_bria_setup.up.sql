@@ -38,6 +38,7 @@ CREATE TABLE bria_profile_api_keys (
 );
 
 CREATE TABLE bria_xpubs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
   fingerprint BYTEA NOT NULL,
@@ -51,14 +52,13 @@ CREATE TABLE bria_xpubs (
   UNIQUE(account_id, name)
 );
 
-CREATE TABLE bria_xpub_signers (
-  id UUID PRIMARY KEY NOT NULL,
-  version INT NOT NULL DEFAULT 1,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  xpub_fingerprint BYTEA NOT NULL,
-  signer_cfg JSONB NOT NULL,
-  FOREIGN KEY (account_id, xpub_fingerprint) REFERENCES bria_xpubs (account_id, fingerprint),
-  UNIQUE(account_id, xpub_fingerprint, version)
+CREATE TABLE bria_xpub_events (
+  id UUID REFERENCES bria_xpubs(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
 );
 
 CREATE TABLE bria_wallets (

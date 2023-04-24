@@ -166,22 +166,22 @@ impl App {
         xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), BriaError> {
-        let xpub = self
+        let mut xpub = self
             .xpubs
-            .find_from_ref(profile.account_id, xpub_ref)
+            .find_from_ref(
+                profile.account_id,
+                xpub_ref
+                    .parse::<XPubRef>()
+                    .expect("ref should always parse"),
+            )
             .await?;
-        let new_signer = NewSigner::builder()
-            .xpub_id(xpub.id())
-            .config(config)
-            .build()
-            .expect("Couldn't build signer");
+        let xpub_id = xpub.id();
+        xpub.set_signer_config(config);
         let mut tx = self.pool.begin().await?;
-        self.xpubs
-            .set_signer_for_xpub(&mut tx, profile.account_id, new_signer)
-            .await?;
+        self.xpubs.persist_updated(&mut tx, xpub).await?;
         let batch_ids = self
             .signing_sessions
-            .list_batch_ids_for(&mut tx, profile.account_id, xpub.id())
+            .list_batch_ids_for(&mut tx, profile.account_id, xpub_id)
             .await?;
         job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
             .await?;
@@ -199,7 +199,12 @@ impl App {
         for xpub_ref in xpub_refs {
             xpubs.push(
                 self.xpubs
-                    .find_from_ref(profile.account_id, xpub_ref)
+                    .find_from_ref(
+                        profile.account_id,
+                        xpub_ref
+                            .parse::<XPubRef>()
+                            .expect("xpub_ref should always parse"),
+                    )
                     .await?,
             );
         }

@@ -25,6 +25,15 @@ impl From<bitcoin::Fingerprint> for XPubId {
     }
 }
 
+impl std::str::FromStr for XPubId {
+    type Err = <bitcoin::Fingerprint as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let fingerprint = bitcoin::Fingerprint::from_str(s)?;
+        Ok(Self(fingerprint))
+    }
+}
+
 impl std::ops::Deref for XPubId {
     type Target = bitcoin::Fingerprint;
 
