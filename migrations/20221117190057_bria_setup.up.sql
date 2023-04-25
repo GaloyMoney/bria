@@ -202,9 +202,8 @@ CREATE TABLE bria_payout_events (
 CREATE TABLE bria_signing_sessions (
   id UUID PRIMARY KEY NOT NULL,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  batch_id UUID NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   xpub_fingerprint BYTEA NOT NULL,
-  unsigned_psbt BYTEA NOT NULL,
   FOREIGN KEY (account_id, xpub_fingerprint) REFERENCES bria_xpubs (account_id, fingerprint),
   FOREIGN KEY (account_id, batch_id) REFERENCES bria_batches (account_id, id),
   UNIQUE(account_id, batch_id, xpub_fingerprint)
