@@ -12,7 +12,6 @@ use crate::{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct XPub {
     pub(super) derivation: Option<DerivationPath>,
-    pub(super) original: String,
     pub(super) inner: ExtendedPubKey,
 }
 
@@ -36,14 +35,14 @@ impl fmt::Display for XPub {
     }
 }
 
-impl<O: Into<String>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
+impl<O: AsRef<str>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
     type Error = BriaError;
 
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
-        let original = original.into();
         let derivation: Option<DerivationPath> = derivation.map(|d| d.as_ref().parse().unwrap());
         use bdk::bitcoin::util::base58;
-        let mut xpub_data = base58::from_check(&original).map_err(BriaError::XPubParseError)?;
+        let mut xpub_data =
+            base58::from_check(original.as_ref()).map_err(BriaError::XPubParseError)?;
         fix_version_bits_for_rust_bitcoin(&mut xpub_data);
         let inner = ExtendedPubKey::decode(&xpub_data)?;
         if let Some(ref d) = derivation {
@@ -54,11 +53,7 @@ impl<O: Into<String>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
             return Err(BriaError::XPubDepthMismatch(inner.depth, 0));
         }
 
-        Ok(Self {
-            derivation,
-            original,
-            inner,
-        })
+        Ok(Self { derivation, inner })
     }
 }
 
@@ -106,7 +101,6 @@ mod tests {
     #[test]
     fn test_import_vpub() {
         let original = "vpub5YdbDxAzXv4io9b5t4kRRFwLfhjFiFJAcUnDMbYGRLDHr5AzxFYBqa19AkkFfasDn9qXUuHBcw5JQWmE23GXahvuWixoLxsNe4Du85UGsp7";
-        let xpub = XPub::try_from((original, Some("m/84'/0'/0'"))).expect("Create vpub");
-        assert_eq!(xpub.original, original);
+        assert!(XPub::try_from((original, Some("m/84'/0'/0'"))).is_ok());
     }
 }

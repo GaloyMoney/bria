@@ -60,16 +60,17 @@ impl AccountXPub {
 }
 
 #[derive(Builder, Clone, Debug)]
-pub struct NewXPub {
+pub struct NewAccountXPub {
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) key_name: String,
+    pub(super) original: String,
     pub(super) value: XPubValue,
 }
 
-impl NewXPub {
-    pub fn builder() -> NewXPubBuilder {
-        NewXPubBuilder::default()
+impl NewAccountXPub {
+    pub fn builder() -> NewAccountXPubBuilder {
+        NewAccountXPubBuilder::default()
     }
 
     pub fn id(&self) -> XPubId {

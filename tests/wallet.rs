@@ -18,7 +18,7 @@ async fn test_wallet() -> anyhow::Result<()> {
 
     let id = repo
         .persist(
-            NewXPub::builder()
+            NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .key_name(name.clone())
                 .value(xpub)

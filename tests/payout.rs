@@ -15,7 +15,7 @@ async fn test_payout() -> anyhow::Result<()> {
 
     let id = repo
         .persist(
-            NewXPub::builder()
+            NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .key_name(wallet_name.clone())
                 .value(xpub)

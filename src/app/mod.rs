@@ -148,9 +148,10 @@ impl App {
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
-        let value = XPub::try_from((xpub, derivation))?;
-        let xpub = NewXPub::builder()
+        let value = XPub::try_from((&xpub, derivation))?;
+        let xpub = NewAccountXPub::builder()
             .account_id(profile.account_id)
+            .original(xpub)
             .key_name(key_name)
             .value(value)
             .build()

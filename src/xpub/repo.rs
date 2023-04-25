@@ -16,7 +16,7 @@ impl XPubs {
     }
 
     #[instrument(name = "xpubs.persist", skip(self))]
-    pub async fn persist(&self, xpub: NewXPub) -> Result<XPubId, BriaError> {
+    pub async fn persist(&self, xpub: NewAccountXPub) -> Result<XPubId, BriaError> {
         let id = xpub.id();
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
@@ -26,7 +26,7 @@ impl XPubs {
             RETURNING id"#,
             Uuid::from(xpub.account_id),
             xpub.key_name,
-            xpub.value.original,
+            xpub.original,
             &xpub.value.inner.encode(),
             xpub.value.derivation.as_ref().map(|d| d.to_string()),
             id.as_bytes(),
@@ -37,7 +37,7 @@ impl XPubs {
         EntityEvents::<XPubEvent>::persist(
             "bria_xpub_events",
             &mut tx,
-            NewXPub::initial_events().new_serialized_events(row.id),
+            NewAccountXPub::initial_events().new_serialized_events(row.id),
         )
         .await?;
         tx.commit().await?;
@@ -64,10 +64,10 @@ impl XPubs {
     ) -> Result<AccountXPub, BriaError> {
         let xpub_ref = xpub_ref.into();
         let mut tx = self.pool.begin().await?;
-        let (id, name, derivation_path, original, bytes) = match xpub_ref {
+        let (id, name, derivation_path, bytes) = match xpub_ref {
             XPubRef::Id(fp) => {
                 let record = sqlx::query!(
-                    r#"SELECT id, name, derivation_path, original, xpub
+                    r#"SELECT id, name, derivation_path, xpub
                        FROM bria_xpubs
                        WHERE account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
@@ -75,35 +75,11 @@ impl XPubs {
                 )
                 .fetch_one(&mut tx)
                 .await?;
-                (
-                    record.id,
-                    record.name,
-                    record.derivation_path,
-                    record.original,
-                    record.xpub,
-                )
-            }
-            XPubRef::Key(key) => {
-                let record = sqlx::query!(
-                    r#"SELECT id, name, derivation_path, original, xpub
-                       FROM bria_xpubs
-                       WHERE account_id = $1 AND xpub = $2"#,
-                    Uuid::from(account_id),
-                    &key.encode()
-                )
-                .fetch_one(&mut tx)
-                .await?;
-                (
-                    record.id,
-                    record.name,
-                    record.derivation_path,
-                    record.original,
-                    record.xpub,
-                )
+                (record.id, record.name, record.derivation_path, record.xpub)
             }
             XPubRef::Name(name) => {
                 let record = sqlx::query!(
-                    r#"SELECT id, name, derivation_path, original, xpub
+                    r#"SELECT id, name, derivation_path,  xpub
                        FROM bria_xpubs
                        WHERE account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
@@ -111,13 +87,7 @@ impl XPubs {
                 )
                 .fetch_one(&mut tx)
                 .await?;
-                (
-                    record.id,
-                    record.name,
-                    record.derivation_path,
-                    record.original,
-                    record.xpub,
-                )
+                (record.id, record.name, record.derivation_path, record.xpub)
             }
         };
 
@@ -140,7 +110,6 @@ impl XPubs {
             value: XPub {
                 derivation: derivation_path
                     .map(|d| d.parse().expect("Couldn't decode derivation path")),
-                original,
                 inner: bitcoin::ExtendedPubKey::decode(&bytes).expect("Couldn't decode xpub"),
             },
             events,
