@@ -42,24 +42,15 @@ impl SigningSessions {
         });
         let query = query_builder.build();
         query.execute(&mut tx).await?;
-        query_builder = sqlx::QueryBuilder::new(
-            r#"INSERT INTO bria_signing_session_events
-            (id, sequence, event_type, event)"#,
-        );
         let initial_events = NewSigningSession::initial_events();
-        query_builder.push_values(
+        EntityEvents::<SigningSessionEvent>::persist(
+            "bria_signing_session_events",
+            &mut tx,
             sessions
                 .values()
                 .flat_map(|session| initial_events.new_serialized_events(session.id)),
-            |mut builder, (id, sequence, event_type, event)| {
-                builder.push_bind(id);
-                builder.push_bind(sequence);
-                builder.push_bind(event_type);
-                builder.push_bind(event);
-            },
-        );
-        let query = query_builder.build();
-        query.execute(&mut tx).await?;
+        )
+        .await?;
         tx.commit().await?;
         if let (Some(account_id), Some(batch_id)) = (account_id, batch_id) {
             Ok(self

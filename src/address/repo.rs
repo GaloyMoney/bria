@@ -76,22 +76,13 @@ impl Addresses {
         tx: &mut Transaction<'_, Postgres>,
         address: NewAddress,
     ) -> Result<(), BriaError> {
-        let mut query_builder = sqlx::QueryBuilder::new(
-            r#"INSERT INTO bria_address_events
-            (id, sequence, event_type, event)"#,
-        );
         let id = address.id;
-        query_builder.push_values(
+        EntityEvents::<AddressEvent>::persist(
+            "bria_address_events",
+            tx,
             address.initial_events().new_serialized_events(id),
-            |mut builder, (id, sequence, event_type, event)| {
-                builder.push_bind(id);
-                builder.push_bind(sequence);
-                builder.push_bind(event_type);
-                builder.push_bind(event);
-            },
-        );
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        )
+        .await?;
         Ok(())
     }
 

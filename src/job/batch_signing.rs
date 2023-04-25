@@ -52,9 +52,7 @@ pub async fn execute(
             let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
             for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
-                    let account_xpub = xpubs
-                        .find_from_ref(data.account_id, xpub.id().to_string())
-                        .await?;
+                    let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id()).await?;
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
@@ -82,9 +80,7 @@ pub async fn execute(
         let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
             xpub
         } else {
-            xpubs
-                .find_from_ref(data.account_id, xpub_id.to_string())
-                .await?
+            xpubs.find_from_ref(data.account_id, xpub_id).await?
         };
         let mut client = match account_xpub.remote_signing_client().await {
             Ok(Some(client)) => client,
