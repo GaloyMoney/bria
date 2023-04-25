@@ -67,23 +67,14 @@ impl SigningSessions {
         tx: &mut Transaction<'_, Postgres>,
         sessions: &HashMap<XPubId, SigningSession>,
     ) -> Result<(), BriaError> {
-        let mut query_builder = sqlx::QueryBuilder::new(
-            r#"INSERT INTO bria_signing_session_events
-            (id, sequence, event_type, event)"#,
-        );
-        query_builder.push_values(
+        EntityEvents::<SigningSessionEvent>::persist(
+            "bria_signing_session_events",
+            tx,
             sessions
                 .values()
                 .flat_map(|session| session.events.new_serialized_events(session.id)),
-            |mut builder, (id, sequence, event_type, event)| {
-                builder.push_bind(id);
-                builder.push_bind(sequence);
-                builder.push_bind(event_type);
-                builder.push_bind(event);
-            },
-        );
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        )
+        .await?;
         Ok(())
     }
 
