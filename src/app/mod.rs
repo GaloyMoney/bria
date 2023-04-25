@@ -47,7 +47,7 @@ impl App {
         if migrate_on_start {
             sqlx::migrate!().run(&pool).await?;
         }
-        let wallets = Wallets::new(&pool, blockchain_cfg.network);
+        let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);

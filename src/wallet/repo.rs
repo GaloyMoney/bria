@@ -8,15 +8,11 @@ use crate::{entity::*, error::*, primitives::*};
 #[derive(Debug, Clone)]
 pub struct Wallets {
     pool: Pool<Postgres>,
-    network: bitcoin::Network,
 }
 
 impl Wallets {
-    pub fn new(pool: &Pool<Postgres>, network: bitcoin::Network) -> Self {
-        Self {
-            pool: pool.clone(),
-            network,
-        }
+    pub fn new(pool: &Pool<Postgres>) -> Self {
+        Self { pool: pool.clone() }
     }
 
     pub async fn create_in_tx(
@@ -65,7 +61,7 @@ impl Wallets {
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(Wallet::from_events(self.network, events)?)
+        Ok(Wallet::try_from(events)?)
     }
 
     pub async fn all_ids(&self) -> Result<impl Iterator<Item = (AccountId, WalletId)>, BriaError> {
@@ -115,7 +111,7 @@ impl Wallets {
         }
         let mut wallets = HashMap::new();
         for (id, events) in events {
-            wallets.insert(id, Wallet::from_events(self.network, events)?);
+            wallets.insert(id, Wallet::try_from(events)?);
         }
         Ok(wallets)
     }
