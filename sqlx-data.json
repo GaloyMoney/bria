@@ -118,6 +118,35 @@
     },
     "query": "\n            WITH tx_to_sync AS (\n              UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()\n              WHERE keychain_id = $1 AND tx_id IN (\n                SELECT tx_id\n                FROM bdk_transactions\n                WHERE keychain_id = $1\n                AND sent > 0\n                AND height IS NOT NULL\n                AND height <= $2\n                AND synced_to_bria = true\n                AND confirmation_synced_to_bria = false\n                ORDER BY height ASC\n                LIMIT 1)\n                RETURNING tx_id, details_json\n            ),\n            previous_outputs AS (\n                SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n                FROM tx_to_sync\n            )\n            SELECT t.tx_id, details_json, utxo_json, vout,\n                   CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n            FROM bdk_utxos u\n            JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n                SELECT output FROM previous_outputs\n            ) OR u.tx_id = t.tx_id\n            WHERE u.keychain_id = $1 AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
   },
+  "0c64e1327d490c9c9d9b14f4f940460b0b7911c53c6446e60555b5946312eb00": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING"
+  },
   "0c868d62166b7dff5ca4cfea668dac316185bbc80f77a98b2dbd9c27c91417fd": {
     "describe": {
       "columns": [
@@ -737,57 +766,6 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"
   },
-  "3af3f30cee9e3c70cce919859f783c24598b786dc8a4c184d6a707fc9c05e610": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "address",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "external_id",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 3,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event_type",
-          "ordinal": 4,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "event?",
-          "ordinal": 5,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.id, b.address, b.external_id, e.sequence, e.event_type, e.event as \"event?\"\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND wallet_id = $2 AND kind = 'external'\n              ORDER BY b.created_at, b.id, sequence"
-  },
   "431e9fcdf2f16e554ab6da696c0ad807bbc296b96d3d8bceb1e2826786e949da": {
     "describe": {
       "columns": [
@@ -950,6 +928,35 @@
     },
     "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, batch_group_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
   },
+  "52f5cc540e8fc84b86957397d59684b8049ed1342f4050e7d9a7a9f2553ba4cf": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          },
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+  },
   "5c1a861f6575589f8220af0b441e1b1c537714b5f8e512d285ac132d7d8a17ce": {
     "describe": {
       "columns": [
@@ -1068,36 +1075,6 @@
       }
     },
     "query": "INSERT INTO bria_utxos\n               (wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, pending_income_ledger_tx_id, bdk_spent)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"
-  },
-  "6ea731a8b33bbf1a94465449780ceffbf1cd448fd1d4bd97e3d53642a04cd57e": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"
   },
   "72509807c2998dce16e4a796a489947e0ebfaf2cb74d35fc4eca538df5bf514c": {
     "describe": {
@@ -1890,36 +1867,6 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.wallet_id = $2\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"
   },
-  "f16e305c670de2cc6eb4cda2faa150f041359d73a17a406bc52b1ac6b1e11cd7": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          "Int4",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "keychainkind"
-            }
-          },
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
-  },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {
       "columns": [
@@ -1945,6 +1892,39 @@
       }
     },
     "query": "SELECT id, name FROM bria_admin_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"
+  },
+  "f4c6df4bfca4287add9b9f19df9d2555cc6a3917021892dd7a32652d0fa3637d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.id, e.sequence, e.event\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND wallet_id = $2 AND kind = 'external'\n              ORDER BY b.created_at, b.id, sequence"
   },
   "f6273d55a9ef0ab5746064b4064346c2789b6db97251e49d99d82d5e49dfd174": {
     "describe": {

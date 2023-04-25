@@ -24,15 +24,14 @@ impl Addresses {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"INSERT INTO bria_addresses
-               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
+               (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
             Uuid::from(address.id),
             Uuid::from(address.account_id),
             Uuid::from(address.wallet_id),
             Uuid::from(address.keychain_id),
             address.profile_id.map(Uuid::from),
             address.address.to_string(),
-            address.address_idx as i32,
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
@@ -51,15 +50,14 @@ impl Addresses {
     ) -> Result<(), BriaError> {
         let res = sqlx::query!(
             r#"INSERT INTO bria_addresses
-               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"#,
+               (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING"#,
             Uuid::from(address.id),
             Uuid::from(address.account_id),
             Uuid::from(address.wallet_id),
             Uuid::from(address.keychain_id),
             address.profile_id.map(Uuid::from),
             address.address.to_string(),
-            address.address_idx as i32,
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
@@ -93,7 +91,7 @@ impl Addresses {
     ) -> Result<Vec<WalletAddress>, BriaError> {
         let rows = sqlx::query!(
             r#"
-              SELECT b.id, b.address, b.external_id, e.sequence, e.event_type, e.event as "event?"
+              SELECT b.id, e.sequence, e.event
               FROM bria_addresses b
               JOIN bria_address_events e ON b.id = e.id
               WHERE account_id = $1 AND wallet_id = $2 AND kind = 'external'
@@ -105,25 +103,18 @@ impl Addresses {
         .await?;
         let mut entity_events = HashMap::new();
         let mut ids = Vec::new();
-        for mut row in rows {
+        for row in rows {
             let id = AddressId::from(row.id);
-            let address: bitcoin::Address = row.address.parse()?;
-            ids.push((id, address));
-            let sequence = row.sequence;
-            let event = row.event.take().expect("Missing event");
+            ids.push(id);
             let events = entity_events
                 .entry(id)
                 .or_insert_with(EntityEvents::<AddressEvent>::new);
-            events.load_event(sequence as usize, event)?;
+            events.load_event(row.sequence as usize, row.event)?;
         }
         let mut ret = Vec::new();
-        for (id, address) in ids {
+        for id in ids {
             if let Some(events) = entity_events.remove(&id) {
-                ret.push(WalletAddress {
-                    address,
-                    wallet_id,
-                    events,
-                })
+                ret.push(WalletAddress::try_from(events)?);
             }
         }
         Ok(ret)
