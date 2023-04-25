@@ -129,16 +129,20 @@ CREATE TABLE bria_utxos (
 );
 
 CREATE TABLE bria_batch_groups (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
-  description VARCHAR,
-  batch_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, name, version)
+  UNIQUE(account_id, name)
+);
+
+CREATE TABLE bria_batch_group_events (
+  id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
 );
 
 CREATE TABLE bria_payouts (

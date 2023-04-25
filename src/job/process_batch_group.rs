@@ -48,7 +48,9 @@ pub async fn execute<'a>(
         config: bg_cfg,
         name,
         ..
-    } = batch_groups.find_by_id(data.batch_group_id).await?;
+    } = batch_groups
+        .find_by_id(data.account_id, data.batch_group_id)
+        .await?;
     span.record("batch_group_name", name);
     span.record(
         "batch_group_id",

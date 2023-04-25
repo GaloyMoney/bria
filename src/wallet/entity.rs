@@ -147,7 +147,7 @@ impl NewWallet {
         builder
     }
 
-    pub fn initial_events(self) -> EntityEvents<WalletEvent> {
+    pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
         EntityEvents::init([
             WalletEvent::WalletInitialized {
                 id: self.id,

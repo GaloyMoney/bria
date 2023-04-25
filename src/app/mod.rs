@@ -367,14 +367,14 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let group_id = self
+        let batch_group = self
             .batch_groups
             .find_by_name(profile.account_id, group_name)
             .await?;
         let mut builder = NewPayout::builder();
         builder
             .wallet_id(wallet.id)
-            .batch_group_id(group_id)
+            .batch_group_id(batch_group.id)
             .destination(destination.clone())
             .satoshis(sats)
             .metadata(metadata.clone());
@@ -398,7 +398,7 @@ impl App {
                     payout_satoshis: sats,
                     meta: QueuedPayoutMeta {
                         payout_id: id,
-                        batch_group_id: group_id,
+                        batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
                         destination,
                         additional_meta: metadata,

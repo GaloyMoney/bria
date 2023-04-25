@@ -1,5 +1,56 @@
 {
   "db": "PostgreSQL",
+  "06bea6f8b2a451ed7d746b84c7d60fb5174a5157dfd88f783ca875a02b4fb11e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1 AND b.id = $2\n              ORDER BY e.sequence"
+  },
   "07dfe35dc6e9ce9c7435aa03ba6a346ce4ced6f651af14b35bc470d17144b93f": {
     "describe": {
       "columns": [
@@ -197,6 +248,57 @@
     },
     "query": "SELECT id, name, derivation_path, original, xpub\n                       FROM bria_xpubs\n                       WHERE account_id = $1 AND fingerprint = $2"
   },
+  "14c10c832b7132da6da6e7c1cc3d579511168267500675b8201f2cb2aef6ee23": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
+  },
   "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
     "describe": {
       "columns": [
@@ -220,6 +322,20 @@
       }
     },
     "query": "SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"
+  },
+  "2189c8e20be5fe40c336c4bd6938bc2dd277075c98930f86818223b3f12ae33c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO bria_batch_groups (id, account_id, name)\n            VALUES ($1, $2, $3)\n            "
   },
   "21ea4761928aec144a72c1ced9baadc31fa57b51b94766af188b7ae448eb994f": {
     "describe": {
@@ -997,6 +1113,54 @@
     },
     "query": "INSERT INTO bria_addresses\n               (id, account_id, wallet_id, keychain_id, profile_id, address, address_idx, kind, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT DO NOTHING"
   },
+  "72509807c2998dce16e4a796a489947e0ebfaf2cb74d35fc4eca538df5bf514c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              ORDER BY b.id, e.sequence"
+  },
   "72710fd518005659641755653bf43c32aca0582fd1c7834d2d4ef5a0d14ad625": {
     "describe": {
       "columns": [
@@ -1177,44 +1341,6 @@
       }
     },
     "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json, sent, height)\n        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json, height = $5, modified_at = NOW()"
-  },
-  "7d7af417c1ef479000d3a7cfc4e481d4c1724e92df0a4a2a3d7e04387c80ab47": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "batch_cfg",
-          "ordinal": 3,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT id, account_id, name, batch_cfg\n                 FROM bria_batch_groups\n                 WHERE id = $1 ORDER BY version DESC LIMIT 1"
   },
   "80ea413a3e70ea8046dc38bfa249dc526b98329d189ba02abfcc2d00ade20c77": {
     "describe": {
@@ -1552,58 +1678,6 @@
     },
     "query": "INSERT INTO bria_xpubs\n            (account_id, name, original, xpub, derivation_path, fingerprint, parent_fingerprint)\n            VALUES ((SELECT id FROM bria_accounts WHERE id = $1), $2, $3, $4, $5, $6, $7)\n            RETURNING id"
   },
-  "cea08e173999feced38d8c3d7039b2d2ea3bf7a26f7df74d33da7b2c0b772117": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "batch_cfg",
-          "ordinal": 3,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "WITH latest AS (\n                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)\n                 FROM bria_batch_groups\n               ) SELECT id, account_id, name, batch_cfg FROM bria_batch_groups\n                 WHERE (id, version) IN (SELECT * FROM latest)"
-  },
-  "d210e678bab9acd40b3773d7bdc33c6b8b71c6a742e53d0d4c407b1ae5bb2528": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Varchar",
-          "Varchar",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO bria_batch_groups (id, account_id, name, description, batch_cfg)\n            VALUES ($1, $2, $3, $4, $5)\n            "
-  },
   "d3fac1b5ed276a99fdd626ccefb4e6b23af393503545c1654e150b0e23bb6c70": {
     "describe": {
       "columns": [
@@ -1624,27 +1698,6 @@
       }
     },
     "query": "INSERT INTO bria_profile_api_keys (encrypted_key, profile_id)\n            VALUES (crypt($1, gen_salt('bf')), (SELECT id FROM bria_profiles WHERE id = $2)) RETURNING (id)"
-  },
-  "d6e6c21ec2c30cf06458087fc805aa0274b75c51a8271efe50f3128605a1c44c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT id\n                 FROM bria_batch_groups\n                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"
   },
   "dd54648319f50f64de6bd020d2a42b42b19dd132b654bdbdce3d93dbf86384f9": {
     "describe": {

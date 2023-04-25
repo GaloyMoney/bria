@@ -2,8 +2,10 @@ use sqlx::{Pool, Postgres};
 use tracing::instrument;
 use uuid::Uuid;
 
+use std::collections::HashMap;
+
 use super::entity::*;
-use crate::{error::*, primitives::*};
+use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct BatchGroups {
@@ -17,26 +19,26 @@ impl BatchGroups {
 
     #[instrument(name = "batch_groups.create", skip(self))]
     pub async fn create(&self, group: NewBatchGroup) -> Result<BatchGroupId, BriaError> {
-        let NewBatchGroup {
-            id,
-            account_id,
-            name,
-            description,
-            config,
-        } = group;
+        let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"
-            INSERT INTO bria_batch_groups (id, account_id, name, description, batch_cfg)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO bria_batch_groups (id, account_id, name)
+            VALUES ($1, $2, $3)
             "#,
-            Uuid::from(id),
-            Uuid::from(account_id),
-            name,
-            description,
-            serde_json::to_value(config)?,
+            Uuid::from(group.id),
+            Uuid::from(group.account_id),
+            group.name,
         )
-        .execute(&self.pool)
+        .execute(&mut tx)
         .await?;
+        let id = group.id;
+        EntityEvents::<BatchGroupEvent>::persist(
+            "bria_batch_group_events",
+            &mut tx,
+            group.initial_events().new_serialized_events(id),
+        )
+        .await?;
+        tx.commit().await?;
         Ok(id)
     }
 
@@ -44,60 +46,75 @@ impl BatchGroups {
         &self,
         account_id: AccountId,
         name: String,
-    ) -> Result<BatchGroupId, BriaError> {
-        let record = sqlx::query!(
-            r#"SELECT id
-                 FROM bria_batch_groups
-                 WHERE account_id = $1 AND name = $2 ORDER BY version DESC LIMIT 1"#,
+    ) -> Result<BatchGroup, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_batch_groups b
+              JOIN bria_batch_group_events e ON b.id = e.id
+              WHERE account_id = $1 AND name = $2
+              ORDER BY e.sequence"#,
             Uuid::from(account_id),
             name
         )
-        .fetch_optional(&self.pool)
+        .fetch_all(&self.pool)
         .await?;
-        if record.is_none() {
+        if rows.is_empty() {
             return Err(BriaError::BatchGroupNotFound);
         }
-
-        Ok(BatchGroupId::from(record.unwrap().id))
+        let mut events = EntityEvents::new();
+        for row in rows {
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(BatchGroup::try_from(events)?)
     }
 
-    pub async fn find_by_id(&self, id: BatchGroupId) -> Result<BatchGroup, BriaError> {
-        let record = sqlx::query!(
-            r#"SELECT id, account_id, name, batch_cfg
-                 FROM bria_batch_groups
-                 WHERE id = $1 ORDER BY version DESC LIMIT 1"#,
-            Uuid::from(id),
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        record
-            .map(|row| BatchGroup {
-                id: BatchGroupId::from(row.id),
-                account_id: AccountId::from(row.account_id),
-                name: row.name,
-                config: serde_json::from_value(row.batch_cfg)
-                    .expect("Couldn't deserialize batch config"),
-            })
-            .ok_or(BriaError::BatchGroupNotFound)
-    }
-
-    pub async fn all(&self) -> Result<impl Iterator<Item = BatchGroup>, BriaError> {
+    pub async fn find_by_id(
+        &self,
+        account_id: AccountId,
+        id: BatchGroupId,
+    ) -> Result<BatchGroup, BriaError> {
         let rows = sqlx::query!(
-            r#"WITH latest AS (
-                 SELECT DISTINCT(id), MAX(version) OVER (PARTITION BY id ORDER BY version DESC)
-                 FROM bria_batch_groups
-               ) SELECT id, account_id, name, batch_cfg FROM bria_batch_groups
-                 WHERE (id, version) IN (SELECT * FROM latest)"#
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_batch_groups b
+              JOIN bria_batch_group_events e ON b.id = e.id
+              WHERE account_id = $1 AND b.id = $2
+              ORDER BY e.sequence"#,
+            Uuid::from(account_id),
+            Uuid::from(id)
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|row| BatchGroup {
-            id: BatchGroupId::from(row.id),
-            account_id: AccountId::from(row.account_id),
-            name: row.name,
-            config: serde_json::from_value(row.batch_cfg)
-                .expect("Couldn't deserialize batch config"),
-        }))
+        if rows.is_empty() {
+            return Err(BriaError::BatchGroupNotFound);
+        }
+        let mut events = EntityEvents::new();
+        for row in rows {
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(BatchGroup::try_from(events)?)
+    }
+
+    pub async fn all(&self) -> Result<Vec<BatchGroup>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_batch_groups b
+              JOIN bria_batch_group_events e ON b.id = e.id
+              ORDER BY b.id, e.sequence"#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut entity_events = HashMap::new();
+        for row in rows {
+            let id = BatchGroupId::from(row.id);
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(entity_events
+            .into_values()
+            .map(BatchGroup::try_from)
+            .collect::<Result<Vec<_>, _>>()?)
     }
 }
