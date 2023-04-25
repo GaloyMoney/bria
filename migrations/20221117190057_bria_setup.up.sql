@@ -42,12 +42,7 @@ CREATE TABLE bria_xpubs (
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
   fingerprint BYTEA NOT NULL,
-  parent_fingerprint BYTEA NOT NULL,
-  original VARCHAR NOT NULL,
-  xpub BYTEA NOT NULL,
-  derivation_path VARCHAR,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(account_id, fingerprint),
   UNIQUE(account_id, name)
 );
