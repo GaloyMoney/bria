@@ -125,6 +125,6 @@ impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
                 _ => {}
             }
         }
-        builder.build()
+        builder.events(events).build()
     }
 }
