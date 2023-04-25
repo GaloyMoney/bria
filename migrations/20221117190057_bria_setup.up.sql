@@ -62,42 +62,28 @@ CREATE TABLE bria_xpub_events (
 );
 
 CREATE TABLE bria_wallets (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  onchain_incoming_ledger_account_id UUID NOT NULL,
-  onchain_at_rest_ledger_account_id UUID NOT NULL,
-  onchain_outgoing_ledger_account_id UUID NOT NULL,
-  onchain_fee_ledger_account_id UUID NOT NULL,
-  logical_incoming_ledger_account_id UUID NOT NULL,
-  logical_at_rest_ledger_account_id UUID NOT NULL,
-  logical_outgoing_ledger_account_id UUID NOT NULL,
-  dust_ledger_account_id UUID NOT NULL,
-  name VARCHAR NOT NULL,
-  wallet_cfg JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, name, version)
-);
-
-
-CREATE TABLE bria_wallet_keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_id UUID NOT NULL,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  sequence INT NOT NULL DEFAULT 0,
-  keychain_cfg JSONB NOT NULL,
+  name VARCHAR NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(wallet_id, sequence)
+  UNIQUE(account_id, name)
 );
+
+CREATE TABLE bria_wallet_events (
+  id UUID REFERENCES bria_wallets(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
+);
+
 
 CREATE TABLE bria_addresses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id UUID NOT NULL,
-  wallet_id UUID NOT NULL,
-  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  keychain_id UUID NOT NULL,
   profile_id UUID,
   address VARCHAR NOT NULL,
   address_idx INTEGER NOT NULL,
@@ -219,7 +205,7 @@ CREATE TABLE bria_batch_spent_utxos (
 
 CREATE TABLE bria_signing_sessions (
   id UUID PRIMARY KEY NOT NULL,
-  account_id UUID NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   batch_id UUID NOT NULL,
   xpub_fingerprint BYTEA NOT NULL,
   unsigned_psbt BYTEA NOT NULL,

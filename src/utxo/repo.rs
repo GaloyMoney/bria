@@ -49,7 +49,7 @@ impl UtxoRepo {
           utxo.address.to_string(),
           utxo.script_hex,
           Uuid::from(utxo.income_pending_ledger_tx_id),
-          utxo.bdk_spent
+          utxo.bdk_spent,
         )
         .execute(&mut *tx)
         .await?;

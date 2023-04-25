@@ -26,6 +26,8 @@ pub enum BriaError {
     ElectrumClient(#[from] electrum_client::Error),
     #[error("BriaError - SigningClientError: {0}")]
     SigningClient(#[from] SigningClientError),
+    #[error("BriaError - EntityError: {0}")]
+    EntityError(#[from] crate::entity::EntityError),
     #[error("BriaError - Bip32: {0}")]
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]

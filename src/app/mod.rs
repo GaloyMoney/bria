@@ -221,6 +221,9 @@ impl App {
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
+            .network(self.blockchain_cfg.network)
+            .account_id(profile.account_id)
+            .journal_id(uuid::Uuid::from(profile.account_id))
             .name(wallet_name.clone())
             .keychain(WpkhKeyChainConfig::new(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
@@ -228,10 +231,7 @@ impl App {
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
-        let wallet_id = self
-            .wallets
-            .create_in_tx(&mut tx, profile.account_id, new_wallet)
-            .await?;
+        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
 
         tx.commit().await?;
 

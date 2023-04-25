@@ -1,5 +1,7 @@
 use serde::{de::DeserializeOwned, Serialize};
 
+use super::error::EntityError;
+
 #[derive(Debug)]
 pub struct EntityEvents<T: DeserializeOwned + Serialize> {
     last_persisted_sequence: usize,
@@ -26,7 +28,7 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         self.events.push(event);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
         self.events.iter()
     }
 
@@ -34,7 +36,7 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         &mut self,
         sequence: usize,
         json: serde_json::Value,
-    ) -> Result<(), serde_json::Error> {
+    ) -> Result<(), EntityError> {
         let event = serde_json::from_value(json)?;
         self.last_persisted_sequence = sequence;
         self.events.push(event);

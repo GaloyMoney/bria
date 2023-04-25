@@ -1,127 +1,26 @@
 {
   "db": "PostgreSQL",
-  "02b2bdbc58153f4eb1decf01b1fb912fe086e86b4ab5eae1e83182ca88ce0949": {
+  "07dfe35dc6e9ce9c7435aa03ba6a346ce4ced6f651af14b35bc470d17144b93f": {
     "describe": {
       "columns": [
         {
           "name": "id",
           "ordinal": 0,
           "type_info": "Uuid"
-        },
-        {
-          "name": "version",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_incoming_ledger_account_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_at_rest_ledger_account_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_outgoing_ledger_account_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_fee_ledger_account_id",
-          "ordinal": 6,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_incoming_ledger_account_id",
-          "ordinal": 7,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_at_rest_ledger_account_id",
-          "ordinal": 8,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_outgoing_ledger_account_id",
-          "ordinal": 9,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 10,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "wallet_cfg",
-          "ordinal": 12,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 13,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "modified_at",
-          "ordinal": 14,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "journal_id",
-          "ordinal": 15,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 16,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_cfg",
-          "ordinal": 17,
-          "type_info": "Jsonb"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
         false
       ],
       "parameters": {
         "Left": [
           "Uuid",
-          "Text"
+          "Uuid",
+          "Varchar"
         ]
       }
     },
-    "query": "WITH latest AS (\n              SELECT w.*, a.journal_id \n              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id\n              WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1\n            )\n            SELECT l.*, k.id AS keychain_id, keychain_cfg\n                 FROM bria_wallet_keychains k\n                 JOIN latest l ON k.wallet_id = l.id\n                 ORDER BY sequence DESC"
+    "query": "INSERT INTO bria_wallets (id, account_id, name) VALUES ($1, $2, $3) RETURNING (id)"
   },
   "0919f95754b949f32b20d332a75c1072ba6e7c0293b207d8352d0f90f069e860": {
     "describe": {
@@ -489,6 +388,57 @@
       }
     },
     "query": "UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
+  },
+  "2c5e7765d15a8b3893f40a98898cca618f69ae9b16abeeb1dfe37fd8e3408f13": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
   },
   "2d8175d62037c8d586f50aa366000c92f17090b4f88a0d8d971ad29d2188f3af": {
     "describe": {
@@ -898,20 +848,6 @@
     },
     "query": "SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1"
   },
-  "4765468ce85318bb81f26d14951f01b674a39f34c13ab0c996bf132978680dcf": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Jsonb"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_wallet_keychains (account_id, wallet_id, keychain_cfg)\n            VALUES ($1, $2, $3)"
-  },
   "5c1a861f6575589f8220af0b441e1b1c537714b5f8e512d285ac132d7d8a17ce": {
     "describe": {
       "columns": [
@@ -1160,128 +1096,6 @@
     },
     "query": "INSERT INTO bria_accounts (id, name, journal_id)\n            VALUES ($1, $2, $1)\n            RETURNING (id)"
   },
-  "79b2407aa9d9a2aa44448d5baf73bc0d35b216894a108858ffb4b0aecc22a4c7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "version",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_incoming_ledger_account_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_at_rest_ledger_account_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_outgoing_ledger_account_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "onchain_fee_ledger_account_id",
-          "ordinal": 6,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_incoming_ledger_account_id",
-          "ordinal": 7,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_at_rest_ledger_account_id",
-          "ordinal": 8,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "logical_outgoing_ledger_account_id",
-          "ordinal": 9,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "dust_ledger_account_id",
-          "ordinal": 10,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "wallet_cfg",
-          "ordinal": 12,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 13,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "modified_at",
-          "ordinal": 14,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "journal_id",
-          "ordinal": 15,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_id",
-          "ordinal": 16,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "keychain_cfg",
-          "ordinal": 17,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "UuidArray"
-        ]
-      }
-    },
-    "query": "WITH latest AS (\n              SELECT w.*, a.journal_id\n              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id\n              WHERE w.id = ANY($1) ORDER BY version DESC LIMIT 1\n            )\n            SELECT l.*, k.id AS keychain_id, keychain_cfg\n                 FROM bria_wallet_keychains k\n                 JOIN latest l ON k.wallet_id = l.id\n                 ORDER BY sequence DESC"
-  },
   "79eff690e77e488dccc3c066b265e7718128987e44d97f408059cca30fc5124c": {
     "describe": {
       "columns": [
@@ -1347,37 +1161,6 @@
       }
     },
     "query": "INSERT INTO bria_batches (id, account_id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5, $6)"
-  },
-  "7b607fb78d590c932a28997018de6b10432b399c9c42a1278179dffd8720cfbf": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Jsonb",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_wallets\n               (id, wallet_cfg, account_id,\n               onchain_incoming_ledger_account_id, onchain_at_rest_ledger_account_id, onchain_outgoing_ledger_account_id,\n               logical_incoming_ledger_account_id, logical_at_rest_ledger_account_id, logical_outgoing_ledger_account_id,\n               onchain_fee_ledger_account_id, dust_ledger_account_id, name)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n            RETURNING (id)"
   },
   "7d36b5cd24ecbc930a45b73876bf356abb1a773c37ebb161c3a2c14fe63f9a15": {
     "describe": {
@@ -1483,6 +1266,56 @@
       }
     },
     "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)\n           ORDER BY height ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n               SELECT output FROM previous_outputs\n           ) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
+  },
+  "8457bdb0419366f289fb8c02d6c89a68b26af13f5bf87ee838647e3d887a074d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
