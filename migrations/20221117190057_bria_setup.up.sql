@@ -145,23 +145,6 @@ CREATE TABLE bria_batch_group_events (
   UNIQUE(id, sequence)
 );
 
-CREATE TABLE bria_payouts (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  wallet_id UUID NOT NULL,
-  batch_group_id UUID NOT NULL,
-  destination_data JSONB NOT NULL,
-  satoshis BIGINT NOT NULL,
-  priority INT NOT NULL DEFAULT 100,
-  external_id VARCHAR NOT NULL,
-  metadata JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, external_id, version)
-);
-
 CREATE TABLE bria_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
@@ -192,12 +175,6 @@ CREATE TABLE bria_batch_wallet_summaries (
   UNIQUE(batch_id, wallet_id)
 );
 
-CREATE TABLE bria_batch_payouts (
-  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
-  payout_id UUID UNIQUE NOT NULL,
-  UNIQUE(batch_id, payout_id)
-);
-
 CREATE TABLE bria_batch_spent_utxos (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   keychain_id UUID NOT NULL,
@@ -205,6 +182,27 @@ CREATE TABLE bria_batch_spent_utxos (
   tx_id VARCHAR NOT NULL,
   vout INTEGER NOT NULL,
   UNIQUE(keychain_id, tx_id, vout)
+);
+
+CREATE TABLE bria_payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  batch_group_id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) DEFAULT NULL,
+  profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
+  external_id VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(account_id, external_id)
+);
+
+CREATE TABLE bria_payout_events (
+  id UUID REFERENCES bria_payouts(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
 );
 
 CREATE TABLE bria_signing_sessions (

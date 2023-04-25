@@ -373,6 +373,8 @@ impl App {
             .await?;
         let mut builder = NewPayout::builder();
         builder
+            .account_id(profile.account_id)
+            .profile_id(profile.id)
             .wallet_id(wallet.id)
             .batch_group_id(batch_group.id)
             .destination(destination.clone())
@@ -383,10 +385,7 @@ impl App {
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
         let mut tx = self.pool.begin().await?;
-        let id = self
-            .payouts
-            .create_in_tx(&mut tx, profile.account_id, new_payout)
-            .await?;
+        let id = self.payouts.create_in_tx(&mut tx, new_payout).await?;
         self.ledger
             .queued_payout(
                 tx,
@@ -419,7 +418,9 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        self.payouts.list_for_wallet(wallet.id).await
+        self.payouts
+            .list_for_wallet(profile.account_id, wallet.id)
+            .await
     }
 
     #[instrument(name = "app.list_signing_sessions", skip_all, err)]

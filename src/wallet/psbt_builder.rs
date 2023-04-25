@@ -12,10 +12,10 @@ use std::{
 use super::keychain::*;
 use crate::{
     error::*,
-    payout::UnbatchedPayout,
     primitives::{bitcoin::*, *},
 };
 
+type Payout = (uuid::Uuid, bitcoin::Address, Satoshis);
 pub struct WalletTotals {
     pub wallet_id: WalletId,
     pub change_keychain_id: KeychainId,
@@ -28,7 +28,7 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<UnbatchedPayout>>,
+    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
@@ -42,7 +42,7 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     current_wallet: Option<WalletId>,
-    current_payouts: Vec<UnbatchedPayout>,
+    current_payouts: Vec<Payout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
@@ -151,7 +151,7 @@ impl PsbtBuilder<AcceptingWalletState> {
     pub fn wallet_payouts(
         self,
         wallet_id: WalletId,
-        payouts: Vec<UnbatchedPayout>,
+        payouts: Vec<Payout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
@@ -280,19 +280,14 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         builder.sighash(bdk::bitcoin::EcdsaSighashType::All.into());
 
         let mut total_output_satoshis = Satoshis::from(0);
-        for next_payout in self.current_payouts.drain(..max_payout) {
-            let destination = next_payout
-                .destination
-                .onchain_address()
-                .expect("No onchain address");
-
-            total_output_satoshis += next_payout.satoshis;
-            builder.add_recipient(destination.script_pubkey(), u64::from(next_payout.satoshis));
+        for (payout_id, destination, satoshis) in self.current_payouts.drain(..max_payout) {
+            total_output_satoshis += satoshis;
+            builder.add_recipient(destination.script_pubkey(), u64::from(satoshis));
             self.result
                 .included_payouts
                 .entry(self.current_wallet.expect("current wallet must be set"))
                 .or_default()
-                .push(next_payout);
+                .push((payout_id, destination, satoshis));
         }
 
         for (keychain_id, psbt) in self.current_wallet_psbts.drain(..) {
@@ -425,19 +420,14 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
         &self,
         keychain_id: KeychainId,
-        payouts: &[UnbatchedPayout],
+        payouts: &[Payout],
         wallet: &Wallet<D>,
     ) -> Result<bool, BriaError> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
 
-        for next_payout in payouts.iter() {
-            let destination = next_payout
-                .destination
-                .onchain_address()
-                .expect("No onchain address");
-
-            builder.add_recipient(destination.script_pubkey(), u64::from(next_payout.satoshis));
+        for (_, destination, satoshis) in payouts.iter() {
+            builder.add_recipient(destination.script_pubkey(), u64::from(*satoshis));
         }
 
         if let Some(reserved_utxos) = self

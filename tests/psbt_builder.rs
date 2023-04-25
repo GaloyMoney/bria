@@ -3,7 +3,7 @@ mod helpers;
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
 
-use bria::{payout::*, primitives::*, wallet::*, xpub::*};
+use bria::{primitives::*, wallet::*, xpub::*};
 
 #[tokio::test]
 async fn build_psbt() -> anyhow::Result<()> {
@@ -86,40 +86,13 @@ async fn build_psbt() -> anyhow::Result<()> {
     let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
     let other_wallet_id = WalletId::new();
     let send_amount = Satoshis::from(100_000_000);
-    let payouts_one = vec![UnbatchedPayout {
-        id: PayoutId::new(),
-        wallet_id: domain_wallet_id,
-        destination: PayoutDestination::OnchainAddress {
-            value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-        },
-        satoshis: domain_send_amount,
-    }];
+    let destination: bitcoin::Address = "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap();
+    let payouts_one = vec![(Uuid::new_v4(), destination.clone(), domain_send_amount)];
 
     let payouts_two = vec![
-        UnbatchedPayout {
-            id: PayoutId::new(),
-            wallet_id: other_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount,
-        },
-        UnbatchedPayout {
-            id: PayoutId::new(),
-            wallet_id: other_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount,
-        },
-        UnbatchedPayout {
-            id: PayoutId::new(),
-            wallet_id: other_wallet_id,
-            destination: PayoutDestination::OnchainAddress {
-                value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-            },
-            satoshis: send_amount * 10,
-        },
+        (Uuid::new_v4(), destination.clone(), send_amount),
+        (Uuid::new_v4(), destination.clone(), send_amount),
+        (Uuid::new_v4(), destination, send_amount * 10),
     ];
 
     let builder = builder

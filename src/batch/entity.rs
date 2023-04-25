@@ -32,7 +32,6 @@ pub struct NewBatch {
     pub(super) total_fee_sats: Satoshis,
     pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub(super) wallet_summaries: HashMap<WalletId, WalletSummary>,
-    pub(super) included_payouts: HashMap<WalletId, Vec<PayoutId>>,
     pub(super) included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
 }
 

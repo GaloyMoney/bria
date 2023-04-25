@@ -83,10 +83,26 @@ pub async fn execute<'a>(
         .reserved_utxos(reserved_utxos)
         .accept_wallets();
 
+    let mut candidate_payouts = HashMap::new();
     for (wallet_id, payouts) in unbatched_payouts {
         let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
 
-        let mut builder = outer_builder.wallet_payouts(wallet.id, payouts);
+        let mut builder = outer_builder.wallet_payouts(
+            wallet.id,
+            payouts
+                .into_iter()
+                .map(|p| {
+                    let id = uuid::Uuid::from(p.id);
+                    let ret = (
+                        id,
+                        p.destination.onchain_address().expect("onchain_address"),
+                        p.satoshis,
+                    );
+                    candidate_payouts.insert(id, p);
+                    ret
+                })
+                .collect(),
+        );
         for keychain in wallet.deprecated_keychain_wallets(pool.clone()) {
             builder = keychain.dispatch_bdk_wallet(builder).await?;
         }
@@ -120,14 +136,6 @@ pub async fn execute<'a>(
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)
-            .included_payouts(
-                included_payouts
-                    .into_iter()
-                    .map(|(wallet_id, payouts)| {
-                        (wallet_id, payouts.into_iter().map(|p| p.id).collect())
-                    })
-                    .collect(),
-            )
             .included_utxos(included_utxos)
             .wallet_summaries(
                 wallet_totals
@@ -145,7 +153,21 @@ pub async fn execute<'a>(
                 batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),
             )
             .await?;
+
+        let batch_id = batch.id;
         batches.create_in_tx(&mut tx, batch).await?;
+
+        let mut used_payouts = Vec::new();
+        for id in included_payouts
+            .into_values()
+            .flat_map(|payouts| payouts.into_iter().map(|(id, _, _)| id))
+        {
+            let payout = candidate_payouts.remove(&id).expect("Payout not found");
+            used_payouts.push(payout);
+        }
+        payouts
+            .added_to_batch(&mut tx, batch_id, used_payouts.into_iter())
+            .await?;
 
         Ok((data, Some((tx, wallet_ids))))
     } else {
