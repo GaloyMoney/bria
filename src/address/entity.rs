@@ -9,32 +9,38 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AddressEvent {
-    AddressInitialized,
-    AddressExternalIdUpdated { external_id: String },
-    AddressMetadataUpdated { metadata: serde_json::Value },
+    AddressInitialized {
+        id: AddressId,
+        account_id: AccountId,
+        wallet_id: WalletId,
+        keychain_id: KeychainId,
+        profile_id: Option<ProfileId>,
+        address: bitcoin::Address,
+        address_idx: u32,
+        kind: KeychainKind,
+    },
+    ExternalIdUpdated {
+        external_id: String,
+    },
+    MetadataUpdated {
+        metadata: serde_json::Value,
+    },
 }
 
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct WalletAddress {
     pub address: bitcoin::Address,
     pub wallet_id: WalletId,
+    pub external_id: String,
     pub(super) events: EntityEvents<AddressEvent>,
 }
 
 impl WalletAddress {
-    pub fn external_id(&self) -> String {
-        let mut ret = None;
-        for event in self.events.iter() {
-            if let AddressEvent::AddressExternalIdUpdated { external_id } = event {
-                ret = Some(external_id.clone())
-            }
-        }
-        ret.expect("external_id not set")
-    }
-
     pub fn metadata(&self) -> Option<&serde_json::Value> {
         let mut ret = None;
         for event in self.events.iter() {
-            if let AddressEvent::AddressMetadataUpdated { metadata } = event {
+            if let AddressEvent::MetadataUpdated { metadata } = event {
                 ret = Some(metadata)
             }
         }
@@ -70,13 +76,22 @@ impl NewAddress {
 
     pub fn initial_events(self) -> EntityEvents<AddressEvent> {
         let mut events = EntityEvents::init([
-            AddressEvent::AddressInitialized,
-            AddressEvent::AddressExternalIdUpdated {
-                external_id: self.external_id.clone(),
+            AddressEvent::AddressInitialized {
+                id: self.id,
+                account_id: self.account_id,
+                wallet_id: self.wallet_id,
+                keychain_id: self.keychain_id,
+                profile_id: self.profile_id,
+                address: self.address,
+                address_idx: self.address_idx,
+                kind: self.kind,
+            },
+            AddressEvent::ExternalIdUpdated {
+                external_id: self.external_id,
             },
         ]);
         if let Some(metadata) = self.metadata {
-            events.push(AddressEvent::AddressMetadataUpdated { metadata })
+            events.push(AddressEvent::MetadataUpdated { metadata })
         }
         events
     }
@@ -89,5 +104,27 @@ impl NewAddressBuilder {
         }
         self.address = Some(address);
         self
+    }
+}
+
+impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
+    type Error = EntityError;
+
+    fn try_from(events: EntityEvents<AddressEvent>) -> Result<Self, EntityError> {
+        let mut builder = WalletAddressBuilder::default();
+        for event in events.iter() {
+            match event {
+                AddressEvent::AddressInitialized {
+                    wallet_id, address, ..
+                } => {
+                    builder = builder.address(address.clone()).wallet_id(*wallet_id);
+                }
+                AddressEvent::ExternalIdUpdated { external_id } => {
+                    builder = builder.external_id(external_id.to_owned());
+                }
+                _ => {}
+            }
+        }
+        builder.events(events).build()
     }
 }

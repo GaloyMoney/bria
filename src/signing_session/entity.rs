@@ -13,7 +13,13 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SigningSessionEvent {
-    SigningSessionInitialized,
+    SigningSessionInitialized {
+        id: SigningSessionId,
+        xpub_id: XPubId,
+        account_id: AccountId,
+        batch_id: BatchId,
+        unsigned_psbt: psbt::PartiallySignedTransaction,
+    },
     SigningAttemptFailed {
         reason: SigningFailureReason,
     },
@@ -29,6 +35,8 @@ pub enum SigningSessionState {
     Complete,
 }
 
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
@@ -119,7 +127,8 @@ pub struct NewSigningSession {
     pub(super) id: SigningSessionId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
-    pub(super) unsigned_psbt: psbt::PartiallySignedTransaction,
+    pub(super) xpub_id: XPubId,
+    unsigned_psbt: psbt::PartiallySignedTransaction,
 }
 
 impl NewSigningSession {
@@ -129,7 +138,39 @@ impl NewSigningSession {
         builder
     }
 
-    pub(super) fn initial_events() -> EntityEvents<SigningSessionEvent> {
-        EntityEvents::init([SigningSessionEvent::SigningSessionInitialized])
+    pub(super) fn initial_events(self) -> EntityEvents<SigningSessionEvent> {
+        EntityEvents::init([SigningSessionEvent::SigningSessionInitialized {
+            id: self.id,
+            account_id: self.account_id,
+            batch_id: self.batch_id,
+            xpub_id: self.xpub_id,
+            unsigned_psbt: self.unsigned_psbt,
+        }])
+    }
+}
+
+impl TryFrom<EntityEvents<SigningSessionEvent>> for SigningSession {
+    type Error = EntityError;
+
+    fn try_from(events: EntityEvents<SigningSessionEvent>) -> Result<Self, Self::Error> {
+        let mut builder = SigningSessionBuilder::default();
+        for event in events.iter() {
+            if let SigningSessionEvent::SigningSessionInitialized {
+                id,
+                account_id,
+                batch_id,
+                unsigned_psbt,
+                xpub_id,
+            } = event
+            {
+                builder = builder
+                    .id(*id)
+                    .account_id(*account_id)
+                    .batch_id(*batch_id)
+                    .xpub_id(*xpub_id)
+                    .unsigned_psbt(unsigned_psbt.clone());
+            }
+        }
+        builder.events(events).build()
     }
 }

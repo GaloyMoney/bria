@@ -14,10 +14,25 @@ pub enum SignerConfig {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum XPubEvent {
     // Spelling is Xpub for nicer serialization (not x_pub_initialized)
-    XpubInitialized,
-    SignerConfigUpdated { config: SignerConfig },
+    XpubInitialized {
+        db_uuid: uuid::Uuid,
+        account_id: AccountId,
+        fingerprint: bitcoin::Fingerprint,
+        parent_fingerprint: bitcoin::Fingerprint,
+        original: String,
+        xpub: bitcoin::ExtendedPubKey,
+        derivation_path: Option<bitcoin::DerivationPath>,
+    },
+    XpubNameUpdated {
+        name: String,
+    },
+    SignerConfigUpdated {
+        config: SignerConfig,
+    },
 }
 
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct AccountXPub {
     pub account_id: AccountId,
     pub key_name: String,
@@ -60,23 +75,72 @@ impl AccountXPub {
 }
 
 #[derive(Builder, Clone, Debug)]
-pub struct NewXPub {
+pub struct NewAccountXPub {
+    pub(super) db_uuid: uuid::Uuid,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) key_name: String,
+    pub(super) original: String,
     pub(super) value: XPubValue,
 }
 
-impl NewXPub {
-    pub fn builder() -> NewXPubBuilder {
-        NewXPubBuilder::default()
+impl NewAccountXPub {
+    pub fn builder() -> NewAccountXPubBuilder {
+        let mut builder = NewAccountXPubBuilder::default();
+        builder.db_uuid(uuid::Uuid::new_v4());
+        builder
     }
 
     pub fn id(&self) -> XPubId {
         self.value.id()
     }
 
-    pub(super) fn initial_events() -> EntityEvents<XPubEvent> {
-        EntityEvents::init([XPubEvent::XpubInitialized])
+    pub(super) fn initial_events(self) -> EntityEvents<XPubEvent> {
+        let xpub = self.value.inner;
+        EntityEvents::init([
+            XPubEvent::XpubInitialized {
+                db_uuid: self.db_uuid,
+                account_id: self.account_id,
+                fingerprint: xpub.fingerprint(),
+                parent_fingerprint: xpub.parent_fingerprint,
+                xpub,
+                original: self.original,
+                derivation_path: self.value.derivation,
+            },
+            XPubEvent::XpubNameUpdated {
+                name: self.key_name,
+            },
+        ])
+    }
+}
+
+impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
+    type Error = EntityError;
+    fn try_from(events: EntityEvents<XPubEvent>) -> Result<Self, Self::Error> {
+        let mut builder = AccountXPubBuilder::default();
+        for event in events.iter() {
+            match event {
+                XPubEvent::XpubInitialized {
+                    db_uuid,
+                    account_id,
+                    xpub,
+                    derivation_path,
+                    ..
+                } => {
+                    builder = builder
+                        .db_uuid(*db_uuid)
+                        .account_id(*account_id)
+                        .value(XPubValue {
+                            inner: *xpub,
+                            derivation: derivation_path.as_ref().cloned(),
+                        });
+                }
+                XPubEvent::XpubNameUpdated { name } => {
+                    builder = builder.key_name(name.clone());
+                }
+                _ => (),
+            }
+        }
+        builder.events(events).build()
     }
 }

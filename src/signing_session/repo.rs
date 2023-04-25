@@ -23,7 +23,7 @@ impl SigningSessions {
         let mut tx = self.pool.begin().await?;
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_signing_sessions
-            (id, account_id, batch_id, xpub_fingerprint, unsigned_psbt)"#,
+            (id, account_id, batch_id, xpub_fingerprint)"#,
         );
         let mut account_id = None;
         let mut batch_id = None;
@@ -36,19 +36,16 @@ impl SigningSessions {
             builder.push_bind(Uuid::from(session.account_id));
             builder.push_bind(Uuid::from(session.batch_id));
             builder.push_bind(xpub_id.as_bytes().to_owned());
-            builder.push_bind(bitcoin::consensus::encode::serialize(
-                &session.unsigned_psbt,
-            ));
         });
         let query = query_builder.build();
         query.execute(&mut tx).await?;
-        let initial_events = NewSigningSession::initial_events();
         EntityEvents::<SigningSessionEvent>::persist(
             "bria_signing_session_events",
             &mut tx,
-            sessions
-                .values()
-                .flat_map(|session| initial_events.new_serialized_events(session.id)),
+            sessions.into_values().flat_map(|session| {
+                let id = session.id;
+                session.initial_events().into_new_serialized_events(id)
+            }),
         )
         .await?;
         tx.commit().await?;
@@ -67,23 +64,14 @@ impl SigningSessions {
         tx: &mut Transaction<'_, Postgres>,
         sessions: &HashMap<XPubId, SigningSession>,
     ) -> Result<(), BriaError> {
-        let mut query_builder = sqlx::QueryBuilder::new(
-            r#"INSERT INTO bria_signing_session_events
-            (id, sequence, event_type, event)"#,
-        );
-        query_builder.push_values(
+        EntityEvents::<SigningSessionEvent>::persist(
+            "bria_signing_session_events",
+            tx,
             sessions
                 .values()
                 .flat_map(|session| session.events.new_serialized_events(session.id)),
-            |mut builder, (id, sequence, event_type, event)| {
-                builder.push_bind(id);
-                builder.push_bind(sequence);
-                builder.push_bind(event_type);
-                builder.push_bind(event);
-            },
-        );
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        )
+        .await?;
         Ok(())
     }
 
@@ -95,7 +83,7 @@ impl SigningSessions {
         let entity_events = {
             let rows = sqlx::query!(
                 r#"
-              SELECT b.*, e.sequence, e.event_type, e.event as "event?"
+              SELECT b.*, e.sequence, e.event_type, e.event
               FROM bria_signing_sessions b
               JOIN bria_signing_session_events e ON b.id = e.id
               WHERE account_id = $1 AND batch_id = $2
@@ -106,31 +94,17 @@ impl SigningSessions {
             .fetch_all(&self.pool)
             .await?;
             let mut entity_events = HashMap::new();
-            for mut row in rows {
+            for row in rows {
                 let id = SigningSessionId::from(row.id);
-                let sequence = row.sequence;
-                let event = row.event.take().expect("Missing event");
-                let (_, events) = entity_events
-                    .entry(id)
-                    .or_insert_with(|| (row, EntityEvents::new()));
-                events.load_event(sequence as usize, event)?;
+                let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+                events.load_event(row.sequence as usize, row.event)?;
             }
             entity_events
         };
         let mut xpub_sessions = HashMap::new();
-        for (id, (first_row, events)) in entity_events {
-            let xpub_id = XPubId::from(bitcoin::Fingerprint::from(
-                first_row.xpub_fingerprint.as_ref(),
-            ));
-            let session = SigningSession {
-                id,
-                account_id: AccountId::from(first_row.account_id),
-                batch_id,
-                xpub_id,
-                unsigned_psbt: bitcoin::consensus::deserialize(&first_row.unsigned_psbt)?,
-                events,
-            };
-            xpub_sessions.insert(xpub_id, session);
+        for (_, events) in entity_events {
+            let session = SigningSession::try_from(events)?;
+            xpub_sessions.insert(session.xpub_id, session);
         }
         if xpub_sessions.is_empty() {
             Ok(None)

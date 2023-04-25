@@ -1,12 +1,14 @@
 use serde::{de::DeserializeOwned, Serialize};
 
+use super::error::EntityError;
+
 #[derive(Debug)]
 pub struct EntityEvents<T: DeserializeOwned + Serialize> {
     last_persisted_sequence: usize,
     events: Vec<T>,
 }
 
-impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
+impl<T: DeserializeOwned + Serialize + 'static> EntityEvents<T> {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -26,7 +28,7 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         self.events.push(event);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> {
         self.events.iter()
     }
 
@@ -34,7 +36,7 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         &mut self,
         sequence: usize,
         json: serde_json::Value,
-    ) -> Result<(), serde_json::Error> {
+    ) -> Result<(), EntityError> {
         let event = serde_json::from_value(json)?;
         self.last_persisted_sequence = sequence;
         self.events.push(event);
@@ -48,6 +50,26 @@ impl<T: DeserializeOwned + Serialize> EntityEvents<T> {
         let id = id.into();
         self.events
             .iter()
+            .enumerate()
+            .skip(self.last_persisted_sequence)
+            .map(move |(i, e)| {
+                let event_json = serde_json::to_value(e).expect("Could not serialize event");
+                let event_type = event_json
+                    .get("type")
+                    .and_then(serde_json::Value::as_str)
+                    .expect("Could not get type")
+                    .to_owned();
+                (id, (i + 1) as i32, event_type, event_json)
+            })
+    }
+
+    pub fn into_new_serialized_events(
+        self,
+        id: impl Into<uuid::Uuid>,
+    ) -> impl Iterator<Item = (uuid::Uuid, i32, String, serde_json::Value)> {
+        let id = id.into();
+        self.events
+            .into_iter()
             .enumerate()
             .skip(self.last_persisted_sequence)
             .map(move |(i, e)| {

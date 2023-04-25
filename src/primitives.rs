@@ -16,7 +16,8 @@ crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct XPubId(bitcoin::Fingerprint);
 
 impl From<bitcoin::Fingerprint> for XPubId {

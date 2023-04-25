@@ -9,14 +9,16 @@ async fn test_payout() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
 
-    let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
+    let original = "tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4";
+    let xpub = XPub::try_from((original, Some("m/84'/0'/0'"))).unwrap();
     let wallet_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let repo = XPubs::new(&pool);
 
     let id = repo
         .persist(
-            NewXPub::builder()
+            NewAccountXPub::builder()
                 .account_id(profile.account_id)
+                .original(original.to_owned())
                 .key_name(wallet_name.clone())
                 .value(xpub)
                 .build()

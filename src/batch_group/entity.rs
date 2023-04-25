@@ -2,8 +2,29 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::primitives::*;
+use super::config::*;
+use crate::{entity::*, primitives::*};
 
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum BatchGroupEvent {
+    BatchGroupInitialized {
+        id: BatchGroupId,
+        account_id: AccountId,
+    },
+    BatchGroupNameUpdated {
+        name: String,
+    },
+    BatchGroupDescriptionUpdated {
+        description: String,
+    },
+    BatchGroupConfigUpdated {
+        config: BatchGroupConfig,
+    },
+}
+
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct BatchGroup {
     pub id: BatchGroupId,
     pub account_id: AccountId,
@@ -41,40 +62,45 @@ impl NewBatchGroup {
         builder.id(BatchGroupId::new());
         builder
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BatchGroupConfig {
-    pub tx_priority: TxPriority,
-    pub consolidate_deprecated_keychains: bool,
-    pub trigger: BatchGroupTrigger,
-}
-
-#[serde_with::serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum BatchGroupTrigger {
-    Manual,
-    Immediate,
-    Interval {
-        #[serde_as(as = "serde_with::DurationSeconds<u64>")]
-        #[serde(default = "default_interval")]
-        seconds: Duration,
-    },
-}
-
-impl Default for BatchGroupConfig {
-    fn default() -> Self {
-        Self {
-            tx_priority: TxPriority::NextBlock,
-            consolidate_deprecated_keychains: true,
-            trigger: BatchGroupTrigger::Interval {
-                seconds: default_interval(),
+    pub(super) fn initial_events(self) -> EntityEvents<BatchGroupEvent> {
+        let mut events = EntityEvents::init([
+            BatchGroupEvent::BatchGroupInitialized {
+                id: self.id,
+                account_id: self.account_id,
             },
+            BatchGroupEvent::BatchGroupNameUpdated { name: self.name },
+            BatchGroupEvent::BatchGroupConfigUpdated {
+                config: self.config,
+            },
+        ]);
+        if let Some(description) = self.description {
+            events.push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
         }
+        events
     }
 }
 
-fn default_interval() -> Duration {
-    Duration::from_secs(60)
+impl TryFrom<EntityEvents<BatchGroupEvent>> for BatchGroup {
+    type Error = EntityError;
+
+    fn try_from(events: EntityEvents<BatchGroupEvent>) -> Result<Self, Self::Error> {
+        let mut builder = BatchGroupBuilder::default();
+        use BatchGroupEvent::*;
+        for event in events.iter() {
+            match event {
+                BatchGroupInitialized { id, account_id } => {
+                    builder = builder.id(*id).account_id(*account_id);
+                }
+                BatchGroupNameUpdated { name } => {
+                    builder = builder.name(name.clone());
+                }
+                BatchGroupConfigUpdated { config } => {
+                    builder = builder.config(config.clone());
+                }
+                _ => (),
+            }
+        }
+        builder.build()
+    }
 }

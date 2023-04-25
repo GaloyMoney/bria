@@ -76,18 +76,6 @@ impl Batches {
         let query = query_builder.build();
         query.execute(&mut *tx).await?;
 
-        let payout_ids = batch.included_payouts.into_values().flatten();
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"INSERT INTO bria_batch_payouts
-            (batch_id, payout_id)"#,
-        );
-        query_builder.push_values(payout_ids, |mut builder, id| {
-            builder.push_bind(Uuid::from(batch.id));
-            builder.push_bind(Uuid::from(id));
-        });
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
-
         Ok(batch.id)
     }
 

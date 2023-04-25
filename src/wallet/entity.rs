@@ -4,9 +4,41 @@ use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use std::collections::HashMap;
 
-use super::{balance::WalletLedgerAccountIds, keychain::*};
-use crate::{primitives::*, xpub::XPub};
+use super::{balance::WalletLedgerAccountIds, config::*, keychain::*};
+use crate::{entity::*, primitives::*, xpub::XPub};
 
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum WalletEvent {
+    WalletInitialized {
+        id: WalletId,
+        network: bitcoin::Network,
+        account_id: AccountId,
+        journal_id: JournalId,
+        onchain_incoming_ledger_account_id: LedgerAccountId,
+        onchain_at_rest_ledger_account_id: LedgerAccountId,
+        onchain_outgoing_ledger_account_id: LedgerAccountId,
+        onchain_fee_ledger_account_id: LedgerAccountId,
+        logical_incoming_ledger_account_id: LedgerAccountId,
+        logical_at_rest_ledger_account_id: LedgerAccountId,
+        logical_outgoing_ledger_account_id: LedgerAccountId,
+        dust_ledger_account_id: LedgerAccountId,
+    },
+    WalletNameUpdated {
+        name: String,
+    },
+    WalletConfigUpdated {
+        config: WalletConfig,
+    },
+    WalletKeychainAdded {
+        keychain_id: KeychainId,
+        idx: usize,
+        config: WalletKeyChainConfig,
+    },
+}
+
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct Wallet {
     pub id: WalletId,
     pub ledger_account_ids: WalletLedgerAccountIds,
@@ -14,19 +46,27 @@ pub struct Wallet {
     pub config: WalletConfig,
     pub network: bitcoin::Network,
 
-    pub(super) keychains: Vec<(KeychainId, WalletKeyChainConfig)>,
+    events: EntityEvents<WalletEvent>,
 }
 
 impl Wallet {
-    pub(super) fn previous_keychain(&mut self, id: KeychainId, cfg: WalletKeyChainConfig) {
-        let last_id = self.keychains[self.keychains.len() - 1].0;
-        if id != last_id {
-            self.keychains.push((id, cfg));
-        }
+    fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &WalletKeyChainConfig)> + '_ {
+        self.events.iter().rev().filter_map(|e| {
+            if let WalletEvent::WalletKeychainAdded {
+                keychain_id,
+                config,
+                ..
+            } = e
+            {
+                Some((keychain_id, config))
+            } else {
+                None
+            }
+        })
     }
 
     pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
-        self.keychains.iter().map(|(id, _)| *id)
+        self.iter_keychains().map(|(id, _)| *id)
     }
 
     pub fn keychain_wallets(
@@ -41,7 +81,7 @@ impl Wallet {
         &self,
         pool: &sqlx::PgPool,
     ) -> KeychainWallet<WalletKeyChainConfig> {
-        let (id, cfg) = &self.keychains[0];
+        let (id, cfg) = self.iter_keychains().next().expect("No current keychain");
         KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone())
     }
 
@@ -49,8 +89,7 @@ impl Wallet {
         &self,
         pool: sqlx::PgPool,
     ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
-        self.keychains
-            .iter()
+        self.iter_keychains()
             .skip(1)
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
     }
@@ -61,7 +100,7 @@ impl Wallet {
     ) -> HashMap<KeychainId, Vec<XPub>> {
         let mut ret = HashMap::new();
         for find_id in keychain_ids {
-            if let Some((_, cfg)) = self.keychains.iter().find(|(id, _)| id == find_id) {
+            if let Some((_, cfg)) = self.iter_keychains().find(|(id, _)| id == &find_id) {
                 ret.insert(*find_id, cfg.xpubs());
             }
         }
@@ -89,12 +128,16 @@ impl Wallet {
 pub struct NewWallet {
     #[builder(setter(into))]
     pub id: WalletId,
+    pub(super) network: bitcoin::Network,
+    pub(super) account_id: AccountId,
+    #[builder(setter(into))]
+    pub(super) journal_id: JournalId,
+    pub(super) ledger_account_ids: WalletLedgerAccountIds,
     pub(super) name: String,
     #[builder(setter(into))]
-    pub(super) keychain: WalletKeyChainConfig,
-    pub(super) ledger_account_ids: WalletLedgerAccountIds,
+    keychain: WalletKeyChainConfig,
     #[builder(default)]
-    pub(super) config: WalletConfig,
+    config: WalletConfig,
 }
 
 impl NewWallet {
@@ -103,39 +146,79 @@ impl NewWallet {
         builder.id(WalletId::new());
         builder
     }
+
+    pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
+        EntityEvents::init([
+            WalletEvent::WalletInitialized {
+                id: self.id,
+                network: self.network,
+                account_id: self.account_id,
+                journal_id: self.journal_id,
+                onchain_incoming_ledger_account_id: self.ledger_account_ids.onchain_incoming_id,
+                onchain_at_rest_ledger_account_id: self.ledger_account_ids.onchain_at_rest_id,
+                onchain_outgoing_ledger_account_id: self.ledger_account_ids.onchain_outgoing_id,
+                onchain_fee_ledger_account_id: self.ledger_account_ids.fee_id,
+                logical_incoming_ledger_account_id: self.ledger_account_ids.logical_incoming_id,
+                logical_at_rest_ledger_account_id: self.ledger_account_ids.logical_at_rest_id,
+                logical_outgoing_ledger_account_id: self.ledger_account_ids.logical_outgoing_id,
+                dust_ledger_account_id: self.ledger_account_ids.dust_id,
+            },
+            WalletEvent::WalletNameUpdated { name: self.name },
+            WalletEvent::WalletConfigUpdated {
+                config: self.config,
+            },
+            WalletEvent::WalletKeychainAdded {
+                keychain_id: KeychainId::new(),
+                idx: 0,
+                config: self.keychain,
+            },
+        ])
+    }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WalletConfig {
-    settle_income_after_n_confs: u32,
-    settle_change_after_n_confs: u32,
-    pub dust_threshold_sats: Satoshis,
-}
+impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
+    type Error = EntityError;
 
-impl WalletConfig {
-    pub fn latest_income_settle_height(&self, current_height: u32) -> u32 {
-        current_height - self.settle_income_after_n_confs.max(1) + 1
-    }
-
-    pub fn latest_change_settle_height(&self, current_height: u32) -> u32 {
-        current_height - self.settle_change_after_n_confs.max(1) + 1
-    }
-
-    pub fn latest_settle_height(&self, current_height: u32, self_pay: bool) -> u32 {
-        if self_pay {
-            self.latest_change_settle_height(current_height)
-        } else {
-            self.latest_income_settle_height(current_height)
+    fn try_from(events: EntityEvents<WalletEvent>) -> Result<Self, Self::Error> {
+        let mut builder = WalletBuilder::default();
+        use WalletEvent::*;
+        for event in events.iter() {
+            match event {
+                WalletInitialized {
+                    id,
+                    network,
+                    journal_id,
+                    onchain_incoming_ledger_account_id,
+                    onchain_at_rest_ledger_account_id,
+                    onchain_outgoing_ledger_account_id,
+                    onchain_fee_ledger_account_id,
+                    logical_incoming_ledger_account_id,
+                    logical_at_rest_ledger_account_id,
+                    logical_outgoing_ledger_account_id,
+                    dust_ledger_account_id,
+                    ..
+                } => {
+                    builder = builder
+                        .id(*id)
+                        .network(*network)
+                        .journal_id(*journal_id)
+                        .ledger_account_ids(WalletLedgerAccountIds {
+                            onchain_incoming_id: *onchain_incoming_ledger_account_id,
+                            onchain_at_rest_id: *onchain_at_rest_ledger_account_id,
+                            onchain_outgoing_id: *onchain_outgoing_ledger_account_id,
+                            fee_id: *onchain_fee_ledger_account_id,
+                            logical_incoming_id: *logical_incoming_ledger_account_id,
+                            logical_at_rest_id: *logical_at_rest_ledger_account_id,
+                            logical_outgoing_id: *logical_outgoing_ledger_account_id,
+                            dust_id: *dust_ledger_account_id,
+                        });
+                }
+                WalletConfigUpdated { config } => {
+                    builder = builder.config(config.clone());
+                }
+                _ => (),
+            }
         }
-    }
-}
-
-impl Default for WalletConfig {
-    fn default() -> Self {
-        Self {
-            settle_income_after_n_confs: 2,
-            settle_change_after_n_confs: 1,
-            dust_threshold_sats: Satoshis::from(0),
-        }
+        builder.events(events).build()
     }
 }

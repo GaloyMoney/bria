@@ -88,10 +88,10 @@ impl From<WalletAddress> for proto::WalletAddress {
     fn from(addr: WalletAddress) -> Self {
         Self {
             address: addr.address.to_string(),
-            external_id: addr.external_id(),
             metadata: addr.metadata().map(|json| {
                 serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
             }),
+            external_id: addr.external_id,
         }
     }
 }

@@ -47,7 +47,7 @@ impl App {
         if migrate_on_start {
             sqlx::migrate!().run(&pool).await?;
         }
-        let wallets = Wallets::new(&pool, blockchain_cfg.network);
+        let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
         let batch_groups = BatchGroups::new(&pool);
         let batches = Batches::new(&pool);
@@ -148,9 +148,10 @@ impl App {
         xpub: String,
         derivation: Option<String>,
     ) -> Result<XPubId, BriaError> {
-        let value = XPub::try_from((xpub, derivation))?;
-        let xpub = NewXPub::builder()
+        let value = XPub::try_from((&xpub, derivation))?;
+        let xpub = NewAccountXPub::builder()
             .account_id(profile.account_id)
+            .original(xpub)
             .key_name(key_name)
             .value(value)
             .build()
@@ -221,6 +222,9 @@ impl App {
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
+            .network(self.blockchain_cfg.network)
+            .account_id(profile.account_id)
+            .journal_id(uuid::Uuid::from(profile.account_id))
             .name(wallet_name.clone())
             .keychain(WpkhKeyChainConfig::new(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
@@ -228,10 +232,7 @@ impl App {
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
-        let wallet_id = self
-            .wallets
-            .create_in_tx(&mut tx, profile.account_id, new_wallet)
-            .await?;
+        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
 
         tx.commit().await?;
 
@@ -367,14 +368,16 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let group_id = self
+        let batch_group = self
             .batch_groups
             .find_by_name(profile.account_id, group_name)
             .await?;
         let mut builder = NewPayout::builder();
         builder
+            .account_id(profile.account_id)
+            .profile_id(profile.id)
             .wallet_id(wallet.id)
-            .batch_group_id(group_id)
+            .batch_group_id(batch_group.id)
             .destination(destination.clone())
             .satoshis(sats)
             .metadata(metadata.clone());
@@ -383,10 +386,7 @@ impl App {
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
         let mut tx = self.pool.begin().await?;
-        let id = self
-            .payouts
-            .create_in_tx(&mut tx, profile.account_id, new_payout)
-            .await?;
+        let id = self.payouts.create_in_tx(&mut tx, new_payout).await?;
         self.ledger
             .queued_payout(
                 tx,
@@ -398,7 +398,7 @@ impl App {
                     payout_satoshis: sats,
                     meta: QueuedPayoutMeta {
                         payout_id: id,
-                        batch_group_id: group_id,
+                        batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
                         destination,
                         additional_meta: metadata,
@@ -419,7 +419,9 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        self.payouts.list_for_wallet(wallet.id).await
+        self.payouts
+            .list_for_wallet(profile.account_id, wallet.id)
+            .await
     }
 
     #[instrument(name = "app.list_signing_sessions", skip_all, err)]

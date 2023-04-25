@@ -2,60 +2,37 @@ use sqlx::{Pool, Postgres, Transaction};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use super::{balance::*, entity::*, keychain::*};
-use crate::{error::*, primitives::*};
+use super::entity::*;
+use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Wallets {
     pool: Pool<Postgres>,
-    network: bitcoin::Network,
 }
 
 impl Wallets {
-    pub fn new(pool: &Pool<Postgres>, network: bitcoin::Network) -> Self {
-        Self {
-            pool: pool.clone(),
-            network,
-        }
+    pub fn new(pool: &Pool<Postgres>) -> Self {
+        Self { pool: pool.clone() }
     }
 
     pub async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        account_id: AccountId,
         new_wallet: NewWallet,
     ) -> Result<WalletId, BriaError> {
-        sqlx::query!(
-            r#"INSERT INTO bria_wallet_keychains (account_id, wallet_id, keychain_cfg)
-            VALUES ($1, $2, $3)"#,
-            Uuid::from(account_id),
-            Uuid::from(new_wallet.id),
-            serde_json::to_value(new_wallet.keychain)?
-        )
-        .execute(&mut *tx)
-        .await?;
         let record = sqlx::query!(
-            r#"INSERT INTO bria_wallets
-               (id, wallet_cfg, account_id,
-               onchain_incoming_ledger_account_id, onchain_at_rest_ledger_account_id, onchain_outgoing_ledger_account_id,
-               logical_incoming_ledger_account_id, logical_at_rest_ledger_account_id, logical_outgoing_ledger_account_id,
-               onchain_fee_ledger_account_id, dust_ledger_account_id, name)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING (id)"#,
+            r#"INSERT INTO bria_wallets (id, account_id, name) VALUES ($1, $2, $3) RETURNING (id)"#,
             Uuid::from(new_wallet.id),
-            serde_json::to_value(new_wallet.config).expect("Couldn't serialize wallet config"),
-            Uuid::from(account_id),
-            Uuid::from(new_wallet.ledger_account_ids.onchain_incoming_id),
-            Uuid::from(new_wallet.ledger_account_ids.onchain_at_rest_id),
-            Uuid::from(new_wallet.ledger_account_ids.onchain_outgoing_id),
-            Uuid::from(new_wallet.ledger_account_ids.logical_incoming_id),
-            Uuid::from(new_wallet.ledger_account_ids.logical_at_rest_id),
-            Uuid::from(new_wallet.ledger_account_ids.logical_outgoing_id),
-            Uuid::from(new_wallet.ledger_account_ids.fee_id),
-            Uuid::from(new_wallet.ledger_account_ids.dust_id),
+            Uuid::from(new_wallet.account_id),
             new_wallet.name
         )
         .fetch_one(&mut *tx)
+        .await?;
+        EntityEvents::<WalletEvent>::persist(
+            "bria_wallet_events",
+            tx,
+            new_wallet.initial_events().new_serialized_events(record.id),
+        )
         .await?;
         Ok(WalletId::from(record.id))
     }
@@ -66,15 +43,12 @@ impl Wallets {
         name: String,
     ) -> Result<Wallet, BriaError> {
         let rows = sqlx::query!(
-            r#"WITH latest AS (
-              SELECT w.*, a.journal_id 
-              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
-              WHERE a.id = $1 AND w.name = $2 ORDER BY version DESC LIMIT 1
-            )
-            SELECT l.*, k.id AS keychain_id, keychain_cfg
-                 FROM bria_wallet_keychains k
-                 JOIN latest l ON k.wallet_id = l.id
-                 ORDER BY sequence DESC"#,
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_wallets b
+              JOIN bria_wallet_events e ON b.id = e.id
+              WHERE account_id = $1 AND name = $2
+              ORDER BY e.sequence"#,
             Uuid::from(account_id),
             name
         )
@@ -83,33 +57,11 @@ impl Wallets {
         if rows.is_empty() {
             return Err(BriaError::WalletNotFound);
         }
-        let mut iter = rows.into_iter();
-        let first_row = iter.next().expect("There is always 1 row here");
-        let keychain: WalletKeyChainConfig = serde_json::from_value(first_row.keychain_cfg)?;
-        let mut keychains = vec![(KeychainId::from(first_row.keychain_id), keychain)];
-        let mut config: WalletConfig = serde_json::from_value(first_row.wallet_cfg)?;
-        for row in iter {
-            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)?;
-            keychains.push((KeychainId::from(row.keychain_id), keychain));
-            config = serde_json::from_value(row.wallet_cfg)?;
+        let mut events = EntityEvents::new();
+        for row in rows {
+            events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(Wallet {
-            id: first_row.id.into(),
-            journal_id: first_row.journal_id.into(),
-            ledger_account_ids: WalletLedgerAccountIds {
-                onchain_incoming_id: first_row.onchain_incoming_ledger_account_id.into(),
-                onchain_at_rest_id: first_row.onchain_at_rest_ledger_account_id.into(),
-                onchain_outgoing_id: first_row.onchain_outgoing_ledger_account_id.into(),
-                logical_incoming_id: first_row.logical_incoming_ledger_account_id.into(),
-                logical_at_rest_id: first_row.logical_at_rest_ledger_account_id.into(),
-                logical_outgoing_id: first_row.logical_outgoing_ledger_account_id.into(),
-                fee_id: first_row.onchain_fee_ledger_account_id.into(),
-                dust_id: first_row.dust_ledger_account_id.into(),
-            },
-            keychains,
-            config,
-            network: self.network,
-        })
+        Ok(Wallet::try_from(events)?)
     }
 
     pub async fn all_ids(&self) -> Result<impl Iterator<Item = (AccountId, WalletId)>, BriaError> {
@@ -140,45 +92,26 @@ impl Wallets {
     ) -> Result<HashMap<WalletId, Wallet>, BriaError> {
         let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
         let rows = sqlx::query!(
-            r#"WITH latest AS (
-              SELECT w.*, a.journal_id
-              FROM bria_wallets w JOIN bria_accounts a ON w.account_id = a.id
-              WHERE w.id = ANY($1) ORDER BY version DESC LIMIT 1
-            )
-            SELECT l.*, k.id AS keychain_id, keychain_cfg
-                 FROM bria_wallet_keychains k
-                 JOIN latest l ON k.wallet_id = l.id
-                 ORDER BY sequence DESC"#,
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_wallets b
+              JOIN bria_wallet_events e ON b.id = e.id
+              WHERE b.id = ANY($1)
+              ORDER BY b.id, e.sequence"#,
             &uuids[..]
         )
         .fetch_all(&self.pool)
         .await?;
-        let mut wallets = HashMap::new();
+        let mut events = HashMap::new();
         for row in rows {
-            let keychain_id = KeychainId::from(row.keychain_id);
-            let keychain: WalletKeyChainConfig = serde_json::from_value(row.keychain_cfg)
-                .expect("Couldn't deserialize keychain_cfg");
-            let wallet = wallets
-                .entry(WalletId::from(row.id))
-                .or_insert_with(|| Wallet {
-                    id: row.id.into(),
-                    journal_id: row.journal_id.into(),
-                    ledger_account_ids: WalletLedgerAccountIds {
-                        onchain_incoming_id: row.onchain_incoming_ledger_account_id.into(),
-                        onchain_at_rest_id: row.onchain_at_rest_ledger_account_id.into(),
-                        onchain_outgoing_id: row.onchain_outgoing_ledger_account_id.into(),
-                        logical_incoming_id: row.logical_incoming_ledger_account_id.into(),
-                        logical_at_rest_id: row.logical_at_rest_ledger_account_id.into(),
-                        logical_outgoing_id: row.logical_outgoing_ledger_account_id.into(),
-                        fee_id: row.onchain_fee_ledger_account_id.into(),
-                        dust_id: row.dust_ledger_account_id.into(),
-                    },
-                    keychains: vec![(keychain_id, keychain.clone())],
-                    config: serde_json::from_value(row.wallet_cfg)
-                        .expect("Couldn't deserialize wallet config"),
-                    network: self.network,
-                });
-            wallet.previous_keychain(keychain_id, keychain);
+            let id = WalletId::from(row.id);
+            let sequence = row.sequence;
+            let events = events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(sequence as usize, row.event)?;
+        }
+        let mut wallets = HashMap::new();
+        for (id, events) in events {
+            wallets.insert(id, Wallet::try_from(events)?);
         }
         Ok(wallets)
     }

@@ -42,12 +42,7 @@ CREATE TABLE bria_xpubs (
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
   fingerprint BYTEA NOT NULL,
-  parent_fingerprint BYTEA NOT NULL,
-  original VARCHAR NOT NULL,
-  xpub BYTEA NOT NULL,
-  derivation_path VARCHAR,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(account_id, fingerprint),
   UNIQUE(account_id, name)
 );
@@ -62,45 +57,30 @@ CREATE TABLE bria_xpub_events (
 );
 
 CREATE TABLE bria_wallets (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  onchain_incoming_ledger_account_id UUID NOT NULL,
-  onchain_at_rest_ledger_account_id UUID NOT NULL,
-  onchain_outgoing_ledger_account_id UUID NOT NULL,
-  onchain_fee_ledger_account_id UUID NOT NULL,
-  logical_incoming_ledger_account_id UUID NOT NULL,
-  logical_at_rest_ledger_account_id UUID NOT NULL,
-  logical_outgoing_ledger_account_id UUID NOT NULL,
-  dust_ledger_account_id UUID NOT NULL,
-  name VARCHAR NOT NULL,
-  wallet_cfg JSONB NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, name, version)
-);
-
-
-CREATE TABLE bria_wallet_keychains (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  wallet_id UUID NOT NULL,
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  sequence INT NOT NULL DEFAULT 0,
-  keychain_cfg JSONB NOT NULL,
+  name VARCHAR NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(wallet_id, sequence)
+  UNIQUE(account_id, name)
 );
+
+CREATE TABLE bria_wallet_events (
+  id UUID REFERENCES bria_wallets(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
+);
+
 
 CREATE TABLE bria_addresses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id UUID NOT NULL,
-  wallet_id UUID NOT NULL,
-  keychain_id UUID REFERENCES bria_wallet_keychains(id) NOT NULL,
-  profile_id UUID,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  keychain_id UUID NOT NULL,
+  profile_id UUID REFERENCES bria_profiles(id),
   address VARCHAR NOT NULL,
-  address_idx INTEGER NOT NULL,
   kind KeychainKind NOT NULL,
   external_id VARCHAR NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -143,33 +123,20 @@ CREATE TABLE bria_utxos (
 );
 
 CREATE TABLE bria_batch_groups (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
-  description VARCHAR,
-  batch_cfg JSONB NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, name, version)
+  UNIQUE(account_id, name)
 );
 
-CREATE TABLE bria_payouts (
-  id UUID NOT NULL DEFAULT gen_random_uuid(),
-  version INT NOT NULL DEFAULT 1,
-  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  wallet_id UUID NOT NULL,
-  batch_group_id UUID NOT NULL,
-  destination_data JSONB NOT NULL,
-  satoshis BIGINT NOT NULL,
-  priority INT NOT NULL DEFAULT 100,
-  external_id VARCHAR NOT NULL,
-  metadata JSONB,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(id, version),
-  UNIQUE(account_id, external_id, version)
+CREATE TABLE bria_batch_group_events (
+  id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
 );
 
 CREATE TABLE bria_batches (
@@ -202,12 +169,6 @@ CREATE TABLE bria_batch_wallet_summaries (
   UNIQUE(batch_id, wallet_id)
 );
 
-CREATE TABLE bria_batch_payouts (
-  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
-  payout_id UUID UNIQUE NOT NULL,
-  UNIQUE(batch_id, payout_id)
-);
-
 CREATE TABLE bria_batch_spent_utxos (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   keychain_id UUID NOT NULL,
@@ -217,12 +178,32 @@ CREATE TABLE bria_batch_spent_utxos (
   UNIQUE(keychain_id, tx_id, vout)
 );
 
+CREATE TABLE bria_payouts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  batch_group_id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) DEFAULT NULL,
+  profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
+  external_id VARCHAR NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(account_id, external_id)
+);
+
+CREATE TABLE bria_payout_events (
+  id UUID REFERENCES bria_payouts(id) NOT NULL,
+  sequence INT NOT NULL,
+  event_type VARCHAR NOT NULL,
+  event JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(id, sequence)
+);
+
 CREATE TABLE bria_signing_sessions (
   id UUID PRIMARY KEY NOT NULL,
-  account_id UUID NOT NULL,
-  batch_id UUID NOT NULL,
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
   xpub_fingerprint BYTEA NOT NULL,
-  unsigned_psbt BYTEA NOT NULL,
   FOREIGN KEY (account_id, xpub_fingerprint) REFERENCES bria_xpubs (account_id, fingerprint),
   FOREIGN KEY (account_id, batch_id) REFERENCES bria_batches (account_id, id),
   UNIQUE(account_id, batch_id, xpub_fingerprint)
