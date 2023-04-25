@@ -1,3 +1,24 @@
+# [bria release v0.0.12](https://github.com/GaloyMoney/bria/releases/tag/0.0.12)
+
+
+### Bug Fixes
+
+- Set address events
+
+### Refactor
+
+- Proper signing session initialization event
+- Proper address initialization event
+- Proper xpub initialization event
+- Move original out of XPubValue
+- Payouts as events
+- Events in batch_group
+- Better wallet structure
+- Persist wallet with events
+- Use EntityEvents::persist in signing session repo
+- Use EntityEvents::persist
+- Use events in xpub entity
+
 # [bria release v0.0.11](https://github.com/GaloyMoney/bria/releases/tag/0.0.11)
 
 
