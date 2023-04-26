@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = "0.6"
+sqlx-ledger = "0.6.1"
 
 anyhow = "1.0.70"
 clap = { version = "4.2", features = ["derive", "env"] }
@@ -21,9 +21,10 @@ serde_yaml = "0.9.21"
 sqlx = { version = "0.6", features = [ "offline", "runtime-tokio-rustls", "postgres", "decimal", "uuid", "chrono"] }
 sqlxmq = { version = "0.4.1", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio = { version = "1.24", features = ["rt-multi-thread", "macros"] }
+tokio-stream = { version = "0.1.14", features = ["sync"] }
 tonic = "0.9"
 rust_decimal = "1.29.1"
-tracing = "0.1.37"
+tracing = "0.1.38"
 tracing-opentelemetry = "0.18.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 prost = "0.11"
@@ -45,10 +46,6 @@ tonic_lnd = { version = "0.5.0", features = ["tracing"] }
 async-trait = "0.1"
 base64 = "0.21.0"
 tempfile = "3.4.0"
-
-# To fix vulnerability
-h2 = "0.3.17"
-
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
