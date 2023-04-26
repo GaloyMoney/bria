@@ -2,11 +2,34 @@ use derive_builder::Builder;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlxmq::CurrentJob;
 use std::{collections::HashMap, time::Duration};
+use tokio::task::JoinHandle;
 use tracing::{instrument, Span};
 
 use crate::tracing::{extract_tracing_data, inject_tracing_data};
 
 pub trait JobExecutionError: std::fmt::Display + From<sqlx::Error> {}
+
+pub struct KeepAliveHandle(Option<JoinHandle<()>>);
+impl KeepAliveHandle {
+    pub fn new(inner: JoinHandle<()>) -> Self {
+        Self(Some(inner))
+    }
+    pub fn into_inner(mut self) -> JoinHandle<()> {
+        self.0.take().expect("Only consumed once")
+    }
+    pub async fn stop(self) {
+        let handle = self.into_inner();
+        handle.abort();
+        let _ = handle.await;
+    }
+}
+impl Drop for KeepAliveHandle {
+    fn drop(&mut self) {
+        if let Some(handle) = self.0.take() {
+            handle.abort();
+        }
+    }
+}
 
 #[derive(Builder)]
 #[builder(pattern = "owned")]
@@ -39,14 +62,41 @@ impl<'a> JobExecutor<'a> {
         F: FnOnce(Option<T>) -> R,
     {
         let mut data = JobData::<T>::from_raw_payload(self.job.raw_json()).unwrap();
+        let keep_alive_handle = self.spawn_keep_alive(data.job_meta.wait_till_next_attempt);
+
         let completed = self.checkpoint_attempt(&mut data).await?;
         let result = func(data.data).await;
+
+        keep_alive_handle.stop().await;
+
         if let Err(ref e) = result {
             self.handle_error(data.job_meta, e).await;
         } else if !completed {
             self.job.complete().await?;
         }
         result
+    }
+
+    fn spawn_keep_alive(&self, mut interval: Duration) -> KeepAliveHandle {
+        let pool = self.job.pool().clone();
+        let id = self.job.id();
+        let max_interval = self.max_retry_delay;
+        let handle = tokio::spawn(async move {
+            loop {
+                tokio::time::sleep(interval / 2).await;
+                interval = max_interval.min(interval * 2);
+                if let Err(e) = sqlx::query("SELECT mq_keep_alive(ARRAY[$1], $2)")
+                    .bind(id)
+                    .bind(interval)
+                    .execute(&pool)
+                    .await
+                {
+                    tracing::error!("Failed to keep job {id} alive: {e}");
+                    break;
+                }
+            }
+        });
+        KeepAliveHandle::new(handle)
     }
 
     async fn handle_error<E: JobExecutionError>(&mut self, meta: JobMeta, error: &E) {
