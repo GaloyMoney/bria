@@ -13,7 +13,7 @@ pub struct Config {
     #[serde(default)]
     pub blockchain: BlockchainConfig,
     #[serde(default)]
-    pub wallets: WalletsConfig,
+    pub app: AppConfig,
     #[serde(default)]
     pub tracing: TracingConfig,
     #[serde(default)]

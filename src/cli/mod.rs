@@ -539,7 +539,7 @@ async fn run_cmd(
         admin,
         api,
         blockchain,
-        wallets,
+        app,
     }: Config,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
@@ -561,7 +561,7 @@ async fn run_cmd(
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
         let _ = api_send.try_send(
-            super::api::run(pool, api, migrate_on_start, blockchain, wallets)
+            super::api::run(pool, api, migrate_on_start, blockchain, app)
                 .await
                 .context("Api server error"),
         );

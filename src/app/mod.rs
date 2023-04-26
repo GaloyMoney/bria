@@ -42,7 +42,7 @@ impl App {
         pool: sqlx::PgPool,
         migrate_on_start: bool,
         blockchain_cfg: BlockchainConfig,
-        wallets_cfg: WalletsConfig,
+        app_cfg: AppConfig,
     ) -> Result<Self, BriaError> {
         if migrate_on_start {
             sqlx::migrate!().run(&pool).await?;
@@ -67,15 +67,18 @@ impl App {
             ledger.clone(),
             utxos.clone(),
             addresses.clone(),
-            wallets_cfg.sync_all_wallets_delay,
-            wallets_cfg.process_all_batch_groups_delay,
+            app_cfg.sync_all_wallets_delay,
+            app_cfg.process_all_batch_groups_delay,
+            app_cfg.respawn_all_outbox_handlers_delay,
             blockchain_cfg.clone(),
         )
         .await?;
-        Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_wallets_delay).await?;
-        Self::spawn_process_all_batch_groups(
+        Self::spawn_sync_all_wallets(pool.clone(), app_cfg.sync_all_wallets_delay).await?;
+        Self::spawn_process_all_batch_groups(pool.clone(), app_cfg.process_all_batch_groups_delay)
+            .await?;
+        Self::spawn_respawn_all_outbox_handlers(
             pool.clone(),
-            wallets_cfg.process_all_batch_groups_delay,
+            app_cfg.respawn_all_outbox_handlers_delay,
         )
         .await?;
         Ok(Self {
@@ -462,6 +465,24 @@ impl App {
                 let _ =
                     job::spawn_process_all_batch_groups(&pool, std::time::Duration::from_secs(1))
                         .await;
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Ok(())
+    }
+
+    #[instrument(name = "app.spawn_respawn_all_outbox_handlers", skip_all, err)]
+    async fn spawn_respawn_all_outbox_handlers(
+        pool: sqlx::PgPool,
+        delay: std::time::Duration,
+    ) -> Result<(), BriaError> {
+        tokio::spawn(async move {
+            loop {
+                let _ = job::spawn_respawn_all_outbox_handlers(
+                    &pool,
+                    std::time::Duration::from_secs(1),
+                )
+                .await;
                 tokio::time::sleep(delay).await;
             }
         });

@@ -33,7 +33,7 @@ async fn test_wallet() -> anyhow::Result<()> {
         pool,
         true,
         BlockchainConfig::default(),
-        WalletsConfig::default(),
+        AppConfig::default(),
     )
     .await?;
     app.create_wallet(profile.clone(), name.clone(), vec![id.to_string()])

@@ -10,9 +10,9 @@ pub async fn run(
     config: ApiConfig,
     migrate_on_start: bool,
     blockchain_cfg: BlockchainConfig,
-    wallets_cfg: WalletsConfig,
+    app_cfg: AppConfig,
 ) -> Result<(), BriaError> {
-    let app = App::run(pool, migrate_on_start, blockchain_cfg, wallets_cfg).await?;
+    let app = App::run(pool, migrate_on_start, blockchain_cfg, app_cfg).await?;
     server::start(config, app).await?;
     Ok(())
 }

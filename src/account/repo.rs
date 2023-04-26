@@ -34,7 +34,7 @@ impl Accounts {
         })
     }
 
-    pub async fn list(&self) -> Result<Vec<Account>, AdminApiError> {
+    pub async fn list(&self) -> Result<Vec<Account>, sqlx::Error> {
         let records = sqlx::query!(r#"SELECT id, name FROM bria_accounts"#)
             .fetch_all(&self.pool)
             .await?;

@@ -30,28 +30,36 @@ fn default_electrum_url() -> String {
 
 #[serde_with::serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WalletsConfig {
+pub struct AppConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_sync_all_wallets_delay")]
     pub sync_all_wallets_delay: Duration,
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_process_all_batch_groups_delay")]
     pub process_all_batch_groups_delay: Duration,
+    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
+    #[serde(default = "default_respawn_all_outbox_handlers_delay")]
+    pub respawn_all_outbox_handlers_delay: Duration,
 }
 
-impl Default for WalletsConfig {
+impl Default for AppConfig {
     fn default() -> Self {
         Self {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),
             process_all_batch_groups_delay: default_process_all_batch_groups_delay(),
+            respawn_all_outbox_handlers_delay: default_respawn_all_outbox_handlers_delay(),
         }
     }
 }
 
 fn default_sync_all_wallets_delay() -> Duration {
-    Duration::from_secs(10)
+    Duration::from_secs(5)
 }
 
 fn default_process_all_batch_groups_delay() -> Duration {
     Duration::from_secs(2)
+}
+
+fn default_respawn_all_outbox_handlers_delay() -> Duration {
+    Duration::from_secs(5)
 }
