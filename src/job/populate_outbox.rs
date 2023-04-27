@@ -1,6 +1,5 @@
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use sqlx_ledger::JournalId;
 use tracing::instrument;
 
 use std::collections::HashMap;
@@ -10,7 +9,7 @@ use crate::{error::*, ledger::*, outbox::*, primitives::*};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PopulateOutboxData {
     pub(super) account_id: AccountId,
-    pub(super) journal_id: JournalId,
+    pub(super) journal_id: LedgerJournalId,
     #[serde(flatten)]
     pub(super) tracing_data: HashMap<String, String>,
 }
@@ -21,7 +20,12 @@ pub async fn execute(
     outbox: Outbox,
     ledger: Ledger,
 ) -> Result<PopulateOutboxData, BriaError> {
-    let mut stream = ledger.journal_events(data.journal_id, 0).await?;
+    let mut stream = ledger
+        .journal_events(
+            data.journal_id,
+            outbox.last_ledger_event_id(data.account_id).await?,
+        )
+        .await?;
     while let Some(event) = stream.next().await {
         outbox
             .handle_journal_event(event?, tracing::Span::current())

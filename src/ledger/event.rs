@@ -1,35 +1,21 @@
-use serde::{Deserialize, Serialize};
 use sqlx_ledger::event::*;
 
 use super::{constants::*, templates::*};
-use crate::error::*;
+use crate::{error::*, primitives::*};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct JournalEvent {
-    pub ledger_event_id: u64,
+    pub journal_id: LedgerJournalId,
+    pub account_id: AccountId,
+    pub ledger_tx_id: LedgerTransactionId,
+    pub ledger_event_id: SqlxLedgerEventId,
     pub recorded_at: chrono::DateTime<chrono::Utc>,
-    pub r#type: EventType,
-    pub metadata: EventMetadata,
-    #[serde(skip, default)]
+    pub metadata: JournalEventMetadata,
     pub notification_otel_context: Option<opentelemetry::Context>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EventType {
-    UtxoDetected,
-    UtxoSettled,
-    SpendDetected,
-    SpendSettled,
-    PayoutQueued,
-    BatchCreated,
-    BatchSubmitted,
-    Unknown,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum EventMetadata {
+#[derive(Clone, Debug)]
+pub enum JournalEventMetadata {
     UtxoDetected(IncomingUtxoMeta),
     UtxoSettled(ConfirmedUtxoMeta),
     SpendDetected(ExternalSpendMeta),
@@ -38,21 +24,6 @@ pub enum EventMetadata {
     BatchCreated(CreateBatchMeta),
     BatchSubmitted(SubmitBatchMeta),
     UnknownTransaction(Option<serde_json::Value>),
-}
-
-impl EventMetadata {
-    pub fn r#type(&self) -> EventType {
-        match self {
-            EventMetadata::UtxoDetected(_) => EventType::UtxoDetected,
-            EventMetadata::UtxoSettled(_) => EventType::UtxoSettled,
-            EventMetadata::SpendDetected(_) => EventType::SpendDetected,
-            EventMetadata::SpendSettled(_) => EventType::SpendSettled,
-            EventMetadata::PayoutQueued(_) => EventType::PayoutQueued,
-            EventMetadata::BatchCreated(_) => EventType::BatchCreated,
-            EventMetadata::BatchSubmitted(_) => EventType::BatchSubmitted,
-            EventMetadata::UnknownTransaction(_) => EventType::Unknown,
-        }
-    }
 }
 
 pub(super) enum MaybeIgnored {
@@ -64,48 +35,52 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
     type Error = BriaError;
 
     fn try_from(event: SqlxLedgerEvent) -> Result<Self, Self::Error> {
-        let metadata = match event.data {
-            SqlxLedgerEventData::TransactionCreated(tx) => {
+        let journal_id = event.journal_id();
+        let (tx_id, metadata) = match event.data {
+            SqlxLedgerEventData::TransactionCreated(tx) => (
+                tx.id,
                 match uuid::Uuid::from(tx.tx_template_id) {
-                    INCOMING_UTXO_ID => EventMetadata::UtxoDetected(
+                    INCOMING_UTXO_ID => JournalEventMetadata::UtxoDetected(
                         tx.metadata::<IncomingUtxoMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CONFIRMED_UTXO_ID | CONFIRM_SPENT_UTXO_ID => EventMetadata::UtxoSettled(
+                    CONFIRMED_UTXO_ID | CONFIRM_SPENT_UTXO_ID => JournalEventMetadata::UtxoSettled(
                         tx.metadata::<ConfirmedUtxoMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    EXTERNAL_SPEND_ID => EventMetadata::SpendDetected(
+                    EXTERNAL_SPEND_ID => JournalEventMetadata::SpendDetected(
                         tx.metadata::<ExternalSpendMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CONFIRM_SPEND_ID => EventMetadata::SpendSettled(
+                    CONFIRM_SPEND_ID => JournalEventMetadata::SpendSettled(
                         tx.metadata::<ConfirmSpendMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    QUEUED_PAYOUD_ID => EventMetadata::PayoutQueued(
+                    QUEUED_PAYOUD_ID => JournalEventMetadata::PayoutQueued(
                         tx.metadata::<QueuedPayoutMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CREATE_BATCH_ID => EventMetadata::BatchCreated(
+                    CREATE_BATCH_ID => JournalEventMetadata::BatchCreated(
                         tx.metadata::<CreateBatchMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    SUBMIT_BATCH_ID => EventMetadata::BatchSubmitted(
+                    SUBMIT_BATCH_ID => JournalEventMetadata::BatchSubmitted(
                         tx.metadata::<SubmitBatchMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    _ => EventMetadata::UnknownTransaction(tx.metadata_json),
-                }
-            }
+                    _ => JournalEventMetadata::UnknownTransaction(tx.metadata_json),
+                },
+            ),
             _ => {
                 return Ok(MaybeIgnored::Ignored);
             }
         };
         Ok(MaybeIgnored::Event(JournalEvent {
+            journal_id,
+            account_id: AccountId::from(journal_id),
+            ledger_tx_id: tx_id,
             ledger_event_id: event.id,
             recorded_at: event.recorded_at,
-            r#type: metadata.r#type(),
             metadata,
             notification_otel_context: Some(event.otel_context),
         }))

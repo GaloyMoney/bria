@@ -10,6 +10,6 @@ pub struct Account {
 
 impl Account {
     pub fn journal_id(&self) -> JournalId {
-        JournalId::from(uuid::Uuid::from(self.id))
+        JournalId::from(self.id)
     }
 }

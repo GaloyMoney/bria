@@ -2,9 +2,22 @@ use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 
-pub use sqlx_ledger::{AccountId as LedgerAccountId, TransactionId as LedgerTransactionId};
+pub use sqlx_ledger::{
+    event::SqlxLedgerEventId, AccountId as LedgerAccountId, JournalId as LedgerJournalId,
+    TransactionId as LedgerTransactionId,
+};
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
+impl From<LedgerJournalId> for AccountId {
+    fn from(id: LedgerJournalId) -> Self {
+        Self::from(uuid::Uuid::from(id))
+    }
+}
+impl From<AccountId> for LedgerJournalId {
+    fn from(id: AccountId) -> Self {
+        Self::from(uuid::Uuid::from(id))
+    }
+}
 crate::entity_id! { ProfileId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { SigningSessionId }

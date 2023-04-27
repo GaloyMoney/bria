@@ -217,3 +217,15 @@ CREATE TABLE bria_signing_session_events (
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(id, sequence)
 );
+
+CREATE TABLE bria_outbox_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  sequence BIGINT NOT NULL,
+  ledger_event_id BIGINT,
+  ledger_tx_id UUID,
+  payload JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(account_id, sequence),
+  UNIQUE(account_id, payload)
+);

@@ -62,14 +62,14 @@ impl Ledger {
     pub async fn journal_events(
         &self,
         journal_id: JournalId,
-        last_ledger_id: u64,
+        last_ledger_id: Option<SqlxLedgerEventId>,
     ) -> Result<impl Stream<Item = Result<JournalEvent, BriaError>>, BriaError> {
         let stream = BroadcastStream::new(
             self.inner
                 .events(EventSubscriberOpts {
                     buffer: 100,
                     close_on_lag: true,
-                    after_id: Some(last_ledger_id),
+                    after_id: Some(last_ledger_id.unwrap_or(SqlxLedgerEventId::BEGIN)),
                 })
                 .await?
                 .journal(journal_id)
@@ -368,7 +368,7 @@ impl Ledger {
         account_name: String,
     ) -> Result<JournalId, BriaError> {
         let new_journal = NewJournal::builder()
-            .id(Uuid::from(id))
+            .id(id)
             .description(format!("Journal for account '{account_name}'"))
             .name(account_name)
             .build()
