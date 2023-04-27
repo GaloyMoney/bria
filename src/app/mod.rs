@@ -12,6 +12,7 @@ use crate::{
     error::*,
     job,
     ledger::*,
+    outbox::*,
     payout::*,
     primitives::*,
     profile::*,
@@ -58,6 +59,7 @@ impl App {
         let addresses = Addresses::new(&pool);
         let runner = job::start_job_runner(
             &pool,
+            Outbox::new(&pool),
             wallets.clone(),
             xpubs.clone(),
             batch_groups.clone(),

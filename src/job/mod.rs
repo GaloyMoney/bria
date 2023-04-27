@@ -2,7 +2,7 @@ mod batch_broadcasting;
 mod batch_signing;
 mod batch_wallet_accounting;
 mod executor;
-mod handle_outbox;
+mod populate_outbox;
 mod process_batch_group;
 mod sync_wallet;
 
@@ -12,14 +12,15 @@ use uuid::{uuid, Uuid};
 
 use crate::{
     account::*, address::Addresses, app::BlockchainConfig, batch::*, batch_group::*, error::*,
-    ledger::Ledger, payout::*, primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*,
+    ledger::Ledger, outbox::*, payout::*, primitives::*, signing_session::*, utxo::Utxos,
+    wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
 use batch_wallet_accounting::BatchWalletAccountingData;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
-use handle_outbox::HandleOutboxData;
+use populate_outbox::PopulateOutboxData;
 use process_batch_group::ProcessBatchGroupData;
 use sync_wallet::SyncWalletData;
 
@@ -37,6 +38,7 @@ struct RespawnAllOutboxHandlersDelay(std::time::Duration);
 #[allow(clippy::too_many_arguments)]
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
+    outbox: Outbox,
     wallets: Wallets,
     xpubs: XPubs,
     batch_groups: BatchGroups,
@@ -61,7 +63,7 @@ pub async fn start_job_runner(
         batch_signing,
         batch_broadcasting,
         respawn_all_outbox_handlers,
-        handle_outbox,
+        populate_outbox,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
     registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
@@ -69,6 +71,7 @@ pub async fn start_job_runner(
         respawn_all_outbox_handlers_delay,
     ));
     registry.set_context(blockchain_cfg);
+    registry.set_context(outbox);
     registry.set_context(wallets);
     registry.set_context(xpubs);
     registry.set_context(batch_groups);
@@ -133,15 +136,19 @@ async fn process_all_batch_groups(
     Ok(())
 }
 
-#[job(name = "handle_outbox")]
-async fn handle_outbox(mut current_job: CurrentJob, ledger: Ledger) -> Result<(), BriaError> {
+#[job(name = "populate_outbox")]
+async fn populate_outbox(
+    mut current_job: CurrentJob,
+    outbox: Outbox,
+    ledger: Ledger,
+) -> Result<(), BriaError> {
     JobExecutor::builder(&mut current_job)
         .max_retry_delay(std::time::Duration::from_secs(20))
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
-            let data: HandleOutboxData = data.expect("no HandleOutboxData available");
-            let data = handle_outbox::execute(data, ledger).await?;
+            let data: PopulateOutboxData = data.expect("no PopulateOutboxData available");
+            let data = populate_outbox::execute(data, outbox, ledger).await?;
             Ok::<_, BriaError>(data)
         })
         .await?;
@@ -526,13 +533,13 @@ async fn spawn_batch_broadcasting(
 
 #[instrument(name = "job.spawn_outbox_handler", skip_all)]
 pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Result<(), BriaError> {
-    let data = HandleOutboxData {
+    let data = PopulateOutboxData {
         account_id: account.id,
         journal_id: account.journal_id(),
         tracing_data: crate::tracing::extract_tracing_data(),
     };
-    match JobBuilder::new_with_id(Uuid::from(data.journal_id), "handle_outbox")
-        .set_channel_name("handle_outbox")
+    match JobBuilder::new_with_id(Uuid::from(data.journal_id), "populate_outbox")
+        .set_channel_name("populate_outbox")
         .set_channel_args(&format!("account_id:{}", data.account_id))
         .set_json(&data)
         .expect("Couldn't set json")

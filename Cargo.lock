@@ -2799,13 +2799,14 @@ dependencies = [
 
 [[package]]
 name = "sqlx-ledger"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1cffba8816163918e9267825c44040be911689af344e037cbdba558b1e85aa3"
+checksum = "026f4627adc30b461be6ca3a947ca7e49d55f0b19f4cae8bcd2405c1c71990fc"
 dependencies = [
  "cached",
  "chrono",
  "derive_builder",
+ "opentelemetry",
  "rust_decimal",
  "rusty-money",
  "serde",
@@ -2815,14 +2816,15 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "tracing-opentelemetry",
  "uuid",
 ]
 
 [[package]]
 name = "sqlx-ledger-cel-interpreter"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "832a7082a18ce2152e1f428141f7989743c48501e6580136b90161e6a8946208"
+checksum = "db8e2922a993f7bba302abc1a6672ebfa127a58ac5f0f03a22877e7df9b2f916"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -2835,9 +2837,9 @@ dependencies = [
 
 [[package]]
 name = "sqlx-ledger-cel-parser"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d028a728787db8621b871d5cef5447bcd0aa759c02e22aa2f5c567b03a00b1a5"
+checksum = "b1586f8af8cd07df42d447196e7c6bc865d56f6b637b3e5297f1fd86d1f4dbc4"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
