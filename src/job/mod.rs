@@ -134,14 +134,14 @@ async fn process_all_batch_groups(
 }
 
 #[job(name = "handle_outbox")]
-async fn handle_outbox(mut current_job: CurrentJob) -> Result<(), BriaError> {
+async fn handle_outbox(mut current_job: CurrentJob, ledger: Ledger) -> Result<(), BriaError> {
     JobExecutor::builder(&mut current_job)
         .max_retry_delay(std::time::Duration::from_secs(20))
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: HandleOutboxData = data.expect("no HandleOutboxData available");
-            let data = handle_outbox::execute(data).await?;
+            let data = handle_outbox::execute(data, ledger).await?;
             Ok::<_, BriaError>(data)
         })
         .await?;

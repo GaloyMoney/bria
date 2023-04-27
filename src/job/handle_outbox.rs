@@ -5,7 +5,7 @@ use tracing::instrument;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::{error::*, primitives::*};
+use crate::{error::*, ledger::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandleOutboxData {
@@ -17,12 +17,8 @@ pub struct HandleOutboxData {
 
 #[instrument("job.handle_outbox")]
 pub async fn execute(
-    // pool: sqlx::PgPool,
     data: HandleOutboxData,
-    // config: ApiConfig,
-    // migrate_on_start: bool,
-    // blockchain_cfg: BlockchainConfig,
-    // app_cfg: AppConfig,
+    ledger: Ledger,
 ) -> Result<HandleOutboxData, BriaError> {
     let start_time = tokio::time::Instant::now();
     loop {
