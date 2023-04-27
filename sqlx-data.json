@@ -1370,6 +1370,39 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
+  "8dba7efce7de6cbe27b17bae89eff8625492bbe3ce21e7aa12c1c4bbd43cc5e3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.id, e.sequence, e.event\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND address = $2\n              ORDER BY b.created_at, b.id, sequence"
+  },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
       "columns": [],

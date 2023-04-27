@@ -59,7 +59,7 @@ impl App {
         let addresses = Addresses::new(&pool);
         let runner = job::start_job_runner(
             &pool,
-            Outbox::new(&pool),
+            Outbox::new(&pool, addresses.clone()),
             wallets.clone(),
             xpubs.clone(),
             batch_groups.clone(),

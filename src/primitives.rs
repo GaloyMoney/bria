@@ -15,6 +15,7 @@ crate::entity_id! { AddressId }
 crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }
+crate::entity_id! { OutboxEventId }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
 #[serde(transparent)]

@@ -119,4 +119,28 @@ impl Addresses {
         }
         Ok(ret)
     }
+
+    pub async fn find_by_address(
+        &self,
+        account_id: AccountId,
+        address: bitcoin::Address,
+    ) -> Result<WalletAddress, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.id, e.sequence, e.event
+              FROM bria_addresses b
+              JOIN bria_address_events e ON b.id = e.id
+              WHERE account_id = $1 AND address = $2
+              ORDER BY b.created_at, b.id, sequence"#,
+            Uuid::from(account_id),
+            address.to_string()
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut events = EntityEvents::new();
+        for row in rows {
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(WalletAddress::try_from(events)?)
+    }
 }
