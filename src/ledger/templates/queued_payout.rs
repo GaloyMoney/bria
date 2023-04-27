@@ -7,6 +7,7 @@ use crate::{error::*, ledger::constants::*, payout::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuedPayoutMeta {
+    pub account_id: AccountId,
     pub payout_id: PayoutId,
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,

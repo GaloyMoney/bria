@@ -402,6 +402,7 @@ impl App {
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     payout_satoshis: sats,
                     meta: QueuedPayoutMeta {
+                        account_id: profile.account_id,
                         payout_id: id,
                         batch_group_id: batch_group.id,
                         wallet_id: wallet.id,

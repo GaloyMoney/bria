@@ -8,6 +8,7 @@ use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IncomingUtxoMeta {
+    pub account_id: AccountId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,

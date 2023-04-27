@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 use tracing::instrument;
 
-use crate::{error::*, ledger::JournalEvent};
+use crate::{error::*, ledger::*};
 use opentelemetry::trace::TraceContextExt;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 
@@ -28,8 +28,12 @@ impl Outbox {
         if let Some(context) = event.notification_otel_context.take() {
             current_span.set_parent(context);
         }
-        dbg!("RECEIVED EVENT");
-        dbg!(event);
+        match event.metadata {
+            EventMetadata::UtxoDetected(income) => {
+                let _address = income.address;
+            }
+            _ => (),
+        }
         Ok(())
     }
 }
