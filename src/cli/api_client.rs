@@ -288,6 +288,30 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
+
+    pub async fn watch_events(
+        &self,
+        one_shot: bool,
+        after_sequence: Option<u64>,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::SubscribeAllRequest { after_sequence });
+
+        let mut stream = self
+            .connect()
+            .await?
+            .subscribe_all(self.inject_auth_token(request)?)
+            .await?
+            .into_inner();
+
+        while let Some(event) = stream.message().await? {
+            println!("{}", serde_json::to_string_pretty(&event)?);
+            if one_shot {
+                break;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 fn output_json<T: serde::Serialize>(response: tonic::Response<T>) -> anyhow::Result<()> {

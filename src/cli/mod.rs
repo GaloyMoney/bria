@@ -297,6 +297,25 @@ enum Command {
         #[clap(short, long)]
         batch_id: String,
     },
+    /// Watch or fetch events
+    WatchEvents {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        /// If set, only fetch the next event and exit
+        #[clap(short, long)]
+        one_shot: bool,
+        /// The sequence number after which to stream
+        #[clap(short, long)]
+        after: Option<u64>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -517,6 +536,15 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_signing_sessions(batch_id).await?;
+        }
+        Command::WatchEvents {
+            url,
+            api_key,
+            one_shot,
+            after,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.watch_events(one_shot, after).await?;
         }
     }
     Ok(())
