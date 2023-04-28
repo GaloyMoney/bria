@@ -229,3 +229,16 @@ CREATE TABLE bria_outbox_events (
   UNIQUE(account_id, sequence),
   UNIQUE(account_id, payload)
 );
+
+CREATE FUNCTION notify_bria_outbox_events() RETURNS TRIGGER AS $$
+DECLARE
+  payload TEXT;
+BEGIN
+  payload := row_to_json(NEW);
+  PERFORM pg_notify('bria_outbox_events', payload);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER bria_outbox_events AFTER INSERT ON bria_outbox_events
+  FOR EACH ROW EXECUTE FUNCTION notify_bria_outbox_events();

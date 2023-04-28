@@ -91,22 +91,15 @@ impl TryFrom<JournalEventMetadata> for OutboxEventPayload {
     }
 }
 
-#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(
+    sqlx::Type, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone, Serialize, Deserialize,
+)]
 #[serde(transparent)]
-pub struct EventSequence(u64);
+#[sqlx(transparent)]
+pub struct EventSequence(i64);
 impl EventSequence {
     pub(super) const BEGIN: Self = EventSequence(0);
     pub(super) fn next(&self) -> Self {
         Self(self.0 + 1)
-    }
-}
-impl From<i64> for EventSequence {
-    fn from(seq: i64) -> Self {
-        Self(seq as u64)
-    }
-}
-impl From<EventSequence> for i64 {
-    fn from(seq: EventSequence) -> Self {
-        seq.0 as i64
     }
 }
