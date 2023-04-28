@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = "0.5.12"
+sqlx-ledger = "0.7.5"
 
 anyhow = "1.0.70"
 clap = { version = "4.2", features = ["derive", "env"] }
