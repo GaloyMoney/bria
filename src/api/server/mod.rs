@@ -316,6 +316,23 @@ impl BriaService for Bria {
         };
         Ok(Response::new(response))
     }
+
+    type SubscribeAllStream = std::pin::Pin<
+        Box<dyn futures::Stream<Item = Result<BriaEvent, Status>> + Send + Sync + 'static>,
+    >;
+
+    async fn subscribe_all(
+        &self,
+        request: Request<SubscribeAllRequest>,
+    ) -> Result<Response<Self::SubscribeAllStream>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let start_after = request.into_inner().after_sequence;
+
+        let dummy_stream = futures::stream::iter(vec![Ok(BriaEvent {}), Ok(BriaEvent {})]);
+
+        Ok(Response::new(Box::pin(dummy_stream)))
+    }
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {

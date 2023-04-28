@@ -444,6 +444,15 @@ impl App {
             .unwrap_or_default())
     }
 
+    #[instrument(name = "app.subscribe_all", skip(self), err)]
+    pub async fn subscribe_all(
+        &self,
+        profile: Profile,
+        start_after: Option<u64>,
+    ) -> Result<(), BriaError> {
+        Ok(())
+    }
+
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,

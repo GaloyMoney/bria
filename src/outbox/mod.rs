@@ -73,6 +73,14 @@ impl Outbox {
         Ok(())
     }
 
+    pub async fn register_listener(
+        &self,
+        account_id: AccountId,
+        start: Option<EventSequence>,
+    ) -> Result<(), BriaError> {
+        unimplemented!()
+    }
+
     #[instrument("outbox.last_ledger_event_id", skip(self), ret, err)]
     pub async fn last_ledger_event_id(
         &self,

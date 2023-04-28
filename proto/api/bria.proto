@@ -21,6 +21,8 @@ service BriaService {
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
+
+  rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
 }
 
 message CreateProfileRequest {
@@ -231,4 +233,11 @@ message SigningSession {
 
 message ListSigningSessionsResponse {
   repeated SigningSession sessions = 1;
+}
+
+message SubscribeAllRequest {
+  optional uint64 after_sequence = 1;
+}
+
+message BriaEvent {
 }
