@@ -11,6 +11,8 @@ use url::Url;
 use crate::primitives::TxPriority;
 use config::*;
 
+use self::api_client::SignerConfig;
+
 #[derive(Parser)]
 #[clap(version, long_about = None)]
 struct Cli {
@@ -338,6 +340,14 @@ enum SetSignerConfigCommand {
         #[clap(short, long)]
         cert_file: PathBuf,
     },
+    Bitcoind {
+        #[clap(short, long)]
+        endpoint: String,
+        #[clap(short = 'u', long)]
+        rpc_user: String,
+        #[clap(short = 'p', long)]
+        rpc_password: String,
+    },
 }
 
 pub async fn run() -> anyhow::Result<()> {
@@ -430,11 +440,27 @@ pub async fn run() -> anyhow::Result<()> {
                     client
                         .set_signer_config(
                             xpub,
-                            crate::api::proto::LndSignerConfig {
+                            SignerConfig::Lnd(crate::api::proto::LndSignerConfig {
                                 endpoint,
                                 macaroon_base64,
                                 cert_base64,
-                            },
+                            }),
+                        )
+                        .await?;
+                }
+                SetSignerConfigCommand::Bitcoind {
+                    endpoint,
+                    rpc_user,
+                    rpc_password,
+                } => {
+                    client
+                        .set_signer_config(
+                            xpub,
+                            SignerConfig::Bitcoind(crate::api::proto::BitcoindSignerConfig {
+                                endpoint,
+                                rpc_user,
+                                rpc_password,
+                            }),
                         )
                         .await?;
                 }
