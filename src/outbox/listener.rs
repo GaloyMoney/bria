@@ -1,6 +1,6 @@
-use futures::{Future, Stream};
+use futures::{FutureExt, Stream};
 use sqlx::{Pool, Postgres};
-use tokio::sync::broadcast;
+use tokio::{sync::broadcast, task::JoinHandle};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 use std::{collections::BTreeMap, pin::Pin, task::Poll};
@@ -16,8 +16,7 @@ pub struct OutboxListener {
     event_receiver: Pin<Box<BroadcastStream<OutboxEvent>>>,
     buffer_size: usize,
     cache: BTreeMap<EventSequence, OutboxEvent>,
-    next_page_fut:
-        Option<Pin<Box<dyn Future<Output = Result<Vec<OutboxEvent>, BriaError>> + Send>>>,
+    next_page_handle: Option<JoinHandle<Result<Vec<OutboxEvent>, BriaError>>>,
 }
 
 impl OutboxListener {
@@ -36,7 +35,7 @@ impl OutboxListener {
             latest_known,
             event_receiver: Box::pin(BroadcastStream::new(event_receiver)),
             cache: BTreeMap::new(),
-            next_page_fut: None,
+            next_page_handle: None,
             buffer_size: buffer,
         }
     }
@@ -47,12 +46,11 @@ impl OutboxListener {
         if event.account_id == self.account_id {
             self.latest_known = self.latest_known.max(event.sequence);
 
-            if event.sequence > self.last_sequence {
-                if self.cache.insert(event.sequence, event).is_none()
-                    && self.cache.len() > self.buffer_size
-                {
-                    self.cache.pop_last();
-                }
+            if event.sequence > self.last_sequence
+                && self.cache.insert(event.sequence, event).is_none()
+                && self.cache.len() > self.buffer_size
+            {
+                self.cache.pop_last();
             }
         }
     }
@@ -66,16 +64,16 @@ impl Stream for OutboxListener {
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         // Poll page if present
-        if let Some(fetch) = self.next_page_fut.as_mut() {
-            match fetch.as_mut().poll(cx) {
-                Poll::Ready(Ok(events)) => {
+        if let Some(fetch) = self.next_page_handle.as_mut() {
+            match fetch.poll_unpin(cx) {
+                Poll::Ready(Ok(Ok(events))) => {
                     for event in events {
                         self.maybe_add_to_cache(event);
                     }
-                    self.next_page_fut = None;
+                    self.next_page_handle = None;
                 }
                 Poll::Ready(_) => {
-                    self.next_page_fut = None;
+                    self.next_page_handle = None;
                 }
                 Poll::Pending => (),
             }
@@ -83,7 +81,12 @@ impl Stream for OutboxListener {
         // Poll as many events as we can come
         loop {
             match self.event_receiver.as_mut().poll_next(cx) {
-                Poll::Ready(None) => return Poll::Ready(None),
+                Poll::Ready(None) => {
+                    if let Some(handle) = self.next_page_handle.take() {
+                        handle.abort();
+                    }
+                    return Poll::Ready(None);
+                }
                 Poll::Ready(Some(Ok(event))) => {
                     self.maybe_add_to_cache(event);
                 }
@@ -98,19 +101,22 @@ impl Stream for OutboxListener {
             }
             if seq == self.last_sequence.next() {
                 self.last_sequence = seq;
-                self.next_page_fut = None;
+                if let Some(handle) = self.next_page_handle.take() {
+                    handle.abort();
+                }
                 return Poll::Ready(Some(event));
             }
             self.cache.insert(seq, event);
         }
 
-        if self.next_page_fut.is_none() && self.last_sequence < self.latest_known {
-            self.next_page_fut = Some(Box::pin(OutboxRepo::load_next_page(
-                self.pool.clone(),
-                self.account_id,
-                self.last_sequence,
-                self.buffer_size,
-            )));
+        if self.next_page_handle.is_none() && self.last_sequence < self.latest_known {
+            let pool = self.pool.clone();
+            let account_id = self.account_id;
+            let last_sequence = self.last_sequence;
+            let buffer_size = self.buffer_size;
+            self.next_page_handle = Some(tokio::spawn(async move {
+                OutboxRepo::load_next_page(pool, account_id, last_sequence, buffer_size).await
+            }));
             return self.poll_next(cx);
         }
         Poll::Pending

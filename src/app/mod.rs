@@ -25,6 +25,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct App {
     _runner: OwnedHandle,
+    outbox: Outbox,
     profiles: Profiles,
     xpubs: XPubs,
     wallets: Wallets,
@@ -57,9 +58,10 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
+        let outbox = Outbox::init(&pool, addresses.clone()).await?;
         let runner = job::start_job_runner(
             &pool,
-            Outbox::init(&pool, addresses.clone()).await?,
+            outbox.clone(),
             wallets.clone(),
             xpubs.clone(),
             batch_groups.clone(),
@@ -84,6 +86,7 @@ impl App {
         )
         .await?;
         Ok(Self {
+            outbox,
             profiles: Profiles::new(&pool),
             xpubs,
             wallets,
@@ -449,8 +452,10 @@ impl App {
         &self,
         profile: Profile,
         start_after: Option<u64>,
-    ) -> Result<(), BriaError> {
-        Ok(())
+    ) -> Result<OutboxListener, BriaError> {
+        self.outbox
+            .register_listener(profile.account_id, start_after.map(EventSequence::from))
+            .await
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

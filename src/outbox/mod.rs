@@ -78,11 +78,14 @@ impl Outbox {
                 .build()
                 .expect("Could not build OutboxEvent");
 
-            if let Err(res) = self.repo.persist_event(event).await {
+            if let Err(res) = self.repo.persist_event(event.clone()).await {
                 let mut write_seqs = self.sequences.write().await;
                 write_seqs.remove(&ledger_event.account_id);
                 return Err(res);
             }
+            self.event_sender
+                .send(event)
+                .map_err(|_| BriaError::SendEventError)?;
 
             *write_sequences = (next_sequence, Some(ledger_event.ledger_event_id));
         }
@@ -93,11 +96,11 @@ impl Outbox {
     pub async fn register_listener(
         &self,
         account_id: AccountId,
-        start: Option<EventSequence>,
+        start_after: Option<EventSequence>,
     ) -> Result<OutboxListener, BriaError> {
         let sub = self.event_receiver.resubscribe();
         let latest_known = self.sequences_for(account_id).await?.read().await.0;
-        let start = start.unwrap_or(latest_known);
+        let start = start_after.unwrap_or(latest_known);
         Ok(OutboxListener::new(
             &self.pool,
             sub,
@@ -124,7 +127,7 @@ impl Outbox {
         repo: OutboxRepo,
         sequences: Arc<RwLock<SequenceMap>>,
     ) -> Result<(), BriaError> {
-        let mut listener = PgListener::connect_with(&pool).await?;
+        let mut listener = PgListener::connect_with(pool).await?;
         listener.listen("bria_outbox_events").await?;
         tokio::spawn(async move {
             loop {

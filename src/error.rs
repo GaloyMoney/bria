@@ -30,6 +30,8 @@ pub enum BriaError {
     BdkError(#[from] bdk::Error),
     #[error("BriaError - EventStreamError: {0}")]
     EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
+    #[error("BriaError - SendEventError")]
+    SendEventError,
     #[error("BriaError - MissingTxMetadata")]
     MissingTxMetadata,
     #[error("BriaError - SigningClientError: {0}")]

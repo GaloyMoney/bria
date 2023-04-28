@@ -5,6 +5,7 @@ use crate::{
     address::*,
     batch_group::*,
     error::BriaError,
+    outbox::*,
     payout::*,
     primitives::{bitcoin::*, *},
     profile::*,
@@ -216,6 +217,50 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
                 .expect("Satoshis -> u64 failed"),
             logical_encumbered_outgoing: u64::try_from(balance.logical_encumbered_outgoing)
                 .expect("Satoshis -> u64 failed"),
+        }
+    }
+}
+
+impl From<OutboxEvent> for proto::BriaEvent {
+    fn from(event: OutboxEvent) -> Self {
+        let payload = match event.payload {
+            OutboxEventPayload::UtxoDetected {
+                tx_id,
+                vout,
+                satoshis,
+                address,
+                wallet_id,
+                ..
+            } => proto::bria_event::Payload::UtxoDetected(proto::UtxoDetected {
+                wallet_id: wallet_id.to_string(),
+                tx_id: tx_id.to_string(),
+                vout,
+                satoshis: u64::from(satoshis),
+                address: address.to_string(),
+            }),
+            OutboxEventPayload::UtxoSettled {
+                tx_id,
+                vout,
+                satoshis,
+                address,
+                wallet_id,
+                confirmation_time,
+                ..
+            } => proto::bria_event::Payload::UtxoSettled(proto::UtxoSettled {
+                wallet_id: wallet_id.to_string(),
+                tx_id: tx_id.to_string(),
+                vout,
+                satoshis: u64::from(satoshis),
+                address: address.to_string(),
+                block_height: confirmation_time.height,
+                block_time: confirmation_time.timestamp,
+            }),
+        };
+
+        proto::BriaEvent {
+            sequence: u64::from(event.sequence),
+            payload: Some(payload),
+            recorded_at: event.recorded_at.timestamp() as u32,
         }
     }
 }

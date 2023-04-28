@@ -103,3 +103,15 @@ impl EventSequence {
         Self(self.0 + 1)
     }
 }
+
+impl From<u64> for EventSequence {
+    fn from(n: u64) -> Self {
+        Self(n as i64)
+    }
+}
+
+impl From<EventSequence> for u64 {
+    fn from(EventSequence(n): EventSequence) -> Self {
+        n as u64
+    }
+}
