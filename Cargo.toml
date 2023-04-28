@@ -11,6 +11,7 @@ fail-on-warnings = []
 sqlx-ledger = { version = "0.7.7", features = ["otel"] }
 
 anyhow = "1.0.71"
+bitcoincore-rpc = "0.16.0"
 clap = { version = "4.2", features = ["derive", "env"] }
 chrono = { version = "0.4.22", features = ["clock", "serde"], default-features = false }
 derive_builder = "0.12.0"
@@ -50,6 +51,3 @@ tempfile = "3.4.0"
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
 tonic-build = { version = "0.9", features = ["prost"] }
-
-[dev-dependencies]
-bitcoincore-rpc = "0.16.0"

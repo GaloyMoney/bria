@@ -66,6 +66,7 @@ pub mod bitcoin {
             },
             consensus,
             hash_types::Txid,
+            hashes::hex,
             util::{
                 address::Error as AddressError,
                 bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
