@@ -396,15 +396,15 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let id = self.payouts.create_in_tx(&mut tx, new_payout).await?;
         self.ledger
-            .queued_payout(
+            .payout_queued(
                 tx,
                 LedgerTransactionId::from(uuid::Uuid::from(id)),
-                QueuedPayoutParams {
+                PayoutQueuedParams {
                     journal_id: wallet.journal_id,
                     logical_outgoing_account_id: wallet.ledger_account_ids.logical_outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     payout_satoshis: sats,
-                    meta: QueuedPayoutMeta {
+                    meta: PayoutQueuedMeta {
                         account_id: profile.account_id,
                         payout_id: id,
                         batch_group_id: batch_group.id,

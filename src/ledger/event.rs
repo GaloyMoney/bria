@@ -16,13 +16,13 @@ pub struct JournalEvent {
 
 #[derive(Clone, Debug)]
 pub enum JournalEventMetadata {
-    UtxoDetected(IncomingUtxoMeta),
-    UtxoSettled(ConfirmedUtxoMeta),
-    SpendDetected(ExternalSpendMeta),
-    SpendSettled(ConfirmSpendMeta),
-    PayoutQueued(QueuedPayoutMeta),
-    BatchCreated(CreateBatchMeta),
-    BatchSubmitted(SubmitBatchMeta),
+    UtxoDetected(UtxoDetectedMeta),
+    UtxoSettled(UtxoSettledMeta),
+    SpendDetected(SpendDetectedMeta),
+    SpendSettled(SpendSettledMeta),
+    PayoutQueued(PayoutQueuedMeta),
+    BatchCreated(BatchCreatedMeta),
+    BatchSubmitted(BatchSubmittedMeta),
     UnknownTransaction(Option<serde_json::Value>),
 }
 
@@ -40,32 +40,32 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
             SqlxLedgerEventData::TransactionCreated(tx) => (
                 tx.id,
                 match uuid::Uuid::from(tx.tx_template_id) {
-                    INCOMING_UTXO_ID => JournalEventMetadata::UtxoDetected(
-                        tx.metadata::<IncomingUtxoMeta>()?
+                    UTXO_DETECTED_ID => JournalEventMetadata::UtxoDetected(
+                        tx.metadata::<UtxoDetectedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CONFIRMED_UTXO_ID | CONFIRM_SPENT_UTXO_ID => JournalEventMetadata::UtxoSettled(
-                        tx.metadata::<ConfirmedUtxoMeta>()?
+                    UTXO_SETTLED_ID | SPENT_UTXO_SETTLED_ID => JournalEventMetadata::UtxoSettled(
+                        tx.metadata::<UtxoSettledMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    EXTERNAL_SPEND_ID => JournalEventMetadata::SpendDetected(
-                        tx.metadata::<ExternalSpendMeta>()?
+                    SPEND_DETECTED_ID => JournalEventMetadata::SpendDetected(
+                        tx.metadata::<SpendDetectedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CONFIRM_SPEND_ID => JournalEventMetadata::SpendSettled(
-                        tx.metadata::<ConfirmSpendMeta>()?
+                    SPEND_SETTLED_ID => JournalEventMetadata::SpendSettled(
+                        tx.metadata::<SpendSettledMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    QUEUED_PAYOUD_ID => JournalEventMetadata::PayoutQueued(
-                        tx.metadata::<QueuedPayoutMeta>()?
+                    PAYOUT_QUEUED_ID => JournalEventMetadata::PayoutQueued(
+                        tx.metadata::<PayoutQueuedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    CREATE_BATCH_ID => JournalEventMetadata::BatchCreated(
-                        tx.metadata::<CreateBatchMeta>()?
+                    BATCH_CREATED_ID => JournalEventMetadata::BatchCreated(
+                        tx.metadata::<BatchCreatedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    SUBMIT_BATCH_ID => JournalEventMetadata::BatchSubmitted(
-                        tx.metadata::<SubmitBatchMeta>()?
+                    BATCH_SUBMITTED_ID => JournalEventMetadata::BatchSubmitted(
+                        tx.metadata::<BatchSubmittedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
                     _ => JournalEventMetadata::UnknownTransaction(tx.metadata_json),

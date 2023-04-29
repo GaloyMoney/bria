@@ -44,14 +44,14 @@ impl Ledger {
         Self::logical_at_rest_account(&inner).await?;
         Self::logical_outgoing_account(&inner).await?;
 
-        templates::IncomingUtxo::init(&inner).await?;
-        templates::ConfirmedUtxo::init(&inner).await?;
-        templates::ConfirmSpentUtxo::init(&inner).await?;
-        templates::ExternalSpend::init(&inner).await?;
-        templates::ConfirmSpend::init(&inner).await?;
-        templates::QueuedPayout::init(&inner).await?;
-        templates::CreateBatch::init(&inner).await?;
-        templates::SubmitBatch::init(&inner).await?;
+        templates::UtxoDetected::init(&inner).await?;
+        templates::UtxoSettled::init(&inner).await?;
+        templates::SpentUtxoSettled::init(&inner).await?;
+        templates::SpendDetected::init(&inner).await?;
+        templates::SpendSettled::init(&inner).await?;
+        templates::PayoutQueued::init(&inner).await?;
+        templates::BatchCreated::init(&inner).await?;
+        templates::BatchSubmitted::init(&inner).await?;
 
         Ok(Self {
             inner,
@@ -87,25 +87,25 @@ impl Ledger {
         }))
     }
 
-    #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
-    pub async fn incoming_utxo(
+    #[instrument(name = "ledger.utxo_detected", skip(self, tx))]
+    pub async fn utxo_detected(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: IncomingUtxoParams,
+        params: UtxoDetectedParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, INCOMING_UTXO_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, UTXO_DETECTED_CODE, Some(params))
             .await?;
         Ok(())
     }
 
-    #[instrument(name = "ledger.confirmed_utxo", skip(self, tx))]
-    pub async fn confirmed_utxo(
+    #[instrument(name = "ledger.utxo_settled", skip(self, tx))]
+    pub async fn utxo_settled(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: ConfirmedUtxoParams,
+        params: UtxoSettledParams,
     ) -> Result<(), BriaError> {
         let (code, params) = if let Some(spent_tx) = params.meta.already_spent_tx_id {
             #[derive(serde::Deserialize)]
@@ -133,10 +133,10 @@ impl Ledger {
                     );
                 }
             }
-            (CONFIRM_SPENT_UTXO_CODE, Some(params))
+            (SPENT_UTXO_SETTLED_CODE, Some(params))
         } else {
             (
-                CONFIRMED_UTXO_CODE,
+                UTXO_SETTLED_CODE,
                 Some(sqlx_ledger::tx_template::TxParams::from(params)),
             )
         };
@@ -146,34 +146,34 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.queued_payout", skip(self, tx))]
-    pub async fn queued_payout(
+    #[instrument(name = "ledger.payout_queued", skip(self, tx))]
+    pub async fn payout_queued(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: QueuedPayoutParams,
+        params: PayoutQueuedParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, QUEUED_PAYOUT_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, PAYOUT_QUEUED_CODE, Some(params))
             .await?;
         Ok(())
     }
 
-    #[instrument(name = "ledger.create_batch", skip(self, tx))]
-    pub async fn create_batch(
+    #[instrument(name = "ledger.batch_created", skip(self, tx))]
+    pub async fn batch_created(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: CreateBatchParams,
+        params: BatchCreatedParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, CREATE_BATCH_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, BATCH_CREATED_CODE, Some(params))
             .await?;
         Ok(())
     }
 
-    #[instrument(name = "ledger.submit_batch", skip(self, tx))]
-    pub async fn submit_batch(
+    #[instrument(name = "ledger.batch_submitted", skip(self, tx))]
+    pub async fn batch_submitted(
         &self,
         tx: Transaction<'_, Postgres>,
         create_batch_tx_id: LedgerTransactionId,
@@ -186,16 +186,16 @@ impl Ledger {
             .transactions()
             .list_by_ids(std::iter::once(create_batch_tx_id))
             .await?;
-        if let Some(CreateBatchMeta {
+        if let Some(BatchCreatedMeta {
             batch_id,
             batch_group_id,
             tx_summary,
         }) = txs[0].metadata()?
         {
-            let params = SubmitBatchParams {
+            let params = BatchSubmittedParams {
                 journal_id: txs[0].journal_id,
                 ledger_account_ids,
-                meta: SubmitBatchMeta {
+                meta: BatchSubmittedMeta {
                     batch_id,
                     batch_group_id,
                     encumbered_spending_fee_sats: tx_summary
@@ -207,28 +207,28 @@ impl Ledger {
                 },
             };
             self.inner
-                .post_transaction_in_tx(tx, submit_tx_id, SUBMIT_BATCH_CODE, Some(params))
+                .post_transaction_in_tx(tx, submit_tx_id, BATCH_SUBMITTED_CODE, Some(params))
                 .await?;
         }
         Ok(())
     }
 
-    #[instrument(name = "ledger.external_spend", skip(self, tx))]
-    pub async fn external_spend(
+    #[instrument(name = "ledger.spend_detected", skip(self, tx))]
+    pub async fn spend_detected(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: ExternalSpendParams,
+        params: SpendDetectedParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, EXTERNAL_SPEND_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, SPEND_DETECTED_CODE, Some(params))
             .await?;
         Ok(())
     }
 
-    #[instrument(name = "ledger.confirm_spend", skip(self, tx))]
+    #[instrument(name = "ledger.spend_settled", skip(self, tx))]
     #[allow(clippy::too_many_arguments)]
-    pub async fn confirm_spend(
+    pub async fn spend_settled(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
@@ -252,13 +252,13 @@ impl Ledger {
                 .post_transaction_in_tx(
                     tx,
                     tx_id,
-                    CONFIRM_SPEND_CODE,
-                    Some(ConfirmSpendParams {
+                    SPEND_SETTLED_CODE,
+                    Some(SpendSettledParams {
                         journal_id,
                         ledger_account_ids,
                         pending_id,
                         change_spent,
-                        meta: ConfirmSpendMeta {
+                        meta: SpendSettledMeta {
                             tx_summary,
                             confirmation_time,
                         },

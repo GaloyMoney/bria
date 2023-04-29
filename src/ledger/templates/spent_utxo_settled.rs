@@ -1,13 +1,13 @@
 use sqlx_ledger::{tx_template::*, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
-use super::confirmed_utxo::ConfirmedUtxoParams;
+use super::utxo_settled::UtxoSettledParams;
 use crate::{error::*, ledger::constants::*};
 
-pub struct ConfirmSpentUtxo {}
+pub struct SpentUtxoSettled {}
 
-impl ConfirmSpentUtxo {
-    #[instrument(name = "ledger.confirm_spent_utxo.init", skip_all)]
+impl SpentUtxoSettled {
+    #[instrument(name = "ledger.spent_utxo_settled.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
@@ -20,7 +20,7 @@ impl ConfirmSpentUtxo {
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_PENDING_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_incoming_account_id")
                 .direction("DEBIT")
@@ -29,7 +29,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_PENDING_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -38,7 +38,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_SETTLED_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -47,7 +47,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_SETTLED_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_at_rest_account_id")
                 .direction("CREDIT")
@@ -56,7 +56,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_SETTLED_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
@@ -65,7 +65,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_LOGICAL_SETTLED_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_LOGICAL_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -75,7 +75,7 @@ impl ConfirmSpentUtxo {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_PENDING_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_incoming_account_id")
                 .direction("DEBIT")
@@ -84,7 +84,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_PENDING_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -93,7 +93,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_SETTLED_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("DEBIT")
@@ -102,7 +102,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_SETTLED_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("CREDIT")
@@ -111,7 +111,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_SETTLED_DR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_SETTLED_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
@@ -120,7 +120,7 @@ impl ConfirmSpentUtxo {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRM_SPENT_UTXO_UTXO_SETTLED_CR'")
+                .entry_type("'SPENT_UTXO_SETTLED_UTXO_SETTLED_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
@@ -130,7 +130,7 @@ impl ConfirmSpentUtxo {
                 .expect("Couldn't build entry"),
         ];
 
-        let mut params = ConfirmedUtxoParams::defs();
+        let mut params = UtxoSettledParams::defs();
         params.push(
             ParamDefinition::builder()
                 .name("withdraw_from_logical_settled")
@@ -140,13 +140,13 @@ impl ConfirmSpentUtxo {
                 .unwrap(),
         );
         let template = NewTxTemplate::builder()
-            .id(CONFIRM_SPENT_UTXO_ID)
-            .code(CONFIRM_SPENT_UTXO_CODE)
+            .id(SPENT_UTXO_SETTLED_ID)
+            .code(SPENT_UTXO_SETTLED_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)
             .build()
-            .expect("Couldn't build CONFIRM_SPENT_UTXO_CODE");
+            .expect("Couldn't build SPENT_UTXO_SETTLED_CODE");
         match ledger.tx_templates().create(template).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
             Err(e) => Err(e.into()),

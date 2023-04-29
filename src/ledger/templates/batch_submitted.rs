@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SubmitBatchMeta {
+pub struct BatchSubmittedMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
     pub encumbered_spending_fee_sats: Option<Satoshis>,
@@ -21,13 +21,13 @@ pub struct SubmitBatchMeta {
 }
 
 #[derive(Debug)]
-pub struct SubmitBatchParams {
+pub struct BatchSubmittedParams {
     pub journal_id: JournalId,
     pub ledger_account_ids: WalletLedgerAccountIds,
-    pub meta: SubmitBatchMeta,
+    pub meta: BatchSubmittedMeta,
 }
 
-impl SubmitBatchParams {
+impl BatchSubmittedParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -74,13 +74,13 @@ impl SubmitBatchParams {
     }
 }
 
-impl From<SubmitBatchParams> for TxParams {
+impl From<BatchSubmittedParams> for TxParams {
     fn from(
-        SubmitBatchParams {
+        BatchSubmittedParams {
             journal_id,
             ledger_account_ids,
             meta,
-        }: SubmitBatchParams,
+        }: BatchSubmittedParams,
     ) -> Self {
         let effective = Utc::now().date_naive();
         let change = meta.tx_summary.change_sats.to_btc();
@@ -106,10 +106,10 @@ impl From<SubmitBatchParams> for TxParams {
     }
 }
 
-pub struct SubmitBatch {}
+pub struct BatchSubmitted {}
 
-impl SubmitBatch {
-    #[instrument(name = "ledger.external_spend.init", skip_all)]
+impl BatchSubmitted {
+    #[instrument(name = "ledger.batch_submitted.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
@@ -121,7 +121,7 @@ impl SubmitBatch {
         let entries = vec![
             // FEES
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_FEE_ENCUMBERED_DR'")
+                .entry_type("'BATCH_SUBMITTED_FEE_ENCUMBERED_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -130,7 +130,7 @@ impl SubmitBatch {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_FEE_ENCUMBERED_CR'")
+                .entry_type("'BATCH_SUBMITTED_FEE_ENCUMBERED_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
@@ -140,7 +140,7 @@ impl SubmitBatch {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_UTXO_ENCUMBERED_DR'")
+                .entry_type("'BATCH_SUBMITTED_UTXO_ENCUMBERED_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("DEBIT")
@@ -149,7 +149,7 @@ impl SubmitBatch {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_UTXO_ENCUMBERED_CR'")
+                .entry_type("'BATCH_SUBMITTED_UTXO_ENCUMBERED_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -158,7 +158,7 @@ impl SubmitBatch {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_UTXO_PENDING_DR'")
+                .entry_type("'BATCH_SUBMITTED_UTXO_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -167,7 +167,7 @@ impl SubmitBatch {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SUBMIT_BATCH_UTXO_PENDING_CR'")
+                .entry_type("'BATCH_SUBMITTED_UTXO_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("CREDIT")
@@ -177,10 +177,10 @@ impl SubmitBatch {
                 .expect("Couldn't build entry"),
         ];
 
-        let params = SubmitBatchParams::defs();
+        let params = BatchSubmittedParams::defs();
         let template = NewTxTemplate::builder()
-            .id(SUBMIT_BATCH_ID)
-            .code(SUBMIT_BATCH_CODE)
+            .id(BATCH_SUBMITTED_ID)
+            .code(BATCH_SUBMITTED_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)
