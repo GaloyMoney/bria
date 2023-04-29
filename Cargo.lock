@@ -256,7 +256,7 @@ dependencies = [
  "async-trait",
  "bdk-macros",
  "bitcoin",
- "electrum-client",
+ "electrum-client 0.12.1",
  "getrandom",
  "js-sys",
  "log",
@@ -418,7 +418,7 @@ dependencies = [
  "chrono",
  "clap",
  "derive_builder",
- "electrum-client",
+ "electrum-client 0.14.0",
  "futures",
  "lazy_static",
  "opentelemetry",
@@ -930,6 +930,24 @@ name = "electrum-client"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8e1e1e452aef3ee772d19cc6272ef642f22ce0f4a9fb715ffe98010934e2ae1"
+dependencies = [
+ "bitcoin",
+ "byteorder",
+ "libc",
+ "log",
+ "rustls 0.20.8",
+ "serde",
+ "serde_json",
+ "webpki 0.22.0",
+ "webpki-roots",
+ "winapi",
+]
+
+[[package]]
+name = "electrum-client"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a9bf0b1265b34ba0f92f3986dd2cca9a1c9e7eed7a341da2cd02d4c4dc2dcd8"
 dependencies = [
  "bitcoin",
  "byteorder",
