@@ -320,8 +320,11 @@ async fn create_batch() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 encumbered_fees,
                 meta: BatchCreatedMeta {
-                    batch_id,
-                    batch_group_id: BatchGroupId::new(),
+                    batch_info: BatchInfo {
+                        batch_id,
+                        batch_group_id: BatchGroupId::new(),
+                        included_payouts: Vec::new(),
+                    },
                     tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,

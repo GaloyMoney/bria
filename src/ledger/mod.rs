@@ -187,8 +187,7 @@ impl Ledger {
             .list_by_ids(std::iter::once(create_batch_tx_id))
             .await?;
         if let Some(BatchCreatedMeta {
-            batch_id,
-            batch_group_id,
+            batch_info,
             tx_summary,
         }) = txs[0].metadata()?
         {
@@ -196,8 +195,7 @@ impl Ledger {
                 journal_id: txs[0].journal_id,
                 ledger_account_ids,
                 meta: BatchSubmittedMeta {
-                    batch_id,
-                    batch_group_id,
+                    batch_info,
                     encumbered_spending_fee_sats: tx_summary
                         .change_address
                         .as_ref()
@@ -234,20 +232,25 @@ impl Ledger {
         tx_id: LedgerTransactionId,
         journal_id: JournalId,
         ledger_account_ids: WalletLedgerAccountIds,
-        pending_id: LedgerTransactionId,
+        spend_detected_tx_id: LedgerTransactionId,
         confirmation_time: bitcoin::BlockTime,
         change_spent: bool,
     ) -> Result<(), BriaError> {
         #[derive(serde::Deserialize)]
         struct ExtractTxSummary {
+            batch_info: Option<BatchInfo>,
             tx_summary: WalletTransactionSummary,
         }
         let txs = self
             .inner
             .transactions()
-            .list_by_ids(std::iter::once(pending_id))
+            .list_by_ids(std::iter::once(spend_detected_tx_id))
             .await?;
-        if let Some(ExtractTxSummary { tx_summary }) = txs[0].metadata()? {
+        if let Some(ExtractTxSummary {
+            tx_summary,
+            batch_info,
+        }) = txs[0].metadata()?
+        {
             self.inner
                 .post_transaction_in_tx(
                     tx,
@@ -256,9 +259,10 @@ impl Ledger {
                     Some(SpendSettledParams {
                         journal_id,
                         ledger_account_ids,
-                        pending_id,
+                        spend_detected_tx_id,
                         change_spent,
                         meta: SpendSettledMeta {
+                            batch_info,
                             tx_summary,
                             confirmation_time,
                         },

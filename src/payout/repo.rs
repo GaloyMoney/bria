@@ -115,6 +115,41 @@ impl Payouts {
         Ok(payouts)
     }
 
+    #[instrument(name = "payouts.list_for_batch", skip(self))]
+    pub async fn list_for_batch(
+        &self,
+        account_id: AccountId,
+        batch_id: BatchId,
+    ) -> Result<Vec<Payout>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_payouts b
+              JOIN bria_payout_events e ON b.id = e.id
+              WHERE b.account_id = $1 AND b.batch_id = $2
+              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
+            account_id as AccountId,
+            batch_id as BatchId
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut wallet_payouts = Vec::new();
+        let mut entity_events = HashMap::new();
+        for row in rows {
+            let id = WalletId::from(row.id);
+            wallet_payouts.push(id);
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        let mut payouts = Vec::new();
+        for id in wallet_payouts {
+            if let Some(events) = entity_events.remove(&id) {
+                payouts.push(Payout::try_from(events)?);
+            }
+        }
+        Ok(payouts)
+    }
+
     pub async fn added_to_batch(
         &self,
         tx: &mut Transaction<'_, Postgres>,

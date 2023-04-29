@@ -30,6 +30,7 @@ impl Utxos {
     }
 
     #[instrument(name = "utxos.new_utxo_detected", skip(self), err)]
+    #[allow(clippy::too_many_arguments)]
     pub async fn new_utxo_detected(
         &self,
         account_id: AccountId,

@@ -111,7 +111,7 @@ impl Batches {
                     change_address: row
                         .change_address
                         .as_ref()
-                        .map(|a| Address::from_str(&a).expect("parse address")),
+                        .map(|a| Address::from_str(a).expect("parse address")),
                     change_outpoint: row.change_vout.map(|out| bitcoin::OutPoint {
                         txid: bitcoin_tx_id,
                         vout: out as u32,

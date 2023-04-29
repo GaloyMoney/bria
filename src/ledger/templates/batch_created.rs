@@ -4,15 +4,14 @@ use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::shared_meta::WalletTransactionSummary;
+use super::shared_meta::*;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchCreatedMeta {
-    pub batch_id: BatchId,
-    pub batch_group_id: BatchGroupId,
+    pub batch_info: BatchInfo,
     pub tx_summary: WalletTransactionSummary,
 }
 
@@ -121,7 +120,7 @@ impl From<BatchCreatedParams> for TxParams {
             total_utxo_in_sats,
             ..
         } = meta.tx_summary;
-        let batch_id = meta.batch_id;
+        let batch_id = meta.batch_info.batch_id;
         let total_utxo_in = total_utxo_in_sats.to_btc();
         let change = change_sats.to_btc();
         let fee_sats = fee_sats.to_btc();

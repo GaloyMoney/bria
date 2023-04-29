@@ -30,6 +30,7 @@ pub enum PayoutEvent {
 pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
+    pub profile_id: ProfileId,
     pub batch_group_id: BatchGroupId,
     #[builder(setter(into), default)]
     pub batch_id: Option<BatchId>,
@@ -141,6 +142,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                 PayoutEvent::PayoutInitialized {
                     id,
                     wallet_id,
+                    profile_id,
                     batch_group_id,
                     destination,
                     satoshis,
@@ -149,6 +151,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                     builder = builder
                         .id(*id)
                         .wallet_id(*wallet_id)
+                        .profile_id(*profile_id)
                         .batch_group_id(*batch_group_id)
                         .destination(destination.clone())
                         .satoshis(*satoshis);
