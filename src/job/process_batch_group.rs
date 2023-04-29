@@ -136,7 +136,6 @@ pub async fn execute<'a>(
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)
-            .included_utxos(included_utxos)
             .wallet_summaries(
                 wallet_totals
                     .into_iter()
@@ -146,12 +145,19 @@ pub async fn execute<'a>(
             .build()
             .expect("Couldn't build batch");
 
+        // Not using a Box here causes an interesting compile error with rustc 1.69.0
+        let included_utxos: Box<dyn Iterator<Item = (KeychainId, bitcoin::OutPoint)> + Send> =
+            Box::new(included_utxos.into_iter().flat_map(|(_, keychain_map)| {
+                keychain_map
+                    .into_iter()
+                    .flat_map(|(keychain_id, outpoints)| {
+                        outpoints
+                            .into_iter()
+                            .map(move |outpoint| (keychain_id, outpoint))
+                    })
+            }));
         utxos
-            .reserve_utxos_in_batch(
-                &mut tx,
-                batch.id,
-                batch.iter_utxos().map(|(_, k, utxo)| (k, utxo)),
-            )
+            .reserve_utxos_in_batch(&mut tx, data.account_id, batch.id, included_utxos)
             .await?;
 
         let batch_id = batch.id;

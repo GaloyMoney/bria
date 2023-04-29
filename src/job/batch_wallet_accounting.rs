@@ -35,7 +35,6 @@ pub async fn execute(
         bitcoin_tx_id,
         batch_group_id,
         mut wallet_summaries,
-        included_utxos,
         ..
     } = batches.find_by_id(data.account_id, data.batch_id).await?;
 
@@ -44,12 +43,12 @@ pub async fn execute(
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
 
-    let utxos = included_utxos
-        .get(&data.wallet_id)
-        .expect("utxos not found");
-    let utxos = bria_utxos.list_utxos_by_outpoint(utxos).await?;
     let encumbered_fees = ledger
-        .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.income_detected_ledger_tx_id))
+        .sum_reserved_fees_in_txs(
+            bria_utxos
+                .income_detected_ids_for_utxos_in(data.batch_id, data.wallet_id)
+                .await?,
+        )
         .await?;
 
     if let Some((tx, tx_id)) = batches

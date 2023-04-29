@@ -138,7 +138,8 @@ pub async fn execute(
                     .expect("Could not build new address in sync wallet");
                 if let Some((pending_id, mut tx)) = deps
                     .bria_utxos
-                    .new_income_utxo(
+                    .new_utxo_detected(
+                        data.account_id,
                         wallet.id,
                         keychain_id,
                         &address_info,
@@ -193,7 +194,7 @@ pub async fn execute(
                         bdk_utxos.mark_confirmed(&mut tx, &local_utxo).await?;
                         let utxo = deps
                             .bria_utxos
-                            .confirm_utxo(
+                            .settle_utxo(
                                 &mut tx,
                                 keychain_id,
                                 local_utxo.outpoint,
@@ -206,11 +207,11 @@ pub async fn execute(
                         deps.ledger
                             .utxo_settled(
                                 tx,
-                                utxo.income_settled_ledger_tx_id,
+                                utxo.utxo_settled_ledger_tx_id,
                                 UtxoSettledParams {
                                     journal_id: wallet.journal_id,
                                     ledger_account_ids: wallet.ledger_account_ids,
-                                    pending_id: utxo.income_detected_ledger_tx_id,
+                                    pending_id: utxo.utxo_detected_ledger_tx_id,
                                     meta: UtxoSettledMeta {
                                         account_id: data.account_id,
                                         wallet_id: data.wallet_id,
@@ -258,8 +259,9 @@ pub async fn execute(
                     };
                 if let Some((settled_sats, allocations)) = deps
                     .bria_utxos
-                    .mark_spent(
+                    .spend_detected(
                         &mut tx,
+                        data.account_id,
                         wallet.id,
                         keychain_id,
                         tx_id,
@@ -292,7 +294,7 @@ pub async fn execute(
                             .sum_reserved_fees_in_txs(
                                 income_bria_utxos
                                     .iter()
-                                    .map(|u| u.income_detected_ledger_tx_id),
+                                    .map(|u| u.utxo_detected_ledger_tx_id),
                             )
                             .await?;
                         deps.ledger
@@ -341,7 +343,7 @@ pub async fn execute(
                 let mut tx = pool.begin().await?;
                 if let Some((pending_out_id, confirmed_out_id, change_spent)) = deps
                     .bria_utxos
-                    .confirm_spend(
+                    .spend_settled(
                         &mut tx,
                         keychain_id,
                         utxos_to_fetch.get(&keychain_id).unwrap().iter(),
@@ -379,7 +381,7 @@ pub async fn execute(
             {
                 let utxo = deps
                     .bria_utxos
-                    .confirm_utxo(
+                    .settle_utxo(
                         &mut tx,
                         keychain_id,
                         outpoint,
@@ -392,11 +394,11 @@ pub async fn execute(
                 deps.ledger
                     .utxo_settled(
                         tx,
-                        utxo.income_settled_ledger_tx_id,
+                        utxo.utxo_settled_ledger_tx_id,
                         UtxoSettledParams {
                             journal_id: wallet.journal_id,
                             ledger_account_ids: wallet.ledger_account_ids,
-                            pending_id: utxo.income_detected_ledger_tx_id,
+                            pending_id: utxo.utxo_detected_ledger_tx_id,
                             meta: UtxoSettledMeta {
                                 account_id: data.account_id,
                                 wallet_id: data.wallet_id,
@@ -430,7 +432,7 @@ pub async fn execute(
                     .find(|u| u.keychain == bitcoin::KeychainKind::Internal);
                 if let Some((pending_out_id, confirmed_out_id, change_spent)) = deps
                     .bria_utxos
-                    .confirm_spend(
+                    .spend_settled(
                         &mut tx,
                         keychain_id,
                         inputs.iter().map(|u| &u.outpoint),

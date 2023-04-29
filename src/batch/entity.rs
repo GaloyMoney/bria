@@ -10,7 +10,6 @@ pub struct Batch {
     pub batch_group_id: BatchGroupId,
     pub bitcoin_tx_id: bitcoin::Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
-    pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub signed_tx: Option<bitcoin::Transaction>,
 }
@@ -32,27 +31,11 @@ pub struct NewBatch {
     pub(super) total_fee_sats: Satoshis,
     pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub(super) wallet_summaries: HashMap<WalletId, WalletSummary>,
-    pub(super) included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
 }
 
 impl NewBatch {
     pub fn builder() -> NewBatchBuilder {
         NewBatchBuilder::default()
-    }
-
-    pub fn iter_utxos(
-        &'_ self,
-    ) -> impl Iterator<Item = (WalletId, KeychainId, bitcoin::OutPoint)> + '_ {
-        self.included_utxos
-            .iter()
-            .flat_map(|(wallet_id, keychains)| {
-                keychains.iter().map(move |(keychain_id, utxos)| {
-                    utxos
-                        .iter()
-                        .map(move |utxo| (*wallet_id, *keychain_id, *utxo))
-                })
-            })
-            .flatten()
     }
 }
 

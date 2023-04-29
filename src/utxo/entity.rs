@@ -11,18 +11,18 @@ pub struct WalletUtxo {
     pub address: Option<bitcoin::Address>,
     pub bdk_spent: bool,
     pub block_height: Option<u32>,
-    pub income_detected_ledger_tx_id: LedgerTransactionId,
-    pub income_settled_ledger_tx_id: Option<LedgerTransactionId>,
+    pub utxo_detected_ledger_tx_id: LedgerTransactionId,
+    pub utxo_settled_ledger_tx_id: Option<LedgerTransactionId>,
     pub spending_batch_id: Option<BatchId>,
 }
 
 #[derive(Debug)]
-pub struct ConfirmedUtxo {
+pub struct SettledUtxo {
     pub keychain_id: KeychainId,
     pub value: Satoshis,
     pub address: bitcoin::Address,
-    pub income_detected_ledger_tx_id: LedgerTransactionId,
-    pub income_settled_ledger_tx_id: LedgerTransactionId,
+    pub utxo_detected_ledger_tx_id: LedgerTransactionId,
+    pub utxo_settled_ledger_tx_id: LedgerTransactionId,
     pub spend_detected_ledger_tx_id: Option<LedgerTransactionId>,
 }
 
@@ -41,6 +41,7 @@ pub struct KeychainUtxos {
 
 #[derive(Builder)]
 pub struct NewUtxo {
+    pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
     pub(super) keychain_id: KeychainId,
     pub(super) outpoint: OutPoint,
@@ -53,13 +54,13 @@ pub struct NewUtxo {
     pub(super) sats_per_vbyte_when_created: f32,
     pub(super) self_pay: bool,
     pub(super) bdk_spent: bool,
-    pub(super) income_pending_ledger_tx_id: LedgerTransactionId,
+    pub(super) utxo_detected_ledger_tx_id: LedgerTransactionId,
 }
 
 impl NewUtxo {
     pub fn builder() -> NewUtxoBuilder {
         let mut builder = NewUtxoBuilder::default();
-        builder.income_pending_ledger_tx_id(LedgerTransactionId::new());
+        builder.utxo_detected_ledger_tx_id(LedgerTransactionId::new());
         builder
     }
 }

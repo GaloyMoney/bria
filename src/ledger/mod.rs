@@ -272,7 +272,7 @@ impl Ledger {
     #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self, tx_ids))]
     pub async fn sum_reserved_fees_in_txs(
         &self,
-        tx_ids: impl Iterator<Item = LedgerTransactionId>,
+        tx_ids: impl IntoIterator<Item = LedgerTransactionId>,
     ) -> Result<Satoshis, BriaError> {
         let mut reserved_fees = Satoshis::from(0);
         #[derive(serde::Deserialize)]

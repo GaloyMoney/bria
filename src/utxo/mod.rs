@@ -29,9 +29,10 @@ impl Utxos {
         }
     }
 
-    #[instrument(name = "utxos.new_income_utxo", skip(self))]
-    pub async fn new_income_utxo(
+    #[instrument(name = "utxos.new_utxo_detected", skip(self), err)]
+    pub async fn new_utxo_detected(
         &self,
+        account_id: AccountId,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         address: &AddressInfo,
@@ -40,6 +41,7 @@ impl Utxos {
         self_pay: bool,
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
         let new_utxo = NewUtxo::builder()
+            .account_id(account_id)
             .wallet_id(wallet_id)
             .keychain_id(keychain_id)
             .outpoint(utxo.outpoint)
@@ -58,26 +60,27 @@ impl Utxos {
         Ok(tx_id.map(|id| (id, tx)))
     }
 
-    #[instrument(name = "utxos.confirm_utxo", skip(self, tx))]
-    pub async fn confirm_utxo(
+    #[instrument(name = "utxos.settle_utxo", skip(self, tx), err)]
+    pub async fn settle_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
         outpoint: OutPoint,
         bdk_spent: bool,
         block_height: u32,
-    ) -> Result<ConfirmedUtxo, BriaError> {
+    ) -> Result<SettledUtxo, BriaError> {
         self.utxos
-            .mark_utxo_confirmed(tx, keychain_id, outpoint, bdk_spent, block_height)
+            .mark_utxo_settled(tx, keychain_id, outpoint, bdk_spent, block_height)
             .await
     }
 
-    #[instrument(name = "utxos.mark_spent", skip(self, inputs))]
+    #[instrument(name = "utxos.spend_detected", skip(self, inputs), err)]
     #[allow(clippy::type_complexity)]
     #[allow(clippy::too_many_arguments)]
-    pub async fn mark_spent(
+    pub async fn spend_detected(
         &self,
         tx: &mut Transaction<'_, Postgres>,
+        account_id: AccountId,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         tx_id: LedgerTransactionId,
@@ -87,9 +90,10 @@ impl Utxos {
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, BriaError> {
         if let Some((utxo, address)) = change_utxo {
             let new_utxo = NewUtxo::builder()
+                .account_id(account_id)
                 .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
-                .income_pending_ledger_tx_id(tx_id)
+                .utxo_detected_ledger_tx_id(tx_id)
                 .outpoint(utxo.outpoint)
                 .kind(address.keychain)
                 .address_idx(address.index)
@@ -123,8 +127,8 @@ impl Utxos {
         Ok(Some((total_settled_in, allocations)))
     }
 
-    #[instrument(name = "utxos.confirm_spend", skip(self, tx, inputs))]
-    pub async fn confirm_spend(
+    #[instrument(name = "utxos.spend_settled", skip(self, tx, inputs), err)]
+    pub async fn spend_settled(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         keychain_id: KeychainId,
@@ -133,25 +137,25 @@ impl Utxos {
         block_height: u32,
     ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId, bool)>, BriaError> {
         let (spend_tx_id, change_spent) = if let Some(utxo) = change_utxo {
-            let confirmed_utxo = self
+            let settled_utxo = self
                 .utxos
-                .mark_utxo_confirmed(tx, keychain_id, utxo.outpoint, utxo.is_spent, block_height)
+                .mark_utxo_settled(tx, keychain_id, utxo.outpoint, utxo.is_spent, block_height)
                 .await?;
             (
-                confirmed_utxo.income_settled_ledger_tx_id,
-                confirmed_utxo.spend_detected_ledger_tx_id.is_some(),
+                settled_utxo.utxo_settled_ledger_tx_id,
+                settled_utxo.spend_detected_ledger_tx_id.is_some(),
             )
         } else {
             (LedgerTransactionId::new(), false)
         };
         let pending_spend_tx_id = self
             .utxos
-            .confirm_spend(tx, keychain_id, inputs, spend_tx_id)
+            .settle_utxo(tx, keychain_id, inputs, spend_tx_id)
             .await?;
         Ok(pending_spend_tx_id.map(|id| (id, spend_tx_id, change_spent)))
     }
 
-    #[instrument(name = "utxos.find_keychain_utxos", skip_all)]
+    #[instrument(name = "utxos.find_keychain_utxos", skip_all, err)]
     pub async fn find_keychain_utxos(
         &self,
         keychain_ids: impl Iterator<Item = KeychainId>,
@@ -159,7 +163,7 @@ impl Utxos {
         self.utxos.find_keychain_utxos(keychain_ids).await
     }
 
-    #[instrument(name = "utxos.outpoints_bdk_should_not_select", skip_all)]
+    #[instrument(name = "utxos.outpoints_bdk_should_not_select", skip_all, err)]
     pub async fn outpoints_bdk_should_not_select(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -176,7 +180,7 @@ impl Utxos {
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.income_settled_ledger_tx_id.is_none())
+                || (utxo.income_address && utxo.utxo_settled_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
@@ -195,17 +199,31 @@ impl Utxos {
         Ok(outpoints_map)
     }
 
-    #[instrument(name = "utxos.reserve_utxos_in_batch", skip_all)]
+    #[instrument(name = "utxos.reserve_utxos_in_batch", skip_all, err)]
     pub async fn reserve_utxos_in_batch(
         &self,
         tx: &mut Transaction<'_, Postgres>,
+        account_id: AccountId,
         batch_id: BatchId,
-        utxos: impl Iterator<Item = (KeychainId, OutPoint)>,
+        utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
-        self.utxos.reserve_utxos_in_batch(tx, batch_id, utxos).await
+        self.utxos
+            .reserve_utxos_in_batch(tx, account_id, batch_id, utxos)
+            .await
     }
 
-    #[instrument(name = "utxos.list_utxos_by_outpoint", skip(self))]
+    #[instrument(name = "utxos.income_detected_ledger_ids", skip_all, err)]
+    pub async fn income_detected_ids_for_utxos_in(
+        &self,
+        batch_id: BatchId,
+        wallet_id: WalletId,
+    ) -> Result<impl Iterator<Item = LedgerTransactionId>, BriaError> {
+        self.utxos
+            .income_detected_ids_for_utxos_in(batch_id, wallet_id)
+            .await
+    }
+
+    #[instrument(name = "utxos.list_utxos_by_outpoint", skip(self), err)]
     pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,

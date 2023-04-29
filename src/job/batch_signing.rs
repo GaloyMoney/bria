@@ -44,12 +44,12 @@ pub async fn execute(
         let mut account_xpubs = HashMap::new();
         let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
         let unsigned_psbt = batch.unsigned_psbt;
-        for (wallet_id, keychain_utxos) in batch.included_utxos {
+        for (wallet_id, summary) in batch.wallet_summaries {
             let wallet = wallets.find_by_id(wallet_id).await?;
             if current_keychain.is_none() {
                 current_keychain = Some(wallet.current_keychain_wallet(&pool));
             }
-            let keychain_xpubs = wallet.xpubs_for_keychains(keychain_utxos.keys());
+            let keychain_xpubs = wallet.xpubs_for_keychains(&summary.signing_keychains);
             for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
                     let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id()).await?;

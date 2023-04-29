@@ -37,21 +37,6 @@ impl Batches {
             bitcoin::consensus::encode::serialize(&batch.unsigned_psbt)
         ).execute(&mut *tx).await?;
 
-        let utxos = batch.iter_utxos();
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"INSERT INTO bria_batch_spent_utxos
-            (batch_id, wallet_id, keychain_id, tx_id, vout)"#,
-        );
-        query_builder.push_values(utxos, |mut builder, (wallet_id, keychain_id, utxo)| {
-            builder.push_bind(batch.id);
-            builder.push_bind(wallet_id);
-            builder.push_bind(keychain_id);
-            builder.push_bind(utxo.txid.to_string());
-            builder.push_bind(utxo.vout as i32);
-        });
-        let query = query_builder.build();
-        query.execute(&mut *tx).await?;
-
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
             (batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id)"#,
@@ -88,11 +73,10 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, u.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id, tx_id, vout, keychain_id
-            FROM bria_batch_spent_utxos u
-            LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
-            LEFT JOIN bria_batches b ON b.id = u.batch_id
-            WHERE u.batch_id = $1 AND b.account_id = $2"#,
+            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id
+            FROM bria_batch_wallet_summaries s
+            LEFT JOIN bria_batches b ON b.id = s.batch_id
+            WHERE s.batch_id = $1 AND b.account_id = $2"#,
             id as BatchId,
             account_id as AccountId
         ).fetch_all(&self.pool).await?;
@@ -102,8 +86,6 @@ impl Batches {
         }
 
         let mut wallet_summaries = HashMap::new();
-        let mut included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<OutPoint>>> =
-            HashMap::new();
         let bitcoin_tx_id = bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?;
         let unsigned_psbt = bitcoin::consensus::deserialize(&rows[0].unsigned_psbt)?;
         let signed_tx = rows[0]
@@ -113,16 +95,6 @@ impl Batches {
             .transpose()?;
         for row in rows.iter() {
             let wallet_id = WalletId::from(row.wallet_id);
-            let keychain_id = KeychainId::from(row.keychain_id);
-            included_utxos
-                .entry(wallet_id)
-                .or_default()
-                .entry(keychain_id)
-                .or_default()
-                .push(OutPoint {
-                    txid: row.tx_id.parse().expect("invalid txid"),
-                    vout: row.vout as u32,
-                });
             wallet_summaries.insert(
                 wallet_id,
                 WalletSummary {
@@ -163,7 +135,6 @@ impl Batches {
             unsigned_psbt,
             signed_tx,
             wallet_summaries,
-            included_utxos,
         })
     }
 
