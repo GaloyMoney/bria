@@ -16,12 +16,14 @@ pub struct WalletTransactionSummary {
     pub change_address: Option<bitcoin::Address>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchInfo {
     pub batch_group_id: BatchGroupId,
     pub batch_id: BatchId,
     pub included_payouts: Vec<PayoutInfo>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PayoutInfo {
     pub id: PayoutId,
     pub wallet_id: WalletId,

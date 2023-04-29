@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{
-    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, utxo::*, wallet::*,
+    app::BlockchainConfig, batch::*, error::*, ledger::*, payout::*, primitives::*, utxo::*,
+    wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +28,7 @@ pub async fn execute(
     wallets: Wallets,
     bria_utxos: Utxos,
     batches: Batches,
+    payouts: Payouts,
 ) -> Result<BatchWalletAccountingData, BriaError> {
     let Batch {
         id,
