@@ -12,6 +12,7 @@ use crate::{
     error::*,
     job,
     ledger::*,
+    outbox::*,
     payout::*,
     primitives::*,
     profile::*,
@@ -24,6 +25,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct App {
     _runner: OwnedHandle,
+    outbox: Outbox,
     profiles: Profiles,
     xpubs: XPubs,
     wallets: Wallets,
@@ -42,7 +44,7 @@ impl App {
         pool: sqlx::PgPool,
         migrate_on_start: bool,
         blockchain_cfg: BlockchainConfig,
-        wallets_cfg: WalletsConfig,
+        app_cfg: AppConfig,
     ) -> Result<Self, BriaError> {
         if migrate_on_start {
             sqlx::migrate!().run(&pool).await?;
@@ -56,8 +58,10 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
+        let outbox = Outbox::init(&pool, addresses.clone()).await?;
         let runner = job::start_job_runner(
             &pool,
+            outbox.clone(),
             wallets.clone(),
             xpubs.clone(),
             batch_groups.clone(),
@@ -67,18 +71,22 @@ impl App {
             ledger.clone(),
             utxos.clone(),
             addresses.clone(),
-            wallets_cfg.sync_all_wallets_delay,
-            wallets_cfg.process_all_batch_groups_delay,
+            app_cfg.sync_all_wallets_delay,
+            app_cfg.process_all_batch_groups_delay,
+            app_cfg.respawn_all_outbox_handlers_delay,
             blockchain_cfg.clone(),
         )
         .await?;
-        Self::spawn_sync_all_wallets(pool.clone(), wallets_cfg.sync_all_wallets_delay).await?;
-        Self::spawn_process_all_batch_groups(
+        Self::spawn_sync_all_wallets(pool.clone(), app_cfg.sync_all_wallets_delay).await?;
+        Self::spawn_process_all_batch_groups(pool.clone(), app_cfg.process_all_batch_groups_delay)
+            .await?;
+        Self::spawn_respawn_all_outbox_handlers(
             pool.clone(),
-            wallets_cfg.process_all_batch_groups_delay,
+            app_cfg.respawn_all_outbox_handlers_delay,
         )
         .await?;
         Ok(Self {
+            outbox,
             profiles: Profiles::new(&pool),
             xpubs,
             wallets,
@@ -397,6 +405,7 @@ impl App {
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     payout_satoshis: sats,
                     meta: QueuedPayoutMeta {
+                        account_id: profile.account_id,
                         payout_id: id,
                         batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
@@ -438,6 +447,17 @@ impl App {
             .unwrap_or_default())
     }
 
+    #[instrument(name = "app.subscribe_all", skip(self), err)]
+    pub async fn subscribe_all(
+        &self,
+        profile: Profile,
+        start_after: Option<u64>,
+    ) -> Result<OutboxListener, BriaError> {
+        self.outbox
+            .register_listener(profile.account_id, start_after.map(EventSequence::from))
+            .await
+    }
+
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,
@@ -462,6 +482,24 @@ impl App {
                 let _ =
                     job::spawn_process_all_batch_groups(&pool, std::time::Duration::from_secs(1))
                         .await;
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Ok(())
+    }
+
+    #[instrument(name = "app.spawn_respawn_all_outbox_handlers", skip_all, err)]
+    async fn spawn_respawn_all_outbox_handlers(
+        pool: sqlx::PgPool,
+        delay: std::time::Duration,
+    ) -> Result<(), BriaError> {
+        tokio::spawn(async move {
+            loop {
+                let _ = job::spawn_respawn_all_outbox_handlers(
+                    &pool,
+                    std::time::Duration::from_secs(1),
+                )
+                .await;
                 tokio::time::sleep(delay).await;
             }
         });

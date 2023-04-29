@@ -66,6 +66,7 @@ pub async fn execute(
                         batch_id: id,
                         batch_group_id,
                         tx_summary: TransactionSummary {
+                            account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
                             keychain_id: wallet_summary.change_keychain_id,
                             fee_sats: wallet_summary.fee_sats,

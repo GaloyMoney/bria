@@ -16,10 +16,12 @@ macro_rules! entity_id {
             PartialOrd,
             Ord,
             Hash,
+            sqlx::Type,
             serde::Deserialize,
             serde::Serialize,
         )]
         #[serde(transparent)]
+        #[sqlx(transparent)]
         pub struct $name(uuid::Uuid);
 
         #[allow(clippy::new_without_default)]

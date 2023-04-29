@@ -729,6 +729,36 @@
     },
     "query": "SELECT script_bytes\n            FROM bdk_descriptor_checksums WHERE keychain_id = $1 AND keychain_kind = $2"
   },
+  "33f57f36f6b74edf377c88894774f48d21919411b57c79120267ea7d0294b7ac": {
+    "describe": {
+      "columns": [
+        {
+          "name": "account_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence!: EventSequence",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ledger_event_id: SqlxLedgerEventId",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n            SELECT account_id, MAX(sequence) AS \"sequence!: EventSequence\", MAX(ledger_event_id) AS \"ledger_event_id: SqlxLedgerEventId\"\n            FROM bria_outbox_events\n            GROUP BY account_id\n            "
+  },
   "34dec721ee5f61bc0dc86a71d6fab7d7c8417180ae7c16440ba24fb80804509f": {
     "describe": {
       "columns": [
@@ -1370,6 +1400,39 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
+  "8dba7efce7de6cbe27b17bae89eff8625492bbe3ce21e7aa12c1c4bbd43cc5e3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.id, e.sequence, e.event\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND address = $2\n              ORDER BY b.created_at, b.id, sequence"
+  },
   "92405eb1906f643a2fee07533f746ad9fbb376713c8178aee4a31074949901fe": {
     "describe": {
       "columns": [],
@@ -1383,6 +1446,64 @@
       }
     },
     "query": "INSERT INTO bdk_sync_times (keychain_id, height, timestamp)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (keychain_id) DO UPDATE SET height = EXCLUDED.height, timestamp = EXCLUDED.timestamp, modified_at = NOW()"
+  },
+  "9cb36a2e6028a11109348df8df5f188024576209d8a13e5c85d32a8172418ac1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence: EventSequence",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ledger_event_id: SqlxLedgerEventId",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "ledger_tx_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "payload",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "recorded_at",
+          "ordinal": 6,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT id, account_id, sequence AS \"sequence: EventSequence\", ledger_event_id AS \"ledger_event_id: SqlxLedgerEventId\", ledger_tx_id, payload, recorded_at\n            FROM bria_outbox_events\n            WHERE account_id = $1 AND sequence > $2\n            ORDER BY sequence ASC\n            LIMIT $3\n            "
   },
   "a17c30ab0f4af264c0239ee4f9aee7dbc3d1c90901d0a21c6682131ba5a7742e": {
     "describe": {
@@ -1535,6 +1656,24 @@
       }
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
+  },
+  "cc188a17c0079caba98bcc073101da685f209c40f8eb9db0ca3e02edc447a405": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Int8",
+          "Int8",
+          "Uuid",
+          "Jsonb",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO bria_outbox_events\n            (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            "
   },
   "d3fac1b5ed276a99fdd626ccefb4e6b23af393503545c1654e150b0e23bb6c70": {
     "describe": {

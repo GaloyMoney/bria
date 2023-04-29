@@ -5,6 +5,7 @@ pub mod proto {
     tonic::include_proto!("services.bria.v1");
 }
 
+use futures::StreamExt;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::instrument;
 
@@ -315,6 +316,26 @@ impl BriaService for Bria {
             sessions: session_messages,
         };
         Ok(Response::new(response))
+    }
+
+    type SubscribeAllStream = std::pin::Pin<
+        Box<dyn futures::Stream<Item = Result<BriaEvent, Status>> + Send + Sync + 'static>,
+    >;
+
+    async fn subscribe_all(
+        &self,
+        request: Request<SubscribeAllRequest>,
+    ) -> Result<Response<Self::SubscribeAllStream>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let start_after = request.into_inner().after_sequence;
+
+        let outbox_listener = self.app.subscribe_all(profile, start_after).await?;
+        Ok(Response::new(Box::pin(
+            outbox_listener
+                .map(|event| Ok(proto::BriaEvent::from(event)))
+                .fuse(),
+        )))
     }
 }
 

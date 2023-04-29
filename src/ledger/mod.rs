@@ -1,11 +1,13 @@
 mod constants;
+mod event;
 mod templates;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, balance::AccountBalance, journal::*, Currency,
-    DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, balance::AccountBalance, event::*, journal::*,
+    Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
+use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -13,6 +15,7 @@ use std::collections::HashMap;
 
 use crate::{error::*, primitives::*, wallet::balance::*};
 use constants::*;
+pub use event::*;
 pub use templates::*;
 
 #[derive(Debug, Clone)]
@@ -54,6 +57,34 @@ impl Ledger {
             inner,
             btc: "BTC".parse().unwrap(),
         })
+    }
+
+    pub async fn journal_events(
+        &self,
+        journal_id: JournalId,
+        last_ledger_id: Option<SqlxLedgerEventId>,
+    ) -> Result<impl Stream<Item = Result<JournalEvent, BriaError>>, BriaError> {
+        let stream = BroadcastStream::new(
+            self.inner
+                .events(EventSubscriberOpts {
+                    buffer: 100,
+                    close_on_lag: true,
+                    after_id: Some(last_ledger_id.unwrap_or(SqlxLedgerEventId::BEGIN)),
+                })
+                .await?
+                .journal(journal_id)
+                .await?,
+        );
+        Ok(stream.filter_map(|event| {
+            match event
+                .map_err(BriaError::from)
+                .and_then(MaybeIgnored::try_from)
+            {
+                Ok(MaybeIgnored::Ignored) => None,
+                Ok(MaybeIgnored::Event(e)) => Some(Ok(e)),
+                Err(e) => Some(Err(e)),
+            }
+        }))
     }
 
     #[instrument(name = "ledger.incoming_utxo", skip(self, tx))]
@@ -337,7 +368,7 @@ impl Ledger {
         account_name: String,
     ) -> Result<JournalId, BriaError> {
         let new_journal = NewJournal::builder()
-            .id(Uuid::from(id))
+            .id(id)
             .description(format!("Journal for account '{account_name}'"))
             .name(account_name)
             .build()

@@ -24,6 +24,16 @@ pub enum BriaError {
     PsbtError(#[from] psbt::Error),
     #[error("BriaError - ElectrumClient: {0}")]
     ElectrumClient(#[from] electrum_client::Error),
+    #[error("BriaError - JoinError: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
+    #[error("BriaError - BdkError: {0}")]
+    BdkError(#[from] bdk::Error),
+    #[error("BriaError - EventStreamError: {0}")]
+    EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
+    #[error("BriaError - SendEventError")]
+    SendEventError,
+    #[error("BriaError - MissingTxMetadata")]
+    MissingTxMetadata,
     #[error("BriaError - SigningClientError: {0}")]
     SigningClient(#[from] SigningClientError),
     #[error("BriaError - EntityError: {0}")]
@@ -54,10 +64,6 @@ pub enum BriaError {
     XPubDepthMismatch(u8, usize),
     #[error("BriaError - XPubParseError: {0}")]
     XPubParseError(bdk::bitcoin::util::base58::Error),
-    #[error("BriaError - JoinError: {0}")]
-    JoinError(#[from] tokio::task::JoinError),
-    #[error("BriaError - BdkError: {0}")]
-    BdkError(#[from] bdk::Error),
     #[error("BriaError - BdkMiniscriptError: {0}")]
     BdkMiniscriptError(#[from] bdk::miniscript::Error),
     #[error("BriaError - FeeEstimation: {0}")]

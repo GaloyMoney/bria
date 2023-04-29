@@ -167,6 +167,7 @@ pub async fn execute(
                                     .logical_incoming_id,
                                 onchain_fee_account_id: wallet.ledger_account_ids.fee_id,
                                 meta: IncomingUtxoMeta {
+                                    account_id: data.account_id,
                                     wallet_id: data.wallet_id,
                                     keychain_id,
                                     outpoint: local_utxo.outpoint,
@@ -211,6 +212,7 @@ pub async fn execute(
                                     ledger_account_ids: wallet.ledger_account_ids,
                                     pending_id: utxo.pending_income_ledger_tx_id,
                                     meta: ConfirmedUtxoMeta {
+                                        account_id: data.account_id,
                                         wallet_id: data.wallet_id,
                                         keychain_id,
                                         confirmation_time: conf_time.clone(),
@@ -307,6 +309,7 @@ pub async fn execute(
                                             .map(|_| fees_to_encumber),
                                         withdraw_from_logical_when_settled: allocations,
                                         tx_summary: TransactionSummary {
+                                            account_id: data.account_id,
                                             wallet_id: wallet.id,
                                             keychain_id,
                                             bitcoin_tx_id: unsynced_tx.tx_id,
@@ -395,6 +398,7 @@ pub async fn execute(
                             ledger_account_ids: wallet.ledger_account_ids,
                             pending_id: utxo.pending_income_ledger_tx_id,
                             meta: ConfirmedUtxoMeta {
+                                account_id: data.account_id,
                                 wallet_id: data.wallet_id,
                                 keychain_id,
                                 confirmation_time,

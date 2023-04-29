@@ -64,6 +64,6 @@ impl AdminApp {
 
     #[instrument(name = "admin_app.list_accounts", skip(self), err)]
     pub async fn list_accounts(&self) -> Result<Vec<Account>, AdminApiError> {
-        self.accounts.list().await
+        Ok(self.accounts.list().await?)
     }
 }

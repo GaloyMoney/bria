@@ -52,6 +52,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
                 logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
                 meta: IncomingUtxoMeta {
+                    account_id,
                     wallet_id,
                     keychain_id,
                     outpoint,
@@ -86,6 +87,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 pending_id,
                 meta: ConfirmedUtxoMeta {
+                    account_id,
                     wallet_id,
                     keychain_id,
                     outpoint,
@@ -162,6 +164,7 @@ async fn utxo_spent_confirmation() -> anyhow::Result<()> {
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
                 logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
                 meta: IncomingUtxoMeta {
+                    account_id,
                     wallet_id,
                     keychain_id,
                     outpoint,
@@ -196,6 +199,7 @@ async fn utxo_spent_confirmation() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 pending_id,
                 meta: ConfirmedUtxoMeta {
+                    account_id,
                     wallet_id,
                     keychain_id,
                     outpoint,
@@ -257,6 +261,7 @@ async fn queue_payout() -> anyhow::Result<()> {
                 external_id: payout_id.to_string(),
                 payout_satoshis,
                 meta: QueuedPayoutMeta {
+                    account_id,
                     payout_id,
                     wallet_id,
                     batch_group_id: BatchGroupId::new(),
@@ -319,6 +324,7 @@ async fn create_batch() -> anyhow::Result<()> {
                     batch_id,
                     batch_group_id: BatchGroupId::new(),
                     tx_summary: TransactionSummary {
+                        account_id,
                         wallet_id,
                         bitcoin_tx_id:
                             "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
@@ -406,6 +412,7 @@ async fn external_spend() -> anyhow::Result<()> {
                 meta: ExternalSpendMeta {
                     withdraw_from_logical_when_settled: HashMap::new(),
                     tx_summary: TransactionSummary {
+                        account_id,
                         wallet_id,
                         keychain_id,
                         bitcoin_tx_id:
@@ -538,6 +545,7 @@ async fn external_spend_unconfirmed() -> anyhow::Result<()> {
                 meta: ExternalSpendMeta {
                     withdraw_from_logical_when_settled,
                     tx_summary: TransactionSummary {
+                        account_id,
                         wallet_id,
                         keychain_id,
                         bitcoin_tx_id:

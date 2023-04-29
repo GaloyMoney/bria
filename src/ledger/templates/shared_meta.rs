@@ -4,6 +4,7 @@ use crate::primitives::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransactionSummary {
+    pub account_id: AccountId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub bitcoin_tx_id: bitcoin::Txid,

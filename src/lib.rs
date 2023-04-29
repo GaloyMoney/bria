@@ -15,6 +15,7 @@ mod error;
 pub mod fee_estimation;
 mod job;
 pub mod ledger;
+mod outbox;
 pub mod payout;
 pub mod primitives;
 pub mod profile;

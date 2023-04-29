@@ -21,6 +21,8 @@ service BriaService {
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
+
+  rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
 }
 
 message CreateProfileRequest {
@@ -231,4 +233,35 @@ message SigningSession {
 
 message ListSigningSessionsResponse {
   repeated SigningSession sessions = 1;
+}
+
+message SubscribeAllRequest {
+  optional uint64 after_sequence = 1;
+}
+
+message BriaEvent {
+  uint64 sequence = 1;
+  oneof payload {
+    UtxoDetected utxo_detected = 2;
+    UtxoSettled utxo_settled = 3;
+  }
+  uint32 recorded_at = 4;
+}
+
+message UtxoDetected {
+  string wallet_id = 1;
+  string tx_id = 2;
+  uint32 vout = 3;
+  uint64 satoshis = 4;
+  string address = 5;
+}
+
+message UtxoSettled {
+  string wallet_id = 1;
+  string tx_id = 2;
+  uint32 vout = 3;
+  uint64 satoshis = 4;
+  string address = 5;
+  uint32 block_height = 6;
+  uint64 block_time = 7;
 }

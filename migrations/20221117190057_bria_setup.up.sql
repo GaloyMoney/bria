@@ -217,3 +217,28 @@ CREATE TABLE bria_signing_session_events (
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(id, sequence)
 );
+
+CREATE TABLE bria_outbox_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  sequence BIGINT NOT NULL,
+  ledger_event_id BIGINT,
+  ledger_tx_id UUID,
+  payload JSONB NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(account_id, sequence),
+  UNIQUE(account_id, payload)
+);
+
+CREATE FUNCTION notify_bria_outbox_events() RETURNS TRIGGER AS $$
+DECLARE
+  payload TEXT;
+BEGIN
+  payload := row_to_json(NEW);
+  PERFORM pg_notify('bria_outbox_events', payload);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER bria_outbox_events AFTER INSERT ON bria_outbox_events
+  FOR EACH ROW EXECUTE FUNCTION notify_bria_outbox_events();
