@@ -1,7 +1,6 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use super::destination::*;
 use crate::{entity::*, primitives::*};
 
 #[derive(Serialize, Deserialize)]

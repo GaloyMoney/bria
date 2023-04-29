@@ -2,7 +2,7 @@ mod helpers;
 
 use rand::distributions::{Alphanumeric, DistString};
 
-use bria::{app::*, payout::*, primitives::*, xpub::*};
+use bria::{app::*, primitives::*, xpub::*};
 
 #[tokio::test]
 async fn test_payout() -> anyhow::Result<()> {

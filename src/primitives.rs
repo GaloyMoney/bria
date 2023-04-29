@@ -101,8 +101,6 @@ pub mod bitcoin {
     }
 }
 
-pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
-
 #[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum TxPriority {
@@ -110,6 +108,22 @@ pub enum TxPriority {
     OneHour,
     Economy,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum PayoutDestination {
+    OnchainAddress { value: bitcoin::Address },
+}
+
+impl PayoutDestination {
+    pub fn onchain_address(&self) -> Option<bitcoin::Address> {
+        match self {
+            Self::OnchainAddress { value } => Some(value.clone()),
+        }
+    }
+}
+
+pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,

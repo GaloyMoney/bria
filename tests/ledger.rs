@@ -3,7 +3,6 @@ mod helpers;
 use bdk::BlockTime;
 use bria::{
     ledger::*,
-    payout::PayoutDestination,
     primitives::{bitcoin::*, *},
     wallet::balance::WalletBalanceSummary,
 };
