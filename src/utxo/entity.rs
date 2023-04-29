@@ -11,8 +11,8 @@ pub struct WalletUtxo {
     pub address: Option<bitcoin::Address>,
     pub bdk_spent: bool,
     pub block_height: Option<u32>,
-    pub pending_income_ledger_tx_id: LedgerTransactionId,
-    pub confirmed_income_ledger_tx_id: Option<LedgerTransactionId>,
+    pub income_detected_ledger_tx_id: LedgerTransactionId,
+    pub income_settled_ledger_tx_id: Option<LedgerTransactionId>,
     pub spending_batch_id: Option<BatchId>,
 }
 
@@ -21,9 +21,9 @@ pub struct ConfirmedUtxo {
     pub keychain_id: KeychainId,
     pub value: Satoshis,
     pub address: bitcoin::Address,
-    pub pending_income_ledger_tx_id: LedgerTransactionId,
-    pub confirmed_income_ledger_tx_id: LedgerTransactionId,
-    pub pending_spend_ledger_tx_id: Option<LedgerTransactionId>,
+    pub income_detected_ledger_tx_id: LedgerTransactionId,
+    pub income_settled_ledger_tx_id: LedgerTransactionId,
+    pub spend_detected_ledger_tx_id: Option<LedgerTransactionId>,
 }
 
 #[derive(Debug)]

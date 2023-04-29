@@ -47,11 +47,11 @@ pub async fn execute(
         .expect("utxos not found");
     let utxos = bria_utxos.list_utxos_by_outpoint(utxos).await?;
     let encumbered_fees = ledger
-        .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.pending_income_ledger_tx_id))
+        .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.income_detected_ledger_tx_id))
         .await?;
 
     if let Some((tx, tx_id)) = batches
-        .set_create_batch_ledger_tx_id(data.batch_id, data.wallet_id)
+        .set_batch_created_ledger_tx_id(data.batch_id, data.wallet_id)
         .await?
     {
         ledger

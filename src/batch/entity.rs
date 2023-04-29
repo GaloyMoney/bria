@@ -19,7 +19,7 @@ impl Batch {
     pub fn accounting_complete(&self) -> bool {
         self.wallet_summaries
             .values()
-            .all(|s| s.create_batch_ledger_tx_id.is_some())
+            .all(|s| s.batch_created_ledger_tx_id.is_some())
     }
 }
 
@@ -66,6 +66,6 @@ pub struct WalletSummary {
     pub change_address: bitcoin::Address,
     pub change_outpoint: Option<bitcoin::OutPoint>,
     pub change_keychain_id: KeychainId,
-    pub create_batch_ledger_tx_id: Option<LedgerTransactionId>,
-    pub submitted_ledger_tx_id: Option<LedgerTransactionId>,
+    pub batch_created_ledger_tx_id: Option<LedgerTransactionId>,
+    pub batch_submitted_ledger_tx_id: Option<LedgerTransactionId>,
 }

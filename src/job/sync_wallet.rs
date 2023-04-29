@@ -206,11 +206,11 @@ pub async fn execute(
                         deps.ledger
                             .utxo_settled(
                                 tx,
-                                utxo.confirmed_income_ledger_tx_id,
+                                utxo.income_settled_ledger_tx_id,
                                 UtxoSettledParams {
                                     journal_id: wallet.journal_id,
                                     ledger_account_ids: wallet.ledger_account_ids,
-                                    pending_id: utxo.pending_income_ledger_tx_id,
+                                    pending_id: utxo.income_detected_ledger_tx_id,
                                     meta: UtxoSettledMeta {
                                         account_id: data.account_id,
                                         wallet_id: data.wallet_id,
@@ -219,7 +219,7 @@ pub async fn execute(
                                         satoshis: utxo.value,
                                         outpoint: local_utxo.outpoint,
                                         address: utxo.address,
-                                        already_spent_tx_id: utxo.pending_spend_ledger_tx_id,
+                                        already_spent_tx_id: utxo.spend_detected_ledger_tx_id,
                                     },
                                 },
                             )
@@ -249,7 +249,7 @@ pub async fn execute(
                 };
                 let (mut tx, create_batch_tx_id, tx_id) =
                     if let Some((tx, create_batch_tx_id, tx_id)) = batches
-                        .set_submitted_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
+                        .set_batch_submitted_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
                         .await?
                     {
                         (tx, Some(create_batch_tx_id), tx_id)
@@ -292,7 +292,7 @@ pub async fn execute(
                             .sum_reserved_fees_in_txs(
                                 income_bria_utxos
                                     .iter()
-                                    .map(|u| u.pending_income_ledger_tx_id),
+                                    .map(|u| u.income_detected_ledger_tx_id),
                             )
                             .await?;
                         deps.ledger
@@ -392,11 +392,11 @@ pub async fn execute(
                 deps.ledger
                     .utxo_settled(
                         tx,
-                        utxo.confirmed_income_ledger_tx_id,
+                        utxo.income_settled_ledger_tx_id,
                         UtxoSettledParams {
                             journal_id: wallet.journal_id,
                             ledger_account_ids: wallet.ledger_account_ids,
-                            pending_id: utxo.pending_income_ledger_tx_id,
+                            pending_id: utxo.income_detected_ledger_tx_id,
                             meta: UtxoSettledMeta {
                                 account_id: data.account_id,
                                 wallet_id: data.wallet_id,
@@ -405,7 +405,7 @@ pub async fn execute(
                                 satoshis: utxo.value,
                                 outpoint,
                                 address: utxo.address,
-                                already_spent_tx_id: utxo.pending_spend_ledger_tx_id,
+                                already_spent_tx_id: utxo.spend_detected_ledger_tx_id,
                             },
                         },
                     )

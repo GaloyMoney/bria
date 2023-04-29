@@ -138,8 +138,8 @@ impl Utxos {
                 .mark_utxo_confirmed(tx, keychain_id, utxo.outpoint, utxo.is_spent, block_height)
                 .await?;
             (
-                confirmed_utxo.confirmed_income_ledger_tx_id,
-                confirmed_utxo.pending_spend_ledger_tx_id.is_some(),
+                confirmed_utxo.income_settled_ledger_tx_id,
+                confirmed_utxo.spend_detected_ledger_tx_id.is_some(),
             )
         } else {
             (LedgerTransactionId::new(), false)
@@ -176,7 +176,7 @@ impl Utxos {
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.confirmed_income_ledger_tx_id.is_none())
+                || (utxo.income_address && utxo.income_settled_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
