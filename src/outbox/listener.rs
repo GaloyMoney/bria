@@ -1,5 +1,4 @@
 use futures::{FutureExt, Stream};
-use sqlx::{Pool, Postgres};
 use tokio::{sync::broadcast, task::JoinHandle};
 use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
@@ -9,7 +8,7 @@ use super::{event::*, repo::*};
 use crate::{error::*, primitives::*};
 
 pub struct OutboxListener {
-    pool: Pool<Postgres>,
+    repo: OutboxRepo,
     account_id: AccountId,
     last_sequence: EventSequence,
     latest_known: EventSequence,
@@ -21,7 +20,7 @@ pub struct OutboxListener {
 
 impl OutboxListener {
     pub(super) fn new(
-        pool: &Pool<Postgres>,
+        repo: OutboxRepo,
         event_receiver: broadcast::Receiver<OutboxEvent>,
         account_id: AccountId,
         start_after: EventSequence,
@@ -29,7 +28,7 @@ impl OutboxListener {
         buffer: usize,
     ) -> Self {
         Self {
-            pool: pool.clone(),
+            repo,
             account_id,
             last_sequence: start_after,
             latest_known,
@@ -110,12 +109,13 @@ impl Stream for OutboxListener {
         }
 
         if self.next_page_handle.is_none() && self.last_sequence < self.latest_known {
-            let pool = self.pool.clone();
+            let repo = self.repo.clone();
             let account_id = self.account_id;
             let last_sequence = self.last_sequence;
             let buffer_size = self.buffer_size;
             self.next_page_handle = Some(tokio::spawn(async move {
-                OutboxRepo::load_next_page(pool, account_id, last_sequence, buffer_size).await
+                repo.load_next_page(account_id, last_sequence, buffer_size)
+                    .await
             }));
             return self.poll_next(cx);
         }

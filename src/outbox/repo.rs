@@ -37,7 +37,7 @@ impl OutboxRepo {
     }
 
     pub async fn load_next_page(
-        pool: Pool<Postgres>,
+        &self,
         account_id: AccountId,
         sequence: EventSequence,
         buffer_size: usize,
@@ -54,7 +54,7 @@ impl OutboxRepo {
             sequence as EventSequence,
             buffer_size as i64,
         )
-        .fetch_all(&pool)
+        .fetch_all(&self.pool)
         .await?;
         let mut events = Vec::new();
         for row in rows {

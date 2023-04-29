@@ -58,7 +58,7 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
-        let outbox = Outbox::init(&pool, addresses.clone()).await?;
+        let outbox = Outbox::init(&pool).await?;
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),

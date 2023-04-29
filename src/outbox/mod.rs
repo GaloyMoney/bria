@@ -10,7 +10,7 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{address::*, error::*, ledger::*, primitives::*};
+use crate::{error::*, ledger::*, primitives::*};
 
 pub use event::*;
 pub use listener::*;
@@ -23,8 +23,7 @@ const DEFAULT_BUFFER_SIZE: usize = 100;
 
 #[derive(Clone)]
 pub struct Outbox {
-    pool: Pool<Postgres>,
-    _addresses: Addresses,
+    _pool: Pool<Postgres>,
     repo: OutboxRepo,
     sequences: Arc<RwLock<SequenceMap>>,
     event_sender: broadcast::Sender<OutboxEvent>,
@@ -33,7 +32,7 @@ pub struct Outbox {
 }
 
 impl Outbox {
-    pub async fn init(pool: &Pool<Postgres>, addresses: Addresses) -> Result<Self, BriaError> {
+    pub async fn init(pool: &Pool<Postgres>) -> Result<Self, BriaError> {
         let buffer_size = DEFAULT_BUFFER_SIZE;
         let (sender, recv) = broadcast::channel(buffer_size);
         let sequences = Arc::new(RwLock::new(HashMap::new()));
@@ -41,9 +40,8 @@ impl Outbox {
         Self::spawn_pg_listener(pool, sender.clone(), repo.clone(), Arc::clone(&sequences)).await?;
 
         let ret = Self {
-            pool: pool.clone(),
+            _pool: pool.clone(),
             repo,
-            _addresses: addresses,
             sequences,
             event_sender: sender,
             event_receiver: Arc::new(recv),
@@ -102,7 +100,7 @@ impl Outbox {
         let latest_known = self.sequences_for(account_id).await?.read().await.0;
         let start = start_after.unwrap_or(latest_known);
         Ok(OutboxListener::new(
-            &self.pool,
+            self.repo.clone(),
             sub,
             account_id,
             start,
