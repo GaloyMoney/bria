@@ -127,7 +127,7 @@ impl Payouts {
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
               WHERE b.account_id = $1 AND b.batch_id = $2
-              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
+              ORDER BY b.created_at, b.id, e.sequence"#,
             account_id as AccountId,
             batch_id as BatchId
         )

@@ -1132,6 +1132,81 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event_type, e.event\n              FROM bria_signing_sessions b\n              JOIN bria_signing_session_events e ON b.id = e.id\n              WHERE account_id = $1 AND batch_id = $2\n              ORDER BY b.id, sequence"
   },
+  "64e1397e479b21af86d7c24f14bd3004685915c5f1f2f166a78ffd437d1808f8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_group_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "profile_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "external_id",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.batch_id = $2\n              ORDER BY b.created_at, b.id, e.sequence"
+  },
   "667c94ea72926ba7b05c7d785e1c9124b57fa2e15969f7df898657b1d075587a": {
     "describe": {
       "columns": [
@@ -1680,81 +1755,6 @@
       }
     },
     "query": "INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)\n                VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
-  },
-  "af5264bd4b357f1aad4eb971f209bb224c46ae9d2cc98b6b4e5bdeeb47da1651": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_group_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "profile_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "external_id",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 8,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.batch_id = $2\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"
   },
   "b273cbed294b3c99b9e4f80cc16235b868425d4f9ec8a45fa9a34f11e26bf359": {
     "describe": {
