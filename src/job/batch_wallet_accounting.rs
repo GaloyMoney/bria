@@ -34,13 +34,13 @@ pub async fn execute(
         id,
         bitcoin_tx_id,
         batch_group_id,
-        wallet_summaries,
+        mut wallet_summaries,
         included_utxos,
         ..
     } = batches.find_by_id(data.account_id, data.batch_id).await?;
 
     let wallet_summary = wallet_summaries
-        .get(&data.wallet_id)
+        .remove(&data.wallet_id)
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
 
@@ -70,17 +70,14 @@ pub async fn execute(
                         tx_summary: WalletTransactionSummary {
                             account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
-                            current_keychain_id: wallet_summary.change_keychain_id,
+                            current_keychain_id: wallet_summary.current_keychain_id,
                             fee_sats: wallet_summary.fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: wallet_summary.total_in_sats,
                             change_sats: wallet_summary.change_sats,
                             change_outpoint: wallet_summary.change_outpoint,
-                            change_address: wallet_summary
-                                .change_outpoint
-                                .as_ref()
-                                .map(|_| wallet_summary.change_address.clone()),
+                            change_address: wallet_summary.change_address,
                         },
                     },
                 },

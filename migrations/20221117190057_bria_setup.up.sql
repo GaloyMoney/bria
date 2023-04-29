@@ -154,13 +154,13 @@ CREATE TABLE bria_batches (
 
 CREATE TABLE bria_batch_wallet_summaries (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
-  wallet_id UUID NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  current_keychain_id UUID NOT NULL,
   total_in_sats BIGINT NOT NULL,
   total_spent_sats BIGINT NOT NULL,
   change_sats BIGINT NOT NULL,
-  change_address VARCHAR NOT NULL,
+  change_address VARCHAR,
   change_vout INTEGER,
-  change_keychain_id UUID NOT NULL,
   fee_sats BIGINT NOT NULL,
   batch_created_ledger_tx_id UUID,
   batch_submitted_ledger_tx_id UUID,

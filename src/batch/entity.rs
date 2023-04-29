@@ -59,13 +59,14 @@ impl NewBatch {
 #[derive(Clone)]
 pub struct WalletSummary {
     pub wallet_id: WalletId,
+    pub current_keychain_id: KeychainId,
+    // pub involved_keychains: Vec<KeychainId>,
     pub total_in_sats: Satoshis,
     pub total_spent_sats: Satoshis,
     pub fee_sats: Satoshis,
     pub change_sats: Satoshis,
-    pub change_address: bitcoin::Address,
+    pub change_address: Option<bitcoin::Address>,
     pub change_outpoint: Option<bitcoin::OutPoint>,
-    pub change_keychain_id: KeychainId,
     pub batch_created_ledger_tx_id: Option<LedgerTransactionId>,
     pub batch_submitted_ledger_tx_id: Option<LedgerTransactionId>,
 }

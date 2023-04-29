@@ -183,9 +183,9 @@ impl From<WalletTotals> for WalletSummary {
             total_spent_sats: wt.output_satoshis,
             fee_sats: wt.fee_satoshis,
             change_sats: wt.change_satoshis,
-            change_address: wt.change_address.address,
+            change_address: wt.change_outpoint.map(|_| wt.change_address.address),
             change_outpoint: wt.change_outpoint,
-            change_keychain_id: wt.change_keychain_id,
+            current_keychain_id: wt.change_keychain_id,
             batch_created_ledger_tx_id: None,
             batch_submitted_ledger_tx_id: None,
         }
