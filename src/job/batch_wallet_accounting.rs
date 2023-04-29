@@ -65,10 +65,10 @@ pub async fn execute(
                     meta: BatchCreatedMeta {
                         batch_id: id,
                         batch_group_id,
-                        tx_summary: TransactionSummary {
+                        tx_summary: WalletTransactionSummary {
                             account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
-                            keychain_id: wallet_summary.change_keychain_id,
+                            current_keychain_id: wallet_summary.change_keychain_id,
                             fee_sats: wallet_summary.fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,

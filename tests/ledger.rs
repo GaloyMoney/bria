@@ -322,7 +322,7 @@ async fn create_batch() -> anyhow::Result<()> {
                 meta: BatchCreatedMeta {
                     batch_id,
                     batch_group_id: BatchGroupId::new(),
-                    tx_summary: TransactionSummary {
+                    tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,
                         bitcoin_tx_id:
@@ -335,7 +335,7 @@ async fn create_batch() -> anyhow::Result<()> {
                         fee_sats,
                         change_address: None,
                         change_outpoint: None,
-                        keychain_id: KeychainId::new(),
+                        current_keychain_id: KeychainId::new(),
                     },
                 },
             },
@@ -410,10 +410,10 @@ async fn spend_detected() -> anyhow::Result<()> {
                 reserved_fees,
                 meta: SpendDetectedMeta {
                     withdraw_from_logical_when_settled: HashMap::new(),
-                    tx_summary: TransactionSummary {
+                    tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,
-                        keychain_id,
+                        current_keychain_id: keychain_id,
                         bitcoin_tx_id:
                             "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
                                 .parse()
@@ -543,10 +543,10 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
                 reserved_fees,
                 meta: SpendDetectedMeta {
                     withdraw_from_logical_when_settled,
-                    tx_summary: TransactionSummary {
+                    tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,
-                        keychain_id,
+                        current_keychain_id: keychain_id,
                         bitcoin_tx_id:
                             "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
                                 .parse()

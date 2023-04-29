@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
-use super::shared_meta::TransactionSummary;
+use super::shared_meta::WalletTransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendSettledMeta {
-    pub tx_summary: TransactionSummary,
+    pub tx_summary: WalletTransactionSummary,
     pub confirmation_time: BlockTime,
 }
 
@@ -110,7 +110,7 @@ impl From<SpendSettledParams> for TxParams {
             NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
                 .expect("Couldn't convert blocktime to NaiveDateTime")
                 .date();
-        let TransactionSummary {
+        let WalletTransactionSummary {
             total_utxo_in_sats,
             change_sats,
             fee_sats,

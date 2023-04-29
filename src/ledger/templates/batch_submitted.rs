@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::shared_meta::TransactionSummary;
+use super::shared_meta::WalletTransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
@@ -16,7 +16,7 @@ pub struct BatchSubmittedMeta {
     pub batch_id: BatchId,
     pub batch_group_id: BatchGroupId,
     pub encumbered_spending_fee_sats: Option<Satoshis>,
-    pub tx_summary: TransactionSummary,
+    pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
 }
 

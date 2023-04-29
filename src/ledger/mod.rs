@@ -240,7 +240,7 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         #[derive(serde::Deserialize)]
         struct ExtractTxSummary {
-            tx_summary: TransactionSummary,
+            tx_summary: WalletTransactionSummary,
         }
         let txs = self
             .inner

@@ -308,10 +308,10 @@ pub async fn execute(
                                             .as_ref()
                                             .map(|_| fees_to_encumber),
                                         withdraw_from_logical_when_settled: allocations,
-                                        tx_summary: TransactionSummary {
+                                        tx_summary: WalletTransactionSummary {
                                             account_id: data.account_id,
                                             wallet_id: wallet.id,
-                                            keychain_id,
+                                            current_keychain_id: keychain_id,
                                             bitcoin_tx_id: unsynced_tx.tx_id,
                                             total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
                                             total_utxo_settled_in_sats: settled_sats,

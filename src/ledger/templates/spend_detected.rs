@@ -6,7 +6,7 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use super::shared_meta::TransactionSummary;
+use super::shared_meta::WalletTransactionSummary;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
@@ -14,7 +14,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendDetectedMeta {
     pub encumbered_spending_fee_sats: Option<Satoshis>,
-    pub tx_summary: TransactionSummary,
+    pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
     pub confirmation_time: Option<BlockTime>,
 }
@@ -135,7 +135,7 @@ impl From<SpendDetectedParams> for TxParams {
             .unwrap_or_else(|| Utc::now().date_naive());
         let encumbered_fee_diff =
             reserved_fees - meta.encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
-        let TransactionSummary {
+        let WalletTransactionSummary {
             total_utxo_in_sats,
             total_utxo_settled_in_sats,
             change_sats,
