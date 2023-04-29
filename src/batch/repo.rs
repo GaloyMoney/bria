@@ -55,7 +55,7 @@ impl Batches {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
-            (batch_id, wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id)"#,
+            (batch_id, wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id)"#,
         );
         query_builder.push_values(
             batch.wallet_summaries,
@@ -69,8 +69,8 @@ impl Batches {
                 builder.push_bind(summary.change_outpoint.map(|out| out.vout as i32));
                 builder.push_bind(Uuid::from(summary.change_keychain_id));
                 builder.push_bind(i64::from(summary.fee_sats));
-                builder.push_bind(summary.create_batch_ledger_tx_id.map(Uuid::from));
-                builder.push_bind(summary.submitted_ledger_tx_id.map(Uuid::from));
+                builder.push_bind(summary.batch_created_ledger_tx_id.map(Uuid::from));
+                builder.push_bind(summary.batch_submitted_ledger_tx_id.map(Uuid::from));
             },
         );
         let query = query_builder.build();
@@ -82,7 +82,7 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, create_batch_ledger_tx_id, submitted_ledger_tx_id, tx_id, vout, keychain_id
+            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, u.batch_id, s.wallet_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, change_keychain_id, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id, tx_id, vout, keychain_id
             FROM bria_batch_spent_utxos u
             LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
             LEFT JOIN bria_batches b ON b.id = u.batch_id
@@ -131,8 +131,12 @@ impl Batches {
                         vout: out as u32,
                     }),
                     change_keychain_id: KeychainId::from(row.change_keychain_id),
-                    create_batch_ledger_tx_id: row.create_batch_ledger_tx_id.map(LedgerTxId::from),
-                    submitted_ledger_tx_id: row.submitted_ledger_tx_id.map(LedgerTxId::from),
+                    batch_created_ledger_tx_id: row
+                        .batch_created_ledger_tx_id
+                        .map(LedgerTxId::from),
+                    batch_submitted_ledger_tx_id: row
+                        .batch_submitted_ledger_tx_id
+                        .map(LedgerTxId::from),
                 },
             );
         }
@@ -166,8 +170,8 @@ impl Batches {
         Ok(())
     }
 
-    #[instrument(name = "batches.set_create_batch_ledger_tx_id", skip(self))]
-    pub async fn set_create_batch_ledger_tx_id(
+    #[instrument(name = "batches.set_batch_created_ledger_tx_id", skip(self))]
+    pub async fn set_batch_created_ledger_tx_id(
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
@@ -176,8 +180,8 @@ impl Batches {
         let ledger_transaction_id = Uuid::new_v4();
         let rows_affected = sqlx::query!(
             r#"UPDATE bria_batch_wallet_summaries
-               SET create_batch_ledger_tx_id = $1
-               WHERE wallet_id = $2 AND batch_id = $3 AND create_batch_ledger_tx_id IS NULL"#,
+               SET batch_created_ledger_tx_id = $1
+               WHERE wallet_id = $2 AND batch_id = $3 AND batch_created_ledger_tx_id IS NULL"#,
             ledger_transaction_id,
             Uuid::from(wallet_id),
             Uuid::from(batch_id),
@@ -193,8 +197,8 @@ impl Batches {
         }
     }
 
-    #[instrument(name = "batches.set_submitted_ledger_tx_id", skip(self))]
-    pub async fn set_submitted_ledger_tx_id(
+    #[instrument(name = "batches.set_batch_submitted_ledger_tx_id", skip(self))]
+    pub async fn set_batch_submitted_ledger_tx_id(
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
@@ -205,10 +209,10 @@ impl Batches {
                  SELECT id FROM bria_batches
                  WHERE bitcoin_tx_id = $1
                )
-               SELECT b.id, s.submitted_ledger_tx_id as "ledger_id?", s.create_batch_ledger_tx_id
+               SELECT b.id, s.batch_submitted_ledger_tx_id as "ledger_id?", s.batch_created_ledger_tx_id
                FROM b
                LEFT JOIN (
-                   SELECT batch_id, submitted_ledger_tx_id, create_batch_ledger_tx_id
+                   SELECT batch_id, batch_submitted_ledger_tx_id, batch_created_ledger_tx_id
                    FROM bria_batch_wallet_summaries
                    WHERE wallet_id = $2 AND batch_id = ANY(SELECT id FROM b)
                    FOR UPDATE
@@ -219,23 +223,23 @@ impl Batches {
         )
         .fetch_optional(&mut tx)
         .await?;
-        if row.is_none() || row.as_ref().unwrap().create_batch_ledger_tx_id.is_none() {
+        if row.is_none() || row.as_ref().unwrap().batch_created_ledger_tx_id.is_none() {
             return Ok(None);
         }
         let row = row.unwrap();
-        let create_batch_ledger_tx_id = LedgerTxId::from(row.create_batch_ledger_tx_id.unwrap());
+        let batch_created_ledger_tx_id = LedgerTxId::from(row.batch_created_ledger_tx_id.unwrap());
         let batch_id = row.id;
         if row.ledger_id.is_some() {
             return Ok(Some((
                 tx,
-                create_batch_ledger_tx_id,
+                batch_created_ledger_tx_id,
                 LedgerTxId::from(row.ledger_id.unwrap()),
             )));
         }
         let ledger_transaction_id = Uuid::new_v4();
         sqlx::query!(
             r#"UPDATE bria_batch_wallet_summaries
-               SET submitted_ledger_tx_id = $1
+               SET batch_submitted_ledger_tx_id = $1
                WHERE bria_batch_wallet_summaries.batch_id = $2
                  AND bria_batch_wallet_summaries.wallet_id = $3"#,
             ledger_transaction_id,
@@ -247,7 +251,7 @@ impl Batches {
 
         Ok(Some((
             tx,
-            create_batch_ledger_tx_id,
+            batch_created_ledger_tx_id,
             LedgerTxId::from(ledger_transaction_id),
         )))
     }
