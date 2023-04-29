@@ -69,7 +69,11 @@ impl AccountXPub {
                 let client = LndRemoteSigner::connect(cfg).await?;
                 Some(Box::new(client) as Box<dyn RemoteSigningClient + 'static>)
             }
-            _ => None,
+            Some(SignerConfig::Bitcoind(ref cfg)) => {
+                let client = BitcoindRemoteSigner::connect(cfg).await?;
+                Some(Box::new(client) as Box<dyn RemoteSigningClient + 'static>)
+            }
+            None => None,
         };
         Ok(client)
     }
