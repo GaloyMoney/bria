@@ -154,10 +154,10 @@ pub async fn execute(
                         .await?;
                     bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
                     deps.ledger
-                        .incoming_utxo(
+                        .utxo_detected(
                             tx,
                             pending_id,
-                            IncomingUtxoParams {
+                            UtxoDetectedParams {
                                 journal_id: wallet.journal_id,
                                 onchain_incoming_account_id: wallet
                                     .ledger_account_ids
@@ -166,7 +166,7 @@ pub async fn execute(
                                     .ledger_account_ids
                                     .logical_incoming_id,
                                 onchain_fee_account_id: wallet.ledger_account_ids.fee_id,
-                                meta: IncomingUtxoMeta {
+                                meta: UtxoDetectedMeta {
                                     account_id: data.account_id,
                                     wallet_id: data.wallet_id,
                                     keychain_id,
@@ -204,14 +204,14 @@ pub async fn execute(
                         trackers.n_confirmed_utxos += 1;
 
                         deps.ledger
-                            .confirmed_utxo(
+                            .utxo_settled(
                                 tx,
                                 utxo.confirmed_income_ledger_tx_id,
-                                ConfirmedUtxoParams {
+                                UtxoSettledParams {
                                     journal_id: wallet.journal_id,
                                     ledger_account_ids: wallet.ledger_account_ids,
                                     pending_id: utxo.pending_income_ledger_tx_id,
-                                    meta: ConfirmedUtxoMeta {
+                                    meta: UtxoSettledMeta {
                                         account_id: data.account_id,
                                         wallet_id: data.wallet_id,
                                         keychain_id,
@@ -278,7 +278,7 @@ pub async fn execute(
                     }
                     if let Some(create_batch_tx_id) = create_batch_tx_id {
                         deps.ledger
-                            .submit_batch(
+                            .batch_submitted(
                                 tx,
                                 create_batch_tx_id,
                                 tx_id,
@@ -296,14 +296,14 @@ pub async fn execute(
                             )
                             .await?;
                         deps.ledger
-                            .external_spend(
+                            .spend_detected(
                                 tx,
                                 tx_id,
-                                ExternalSpendParams {
+                                SpendDetectedParams {
                                     journal_id: wallet.journal_id,
                                     ledger_account_ids: wallet.ledger_account_ids,
                                     reserved_fees,
-                                    meta: ExternalSpendMeta {
+                                    meta: SpendDetectedMeta {
                                         encumbered_spending_fee_sats: change_utxo
                                             .as_ref()
                                             .map(|_| fees_to_encumber),
@@ -352,7 +352,7 @@ pub async fn execute(
                 {
                     bdk_txs.mark_confirmed(&mut tx, unsynced_tx.tx_id).await?;
                     deps.ledger
-                        .confirm_spend(
+                        .spend_settled(
                             tx,
                             confirmed_out_id,
                             wallet.journal_id,
@@ -390,14 +390,14 @@ pub async fn execute(
                 trackers.n_confirmed_utxos += 1;
 
                 deps.ledger
-                    .confirmed_utxo(
+                    .utxo_settled(
                         tx,
                         utxo.confirmed_income_ledger_tx_id,
-                        ConfirmedUtxoParams {
+                        UtxoSettledParams {
                             journal_id: wallet.journal_id,
                             ledger_account_ids: wallet.ledger_account_ids,
                             pending_id: utxo.pending_income_ledger_tx_id,
-                            meta: ConfirmedUtxoMeta {
+                            meta: UtxoSettledMeta {
                                 account_id: data.account_id,
                                 wallet_id: data.wallet_id,
                                 keychain_id,
@@ -440,7 +440,7 @@ pub async fn execute(
                     .await?
                 {
                     deps.ledger
-                        .confirm_spend(
+                        .spend_settled(
                             tx,
                             confirmed_out_id,
                             wallet.journal_id,

@@ -43,15 +43,15 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
 
     ledger
-        .incoming_utxo(
+        .utxo_detected(
             tx,
             pending_id,
-            IncomingUtxoParams {
+            UtxoDetectedParams {
                 journal_id,
                 onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
                 logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
-                meta: IncomingUtxoMeta {
+                meta: UtxoDetectedMeta {
                     account_id,
                     wallet_id,
                     keychain_id,
@@ -79,14 +79,14 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .confirmed_utxo(
+        .utxo_settled(
             tx,
             confirmed_id,
-            ConfirmedUtxoParams {
+            UtxoSettledParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 pending_id,
-                meta: ConfirmedUtxoMeta {
+                meta: UtxoSettledMeta {
                     account_id,
                     wallet_id,
                     keychain_id,
@@ -124,7 +124,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn utxo_spent_confirmation() -> anyhow::Result<()> {
+async fn spent_utxo_confirmation() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let ledger = Ledger::init(&pool).await?;
@@ -155,15 +155,15 @@ async fn utxo_spent_confirmation() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
 
     ledger
-        .incoming_utxo(
+        .utxo_detected(
             tx,
             pending_id,
-            IncomingUtxoParams {
+            UtxoDetectedParams {
                 journal_id,
                 onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
                 logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
-                meta: IncomingUtxoMeta {
+                meta: UtxoDetectedMeta {
                     account_id,
                     wallet_id,
                     keychain_id,
@@ -191,14 +191,14 @@ async fn utxo_spent_confirmation() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .confirmed_utxo(
+        .utxo_settled(
             tx,
             confirmed_id,
-            ConfirmedUtxoParams {
+            UtxoSettledParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 pending_id,
-                meta: ConfirmedUtxoMeta {
+                meta: UtxoSettledMeta {
                     account_id,
                     wallet_id,
                     keychain_id,
@@ -252,15 +252,15 @@ async fn queue_payout() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .queued_payout(
+        .payout_queued(
             tx,
             LedgerTransactionId::new(),
-            QueuedPayoutParams {
+            PayoutQueuedParams {
                 journal_id,
                 logical_outgoing_account_id: wallet_ledger_accounts.logical_outgoing_id,
                 external_id: payout_id.to_string(),
                 payout_satoshis,
-                meta: QueuedPayoutMeta {
+                meta: PayoutQueuedMeta {
                     account_id,
                     payout_id,
                     wallet_id,
@@ -313,14 +313,14 @@ async fn create_batch() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .create_batch(
+        .batch_created(
             tx,
             LedgerTransactionId::new(),
-            CreateBatchParams {
+            BatchCreatedParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 encumbered_fees,
-                meta: CreateBatchMeta {
+                meta: BatchCreatedMeta {
                     batch_id,
                     batch_group_id: BatchGroupId::new(),
                     tx_summary: TransactionSummary {
@@ -373,7 +373,7 @@ async fn create_batch() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn external_spend() -> anyhow::Result<()> {
+async fn spend_detected() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let ledger = Ledger::init(&pool).await?;
@@ -402,14 +402,14 @@ async fn external_spend() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
     let tx = pool.begin().await?;
     ledger
-        .external_spend(
+        .spend_detected(
             tx,
             pending_id,
-            ExternalSpendParams {
+            SpendDetectedParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
-                meta: ExternalSpendMeta {
+                meta: SpendDetectedMeta {
                     withdraw_from_logical_when_settled: HashMap::new(),
                     tx_summary: TransactionSummary {
                         account_id,
@@ -463,7 +463,7 @@ async fn external_spend() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .confirm_spend(
+        .spend_settled(
             tx,
             LedgerTransactionId::new(),
             journal_id,
@@ -498,7 +498,7 @@ async fn external_spend() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn external_spend_unconfirmed() -> anyhow::Result<()> {
+async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
     let ledger = Ledger::init(&pool).await?;
@@ -535,14 +535,14 @@ async fn external_spend_unconfirmed() -> anyhow::Result<()> {
     let pending_id = LedgerTransactionId::new();
     let tx = pool.begin().await?;
     ledger
-        .external_spend(
+        .spend_detected(
             tx,
             pending_id,
-            ExternalSpendParams {
+            SpendDetectedParams {
                 journal_id,
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
-                meta: ExternalSpendMeta {
+                meta: SpendDetectedMeta {
                     withdraw_from_logical_when_settled,
                     tx_summary: TransactionSummary {
                         account_id,

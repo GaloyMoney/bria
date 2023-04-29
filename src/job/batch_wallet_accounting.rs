@@ -55,14 +55,14 @@ pub async fn execute(
         .await?
     {
         ledger
-            .create_batch(
+            .batch_created(
                 tx,
                 tx_id,
-                CreateBatchParams {
+                BatchCreatedParams {
                     journal_id: wallet.journal_id,
                     ledger_account_ids: wallet.ledger_account_ids,
                     encumbered_fees,
-                    meta: CreateBatchMeta {
+                    meta: BatchCreatedMeta {
                         batch_id: id,
                         batch_group_id,
                         tx_summary: TransactionSummary {

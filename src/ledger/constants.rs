@@ -1,29 +1,29 @@
 use uuid::{uuid, Uuid};
 
 // Transaction Template Codes
-pub(super) const INCOMING_UTXO_CODE: &str = "INCOMING_UTXO";
-pub(super) const INCOMING_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
+pub(super) const UTXO_DETECTED_CODE: &str = "UTXO_DETECTED";
+pub(super) const UTXO_DETECTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 
-pub(super) const CONFIRMED_UTXO_CODE: &str = "CONFIRMED_UTXO";
-pub(super) const CONFIRMED_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
+pub(super) const UTXO_SETTLED_CODE: &str = "UTXO_SETTLED";
+pub(super) const UTXO_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 
-pub(super) const CONFIRM_SPENT_UTXO_CODE: &str = "CONFIRM_SPENT_UTXO";
-pub(super) const CONFIRM_SPENT_UTXO_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
+pub(super) const SPENT_UTXO_SETTLED_CODE: &str = "SPENT_UTXO_SETTLED";
+pub(super) const SPENT_UTXO_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 
-pub(super) const EXTERNAL_SPEND_CODE: &str = "EXTERNAL_SPEND";
-pub(super) const EXTERNAL_SPEND_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000004");
+pub(super) const SPEND_DETECTED_CODE: &str = "SPEND_DETECTED";
+pub(super) const SPEND_DETECTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000004");
 
-pub(super) const CONFIRM_SPEND_CODE: &str = "CONFIRM_SPEND";
-pub(super) const CONFIRM_SPEND_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000005");
+pub(super) const SPEND_SETTLED_CODE: &str = "SPEND_SETTLED";
+pub(super) const SPEND_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000005");
 
-pub(super) const QUEUED_PAYOUT_CODE: &str = "QUEUED_PAYOUT";
-pub(super) const QUEUED_PAYOUD_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000006");
+pub(super) const PAYOUT_QUEUED_CODE: &str = "PAYOUT_QUEUED";
+pub(super) const PAYOUT_QUEUED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000006");
 
-pub(super) const CREATE_BATCH_CODE: &str = "CREATE_BATCH";
-pub(super) const CREATE_BATCH_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000007");
+pub(super) const BATCH_CREATED_CODE: &str = "BATCH_CREATED";
+pub(super) const BATCH_CREATED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000007");
 
-pub(super) const SUBMIT_BATCH_CODE: &str = "SUBMIT_BATCH";
-pub(super) const SUBMIT_BATCH_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000008");
+pub(super) const BATCH_SUBMITTED_CODE: &str = "BATCH_SUBMITTED";
+pub(super) const BATCH_SUBMITTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000008");
 
 // Onchain/Omnibus Ledger Accounts
 pub(super) const ONCHAIN_UTXO_INCOMING_CODE: &str = "ONCHAIN_UTXO_INCOMING";

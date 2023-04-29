@@ -1,34 +1,33 @@
 use bdk::BlockTime;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
-use crate::{
-    error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
-};
+use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConfirmedUtxoMeta {
+pub struct UtxoDetectedMeta {
     pub account_id: AccountId,
     pub wallet_id: WalletId,
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
     pub address: bitcoin::Address,
-    pub confirmation_time: BlockTime,
-    pub already_spent_tx_id: Option<LedgerTransactionId>,
+    pub encumbered_spending_fee_sats: Satoshis,
+    pub confirmation_time: Option<BlockTime>,
 }
 
 #[derive(Debug)]
-pub struct ConfirmedUtxoParams {
+pub struct UtxoDetectedParams {
     pub journal_id: JournalId,
-    pub ledger_account_ids: WalletLedgerAccountIds,
-    pub pending_id: LedgerTransactionId,
-    pub meta: ConfirmedUtxoMeta,
+    pub onchain_incoming_account_id: LedgerAccountId,
+    pub logical_incoming_account_id: LedgerAccountId,
+    pub onchain_fee_account_id: LedgerAccountId,
+    pub meta: UtxoDetectedMeta,
 }
 
-impl ConfirmedUtxoParams {
+impl UtxoDetectedParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -42,17 +41,12 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("onchain_at_rest_account_id")
-                .r#type(ParamDataType::UUID)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
                 .name("logical_incoming_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_at_rest_account_id")
+                .name("onchain_fee_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -62,13 +56,8 @@ impl ConfirmedUtxoParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("fees")
+                .name("encumbered_spending_fees")
                 .r#type(ParamDataType::DECIMAL)
-                .build()
-                .unwrap(),
-            ParamDefinition::builder()
-                .name("correlation_id")
-                .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -85,134 +74,122 @@ impl ConfirmedUtxoParams {
     }
 }
 
-impl From<ConfirmedUtxoParams> for TxParams {
+impl From<UtxoDetectedParams> for TxParams {
     fn from(
-        ConfirmedUtxoParams {
+        UtxoDetectedParams {
             journal_id,
-            ledger_account_ids: accounts,
-            pending_id,
+            onchain_incoming_account_id,
+            logical_incoming_account_id,
+            onchain_fee_account_id,
             meta,
-        }: ConfirmedUtxoParams,
+        }: UtxoDetectedParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
-        let effective =
-            NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
-                .expect("Couldn't convert blocktime to NaiveDateTime")
-                .date();
+        let fees = meta.encumbered_spending_fee_sats.to_btc();
+        let effective = meta
+            .confirmation_time
+            .as_ref()
+            .map(|t| {
+                NaiveDateTime::from_timestamp_opt(t.timestamp as i64, 0)
+                    .expect("Couldn't convert blocktime to NaiveDateTime")
+                    .date()
+            })
+            .unwrap_or_else(|| Utc::now().date_naive());
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("onchain_incoming_account_id", accounts.onchain_incoming_id);
-        params.insert("onchain_at_rest_account_id", accounts.onchain_at_rest_id);
-        params.insert("logical_incoming_account_id", accounts.logical_incoming_id);
-        params.insert("logical_at_rest_account_id", accounts.logical_at_rest_id);
+        params.insert("onchain_incoming_account_id", onchain_incoming_account_id);
+        params.insert("logical_incoming_account_id", logical_incoming_account_id);
+        params.insert("onchain_fee_account_id", onchain_fee_account_id);
         params.insert("amount", amount);
-        params.insert("correlation_id", pending_id);
+        params.insert("encumbered_spending_fees", fees);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
     }
 }
 
-pub struct ConfirmedUtxo {}
+pub struct UtxoDetected {}
 
-impl ConfirmedUtxo {
-    #[instrument(name = "ledger.confirmed_utxo.init", skip_all)]
+impl UtxoDetected {
+    #[instrument(name = "ledger.utxo_detected.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
-            .correlation_id("params.correlation_id")
             .metadata("params.meta")
-            .description("'Onchain tx confirmed'")
+            .description("'Onchain tx in mempool'")
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_LOGICAL_PENDING_DR'")
+                .entry_type("'UTXO_DETECTED_LOGICAL_PENDING_DR'")
+                .currency("'BTC'")
+                .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
+                .direction("DEBIT")
+                .layer("PENDING")
+                .units("params.amount")
+                .build()
+                .expect("Couldn't build entry"),
+            EntryInput::builder()
+                .entry_type("'UTXO_DETECTED_LOGICAL_PENDING_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_incoming_account_id")
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build entry"),
-            EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_LOGICAL_PENDING_CR'")
-                .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build entry"),
+            // FEE
             EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_LOGICAL_SETTLED_DR'")
+                .entry_type("'UTXO_DETECTED_FEE_ENCUMEBERED_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
+                .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
-                .layer("SETTLED")
-                .units("params.amount")
+                .layer("ENCUMBERED")
+                .units("params.encumbered_spending_fees")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_LOGICAL_SETTLED_CR'")
+                .entry_type("'UTXO_DETECTED_FEE_ENCUMBERED_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_at_rest_account_id")
+                .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
-                .layer("SETTLED")
-                .units("params.amount")
+                .layer("ENCUMBERED")
+                .units("params.encumbered_spending_fees")
                 .build()
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_UTXO_PENDING_DR'")
-                .currency("'BTC'")
-                .account_id("params.onchain_incoming_account_id")
-                .direction("DEBIT")
-                .layer("PENDING")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build entry"),
-            EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_UTXO_PENDING_CR'")
+                .entry_type("'UTXO_DETECTED_UTXO_PENDING_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
-                .direction("CREDIT")
+                .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
                 .build()
-                .expect("Couldn't build entry"),
+                .expect("Couldn't build UTXO_DETECTED_PENDING_DR entry"),
             EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_UTXO_SETTLED_DR'")
+                .entry_type("'UTXO_DETECTED_UTXO_PENDING_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
-                .direction("DEBIT")
-                .layer("SETTLED")
-                .units("params.amount")
-                .build()
-                .expect("Couldn't build entry"),
-            EntryInput::builder()
-                .entry_type("'CONFIRMED_UTXO_UTXO_SETTLED_CR'")
-                .currency("'BTC'")
-                .account_id("params.onchain_at_rest_account_id")
+                .account_id("params.onchain_incoming_account_id")
                 .direction("CREDIT")
-                .layer("SETTLED")
+                .layer("PENDING")
                 .units("params.amount")
                 .build()
                 .expect("Couldn't build entry"),
         ];
 
-        let params = ConfirmedUtxoParams::defs();
+        let params = UtxoDetectedParams::defs();
         let template = NewTxTemplate::builder()
-            .id(CONFIRMED_UTXO_ID)
-            .code(CONFIRMED_UTXO_CODE)
+            .id(UTXO_DETECTED_ID)
+            .code(UTXO_DETECTED_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)
             .build()
-            .expect("Couldn't build CONFIRMED_UTXO_CODE");
+            .expect("Couldn't build template");
         match ledger.tx_templates().create(template).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
             Err(e) => Err(e.into()),
