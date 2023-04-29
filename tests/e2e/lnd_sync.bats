@@ -7,7 +7,7 @@ setup_file() {
   reset_pg
   bitcoind_init
   start_daemon
-  bria_init
+  bria_lnd_init
 }
 
 teardown_file() {

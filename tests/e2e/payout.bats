@@ -59,10 +59,11 @@ teardown_file() {
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   for i in {1..20}; do
-    batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
+  [[ "${batch_id}" != "null" ]] || exit 1
   for i in {1..60}; do
     cache_default_wallet_balance
     [[ $(cached_pending_outgoing) == 150000000 ]] && break;
@@ -87,17 +88,19 @@ teardown_file() {
   cache_default_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
+  bitcoind_switch_to_signer_wallet
   bria_cmd set-signer-config \
-    --xpub lnd_key lnd \
-    --endpoint "${LND_ENDPOINT}" \
-    --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" \
-    --cert-file "./dev/lnd/tls.cert"
+    --xpub bitcoind_key bitcoind \
+    --endpoint "${BITCOIND_ENDPOINT}" \
+    --rpc-user "rpcuser" \
+    --rpc-password "rpcpassword"
 
   for i in {1..20}; do
     signing_status=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].state')
     [[ "${signing_status}" != "Complete" ]] && break
     sleep 1
   done
+  bitcoind_switch_to_default_wallet
 
   for i in {1..20}; do
     cache_default_wallet_balance

@@ -4,8 +4,8 @@ BRIA_HOME="${BRIA_HOME:-.bria}"
 if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
-LND_HOST="${LND_HOST:-localhost}"
-LND_ENDPOINT="https://${LND_HOST}:10009"
+BITCOIND_HOST="${BITCOIND_HOST:-localhost}"
+BITCOIND_ENDPOINT="https://${BITCOIND_HOST}:18443"
 
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
@@ -18,6 +18,10 @@ bria_cmd() {
 
 cache_default_wallet_balance() {
   balance=$(bria_cmd wallet-balance -w default)
+}
+
+cache_bitcoind_wallet_balance() {
+  balance=$(bria_cmd wallet-balance -w bitcoind_wallet)
 }
 
 cached_pending_income() {
@@ -69,9 +73,23 @@ restart_bitcoin() {
   retry 10 1 lnd_cli getinfo
 }
 
+bitcoind_switch_to_default_wallet() {
+  bitcoin_cli unloadwallet "signer" || true
+  bitcoin_cli loadwallet "default" || true
+}
+
+bitcoind_switch_to_signer_wallet() {
+  bitcoin_cli unloadwallet "default" || true
+  bitcoin_cli loadwallet "signer" || true
+}
+
 bitcoind_init() {
   bitcoin_cli createwallet "default" || true
 	bitcoin_cli -generate 200
+
+  bitcoin_cli unloadwallet "default" || true
+  bitcoin_cli createwallet "signer" || true
+  bitcoind_switch_to_default_wallet
 }
 
 start_daemon() {
@@ -85,7 +103,42 @@ stop_daemon() {
   fi
 }
 
+bria_create_bitcoind_wallet() {
+  bitcoind_switch_to_signer_wallet
+
+  bitcoin_signer_address=$(bitcoin_cli getnewaddress)
+  if [ -z "$bitcoin_signer_address" ]; then
+    echo "Failed to get a new address"
+    exit 1
+  fi
+
+  tpub=$(
+    bitcoin_cli getaddressinfo $bitcoin_signer_address \
+    | jq -r .'parent_desc' \
+    | sed -n -E "s/.*\](tpub[^/]*).*/\1/p"
+  )
+  if [ -z "$tpub" ]; then
+    echo "Failed to get tpub"
+    exit 1
+  fi
+
+  bria_cmd import-xpub -x $tpub -n bitcoind_key -d m/84h/1h/0h
+  bria_cmd create-wallet -n default -x bitcoind_key
+
+  bitcoind_switch_to_default_wallet
+}
+
 bria_init() {
+  bria_cmd admin bootstrap
+  bria_cmd admin create-account -n default
+  sleep 3
+
+  bria_create_bitcoind_wallet
+
+  echo "Bria Initialization Complete"
+}
+
+bria_lnd_init() {
   bria_cmd admin bootstrap
   bria_cmd admin create-account -n default
   sleep 3
@@ -94,6 +147,7 @@ bria_init() {
 
   echo "Bria Initialization Complete"
 }
+
 
 # Run the given command in the background. Useful for starting a
 # node and then moving on with commands that exercise it for the
