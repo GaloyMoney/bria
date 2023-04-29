@@ -60,7 +60,7 @@ impl NewBatch {
 pub struct WalletSummary {
     pub wallet_id: WalletId,
     pub current_keychain_id: KeychainId,
-    // pub involved_keychains: Vec<KeychainId>,
+    pub signing_keychains: Vec<KeychainId>,
     pub total_in_sats: Satoshis,
     pub total_spent_sats: Satoshis,
     pub fee_sats: Satoshis,

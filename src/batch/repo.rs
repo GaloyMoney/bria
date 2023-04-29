@@ -54,7 +54,7 @@ impl Batches {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
-            (batch_id, wallet_id, current_keychain_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id)"#,
+            (batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id)"#,
         );
         query_builder.push_values(
             batch.wallet_summaries,
@@ -62,6 +62,13 @@ impl Batches {
                 builder.push_bind(batch.id);
                 builder.push_bind(wallet_id);
                 builder.push_bind(summary.current_keychain_id);
+                builder.push_bind(
+                    summary
+                        .signing_keychains
+                        .into_iter()
+                        .map(uuid::Uuid::from)
+                        .collect::<Vec<_>>(),
+                );
                 builder.push_bind(i64::from(summary.total_in_sats));
                 builder.push_bind(i64::from(summary.total_spent_sats));
                 builder.push_bind(i64::from(summary.change_sats));
@@ -81,7 +88,7 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, u.batch_id, s.wallet_id, s.current_keychain_id, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id, tx_id, vout, keychain_id
+            r#"SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, u.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id, tx_id, vout, keychain_id
             FROM bria_batch_spent_utxos u
             LEFT JOIN bria_batch_wallet_summaries s ON u.batch_id = s.batch_id AND u.wallet_id = s.wallet_id
             LEFT JOIN bria_batches b ON b.id = u.batch_id
@@ -120,6 +127,11 @@ impl Batches {
                 wallet_id,
                 WalletSummary {
                     wallet_id,
+                    signing_keychains: row
+                        .signing_keychains
+                        .iter()
+                        .map(|k| KeychainId::from(*k))
+                        .collect(),
                     total_in_sats: Satoshis::from(row.total_in_sats),
                     total_spent_sats: Satoshis::from(row.total_spent_sats),
                     fee_sats: Satoshis::from(row.fee_sats),

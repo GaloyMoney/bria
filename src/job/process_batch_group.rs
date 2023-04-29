@@ -179,6 +179,7 @@ impl From<WalletTotals> for WalletSummary {
     fn from(wt: WalletTotals) -> Self {
         Self {
             wallet_id: wt.wallet_id,
+            signing_keychains: wt.keychains_with_inputs,
             total_in_sats: wt.input_satoshis,
             total_spent_sats: wt.output_satoshis,
             fee_sats: wt.fee_satoshis,
