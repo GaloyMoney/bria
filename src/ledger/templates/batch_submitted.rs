@@ -120,7 +120,7 @@ impl BatchSubmitted {
         let entries = vec![
             // FEES
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_FEE_ENCUMBERED_DR'")
+                .entry_type("'BATCH_SUBMITTED_FR_ENC_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -129,7 +129,7 @@ impl BatchSubmitted {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_FEE_ENCUMBERED_CR'")
+                .entry_type("'BATCH_SUBMITTED_FR_ENC_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
@@ -139,7 +139,7 @@ impl BatchSubmitted {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_UTXO_ENCUMBERED_DR'")
+                .entry_type("'BATCH_SUBMITTED_CHG_ENC_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("DEBIT")
@@ -148,7 +148,7 @@ impl BatchSubmitted {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_UTXO_ENCUMBERED_CR'")
+                .entry_type("'BATCH_SUBMITTED_CHG_ENC_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("CREDIT")
@@ -157,7 +157,7 @@ impl BatchSubmitted {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_UTXO_PENDING_DR'")
+                .entry_type("'BATCH_SUBMITTED_CHG_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -166,7 +166,7 @@ impl BatchSubmitted {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_SUBMITTED_UTXO_PENDING_CR'")
+                .entry_type("'BATCH_SUBMITTED_CHG_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("CREDIT")

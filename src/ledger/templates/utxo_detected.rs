@@ -124,7 +124,7 @@ impl UtxoDetected {
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_LOGICAL_PENDING_DR'")
+                .entry_type("'UTXO_DETECTED_LOG_IN_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -133,7 +133,7 @@ impl UtxoDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_LOGICAL_PENDING_CR'")
+                .entry_type("'UTXO_DETECTED_LOG_IN_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_incoming_account_id")
                 .direction("CREDIT")
@@ -143,7 +143,7 @@ impl UtxoDetected {
                 .expect("Couldn't build entry"),
             // FEE
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_FEE_ENCUMEBERED_DR'")
+                .entry_type("'UTXO_DETECTED_FR_ENC_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -152,7 +152,7 @@ impl UtxoDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_FEE_ENCUMBERED_CR'")
+                .entry_type("'UTXO_DETECTED_FR_ENC_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
@@ -162,7 +162,7 @@ impl UtxoDetected {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_UTXO_PENDING_DR'")
+                .entry_type("'UTXO_DETECTED_UTX_IN_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -171,7 +171,7 @@ impl UtxoDetected {
                 .build()
                 .expect("Couldn't build UTXO_DETECTED_PENDING_DR entry"),
             EntryInput::builder()
-                .entry_type("'UTXO_DETECTED_UTXO_PENDING_CR'")
+                .entry_type("'UTXO_DETECTED_UTX_IN_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_incoming_account_id")
                 .direction("CREDIT")

@@ -203,7 +203,7 @@ impl SpendDetected {
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_LOGICAL_PENDING_CR'")
+                .entry_type("'SPEND_DETECTED_LOG_OUT_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_outgoing_account_id")
                 .direction("CREDIT")
@@ -212,7 +212,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_LOGICAL_PENDING_DR'")
+                .entry_type("'SPEND_DETECTED_LOG_OUT_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -221,7 +221,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_LOGICAL_SETTLED_DR'")
+                .entry_type("'SPEND_DETECTED_LOG_SET_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
@@ -230,7 +230,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_LOGICAL_SETTLED_CR'")
+                .entry_type("'SPEND_DETECTED_LOG_SET_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
                 .direction("CREDIT")
@@ -240,7 +240,7 @@ impl SpendDetected {
                 .expect("Couldn't build entry"),
             // FEES
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_FEE_PENDING_DR'")
+                .entry_type("'SPEND_DETECTED_FEE_PEN_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -249,7 +249,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_FEE_PENDING_CR'")
+                .entry_type("'SPEND_DETECTED_FEE_PEN_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
@@ -258,7 +258,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_FEE_ENCUMBERED_DR'")
+                .entry_type("'SPEND_DETECTED_FR_ENC_DR'")
                 .currency("'BTC'")
                 .account_id(
                     format!("params.encumbered_fee_credit ? uuid('{ONCHAIN_FEE_ID}') : params.onchain_fee_account_id"),
@@ -269,7 +269,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_FEE_ENCUMBERED_CR'")
+                .entry_type("'SPEND_DETECTED_FR_ENC_CR'")
                 .currency("'BTC'")
                 .account_id(
                     format!("params.encumbered_fee_credit ? params.onchain_fee_account_id : uuid('{ONCHAIN_FEE_ID}')"),
@@ -281,7 +281,7 @@ impl SpendDetected {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_PENDING_DR'")
+                .entry_type("'SPEND_DETECTED_UTX_OUT_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -290,7 +290,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_PENDING_CR'")
+                .entry_type("'SPEND_DETECTED_UTX_OUT_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_outgoing_account_id")
                 .direction("CREDIT")
@@ -299,7 +299,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_SETTLED_DR'")
+                .entry_type("'SPEND_DETECTED_UTX_SET_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
@@ -308,7 +308,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_SETTLED_CR'")
+                .entry_type("'SPEND_DETECTED_UTX_SET_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
@@ -317,7 +317,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_PENDING_DR'")
+                .entry_type("'SPEND_DETECTED_CHG_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -326,7 +326,7 @@ impl SpendDetected {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'SPEND_DETECTED_UTXO_PENDING_CR'")
+                .entry_type("'SPEND_DETECTED_CHG_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("CREDIT")
