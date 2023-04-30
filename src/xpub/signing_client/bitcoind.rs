@@ -3,7 +3,7 @@ use bitcoincore_rpc::{Auth, Client, RpcApi};
 use serde::{Deserialize, Serialize};
 
 use super::{error::*, r#trait::*};
-use crate::primitives::bitcoin::{consensus, hex::FromHex, psbt};
+use crate::primitives::bitcoin::{consensus, psbt, EcdsaSighashType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BitcoindSignerConfig {
@@ -36,16 +36,17 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         let raw_psbt = consensus::encode::serialize(&psbt);
         let hex_psbt = base64::encode(raw_psbt);
 
+        let sighash_type = Some(EcdsaSighashType::All.into());
         let response = self
             .inner
-            .wallet_process_psbt(&hex_psbt, None, None, None)
+            .wallet_process_psbt(&hex_psbt, None, sighash_type, None)
             .map_err(|e| {
                 SigningClientError::RemoteCallFailure(format!(
                     "Failed to sign psbt via bitcoind: {e}"
                 ))
             })?;
 
-        let signed_psbt = Vec::<u8>::from_hex(&response.psbt).map_err(|e| {
+        let signed_psbt = base64::decode(&response.psbt).map_err(|e| {
             SigningClientError::HexConvert(format!("Failed to convert psbt from bitcoind: {e}"))
         })?;
         Ok(consensus::encode::deserialize(&signed_psbt)?)
