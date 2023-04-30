@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{
-    app::BlockchainConfig, batch::*, error::*, ledger::*, primitives::*, utxo::*, wallet::*,
+    app::BlockchainConfig, batch::*, error::*, ledger::*, payout::*, primitives::*, utxo::*,
+    wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,29 +28,32 @@ pub async fn execute(
     wallets: Wallets,
     bria_utxos: Utxos,
     batches: Batches,
+    payouts: Payouts,
 ) -> Result<BatchWalletAccountingData, BriaError> {
     let Batch {
         id,
         bitcoin_tx_id,
         batch_group_id,
-        wallet_summaries,
-        included_utxos,
+        mut wallet_summaries,
         ..
     } = batches.find_by_id(data.account_id, data.batch_id).await?;
 
     let wallet_summary = wallet_summaries
-        .get(&data.wallet_id)
+        .remove(&data.wallet_id)
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
 
-    let utxos = included_utxos
-        .get(&data.wallet_id)
-        .expect("utxos not found");
-    let utxos = bria_utxos.list_utxos_by_outpoint(utxos).await?;
     let encumbered_fees = ledger
-        .sum_reserved_fees_in_txs(utxos.into_iter().map(|u| u.income_detected_ledger_tx_id))
+        .sum_reserved_fees_in_txs(
+            bria_utxos
+                .income_detected_ids_for_utxos_in(data.batch_id, data.wallet_id)
+                .await?,
+        )
         .await?;
 
+    let payouts = payouts
+        .list_for_batch(data.account_id, data.batch_id)
+        .await?;
     if let Some((tx, tx_id)) = batches
         .set_batch_created_ledger_tx_id(data.batch_id, data.wallet_id)
         .await?
@@ -63,22 +67,22 @@ pub async fn execute(
                     ledger_account_ids: wallet.ledger_account_ids,
                     encumbered_fees,
                     meta: BatchCreatedMeta {
-                        batch_id: id,
-                        batch_group_id,
-                        tx_summary: TransactionSummary {
+                        batch_info: BatchInfo {
+                            batch_id: id,
+                            batch_group_id,
+                            included_payouts: payouts.into_iter().map(PayoutInfo::from).collect(),
+                        },
+                        tx_summary: WalletTransactionSummary {
                             account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
-                            keychain_id: wallet_summary.change_keychain_id,
+                            current_keychain_id: wallet_summary.current_keychain_id,
                             fee_sats: wallet_summary.fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: wallet_summary.total_in_sats,
                             change_sats: wallet_summary.change_sats,
                             change_outpoint: wallet_summary.change_outpoint,
-                            change_address: wallet_summary
-                                .change_outpoint
-                                .as_ref()
-                                .map(|_| wallet_summary.change_address.clone()),
+                            change_address: wallet_summary.change_address,
                         },
                     },
                 },
@@ -86,4 +90,16 @@ pub async fn execute(
             .await?;
     }
     Ok(data)
+}
+
+impl From<Payout> for PayoutInfo {
+    fn from(payout: Payout) -> Self {
+        Self {
+            id: payout.id,
+            wallet_id: payout.wallet_id,
+            profile_id: payout.profile_id,
+            satoshis: payout.satoshis,
+            destination: payout.destination,
+        }
+    }
 }

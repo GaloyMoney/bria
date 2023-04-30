@@ -281,6 +281,7 @@ async fn batch_wallet_accounting(
     wallets: Wallets,
     utxos: Utxos,
     batches: Batches,
+    payouts: Payouts,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -296,6 +297,7 @@ async fn batch_wallet_accounting(
                 wallets,
                 utxos,
                 batches,
+                payouts,
             )
             .await;
             spawn_batch_broadcasting(pool.begin().await?, data.clone()).await?;

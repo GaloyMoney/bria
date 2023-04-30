@@ -96,7 +96,7 @@ impl Wallet {
 
     pub fn xpubs_for_keychains<'a>(
         &self,
-        keychain_ids: impl Iterator<Item = &'a KeychainId>,
+        keychain_ids: impl IntoIterator<Item = &'a KeychainId>,
     ) -> HashMap<KeychainId, Vec<XPub>> {
         let mut ret = HashMap::new();
         for find_id in keychain_ids {

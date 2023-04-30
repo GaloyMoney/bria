@@ -98,8 +98,8 @@ CREATE TABLE bria_address_events (
 );
 
 CREATE TABLE bria_utxos (
-    idx SERIAL PRIMARY KEY,
-    wallet_id UUID NOT NULL,
+    account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+    wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
     keychain_id UUID NOT NULL,
     tx_id VARCHAR NOT NULL,
     vout INTEGER NOT NULL,
@@ -154,28 +154,20 @@ CREATE TABLE bria_batches (
 
 CREATE TABLE bria_batch_wallet_summaries (
   batch_id UUID REFERENCES bria_batches(id) NOT NULL,
-  wallet_id UUID NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  current_keychain_id UUID NOT NULL,
+  signing_keychains UUID[] NOT NULL,
   total_in_sats BIGINT NOT NULL,
   total_spent_sats BIGINT NOT NULL,
   change_sats BIGINT NOT NULL,
-  change_address VARCHAR NOT NULL,
+  change_address VARCHAR,
   change_vout INTEGER,
-  change_keychain_id UUID NOT NULL,
   fee_sats BIGINT NOT NULL,
   batch_created_ledger_tx_id UUID,
   batch_submitted_ledger_tx_id UUID,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(batch_id, wallet_id)
-);
-
-CREATE TABLE bria_batch_spent_utxos (
-  batch_id UUID REFERENCES bria_batches(id) NOT NULL,
-  keychain_id UUID NOT NULL,
-  wallet_id UUID NOT NULL,
-  tx_id VARCHAR NOT NULL,
-  vout INTEGER NOT NULL,
-  UNIQUE(keychain_id, tx_id, vout)
 );
 
 CREATE TABLE bria_payouts (

@@ -6,17 +6,16 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::shared_meta::TransactionSummary;
+use super::shared_meta::*;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchSubmittedMeta {
-    pub batch_id: BatchId,
-    pub batch_group_id: BatchGroupId,
+    pub batch_info: BatchInfo,
     pub encumbered_spending_fee_sats: Option<Satoshis>,
-    pub tx_summary: TransactionSummary,
+    pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
 }
 
@@ -88,7 +87,7 @@ impl From<BatchSubmittedParams> for TxParams {
             .encumbered_spending_fee_sats
             .unwrap_or(Satoshis::ZERO)
             .to_btc();
-        let batch_id = Uuid::from(meta.batch_id);
+        let batch_id = Uuid::from(meta.batch_info.batch_id);
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);

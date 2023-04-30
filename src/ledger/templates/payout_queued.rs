@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
-use crate::{error::*, ledger::constants::*, payout::*, primitives::*};
+use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PayoutQueuedMeta {
@@ -12,7 +12,6 @@ pub struct PayoutQueuedMeta {
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,
     pub destination: PayoutDestination,
-    pub additional_meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug)]

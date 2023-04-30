@@ -19,6 +19,7 @@ type Payout = (uuid::Uuid, bitcoin::Address, Satoshis);
 pub struct WalletTotals {
     pub wallet_id: WalletId,
     pub change_keychain_id: KeychainId,
+    pub keychains_with_inputs: Vec<KeychainId>,
     pub input_satoshis: Satoshis,
     pub output_satoshis: Satoshis,
     pub fee_satoshis: Satoshis,
@@ -78,6 +79,14 @@ impl<T> PsbtBuilder<T> {
                     vout: vout as u32,
                 });
             }
+        }
+        for (wallet_id, keychain_utxos) in ret.included_utxos.iter() {
+            let sum = ret
+                .wallet_totals
+                .get_mut(wallet_id)
+                .expect("wallet not included in totals");
+            sum.keychains_with_inputs
+                .extend(keychain_utxos.keys().copied());
         }
         ret
     }
@@ -355,6 +364,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                     wallet_id,
                     WalletTotals {
                         wallet_id,
+                        keychains_with_inputs: Vec::new(),
                         input_satoshis: total_output_satoshis
                             + current_wallet_fee
                             + change_satoshis,

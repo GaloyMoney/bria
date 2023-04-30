@@ -410,7 +410,6 @@ impl App {
                         batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
                         destination,
-                        additional_meta: metadata,
                     },
                 },
             )
