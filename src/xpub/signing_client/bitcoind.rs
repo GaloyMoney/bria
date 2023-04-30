@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use base64::{engine::general_purpose, Engine};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use serde::{Deserialize, Serialize};
 
@@ -34,7 +35,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         psbt: &psbt::PartiallySignedTransaction,
     ) -> Result<psbt::PartiallySignedTransaction, SigningClientError> {
         let raw_psbt = consensus::encode::serialize(&psbt);
-        let hex_psbt = base64::encode(raw_psbt);
+        let hex_psbt = general_purpose::STANDARD_NO_PAD.encode(raw_psbt);
 
         let sighash_type = Some(EcdsaSighashType::All.into());
         let response = self
@@ -46,9 +47,11 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
                 ))
             })?;
 
-        let signed_psbt = base64::decode(&response.psbt).map_err(|e| {
-            SigningClientError::HexConvert(format!("Failed to convert psbt from bitcoind: {e}"))
-        })?;
+        let signed_psbt = general_purpose::STANDARD_NO_PAD
+            .decode(response.psbt)
+            .map_err(|e| {
+                SigningClientError::HexConvert(format!("Failed to convert psbt from bitcoind: {e}"))
+            })?;
         Ok(consensus::encode::deserialize(&signed_psbt)?)
     }
 }
