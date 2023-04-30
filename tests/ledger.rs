@@ -267,7 +267,6 @@ async fn queue_payout() -> anyhow::Result<()> {
                     destination: PayoutDestination::OnchainAddress {
                         value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
                     },
-                    additional_meta: None,
                 },
             },
         )

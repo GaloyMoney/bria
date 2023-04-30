@@ -12,7 +12,6 @@ pub struct PayoutQueuedMeta {
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,
     pub destination: PayoutDestination,
-    pub additional_meta: Option<serde_json::Value>,
 }
 
 #[derive(Debug)]
