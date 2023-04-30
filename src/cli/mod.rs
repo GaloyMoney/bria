@@ -11,8 +11,6 @@ use url::Url;
 use crate::primitives::TxPriority;
 use config::*;
 
-use self::api_client::SignerConfig;
-
 #[derive(Parser)]
 #[clap(version, long_about = None)]
 struct Cli {
@@ -429,42 +427,7 @@ pub async fn run() -> anyhow::Result<()> {
             command,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            match command {
-                SetSignerConfigCommand::Lnd {
-                    endpoint,
-                    macaroon_file,
-                    cert_file,
-                } => {
-                    let macaroon_base64 = read_to_base64(macaroon_file)?;
-                    let cert_base64 = read_to_base64(cert_file)?;
-                    client
-                        .set_signer_config(
-                            xpub,
-                            SignerConfig::Lnd(crate::api::proto::LndSignerConfig {
-                                endpoint,
-                                macaroon_base64,
-                                cert_base64,
-                            }),
-                        )
-                        .await?;
-                }
-                SetSignerConfigCommand::Bitcoind {
-                    endpoint,
-                    rpc_user,
-                    rpc_password,
-                } => {
-                    client
-                        .set_signer_config(
-                            xpub,
-                            SignerConfig::Bitcoind(crate::api::proto::BitcoindSignerConfig {
-                                endpoint,
-                                rpc_user,
-                                rpc_password,
-                            }),
-                        )
-                        .await?;
-                }
-            };
+            client.set_signer_config(xpub, command).await?;
         }
         Command::CreateWallet {
             url,
@@ -641,4 +604,37 @@ fn read_to_base64(path: PathBuf) -> anyhow::Result<String> {
 
 fn parse_json(src: &str) -> anyhow::Result<serde_json::Value> {
     Ok(serde_json::from_str(src)?)
+}
+
+impl TryFrom<SetSignerConfigCommand> for crate::api::proto::set_signer_config_request::Config {
+    type Error = anyhow::Error;
+
+    fn try_from(cmd: SetSignerConfigCommand) -> Result<Self, Self::Error> {
+        use crate::api::proto::set_signer_config_request::Config;
+        let ret = match cmd {
+            SetSignerConfigCommand::Lnd {
+                endpoint,
+                macaroon_file,
+                cert_file,
+            } => {
+                let macaroon_base64 = read_to_base64(macaroon_file)?;
+                let cert_base64 = read_to_base64(cert_file)?;
+                Config::Lnd(crate::api::proto::LndSignerConfig {
+                    endpoint,
+                    macaroon_base64,
+                    cert_base64,
+                })
+            }
+            SetSignerConfigCommand::Bitcoind {
+                endpoint,
+                rpc_user,
+                rpc_password,
+            } => Config::Bitcoind(crate::api::proto::BitcoindSignerConfig {
+                endpoint,
+                rpc_user,
+                rpc_password,
+            }),
+        };
+        Ok(ret)
+    }
 }

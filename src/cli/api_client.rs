@@ -6,23 +6,6 @@ type ProtoClient = proto::bria_service_client::BriaServiceClient<tonic::transpor
 
 use super::token_store;
 
-pub enum SignerConfig {
-    Lnd(proto::LndSignerConfig),
-    Bitcoind(proto::BitcoindSignerConfig),
-}
-
-impl From<proto::LndSignerConfig> for SignerConfig {
-    fn from(config: proto::LndSignerConfig) -> Self {
-        SignerConfig::Lnd(config)
-    }
-}
-
-impl From<proto::BitcoindSignerConfig> for SignerConfig {
-    fn from(config: proto::BitcoindSignerConfig) -> Self {
-        SignerConfig::Bitcoind(config)
-    }
-}
-
 pub struct ApiClientConfig {
     pub url: Url,
 }
@@ -131,19 +114,12 @@ impl ApiClient {
     pub async fn set_signer_config(
         &self,
         xpub_ref: String,
-        config: impl Into<SignerConfig>,
+        config: impl TryInto<proto::set_signer_config_request::Config, Error = anyhow::Error>,
     ) -> anyhow::Result<()> {
-        let config = config.into();
+        let config = config.try_into()?;
         let request = tonic::Request::new(proto::SetSignerConfigRequest {
             xpub_ref,
-            config: Some(match config {
-                SignerConfig::Lnd(lnd_config) => {
-                    proto::set_signer_config_request::Config::Lnd(lnd_config)
-                }
-                SignerConfig::Bitcoind(bitcoind_config) => {
-                    proto::set_signer_config_request::Config::Bitcoind(bitcoind_config)
-                }
-            }),
+            config: Some(config),
         });
         let response = self
             .connect()
