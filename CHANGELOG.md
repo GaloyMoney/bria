@@ -1,3 +1,46 @@
+# [bria release v0.0.13](https://github.com/GaloyMoney/bria/releases/tag/0.0.13)
+
+
+### Features
+
+- Watch-events cli cmd
+
+### Miscellaneous Tasks
+
+- Remove redundant FOR UPDATE
+- Complete include PayoutInfo in batch metadata
+- Remove bria_batch_spent_utxos and revamp utxo handling
+- Add involved_keychains to WalletSummary
+- Add payout to batch metadata WIP
+- Forgot CONFIRMED_UTXO -> SETTLED_UTXO renaming
+- Return correct type for event stream
+- Add OutboxListener
+- Outbox listener WIP
+- Persist journal events in outbox
+- OutboxEvent boilerplate
+- Add account_id to all metadata
+- More Outbox boilerplate
+- Bump tracing from 0.1.37 to 0.1.38
+- Journal events boilerplate
+- Cargo update
+- Bump sqlx-ledger
+- Handle_outbox boilerplate
+- Add keep_alive thread to job executor
+- Bump serde_json from 1.0.95 to 1.0.96
+
+### Refactor
+
+- Rename entry-types
+- BatchInfo -> BatchWalletInfo
+- Remove additional_metadata from PayoutQueuedMeta
+- Wallet_summary.signing_keychains
+- Remove Uuid from batch/repo.rs
+- WalletTransactionSummary naming
+- Move PayoutDestination to primitives
+- Consistent column naming
+- Better naming for templates
+- Small cleanups
+
 # [bria release v0.0.12](https://github.com/GaloyMoney/bria/releases/tag/0.0.12)
 
 
