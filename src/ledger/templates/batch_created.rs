@@ -177,7 +177,7 @@ impl BatchCreated {
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_ENCUMBERED_DR'")
+                .entry_type("'BATCH_CREATED_LOG_OUT_ENC_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_outgoing_account_id")
                 .direction("DEBIT")
@@ -186,7 +186,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_ENCUMBERED_CR'")
+                .entry_type("'BATCH_CREATED_LOG_OUT_ENC_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("CREDIT")
@@ -195,7 +195,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_PENDING_CR'")
+                .entry_type("'BATCH_CREATED_LOG_OUT_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_outgoing_account_id")
                 .direction("CREDIT")
@@ -204,7 +204,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_PENDING_DR'")
+                .entry_type("'BATCH_CREATED_LOG_OUT_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -213,7 +213,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_SETTLED_DR'")
+                .entry_type("'BATCH_CREATED_LOG_SET_DR'")
                 .currency("'BTC'")
                 .account_id("params.logical_at_rest_account_id")
                 .direction("DEBIT")
@@ -222,7 +222,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_LOGICAL_SETTLED_CR'")
+                .entry_type("'BATCH_CREATED_LOG_SET_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
                 .direction("CREDIT")
@@ -232,7 +232,7 @@ impl BatchCreated {
                 .expect("Couldn't build entry"),
             // FEES
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_FEE_PENDING_DR'")
+                .entry_type("'BATCH_CREATED_FEE_PEN_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("DEBIT")
@@ -241,7 +241,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_FEE_PENDING_CR'")
+                .entry_type("'BATCH_CREATED_FEE_PEN_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("CREDIT")
@@ -250,7 +250,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_FEE_ENCUMBERED_CR'")
+                .entry_type("'BATCH_CREATED_FR_ENC_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_fee_account_id")
                 .direction("CREDIT")
@@ -259,7 +259,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_FEE_ENCUMBERED_DR'")
+                .entry_type("'BATCH_CREATED_FR_ENC_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_FEE_ID}')"))
                 .direction("DEBIT")
@@ -269,7 +269,7 @@ impl BatchCreated {
                 .expect("Couldn't build entry"),
             // UTXO
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_PENDING_DR'")
+                .entry_type("'BATCH_CREATED_UTX_OUT_PEN_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -278,7 +278,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_PENDING_CR'")
+                .entry_type("'BATCH_CREATED_UTX_OUT_PEN_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_outgoing_account_id")
                 .direction("CREDIT")
@@ -287,7 +287,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_SETTLED_DR'")
+                .entry_type("'BATCH_CREATED_UTX_SET_DR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
@@ -296,7 +296,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_SETTLED_CR'")
+                .entry_type("'BATCH_CREATED_UTX_SET_CR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
@@ -305,7 +305,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_ENCUMBERED_DR'")
+                .entry_type("'BATCH_CREATED_CHG_ENC_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{ONCHAIN_UTXO_INCOMING_ID}')"))
                 .direction("DEBIT")
@@ -314,7 +314,7 @@ impl BatchCreated {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'BATCH_CREATED_UTXO_ENCUMBERED_CR'")
+                .entry_type("'BATCH_CREATED_CHG_ENC_CR'")
                 .currency("'BTC'")
                 .account_id("params.onchain_income_account_id")
                 .direction("CREDIT")

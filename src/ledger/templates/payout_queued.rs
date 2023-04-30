@@ -99,7 +99,7 @@ impl PayoutQueued {
         let entries = vec![
             // LOGICAL
             EntryInput::builder()
-                .entry_type("'PAYOUT_QUEUED_LOGICAL_DR'")
+                .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -108,7 +108,7 @@ impl PayoutQueued {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'PAYOUT_QUEUED_LOGICAL_CR'")
+                .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_CR'")
                 .currency("'BTC'")
                 .account_id("params.logical_outgoing_account_id")
                 .direction("CREDIT")
