@@ -17,16 +17,17 @@ pub struct WalletTransactionSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BatchInfo {
+pub struct BatchWalletInfo {
+    pub account_id: AccountId,
     pub batch_group_id: BatchGroupId,
     pub batch_id: BatchId,
+    pub wallet_id: WalletId,
     pub included_payouts: Vec<PayoutInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PayoutInfo {
     pub id: PayoutId,
-    pub wallet_id: WalletId,
     pub profile_id: ProfileId,
     pub satoshis: Satoshis,
     pub destination: PayoutDestination,

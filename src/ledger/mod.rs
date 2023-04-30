@@ -238,7 +238,7 @@ impl Ledger {
     ) -> Result<(), BriaError> {
         #[derive(serde::Deserialize)]
         struct ExtractTxSummary {
-            batch_info: Option<BatchInfo>,
+            batch_info: Option<BatchWalletInfo>,
             tx_summary: WalletTransactionSummary,
         }
         let txs = self

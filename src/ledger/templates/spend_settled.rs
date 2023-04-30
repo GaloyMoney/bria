@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendSettledMeta {
-    pub batch_info: Option<BatchInfo>,
+    pub batch_info: Option<BatchWalletInfo>,
     pub tx_summary: WalletTransactionSummary,
     pub confirmation_time: BlockTime,
 }

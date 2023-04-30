@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchSubmittedMeta {
-    pub batch_info: BatchInfo,
+    pub batch_info: BatchWalletInfo,
     pub encumbered_spending_fee_sats: Option<Satoshis>,
     pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,

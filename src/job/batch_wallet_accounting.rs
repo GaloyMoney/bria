@@ -52,7 +52,7 @@ pub async fn execute(
         .await?;
 
     let payouts = payouts
-        .list_for_batch(data.account_id, data.batch_id)
+        .list_for_batch(data.account_id, data.batch_id, data.wallet_id)
         .await?;
     if let Some((tx, tx_id)) = batches
         .set_batch_created_ledger_tx_id(data.batch_id, data.wallet_id)
@@ -67,7 +67,9 @@ pub async fn execute(
                     ledger_account_ids: wallet.ledger_account_ids,
                     encumbered_fees,
                     meta: BatchCreatedMeta {
-                        batch_info: BatchInfo {
+                        batch_info: BatchWalletInfo {
+                            account_id: data.account_id,
+                            wallet_id: data.wallet_id,
                             batch_id: id,
                             batch_group_id,
                             included_payouts: payouts.into_iter().map(PayoutInfo::from).collect(),
@@ -96,7 +98,6 @@ impl From<Payout> for PayoutInfo {
     fn from(payout: Payout) -> Self {
         Self {
             id: payout.id,
-            wallet_id: payout.wallet_id,
             profile_id: payout.profile_id,
             satoshis: payout.satoshis,
             destination: payout.destination,

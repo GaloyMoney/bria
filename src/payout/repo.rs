@@ -120,16 +120,18 @@ impl Payouts {
         &self,
         account_id: AccountId,
         batch_id: BatchId,
+        wallet_id: WalletId,
     ) -> Result<Vec<Payout>, BriaError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.account_id = $1 AND b.batch_id = $2
+              WHERE b.account_id = $1 AND b.batch_id = $2 AND b.wallet_id = $3
               ORDER BY b.created_at, b.id, e.sequence"#,
             account_id as AccountId,
-            batch_id as BatchId
+            batch_id as BatchId,
+            wallet_id as WalletId
         )
         .fetch_all(&self.pool)
         .await?;

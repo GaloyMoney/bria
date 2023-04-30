@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchCreatedMeta {
-    pub batch_info: BatchInfo,
+    pub batch_info: BatchWalletInfo,
     pub tx_summary: WalletTransactionSummary,
 }
 
