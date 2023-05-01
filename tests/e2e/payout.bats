@@ -97,9 +97,14 @@ teardown_file() {
 
   for i in {1..20}; do
     signing_status=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].state')
-    [[ "${signing_status}" != "Complete" ]] && break
+    [[ "${signing_status}" == "Complete" ]] && break
     sleep 1
   done
+  if [[ "${signing_status}" != "Complete" ]]; then
+    signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
+    echo "signing_status: ${signing_status}"
+    echo "signing_failure_reason: ${signing_failure_reason}"
+  fi
   bitcoind_switch_to_default_wallet
 
   for i in {1..20}; do
