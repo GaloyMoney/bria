@@ -35,7 +35,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         psbt: &psbt::PartiallySignedTransaction,
     ) -> Result<psbt::PartiallySignedTransaction, SigningClientError> {
         let raw_psbt = consensus::encode::serialize(&psbt);
-        let hex_psbt = general_purpose::STANDARD_NO_PAD.encode(raw_psbt);
+        let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
 
         let sighash_type = Some(EcdsaSighashType::All.into());
         let response = self
@@ -47,7 +47,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
                 ))
             })?;
 
-        let signed_psbt = general_purpose::STANDARD_NO_PAD
+        let signed_psbt = general_purpose::STANDARD
             .decode(response.psbt)
             .map_err(|e| {
                 SigningClientError::HexConvert(format!("Failed to convert psbt from bitcoind: {e}"))
