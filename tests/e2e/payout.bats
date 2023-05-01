@@ -5,7 +5,7 @@ load "helpers"
 setup_file() {
   restart_bitcoin
   reset_pg
-  bitcoind_init
+  bitcoind_with_signer_init
   start_daemon
   bria_init
 }
@@ -88,10 +88,9 @@ teardown_file() {
   cache_default_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
-  bitcoind_switch_to_signer_wallet
   bria_cmd set-signer-config \
     --xpub bitcoind_key bitcoind \
-    --endpoint "${BITCOIND_ENDPOINT}" \
+    --endpoint "${BITCOIND_SIGNER_ENDPOINT}" \
     --rpc-user "rpcuser" \
     --rpc-password "rpcpassword"
 
@@ -105,7 +104,6 @@ teardown_file() {
     echo "signing_status: ${signing_status}"
     echo "signing_failure_reason: ${signing_failure_reason}"
   fi
-  bitcoind_switch_to_default_wallet
 
   for i in {1..20}; do
     cache_default_wallet_balance

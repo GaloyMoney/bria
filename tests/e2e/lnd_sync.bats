@@ -3,7 +3,7 @@
 load "helpers"
 
 setup_file() {
-  restart_bitcoin
+  restart_bitcoin_with_lnd
   reset_pg
   bitcoind_init
   start_daemon

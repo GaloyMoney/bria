@@ -4,8 +4,8 @@ BRIA_HOME="${BRIA_HOME:-.bria}"
 if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
-BITCOIND_HOST="${BITCOIND_HOST:-localhost}"
-BITCOIND_ENDPOINT="https://${BITCOIND_HOST}:18443"
+BITCOIND_SIGNER_HOST="${BITCOIND_HOST:-localhost}"
+BITCOIND_SIGNER_ENDPOINT="https://${BITCOIND_SIGNER_HOST}:18543"
 
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
@@ -18,10 +18,6 @@ bria_cmd() {
 
 cache_default_wallet_balance() {
   balance=$(bria_cmd wallet-balance -w default)
-}
-
-cache_bitcoind_wallet_balance() {
-  balance=$(bria_cmd wallet-balance -w bitcoind_wallet)
 }
 
 cached_pending_income() {
@@ -56,6 +52,10 @@ bitcoin_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
 }
 
+bitcoin_signer_cli() {
+  docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
+}
+
 lnd_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-lnd-1" lncli -n regtest $@
 }
@@ -65,7 +65,7 @@ reset_pg() {
   docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "CREATE SCHEMA public"
 }
 
-restart_bitcoin() {
+restart_bitcoin_with_lnd() {
   docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
   # Running this twice has sometimes bitcoind is dangling in CI
   docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
@@ -73,23 +73,23 @@ restart_bitcoin() {
   retry 10 1 lnd_cli getinfo
 }
 
-bitcoind_switch_to_default_wallet() {
-  bitcoin_cli unloadwallet "signer" || true
-  bitcoin_cli loadwallet "default" || true
-}
-
-bitcoind_switch_to_signer_wallet() {
-  bitcoin_cli unloadwallet "default" || true
-  bitcoin_cli loadwallet "signer" || true
+restart_bitcoin() {
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer fulcrum || true
+  # Running this twice has sometimes bitcoind is dangling in CI
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer fulcrum || true
+  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind bitcoind-signer fulcrum
 }
 
 bitcoind_init() {
   bitcoin_cli createwallet "default" || true
-	bitcoin_cli -generate 200
+  bitcoin_cli -generate 200
+}
 
-  bitcoin_cli unloadwallet "default" || true
-  bitcoin_cli createwallet "signer" || true
-  bitcoind_switch_to_default_wallet
+bitcoind_with_signer_init() {
+  bitcoin_cli createwallet "default" || true
+  bitcoin_cli -generate 200
+
+  bitcoin_signer_cli createwallet "default" || true
 }
 
 start_daemon() {
@@ -103,17 +103,19 @@ stop_daemon() {
   fi
 }
 
-bria_create_bitcoind_wallet() {
-  bitcoind_switch_to_signer_wallet
+bria_init() {
+  bria_cmd admin bootstrap
+  bria_cmd admin create-account -n default
+  sleep 3
 
-  bitcoin_signer_address=$(bitcoin_cli getnewaddress)
+  bitcoin_signer_address=$(bitcoin_signer_cli getnewaddress)
   if [ -z "$bitcoin_signer_address" ]; then
     echo "Failed to get a new address"
     exit 1
   fi
 
   tpub=$(
-    bitcoin_cli getaddressinfo $bitcoin_signer_address \
+    bitcoin_signer_cli getaddressinfo $bitcoin_signer_address \
     | jq -r .'parent_desc' \
     | sed -n -E "s/.*\](tpub[^/]*).*/\1/p"
   )
@@ -124,16 +126,6 @@ bria_create_bitcoind_wallet() {
 
   bria_cmd import-xpub -x $tpub -n bitcoind_key -d m/84h/1h/0h
   bria_cmd create-wallet -n default -x bitcoind_key
-
-  bitcoind_switch_to_default_wallet
-}
-
-bria_init() {
-  bria_cmd admin bootstrap
-  bria_cmd admin create-account -n default
-  sleep 3
-
-  bria_create_bitcoind_wallet
 
   echo "Bria Initialization Complete"
 }
