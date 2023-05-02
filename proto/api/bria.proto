@@ -146,16 +146,16 @@ message GetWalletBalanceSummaryRequest {
 }
 
 message GetWalletBalanceSummaryResponse {
-  uint64 encumbered_incoming_utxos = 1;
-  uint64 pending_incoming_utxos = 2;
-  uint64 confirmed_utxos = 3;
-  uint64 pending_outgoing_utxos = 4;
-  uint64 pending_fees = 5;
-  uint64 encumbered_fees = 7;
-  uint64 logical_pending_income = 8;
-  uint64 logical_settled = 9;
-  uint64 logical_pending_outgoing = 10;
-  uint64 logical_encumbered_outgoing = 11;
+  uint64 logical_pending_income = 1;
+  uint64 logical_settled = 2;
+  uint64 logical_pending_outgoing = 3;
+  uint64 logical_encumbered_outgoing = 4;
+  uint64 encumbered_incoming_utxos = 5;
+  uint64 pending_incoming_utxos = 6;
+  uint64 confirmed_utxos = 7;
+  uint64 pending_outgoing_utxos = 8;
+  uint64 pending_fees = 9;
+  uint64 encumbered_fees = 10;
 }
 
 message CreateBatchGroupRequest {
