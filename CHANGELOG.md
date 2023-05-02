@@ -1,3 +1,14 @@
+# [bria release v0.0.14](https://github.com/GaloyMoney/bria/releases/tag/0.0.14)
+
+
+### Miscellaneous Tasks
+
+- Switch event proto idx
+- Logical balance before utxos
+- Consistent dir namings (daemon-pid)
+- Bump sqlx-ledger to v0.7.7
+- Bump uuid from 1.3.1 to 1.3.2
+
 # [bria release v0.0.13](https://github.com/GaloyMoney/bria/releases/tag/0.0.13)
 
 
