@@ -6,6 +6,7 @@ if [[ "${BRIA_CONFIG}" == "docker" ]]; then
 fi
 BITCOIND_SIGNER_HOST="${BITCOIND_HOST:-localhost}"
 BITCOIND_SIGNER_ENDPOINT="https://${BITCOIND_SIGNER_HOST}:18543"
+SATS_IN_ONE_BTC=100000000
 
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
@@ -54,6 +55,10 @@ bitcoin_cli() {
 
 bitcoin_signer_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
+}
+
+convert_btc_to_sats() {
+  echo "$1 * $SATS_IN_ONE_BTC / 1" | bc
 }
 
 lnd_cli() {
