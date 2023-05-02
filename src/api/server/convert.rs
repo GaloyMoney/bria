@@ -202,8 +202,7 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
                 .expect("Satoshis -> u64 failed"),
             pending_incoming_utxos: u64::try_from(balance.pending_incoming_utxos)
                 .expect("Satoshis -> u64 failed"),
-            confirmed_utxos: u64::try_from(balance.confirmed_utxos)
-                .expect("Satoshis -> u64 failed"),
+            settled_utxos: u64::try_from(balance.settled_utxos).expect("Satoshis -> u64 failed"),
             pending_outgoing_utxos: u64::try_from(balance.pending_outgoing_utxos)
                 .expect("Satoshis -> u64 failed"),
             pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),

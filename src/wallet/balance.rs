@@ -31,7 +31,7 @@ pub struct WalletLedgerAccountBalances {
 pub struct WalletBalanceSummary {
     pub encumbered_incoming_utxos: Satoshis,
     pub pending_incoming_utxos: Satoshis,
-    pub confirmed_utxos: Satoshis,
+    pub settled_utxos: Satoshis,
     pub pending_outgoing_utxos: Satoshis,
     pub pending_fees: Satoshis,
     pub encumbered_fees: Satoshis,
@@ -64,7 +64,7 @@ impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            confirmed_utxos: Satoshis::from_btc(
+            settled_utxos: Satoshis::from_btc(
                 balances
                     .onchain_at_rest
                     .map(|b| b.settled())

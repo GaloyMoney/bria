@@ -110,7 +110,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
 
     assert_eq!(summary.pending_incoming_utxos, zero);
     assert_eq!(summary.logical_pending_income, zero);
-    assert_eq!(summary.confirmed_utxos, one_btc);
+    assert_eq!(summary.settled_utxos, one_btc);
     assert_eq!(summary.logical_settled, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
@@ -222,7 +222,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
 
     assert_eq!(summary.pending_incoming_utxos, zero);
     assert_eq!(summary.logical_pending_income, zero);
-    assert_eq!(summary.confirmed_utxos, zero);
+    assert_eq!(summary.settled_utxos, zero);
 
     Ok(())
 }
@@ -366,7 +366,7 @@ async fn create_batch() -> anyhow::Result<()> {
         summary.encumbered_incoming_utxos,
         total_utxo_in_sats - fee_sats - total_spent_sats
     );
-    assert_eq!(summary.confirmed_utxos.flip_sign(), total_utxo_in_sats);
+    assert_eq!(summary.settled_utxos.flip_sign(), total_utxo_in_sats);
     assert_eq!(
         summary.pending_outgoing_utxos,
         total_utxo_in_sats - fee_sats
@@ -455,7 +455,7 @@ async fn spend_detected() -> anyhow::Result<()> {
     );
     assert_eq!(summary.pending_fees, fee_sats);
     assert_eq!(
-        summary.confirmed_utxos.flip_sign(),
+        summary.settled_utxos.flip_sign(),
         total_utxo_settled_in_sats
     );
     assert_eq!(
@@ -491,7 +491,7 @@ async fn spend_detected() -> anyhow::Result<()> {
     );
     assert_eq!(summary.pending_fees, Satoshis::ZERO);
     assert_eq!(
-        summary.confirmed_utxos.flip_sign(),
+        summary.settled_utxos.flip_sign(),
         total_utxo_in_sats - change_sats
     );
     assert_eq!(summary.pending_outgoing_utxos, Satoshis::ZERO);
@@ -583,7 +583,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
         total_utxo_in_sats - change_sats - deferred_sats
     );
     assert_eq!(
-        summary.confirmed_utxos.flip_sign(),
+        summary.settled_utxos.flip_sign(),
         total_utxo_settled_in_sats
     );
     assert_eq!(

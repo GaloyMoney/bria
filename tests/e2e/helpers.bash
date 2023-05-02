@@ -29,7 +29,7 @@ cached_encumbered_fees() {
 }
 
 cached_current_settled() {
-  echo ${balance} | jq -r '.confirmedUtxos'
+  echo ${balance} | jq -r '.settledUtxos'
 }
 
 cached_logical_settled() {
