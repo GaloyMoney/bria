@@ -241,11 +241,11 @@ message SubscribeAllRequest {
 
 message BriaEvent {
   uint64 sequence = 1;
+  uint32 recorded_at = 2;
   oneof payload {
-    UtxoDetected utxo_detected = 2;
-    UtxoSettled utxo_settled = 3;
+    UtxoDetected utxo_detected = 3;
+    UtxoSettled utxo_settled = 4;
   }
-  uint32 recorded_at = 4;
 }
 
 message UtxoDetected {
