@@ -61,6 +61,22 @@ convert_btc_to_sats() {
   echo "$1 * $SATS_IN_ONE_BTC / 1" | bc
 }
 
+bitcoin_signer_cli_send_all_utxos () {
+  amount=$1
+  change=$2
+  send_address=$3
+
+  rawtx_utxos=$(bitcoin_signer_cli listunspent 0 | jq -c '[.[] | {txid: .txid, vout: .vout}]')
+
+  change_address=$(bitcoin_signer_cli getrawchangeaddress "bech32")
+  rawtx_addresses="[{\"${send_address}\":$amount},{\"${change_address}\":$change}]"
+
+  unsigned_tx=$(bitcoin_signer_cli createrawtransaction $rawtx_utxos $rawtx_addresses)
+  signed_tx=$(bitcoin_signer_cli signrawtransactionwithwallet $unsigned_tx | jq -r '.hex')
+  bitcoin_signer_cli sendrawtransaction $signed_tx
+}
+
+
 lnd_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-lnd-1" lncli -n regtest $@
 }

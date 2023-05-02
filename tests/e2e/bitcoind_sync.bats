@@ -111,7 +111,15 @@ teardown_file() {
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
 
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
-  bitcoin_signer_cli -regtest sendtoaddress "${bitcoind_address}" 2.1
+  for i in {1..20}; do
+    [[ $(bitcoin_signer_cli getunconfirmedbalance) == "2.00000000" ]] && break
+    sleep 1
+  done
+
+  bitcoin_signer_cli_send_all_utxos \
+    2.1 \
+    0.38 \
+    ${bitcoind_address}
 
   for i in {1..30}; do
     cache_default_wallet_balance
@@ -153,11 +161,20 @@ teardown_file() {
 @test "bitcoind_signer_sync: Can spend only from unconfirmed" {
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
+  for i in {1..20}; do
+    [[ $(bitcoin_signer_cli getunconfirmedbalance) == "1.00000000" ]] && break
+    sleep 1
+  done
+
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
-  bitcoin_signer_cli -regtest sendtoaddress ${bitcoind_address} 0.6
+  bitcoin_signer_cli_send_all_utxos \
+    0.6 \
+    0.39 \
+    ${bitcoind_address}
 
   for i in {1..30}; do
     cache_default_wallet_balance
+    echo $balance
     [[ $(cached_pending_outgoing) == 60000000 ]] && break
     sleep 1
   done
