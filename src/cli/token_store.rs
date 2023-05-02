@@ -30,8 +30,8 @@ pub fn load_profile_token(bria_home: &str) -> anyhow::Result<String> {
 
 pub fn store_daemon_pid(bria_home: &str, pid: u32) -> anyhow::Result<()> {
     create_token_dir(bria_home)?;
-    let _ = fs::remove_file(format!("{bria_home}/daemon_pid"));
-    fs::write(format!("{bria_home}/daemon_pid"), pid.to_string()).context("Writing PID file")?;
+    let _ = fs::remove_file(format!("{bria_home}/daemon-pid"));
+    fs::write(format!("{bria_home}/daemon-pid"), pid.to_string()).context("Writing PID file")?;
     Ok(())
 }
 

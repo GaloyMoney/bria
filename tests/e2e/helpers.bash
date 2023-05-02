@@ -80,8 +80,8 @@ start_daemon() {
 }
 
 stop_daemon() {
-  if [[ -f ${BRIA_HOME}/daemon_pid ]]; then
-    kill -9 $(cat ${BRIA_HOME}/daemon_pid) || true
+  if [[ -f ${BRIA_HOME}/daemon-pid ]]; then
+    kill -9 $(cat ${BRIA_HOME}/daemon-pid) || true
   fi
 }
 
