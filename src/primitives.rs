@@ -71,7 +71,7 @@ pub mod bitcoin {
                 bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
                 psbt,
             },
-            Address, Network,
+            Address, EcdsaSighashType, Network,
         },
         BlockTime, KeychainKind,
     };

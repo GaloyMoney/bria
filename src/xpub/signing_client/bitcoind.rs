@@ -1,11 +1,10 @@
 use async_trait::async_trait;
 use base64::{engine::general_purpose, Engine};
-use bdk::bitcoin::EcdsaSighashType;
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use serde::{Deserialize, Serialize};
 
 use super::{error::*, r#trait::*};
-use crate::primitives::bitcoin::{consensus, psbt};
+use crate::primitives::bitcoin::{consensus, psbt, EcdsaSighashType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BitcoindSignerConfig {
@@ -38,7 +37,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         let raw_psbt = consensus::encode::serialize(&psbt);
         let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
 
-        let sighash_type = Some(first_sighash_to_ecdsa_sighash(psbt)?.into());
+        let sighash_type = Some(EcdsaSighashType::All.into());
         let response = self
             .inner
             .wallet_process_psbt(&hex_psbt, None, sighash_type, None)
@@ -55,21 +54,4 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
             })?;
         Ok(consensus::encode::deserialize(&signed_psbt)?)
     }
-}
-
-fn first_sighash_to_ecdsa_sighash(
-    psbt: &psbt::PartiallySignedTransaction,
-) -> Result<EcdsaSighashType, SigningClientError> {
-    psbt.inputs
-        .iter()
-        .filter_map(|input| {
-            input
-                .sighash_type
-                .map(|sighash_type| EcdsaSighashType::from_standard(sighash_type.to_u32()))
-        })
-        .next()
-        .unwrap_or(Ok(EcdsaSighashType::All))
-        .map_err(|e| {
-            SigningClientError::SighashParse(format!("Failed to parse sighash from psbt: {e}"))
-        })
 }

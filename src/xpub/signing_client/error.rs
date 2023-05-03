@@ -14,8 +14,6 @@ pub enum SigningClientError {
     Decode(#[from] base64::DecodeError),
     #[error("SigningClientError - HexDecode: {0}")]
     HexConvert(String),
-    #[error("SigningClientError - SighashParse: {0}")]
-    SighashParse(String),
     #[error("SigningClientError - IO: {0}")]
     IO(#[from] std::io::Error),
 }
