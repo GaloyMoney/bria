@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ledger::JournalEventMetadata, primitives::*};
 
-#[derive(Builder, Debug, Clone, Serialize, Deserialize)]
-pub struct OutboxEvent {
+pub type WithoutAugmentation = ();
+
+#[derive(Builder, Debug, Serialize, Deserialize)]
+#[builder(pattern = "owned")]
+pub struct OutboxEvent<T> {
     pub id: OutboxEventId,
     pub account_id: AccountId,
     pub sequence: EventSequence,
@@ -14,13 +17,29 @@ pub struct OutboxEvent {
     #[builder(default, setter(strip_option))]
     pub ledger_tx_id: Option<LedgerTransactionId>,
     pub recorded_at: chrono::DateTime<chrono::Utc>,
+    #[builder(default)]
+    #[serde(skip)]
+    pub augmentation: Option<T>,
 }
 
-impl OutboxEvent {
-    pub fn builder() -> OutboxEventBuilder {
-        let mut builder = OutboxEventBuilder::default();
-        builder.id(OutboxEventId::new());
-        builder
+impl<T> OutboxEvent<T> {
+    pub fn builder() -> OutboxEventBuilder<T> {
+        OutboxEventBuilder::default().id(OutboxEventId::new())
+    }
+}
+
+impl Clone for OutboxEvent<WithoutAugmentation> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            account_id: self.account_id,
+            sequence: self.sequence,
+            payload: self.payload.clone(),
+            ledger_event_id: self.ledger_event_id,
+            ledger_tx_id: self.ledger_tx_id,
+            recorded_at: self.recorded_at,
+            augmentation: None,
+        }
     }
 }
 
@@ -44,22 +63,6 @@ pub enum OutboxEventPayload {
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
     },
-}
-
-impl OutboxEventPayload {
-    pub fn _type(&self) -> OutboxEventType {
-        match self {
-            OutboxEventPayload::UtxoDetected { .. } => OutboxEventType::UtxoDetected,
-            OutboxEventPayload::UtxoSettled { .. } => OutboxEventType::UtxoSettled,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum OutboxEventType {
-    UtxoDetected,
-    UtxoSettled,
 }
 
 impl TryFrom<JournalEventMetadata> for OutboxEventPayload {

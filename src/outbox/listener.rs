@@ -12,16 +12,16 @@ pub struct OutboxListener {
     account_id: AccountId,
     last_sequence: EventSequence,
     latest_known: EventSequence,
-    event_receiver: Pin<Box<BroadcastStream<OutboxEvent>>>,
+    event_receiver: Pin<Box<BroadcastStream<OutboxEvent<WithoutAugmentation>>>>,
     buffer_size: usize,
-    cache: BTreeMap<EventSequence, OutboxEvent>,
-    next_page_handle: Option<JoinHandle<Result<Vec<OutboxEvent>, BriaError>>>,
+    cache: BTreeMap<EventSequence, OutboxEvent<WithoutAugmentation>>,
+    next_page_handle: Option<JoinHandle<Result<Vec<OutboxEvent<WithoutAugmentation>>, BriaError>>>,
 }
 
 impl OutboxListener {
     pub(super) fn new(
         repo: OutboxRepo,
-        event_receiver: broadcast::Receiver<OutboxEvent>,
+        event_receiver: broadcast::Receiver<OutboxEvent<WithoutAugmentation>>,
         account_id: AccountId,
         start_after: EventSequence,
         latest_known: EventSequence,
@@ -41,7 +41,7 @@ impl OutboxListener {
 }
 
 impl OutboxListener {
-    fn maybe_add_to_cache(&mut self, event: OutboxEvent) {
+    fn maybe_add_to_cache(&mut self, event: OutboxEvent<WithoutAugmentation>) {
         if event.account_id == self.account_id {
             self.latest_known = self.latest_known.max(event.sequence);
 
@@ -56,7 +56,7 @@ impl OutboxListener {
 }
 
 impl Stream for OutboxListener {
-    type Item = OutboxEvent;
+    type Item = OutboxEvent<WithoutAugmentation>;
 
     fn poll_next(
         mut self: Pin<&mut Self>,

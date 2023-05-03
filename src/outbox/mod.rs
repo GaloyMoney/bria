@@ -1,3 +1,4 @@
+// mod augmentation;
 mod event;
 mod listener;
 mod repo;
@@ -26,8 +27,8 @@ pub struct Outbox {
     _pool: Pool<Postgres>,
     repo: OutboxRepo,
     sequences: Arc<RwLock<SequenceMap>>,
-    event_sender: broadcast::Sender<OutboxEvent>,
-    event_receiver: Arc<broadcast::Receiver<OutboxEvent>>,
+    event_sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
+    event_receiver: Arc<broadcast::Receiver<OutboxEvent<WithoutAugmentation>>>,
     buffer_size: usize,
 }
 
@@ -121,7 +122,7 @@ impl Outbox {
 
     async fn spawn_pg_listener(
         pool: &Pool<Postgres>,
-        sender: broadcast::Sender<OutboxEvent>,
+        sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
         repo: OutboxRepo,
         sequences: Arc<RwLock<SequenceMap>>,
     ) -> Result<(), BriaError> {
@@ -130,7 +131,9 @@ impl Outbox {
         tokio::spawn(async move {
             loop {
                 if let Ok(notification) = listener.recv().await {
-                    if let Ok(event) = serde_json::from_str::<OutboxEvent>(notification.payload()) {
+                    if let Ok(event) = serde_json::from_str::<OutboxEvent<WithoutAugmentation>>(
+                        notification.payload(),
+                    ) {
                         let (account_id, sequence, ledger_id) =
                             (event.account_id, event.sequence, event.ledger_event_id);
                         if sender.send(event).is_err() {

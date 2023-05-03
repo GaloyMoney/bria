@@ -16,7 +16,7 @@ impl OutboxRepo {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_event(&self, event: OutboxEvent) -> Result<(), BriaError> {
+    pub async fn persist_event<T>(&self, event: OutboxEvent<T>) -> Result<(), BriaError> {
         sqlx::query!(
             r#"
             INSERT INTO bria_outbox_events
@@ -41,7 +41,7 @@ impl OutboxRepo {
         account_id: AccountId,
         sequence: EventSequence,
         buffer_size: usize,
-    ) -> Result<Vec<OutboxEvent>, BriaError> {
+    ) -> Result<Vec<OutboxEvent<WithoutAugmentation>>, BriaError> {
         let rows = sqlx::query!(
             r#"
             SELECT id, account_id, sequence AS "sequence: EventSequence", ledger_event_id AS "ledger_event_id: SqlxLedgerEventId", ledger_tx_id, payload, recorded_at
@@ -66,6 +66,7 @@ impl OutboxRepo {
                 ledger_tx_id: row.ledger_tx_id.map(LedgerTransactionId::from),
                 payload: serde_json::from_value(row.payload)?,
                 recorded_at: row.recorded_at,
+                augmentation: None,
             });
         }
         Ok(events)

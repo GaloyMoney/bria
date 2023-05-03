@@ -220,8 +220,8 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     }
 }
 
-impl From<OutboxEvent> for proto::BriaEvent {
-    fn from(event: OutboxEvent) -> Self {
+impl<T> From<OutboxEvent<T>> for proto::BriaEvent {
+    fn from(event: OutboxEvent<T>) -> Self {
         let payload = match event.payload {
             OutboxEventPayload::UtxoDetected {
                 tx_id,

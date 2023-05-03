@@ -27,7 +27,7 @@ pub enum AddressEvent {
     },
 }
 
-#[derive(Builder)]
+#[derive(Debug, Builder)]
 #[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct WalletAddress {
     pub address: bitcoin::Address,
