@@ -145,27 +145,36 @@ teardown_file() {
 }
 
 @test "bitcoind_signer_sync: Can sweep all" {
+  cache_default_wallet_balance
+  [[ $(cached_current_settled) != 0 ]] || exit 1
+
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
   bitcoin_signer_cli -named sendall recipients="[\"${bitcoind_address}\"]" fee_rate=1
-  bitcoin_cli -generate 1
+  for i in {1..10}; do
+    cache_default_wallet_balance
+    [[ $(cached_current_settled) == 0 ]] \
+      && [[ $(cached_pending_outgoing) != 0 ]] \
+      && break
+    sleep 1
+  done
+  [[ $(cached_current_settled) == 0 ]] \
+      && [[ $(cached_pending_outgoing) != 0 ]] \
+      || exit 1
 
+  bitcoin_cli -generate 1
   for i in {1..30}; do
     cache_default_wallet_balance
-    echo "HERE 0: $balance"
     [[ $(cached_pending_outgoing) == 0 ]] \
       && [[ $(cached_encumbered_fees) == 0 ]] \
       && break
     sleep 1
   done
-  cache_default_wallet_balance && echo "HERE 1: $balance"
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
   [[ $(cached_logical_settled) == 0 ]] || exit 1
   [[ $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
 @test "bitcoind_signer_sync: Can spend only from unconfirmed" {
-  cache_default_wallet_balance && echo "HERE 2: $balance"
-
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
   for i in {1..20}; do
@@ -196,7 +205,7 @@ teardown_file() {
   done
   [[ $(cached_pending_outgoing) == 0 ]] || exit 1
   [[ $(cached_logical_settled) == $(cached_current_settled) ]] || exit 1
-  bitcoind_signer_balance_in_btc=$(bitcoind_signer_cli getbalance)
+  bitcoind_signer_balance_in_btc=$(bitcoin_signer_cli getbalance)
   bitcoind_signer_balance=$(convert_btc_to_sats "${bitcoind_signer_balance_in_btc}")
   [[ "$(cached_logical_settled)" == "${bitcoind_signer_balance}" ]] || exit 1
 }
