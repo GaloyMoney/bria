@@ -104,6 +104,12 @@ restart_bitcoin() {
 bitcoind_init() {
   bitcoin_cli createwallet "default" || true
   bitcoin_cli -generate 200
+
+  for i in {1..10}; do
+    bitcoind_balance=$(bitcoin_cli getbalance)
+    [[ ${bitcoind_balance} != "0.00000000" ]] && break
+  done
+  [[ ${bitcoind_balance} != "0.00000000" ]] || exit 1
 }
 
 bitcoind_with_signer_init() {
