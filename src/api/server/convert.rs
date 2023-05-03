@@ -220,8 +220,8 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     }
 }
 
-impl<T> From<OutboxEvent<T>> for proto::BriaEvent {
-    fn from(event: OutboxEvent<T>) -> Self {
+impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
+    fn from(event: OutboxEvent<Augmentation>) -> Self {
         let payload = match event.payload {
             OutboxEventPayload::UtxoDetected {
                 tx_id,
@@ -256,10 +256,26 @@ impl<T> From<OutboxEvent<T>> for proto::BriaEvent {
             }),
         };
 
+        let augmentation = event.augmentation.map(|a| proto::EventAugmentation {
+            address_info: a.address.map(proto::WalletAddress::from),
+        });
         proto::BriaEvent {
             sequence: u64::from(event.sequence),
             payload: Some(payload),
             recorded_at: event.recorded_at.timestamp() as u32,
+            augmentation,
+        }
+    }
+}
+
+impl From<AddressAugmentation> for proto::WalletAddress {
+    fn from(addr: AddressAugmentation) -> Self {
+        Self {
+            address: addr.address.to_string(),
+            metadata: addr.metadata.map(|json| {
+                serde_json::from_value(json).expect("Could not transfer json -> struct")
+            }),
+            external_id: addr.external_id,
         }
     }
 }

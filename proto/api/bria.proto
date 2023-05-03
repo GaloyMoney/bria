@@ -243,10 +243,15 @@ message SubscribeAllRequest {
 message BriaEvent {
   uint64 sequence = 1;
   uint32 recorded_at = 2;
+  optional EventAugmentation augmentation = 3;
   oneof payload {
-    UtxoDetected utxo_detected = 3;
-    UtxoSettled utxo_settled = 4;
+    UtxoDetected utxo_detected = 4;
+    UtxoSettled utxo_settled = 5;
   }
+}
+
+message EventAugmentation {
+  optional WalletAddress address_info = 1;
 }
 
 message UtxoDetected {

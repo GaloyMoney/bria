@@ -11,6 +11,8 @@ pub struct OutboxListener {
     repo: OutboxRepo,
     account_id: AccountId,
     augmenter: Option<Augmenter>,
+    next_to_augment: Option<OutboxEvent<Augmentation>>,
+    augmentation_handle: Option<JoinHandle<Result<Augmentation, BriaError>>>,
     last_sequence: EventSequence,
     latest_known: EventSequence,
     event_receiver: Pin<Box<BroadcastStream<OutboxEvent<WithoutAugmentation>>>>,
@@ -32,6 +34,8 @@ impl OutboxListener {
         Self {
             repo,
             augmenter,
+            next_to_augment: None,
+            augmentation_handle: None,
             account_id,
             last_sequence: start_after,
             latest_known,
@@ -56,15 +60,11 @@ impl OutboxListener {
             }
         }
     }
-}
 
-impl Stream for OutboxListener {
-    type Item = OutboxEvent<WithoutAugmentation>;
-
-    fn poll_next(
+    fn poll_next_from_stream(
         mut self: Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
+    ) -> Poll<Option<OutboxEvent<Augmentation>>> {
         // Poll page if present
         if let Some(fetch) = self.next_page_handle.as_mut() {
             match fetch.poll_unpin(cx) {
@@ -97,6 +97,10 @@ impl Stream for OutboxListener {
             }
         }
 
+        if self.next_to_augment.is_some() {
+            return Poll::Pending;
+        }
+
         while let Some((seq, event)) = self.cache.pop_first() {
             if seq <= self.last_sequence {
                 continue;
@@ -106,7 +110,7 @@ impl Stream for OutboxListener {
                 if let Some(handle) = self.next_page_handle.take() {
                     handle.abort();
                 }
-                return Poll::Ready(Some(event));
+                return Poll::Ready(Some(OutboxEvent::<Augmentation>::from(event)));
             }
             self.cache.insert(seq, event);
         }
@@ -122,6 +126,63 @@ impl Stream for OutboxListener {
             }));
             return self.poll_next(cx);
         }
+        Poll::Pending
+    }
+}
+
+impl Stream for OutboxListener {
+    type Item = OutboxEvent<Augmentation>;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        match self.as_mut().poll_next_from_stream(cx) {
+            res if self.augmenter.is_none() => {
+                return res;
+            }
+            Poll::Ready(Some(event)) if self.next_to_augment.is_none() => {
+                self.next_to_augment = Some(event);
+            }
+            res if self.next_to_augment.is_none() => {
+                return res;
+            }
+            _ => (),
+        }
+
+        if let Some(handle) = self.augmentation_handle.as_mut() {
+            match handle.poll_unpin(cx) {
+                Poll::Ready(Ok(Ok(augmentation))) => {
+                    self.augmentation_handle = None;
+                    let mut next_event = self
+                        .next_to_augment
+                        .take()
+                        .expect("missing netxt_to_augment");
+                    next_event.augmentation = Some(augmentation);
+                    return Poll::Ready(Some(next_event));
+                }
+                Poll::Ready(_) => {
+                    self.augmentation_handle = None;
+                }
+                Poll::Pending => (),
+            }
+        }
+
+        if self.augmentation_handle.is_none() && self.next_to_augment.is_some() {
+            let augmenter = self.augmenter.as_ref().expect("missing augmenter").clone();
+            let account_id = self.account_id;
+            let payload = self
+                .next_to_augment
+                .as_ref()
+                .expect("missing next_to_augment")
+                .payload
+                .clone();
+            self.augmentation_handle = Some(tokio::spawn(async move {
+                augmenter.load_augmentation(account_id, payload).await
+            }));
+            return self.poll_next(cx);
+        }
+
         Poll::Pending
     }
 }

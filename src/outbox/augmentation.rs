@@ -3,14 +3,14 @@ use crate::{address::*, error::*, primitives::*};
 use super::event::*;
 
 pub struct Augmentation {
-    address: Option<AddressAugmentation>,
+    pub address: Option<AddressAugmentation>,
 }
 
 pub struct AddressAugmentation {
-    address: bitcoin::Address,
-    wallet_id: WalletId,
-    external_id: String,
-    metadata: Option<serde_json::Value>,
+    pub address: bitcoin::Address,
+    pub wallet_id: WalletId,
+    pub external_id: String,
+    pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Clone)]
