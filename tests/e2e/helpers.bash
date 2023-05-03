@@ -4,8 +4,7 @@ BRIA_HOME="${BRIA_HOME:-.bria}"
 if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
-BITCOIND_SIGNER_HOST="${BITCOIND_HOST:-localhost}"
-BITCOIND_SIGNER_ENDPOINT="https://${BITCOIND_SIGNER_HOST}:18543"
+BITCOIND_SIGNER_ENDPOINT="${BITCOIND_SIGNER_ENDPOINT:-https://localhost:18543}"
 SATS_IN_ONE_BTC=100000000
 
 bria_cmd() {

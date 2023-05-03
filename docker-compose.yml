@@ -40,6 +40,7 @@ services:
       - PG_CON=postgres://user:password@postgres:5432/pg
       - PG_HOST=postgres
       - BITCOIND_HOST=bitcoind
+      - BITCOIND_SIGNER_ENDPOINT=https://bitcoind-signer:18443
       - LND_HOST=lnd
       - ELECTRUM_HOST=fulcrum
   integration-tests:
@@ -51,6 +52,7 @@ services:
       - DATABASE_URL=postgres://user:password@postgres:5432/pg
       - PG_HOST=postgres
       - BITCOIND_HOST=bitcoind
+      - BITCOIND_SIGNER_ENDPOINT=https://bitcoind-signer:18443
       - LND_HOST=lnd
       - ELECTRUM_HOST=fulcrum
     working_dir: /repo

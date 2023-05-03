@@ -24,7 +24,10 @@ impl BitcoindRemoteSigner {
     pub async fn connect(cfg: &BitcoindSignerConfig) -> Result<Self, SigningClientError> {
         let auth = Auth::UserPass(cfg.rpc_user.to_string(), cfg.rpc_password.to_string());
         let client = Client::new(&cfg.endpoint.to_string(), auth).map_err(|e| {
-            SigningClientError::CouldNotConnect(format!("Failed to connect to bitcoind: {e}"))
+            SigningClientError::CouldNotConnect(format!(
+                "Failed to connect to bitcoind @ {}: {e}",
+                cfg.endpoint
+            ))
         })?;
 
         Ok(Self { inner: client })
