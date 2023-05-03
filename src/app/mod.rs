@@ -295,9 +295,31 @@ impl App {
             builder.external_id(external_id);
         }
         let new_address = builder.build().expect("Couldn't build NewAddress");
-        self.addresses.persist_address(new_address).await?;
+        self.addresses.persist_new_address(new_address).await?;
 
         Ok(addr.to_string())
+    }
+
+    #[instrument(name = "app.update_address", skip(self), err)]
+    pub async fn update_address(
+        &self,
+        profile: Profile,
+        address: String,
+        new_external_id: Option<String>,
+        new_metadata: Option<serde_json::Value>,
+    ) -> Result<(), BriaError> {
+        let mut address = self
+            .addresses
+            .find_by_address(profile.account_id, address)
+            .await?;
+        if let Some(id) = new_external_id {
+            address.update_external_id(id);
+        }
+        if let Some(metadata) = new_metadata {
+            address.update_metadata(metadata);
+        }
+        self.addresses.update(address).await?;
+        Ok(())
     }
 
     #[instrument(name = "app.list_addresses", skip(self), err)]

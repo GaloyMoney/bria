@@ -15,6 +15,7 @@ service BriaService {
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
+  rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
@@ -103,6 +104,14 @@ message NewAddressRequest {
 message NewAddressResponse {
   string address = 1;
 }
+
+message UpdateAddressRequest {
+  string address = 2;
+  optional string new_external_id = 3;
+  optional google.protobuf.Struct new_metadata = 4;
+}
+
+message UpdateAddressResponse { }
 
 message ListAddressesRequest {
   string wallet_name = 1;
