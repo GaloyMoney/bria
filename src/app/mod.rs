@@ -58,7 +58,7 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
-        let outbox = Outbox::init(&pool).await?;
+        let outbox = Outbox::init(&pool, Augmenter::new(&addresses)).await?;
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),
@@ -451,9 +451,14 @@ impl App {
         &self,
         profile: Profile,
         start_after: Option<u64>,
+        augment: bool,
     ) -> Result<OutboxListener, BriaError> {
         self.outbox
-            .register_listener(profile.account_id, start_after.map(EventSequence::from))
+            .register_listener(
+                profile.account_id,
+                start_after.map(EventSequence::from),
+                augment,
+            )
             .await
     }
 

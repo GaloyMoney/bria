@@ -4,12 +4,13 @@ use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 use std::{collections::BTreeMap, pin::Pin, task::Poll};
 
-use super::{event::*, repo::*};
+use super::{augmentation::*, event::*, repo::*};
 use crate::{error::*, primitives::*};
 
 pub struct OutboxListener {
     repo: OutboxRepo,
     account_id: AccountId,
+    augmenter: Option<Augmenter>,
     last_sequence: EventSequence,
     latest_known: EventSequence,
     event_receiver: Pin<Box<BroadcastStream<OutboxEvent<WithoutAugmentation>>>>,
@@ -21,6 +22,7 @@ pub struct OutboxListener {
 impl OutboxListener {
     pub(super) fn new(
         repo: OutboxRepo,
+        augmenter: Option<Augmenter>,
         event_receiver: broadcast::Receiver<OutboxEvent<WithoutAugmentation>>,
         account_id: AccountId,
         start_after: EventSequence,
@@ -29,6 +31,7 @@ impl OutboxListener {
     ) -> Self {
         Self {
             repo,
+            augmenter,
             account_id,
             last_sequence: start_after,
             latest_known,

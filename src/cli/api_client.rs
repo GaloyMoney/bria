@@ -293,8 +293,12 @@ impl ApiClient {
         &self,
         one_shot: bool,
         after_sequence: Option<u64>,
+        augment: bool,
     ) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::SubscribeAllRequest { after_sequence });
+        let request = tonic::Request::new(proto::SubscribeAllRequest {
+            after_sequence,
+            augment: Some(augment),
+        });
 
         let mut stream = self
             .connect()

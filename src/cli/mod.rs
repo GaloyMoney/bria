@@ -315,6 +315,9 @@ enum Command {
         /// The sequence number after which to stream
         #[clap(short, long)]
         after: Option<u64>,
+        /// Include augmented information in events
+        #[clap(long, default_value = "false")]
+        augment: bool,
     },
 }
 
@@ -542,9 +545,10 @@ pub async fn run() -> anyhow::Result<()> {
             api_key,
             one_shot,
             after,
+            augment,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.watch_events(one_shot, after).await?;
+            client.watch_events(one_shot, after, augment).await?;
         }
     }
     Ok(())

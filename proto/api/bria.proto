@@ -237,6 +237,7 @@ message ListSigningSessionsResponse {
 
 message SubscribeAllRequest {
   optional uint64 after_sequence = 1;
+  optional bool augment = 2;
 }
 
 message BriaEvent {
