@@ -86,30 +86,17 @@ reset_pg() {
   docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "CREATE SCHEMA public"
 }
 
-restart_bitcoin_with_lnd() {
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
+restart_bitcoin_stack() {
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum || true
   # Running this twice has sometimes bitcoind is dangling in CI
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind lnd fulcrum || true
-  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind lnd fulcrum
+  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum || true
+  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind bitcoind-signer lnd fulcrum
   retry 10 1 lnd_cli getinfo
-}
-
-restart_bitcoin() {
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer fulcrum || true
-  # Running this twice has sometimes bitcoind is dangling in CI
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer fulcrum || true
-  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind bitcoind-signer fulcrum
 }
 
 bitcoind_init() {
   bitcoin_cli createwallet "default" || true
   bitcoin_cli -generate 200
-
-  for i in {1..10}; do
-    bitcoind_balance=$(bitcoin_cli getbalance)
-    [[ ${bitcoind_balance} != "0.00000000" ]] && break
-  done
-  [[ ${bitcoind_balance} != "0.00000000" ]] || exit 1
 }
 
 bitcoind_with_signer_init() {

@@ -3,7 +3,7 @@
 load "helpers"
 
 setup_file() {
-  restart_bitcoin_with_lnd
+  restart_bitcoin_stack
   reset_pg
   bitcoind_init
   start_daemon
@@ -18,22 +18,18 @@ teardown_file() {
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
 
-  [ "$lnd_address" = "$bria_address" ] || exit 1
+  [ "$lnd_address" = "$bria_address" ]
 
   n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
   [ "$n_addresses" = "1" ] || exit 1
 }
 
 @test "lnd_sync: Detects incoming transactions" {
-  sleep 3
-  echo "HERE 1a: $(bria_cmd list-addresses -w default)"
-
   lnd_address=$(lnd_cli newaddress p2wkh | jq -r '.address')
   if [ -z "$lnd_address" ]; then
     echo "Failed to get a new address"
     exit 1
   fi
-  echo "HERE 1b: $lnd_address"
 
   bitcoin_cli -regtest sendtoaddress ${lnd_address} 1
 
@@ -45,11 +41,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 100000000 ]] || exit 1
 
   n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
-  if [ "$n_addresses" != "2" ]; then
-    echo "HERE 1c:"
-    bria_cmd list-addresses -w default
-    exit 1
-  fi
+  [ "$n_addresses" = "2" ] || exit 1
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
