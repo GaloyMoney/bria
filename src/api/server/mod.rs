@@ -328,9 +328,15 @@ impl BriaService for Bria {
     ) -> Result<Response<Self::SubscribeAllStream>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
-        let start_after = request.into_inner().after_sequence;
+        let SubscribeAllRequest {
+            after_sequence,
+            augment,
+        } = request.into_inner();
 
-        let outbox_listener = self.app.subscribe_all(profile, start_after).await?;
+        let outbox_listener = self
+            .app
+            .subscribe_all(profile, after_sequence, augment.unwrap_or(false))
+            .await?;
         Ok(Response::new(Box::pin(
             outbox_listener
                 .map(|event| Ok(proto::BriaEvent::from(event)))

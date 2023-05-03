@@ -1,3 +1,4 @@
+mod augmentation;
 mod event;
 mod listener;
 mod repo;
@@ -12,6 +13,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{error::*, ledger::*, primitives::*};
 
+pub use augmentation::*;
 pub use event::*;
 pub use listener::*;
 use repo::*;
@@ -25,14 +27,15 @@ const DEFAULT_BUFFER_SIZE: usize = 100;
 pub struct Outbox {
     _pool: Pool<Postgres>,
     repo: OutboxRepo,
+    augmenter: Augmenter,
     sequences: Arc<RwLock<SequenceMap>>,
-    event_sender: broadcast::Sender<OutboxEvent>,
-    event_receiver: Arc<broadcast::Receiver<OutboxEvent>>,
+    event_sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
+    event_receiver: Arc<broadcast::Receiver<OutboxEvent<WithoutAugmentation>>>,
     buffer_size: usize,
 }
 
 impl Outbox {
-    pub async fn init(pool: &Pool<Postgres>) -> Result<Self, BriaError> {
+    pub async fn init(pool: &Pool<Postgres>, augmenter: Augmenter) -> Result<Self, BriaError> {
         let buffer_size = DEFAULT_BUFFER_SIZE;
         let (sender, recv) = broadcast::channel(buffer_size);
         let sequences = Arc::new(RwLock::new(HashMap::new()));
@@ -41,6 +44,7 @@ impl Outbox {
 
         let ret = Self {
             _pool: pool.clone(),
+            augmenter,
             repo,
             sequences,
             event_sender: sender,
@@ -95,12 +99,14 @@ impl Outbox {
         &self,
         account_id: AccountId,
         start_after: Option<EventSequence>,
+        augment: bool,
     ) -> Result<OutboxListener, BriaError> {
         let sub = self.event_receiver.resubscribe();
         let latest_known = self.sequences_for(account_id).await?.read().await.0;
         let start = start_after.unwrap_or(latest_known);
         Ok(OutboxListener::new(
             self.repo.clone(),
+            augment.then(|| self.augmenter.clone()),
             sub,
             account_id,
             start,
@@ -121,7 +127,7 @@ impl Outbox {
 
     async fn spawn_pg_listener(
         pool: &Pool<Postgres>,
-        sender: broadcast::Sender<OutboxEvent>,
+        sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
         repo: OutboxRepo,
         sequences: Arc<RwLock<SequenceMap>>,
     ) -> Result<(), BriaError> {
@@ -130,7 +136,9 @@ impl Outbox {
         tokio::spawn(async move {
             loop {
                 if let Ok(notification) = listener.recv().await {
-                    if let Ok(event) = serde_json::from_str::<OutboxEvent>(notification.payload()) {
+                    if let Ok(event) = serde_json::from_str::<OutboxEvent<WithoutAugmentation>>(
+                        notification.payload(),
+                    ) {
                         let (account_id, sequence, ledger_id) =
                             (event.account_id, event.sequence, event.ledger_event_id);
                         if sender.send(event).is_err() {
