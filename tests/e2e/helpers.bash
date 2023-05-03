@@ -97,11 +97,6 @@ restart_bitcoin_stack() {
 bitcoind_init() {
   bitcoin_cli createwallet "default" || true
   bitcoin_cli -generate 200
-}
-
-bitcoind_with_signer_init() {
-  bitcoin_cli createwallet "default" || true
-  bitcoin_cli -generate 200
 
   bitcoin_signer_cli createwallet "default" || true
 }
