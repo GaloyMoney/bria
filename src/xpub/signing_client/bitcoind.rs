@@ -4,7 +4,10 @@ use bitcoincore_rpc::{Auth, Client, RpcApi};
 use serde::{Deserialize, Serialize};
 
 use super::{error::*, r#trait::*};
-use crate::primitives::bitcoin::{consensus, psbt, EcdsaSighashType};
+use crate::{
+    primitives::bitcoin::{consensus, psbt},
+    wallet::DEFAULT_SIGHASH_TYPE,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BitcoindSignerConfig {
@@ -37,7 +40,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         let raw_psbt = consensus::encode::serialize(&psbt);
         let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
 
-        let sighash_type = Some(EcdsaSighashType::All.into());
+        let sighash_type = Some(DEFAULT_SIGHASH_TYPE);
         let response = self
             .inner
             .wallet_process_psbt(&hex_psbt, None, sighash_type, None)

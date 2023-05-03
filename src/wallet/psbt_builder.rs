@@ -15,6 +15,8 @@ use crate::{
     primitives::{bitcoin::*, *},
 };
 
+pub const DEFAULT_SIGHASH_TYPE: psbt::PsbtSighashType = bdk::bitcoin::EcdsaSighashType::All.into();
+
 type Payout = (uuid::Uuid, bitcoin::Address, Satoshis);
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -211,7 +213,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
         }
         builder
             .fee_rate(self.fee_rate.expect("fee rate must be set"))
-            .sighash(bdk::bitcoin::EcdsaSighashType::All.into())
+            .sighash(DEFAULT_SIGHASH_TYPE)
             .drain_wallet()
             .drain_to(drain_address.script_pubkey());
         match builder.finish() {
@@ -286,7 +288,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         }
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.drain_to(change_address.script_pubkey());
-        builder.sighash(bdk::bitcoin::EcdsaSighashType::All.into());
+        builder.sighash(DEFAULT_SIGHASH_TYPE);
 
         let mut total_output_satoshis = Satoshis::from(0);
         for (payout_id, destination, satoshis) in self.current_payouts.drain(..max_payout) {
