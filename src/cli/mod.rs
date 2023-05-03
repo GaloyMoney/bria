@@ -189,6 +189,28 @@ enum Command {
         #[clap(short, long, value_parser = parse_json)]
         metadata: Option<serde_json::Value>,
     },
+    /// Update address information
+    UpdateAddress {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        /// The address to update
+        #[clap(short, long)]
+        address: String,
+        /// The new external id
+        #[clap(short, long)]
+        external_id: Option<String>,
+        /// The new metadata id
+        #[clap(short, long, value_parser = parse_json)]
+        metadata: Option<serde_json::Value>,
+    },
     /// List external addresses up to a given path index
     ListAddresses {
         #[clap(
@@ -458,6 +480,18 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.new_address(wallet, external_id, metadata).await?;
+        }
+        Command::UpdateAddress {
+            url,
+            api_key,
+            address,
+            external_id,
+            metadata,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client
+                .update_address(address, external_id, metadata)
+                .await?;
         }
         Command::ListAddresses {
             url,

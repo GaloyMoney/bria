@@ -20,17 +20,17 @@ impl Addresses {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_address(&self, address: NewAddress) -> Result<(), BriaError> {
+    pub async fn persist_new_address(&self, address: NewAddress) -> Result<(), BriaError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"INSERT INTO bria_addresses
                (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
-            Uuid::from(address.id),
-            Uuid::from(address.account_id),
-            Uuid::from(address.wallet_id),
-            Uuid::from(address.keychain_id),
-            address.profile_id.map(Uuid::from),
+            address.db_uuid,
+            address.account_id as AccountId,
+            address.wallet_id as WalletId,
+            address.keychain_id as KeychainId,
+            address.profile_id as Option<ProfileId>,
             address.address.to_string(),
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
@@ -52,11 +52,11 @@ impl Addresses {
             r#"INSERT INTO bria_addresses
                (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING"#,
-            Uuid::from(address.id),
-            Uuid::from(address.account_id),
-            Uuid::from(address.wallet_id),
-            Uuid::from(address.keychain_id),
-            address.profile_id.map(Uuid::from),
+            address.db_uuid,
+            address.account_id as AccountId,
+            address.wallet_id as WalletId,
+            address.keychain_id as KeychainId,
+            address.profile_id as Option<ProfileId>,
             address.address.to_string(),
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
@@ -70,11 +70,37 @@ impl Addresses {
         Self::persist_events(tx, address).await
     }
 
+    pub async fn update(&self, address: WalletAddress) -> Result<(), BriaError> {
+        if !address.events.is_dirty() {
+            return Ok(());
+        }
+
+        let mut tx = self.pool.begin().await?;
+        sqlx::query!(
+            r#"UPDATE bria_addresses
+               SET external_id = $1
+               WHERE account_id = $2 AND address = $3"#,
+            address.external_id,
+            address.account_id as AccountId,
+            address.address.to_string()
+        )
+        .execute(&mut tx)
+        .await?;
+        EntityEvents::<AddressEvent>::persist(
+            "bria_address_events",
+            &mut tx,
+            address.events.new_serialized_events(address.db_uuid),
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
     async fn persist_events(
         tx: &mut Transaction<'_, Postgres>,
         address: NewAddress,
     ) -> Result<(), BriaError> {
-        let id = address.id;
+        let id = address.db_uuid;
         EntityEvents::<AddressEvent>::persist(
             "bria_address_events",
             tx,
@@ -104,7 +130,7 @@ impl Addresses {
         let mut entity_events = HashMap::new();
         let mut ids = Vec::new();
         for row in rows {
-            let id = AddressId::from(row.id);
+            let id = row.id;
             ids.push(id);
             let events = entity_events
                 .entry(id)
@@ -123,7 +149,7 @@ impl Addresses {
     pub async fn find_by_address(
         &self,
         account_id: AccountId,
-        address: bitcoin::Address,
+        address: String,
     ) -> Result<WalletAddress, BriaError> {
         let rows = sqlx::query!(
             r#"
@@ -133,7 +159,7 @@ impl Addresses {
               WHERE account_id = $1 AND address = $2
               ORDER BY b.created_at, b.id, sequence"#,
             Uuid::from(account_id),
-            address.to_string()
+            address
         )
         .fetch_all(&self.pool)
         .await?;

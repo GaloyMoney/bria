@@ -171,6 +171,34 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn update_address(
+        &self,
+        request: Request<UpdateAddressRequest>,
+    ) -> Result<Response<UpdateAddressResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let UpdateAddressRequest {
+            address,
+            new_external_id,
+            new_metadata,
+        } = request;
+
+        self.app
+            .update_address(
+                profile,
+                address,
+                new_external_id,
+                new_metadata
+                    .map(serde_json::to_value)
+                    .transpose()
+                    .map_err(BriaError::CouldNotParseIncomingMetadata)?,
+            )
+            .await?;
+        Ok(Response::new(UpdateAddressResponse {}))
+    }
+
+    #[instrument(skip_all, err)]
     async fn list_addresses(
         &self,
         request: Request<ListAddressesRequest>,

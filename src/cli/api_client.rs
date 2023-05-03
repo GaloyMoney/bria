@@ -171,6 +171,25 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn update_address(
+        &self,
+        address: String,
+        new_external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::UpdateAddressRequest {
+            address,
+            new_external_id,
+            new_metadata: metadata.map(serde_json::from_value).transpose()?,
+        });
+        let response = self
+            .connect()
+            .await?
+            .update_address(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn list_addresses(&self, wallet: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListAddressesRequest {
             wallet_name: wallet,

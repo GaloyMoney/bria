@@ -36,7 +36,7 @@ impl Augmenter {
             } => {
                 let address_info = self
                     .addresses
-                    .find_by_address(account_id, address.clone())
+                    .find_by_address(account_id, address.to_string())
                     .await?;
                 Ok(Augmentation {
                     address: Some(AddressAugmentation {
@@ -52,7 +52,7 @@ impl Augmenter {
             } => {
                 let address_info = self
                     .addresses
-                    .find_by_address(account_id, address.clone())
+                    .find_by_address(account_id, address.to_string())
                     .await?;
                 Ok(Augmentation {
                     address: Some(AddressAugmentation {

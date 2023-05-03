@@ -83,6 +83,10 @@ impl<T: DeserializeOwned + Serialize + 'static> EntityEvents<T> {
             })
     }
 
+    pub fn is_dirty(&self) -> bool {
+        self.last_persisted_sequence != self.events.len()
+    }
+
     pub async fn persist(
         table_name: &str,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,

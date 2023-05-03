@@ -24,7 +24,6 @@ crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }
-crate::entity_id! { AddressId }
 crate::entity_id! { BatchGroupId }
 crate::entity_id! { PayoutId }
 crate::entity_id! { BatchId }

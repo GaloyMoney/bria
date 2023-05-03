@@ -10,7 +10,7 @@ use crate::{
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AddressEvent {
     AddressInitialized {
-        id: AddressId,
+        db_uuid: uuid::Uuid,
         account_id: AccountId,
         wallet_id: WalletId,
         keychain_id: KeychainId,
@@ -30,9 +30,11 @@ pub enum AddressEvent {
 #[derive(Debug, Builder)]
 #[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct WalletAddress {
+    pub account_id: AccountId,
     pub address: bitcoin::Address,
     pub wallet_id: WalletId,
     pub external_id: String,
+    pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<AddressEvent>,
 }
 
@@ -46,11 +48,21 @@ impl WalletAddress {
         }
         ret
     }
+
+    pub fn update_external_id(&mut self, external_id: String) {
+        self.external_id = external_id.clone();
+        self.events
+            .push(AddressEvent::ExternalIdUpdated { external_id });
+    }
+
+    pub fn update_metadata(&mut self, metadata: serde_json::Value) {
+        self.events.push(AddressEvent::MetadataUpdated { metadata });
+    }
 }
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewAddress {
-    pub(super) id: AddressId,
+    pub(super) db_uuid: uuid::Uuid,
     #[builder(setter(custom))]
     pub(super) address: bitcoin::Address,
     #[builder(setter(into))]
@@ -69,15 +81,14 @@ pub struct NewAddress {
 impl NewAddress {
     pub fn builder() -> NewAddressBuilder {
         let mut builder = NewAddressBuilder::default();
-        let new_address_id = AddressId::new();
-        builder.id(new_address_id);
+        builder.db_uuid(uuid::Uuid::new_v4());
         builder
     }
 
     pub fn initial_events(self) -> EntityEvents<AddressEvent> {
         let mut events = EntityEvents::init([
             AddressEvent::AddressInitialized {
-                id: self.id,
+                db_uuid: self.db_uuid,
                 account_id: self.account_id,
                 wallet_id: self.wallet_id,
                 keychain_id: self.keychain_id,
@@ -115,9 +126,17 @@ impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
         for event in events.iter() {
             match event {
                 AddressEvent::AddressInitialized {
-                    wallet_id, address, ..
+                    db_uuid,
+                    account_id,
+                    wallet_id,
+                    address,
+                    ..
                 } => {
-                    builder = builder.address(address.clone()).wallet_id(*wallet_id);
+                    builder = builder
+                        .db_uuid(*db_uuid)
+                        .account_id(*account_id)
+                        .address(address.clone())
+                        .wallet_id(*wallet_id);
                 }
                 AddressEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.to_owned());

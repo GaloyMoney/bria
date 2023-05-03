@@ -1,5 +1,19 @@
 {
   "db": "PostgreSQL",
+  "03a7f3a2c86a0415f054e409f30fb66c58bb9b15d48c2e46fd4a050c5e20ff76": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE bria_addresses\n               SET external_id = $1\n               WHERE account_id = $2 AND address = $3"
+  },
   "06bea6f8b2a451ed7d746b84c7d60fb5174a5157dfd88f783ca875a02b4fb11e": {
     "describe": {
       "columns": [
