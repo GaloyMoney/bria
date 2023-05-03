@@ -40,7 +40,7 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         let raw_psbt = consensus::encode::serialize(&psbt);
         let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
 
-        let sighash_type = Some(DEFAULT_SIGHASH_TYPE);
+        let sighash_type = Some(DEFAULT_SIGHASH_TYPE.into());
         let response = self
             .inner
             .wallet_process_psbt(&hex_psbt, None, sighash_type, None)
