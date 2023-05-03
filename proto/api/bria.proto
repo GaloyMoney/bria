@@ -67,6 +67,7 @@ message SetSignerConfigRequest {
   string xpub_ref = 1;
   oneof config {
     LndSignerConfig lnd = 2;
+    BitcoindSignerConfig bitcoind = 3;
   }
 }
 
@@ -74,6 +75,12 @@ message LndSignerConfig {
   string endpoint = 1;
   string cert_base64 = 2;
   string macaroon_base64 = 3;
+}
+
+message BitcoindSignerConfig {
+  string endpoint = 1;
+  string rpc_user = 2;
+  string rpc_password = 3;
 }
 
 message SetSignerConfigResponse {}

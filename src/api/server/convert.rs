@@ -52,6 +52,13 @@ impl TryFrom<Option<proto::set_signer_config_request::Config>> for SignerConfig 
                     macaroon_base64: config.macaroon_base64,
                 }))
             }
+            Some(proto::set_signer_config_request::Config::Bitcoind(config)) => {
+                Ok(SignerConfig::Bitcoind(BitcoindSignerConfig {
+                    endpoint: config.endpoint,
+                    rpc_user: config.rpc_user,
+                    rpc_password: config.rpc_password,
+                }))
+            }
             None => Err(tonic::Status::new(
                 tonic::Code::InvalidArgument,
                 "missing signer config",

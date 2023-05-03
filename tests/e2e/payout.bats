@@ -3,9 +3,9 @@
 load "helpers"
 
 setup_file() {
-  restart_bitcoin
+  restart_bitcoin_stack
   reset_pg
-  bitcoind_init
+  bitcoind_with_signer_init
   start_daemon
   bria_init
 }
@@ -59,10 +59,11 @@ teardown_file() {
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   for i in {1..20}; do
-    batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
+  [[ "${batch_id}" != "null" ]] || exit 1
   for i in {1..60}; do
     cache_default_wallet_balance
     [[ $(cached_pending_outgoing) == 150000000 ]] && break;
@@ -75,25 +76,34 @@ teardown_file() {
 }
 
 @test "payout: Add signing config to complete payout" {
-    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
-    for i in {1..20}; do
-      signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
-      [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] && break
-      sleep 1
-    done
+  batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
+  for i in {1..20}; do
+    signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
+    [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] && break
+    sleep 1
+  done
 
-    [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
+  [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 
-    cache_default_wallet_balance
-    [[ $(cached_pending_income) == 0 ]] || exit 1
+  cache_default_wallet_balance
+  [[ $(cached_pending_income) == 0 ]] || exit 1
 
-    bria_cmd set-signer-config --xpub lnd_key lnd --endpoint "${LND_ENDPOINT}" --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" --cert-file "./dev/lnd/tls.cert"
+  bria_cmd set-signer-config \
+    --xpub bitcoind_key bitcoind \
+    --endpoint "${BITCOIND_SIGNER_ENDPOINT}" \
+    --rpc-user "rpcuser" \
+    --rpc-password "rpcpassword"
 
   for i in {1..20}; do
     signing_status=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].state')
-    [[ "${signing_status}" != "Complete" ]] && break
+    [[ "${signing_status}" == "Complete" ]] && break
     sleep 1
   done
+  if [[ "${signing_status}" != "Complete" ]]; then
+    signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
+    echo "signing_status: ${signing_status}"
+    echo "signing_failure_reason: ${signing_failure_reason}"
+  fi
 
   for i in {1..20}; do
     cache_default_wallet_balance

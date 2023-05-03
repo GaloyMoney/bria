@@ -114,11 +114,12 @@ impl ApiClient {
     pub async fn set_signer_config(
         &self,
         xpub_ref: String,
-        config: impl Into<proto::LndSignerConfig>,
+        config: impl TryInto<proto::set_signer_config_request::Config, Error = anyhow::Error>,
     ) -> anyhow::Result<()> {
+        let config = config.try_into()?;
         let request = tonic::Request::new(proto::SetSignerConfigRequest {
             xpub_ref,
-            config: Some(proto::set_signer_config_request::Config::Lnd(config.into())),
+            config: Some(config),
         });
         let response = self
             .connect()
