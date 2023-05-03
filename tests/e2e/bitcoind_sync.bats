@@ -151,14 +151,21 @@ teardown_file() {
 
   for i in {1..30}; do
     cache_default_wallet_balance
-    [[ $(cached_encumbered_fees) == 0 ]] && break
+    echo "HERE 0: $balance"
+    [[ $(cached_pending_outgoing) == 0 ]] \
+      && [[ $(cached_encumbered_fees) == 0 ]] \
+      && break
     sleep 1
   done
+  cache_default_wallet_balance && echo "HERE 1: $balance"
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
   [[ $(cached_logical_settled) == 0 ]] || exit 1
+  [[ $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
 @test "bitcoind_signer_sync: Can spend only from unconfirmed" {
+  cache_default_wallet_balance && echo "HERE 2: $balance"
+
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
   for i in {1..20}; do
