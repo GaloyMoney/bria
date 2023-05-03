@@ -21,7 +21,7 @@ teardown_file() {
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
 
-  [ "$bitcoind_signer_address" = "$bria_address" ]
+  [ "$bitcoind_signer_address" = "$bria_address" ] || exit 1
 
   n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
   [ "$n_addresses" = "2" ] || exit 1
@@ -64,7 +64,7 @@ teardown_file() {
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
-  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "201" ]]
+  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "201" ]] || exit 1
 }
 
 @test "bitcoind_signer_sync: Detects outgoing transactions" {
@@ -82,7 +82,7 @@ teardown_file() {
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   change=$(jq -r '.keychains[0].utxos[0].changeOutput' <<< "${utxos}")
 
-  [[ "${n_utxos}" == "1" && "${change}" == "true" ]]
+  [[ "${n_utxos}" == "1" && "${change}" == "true" ]] || exit 1
 
   bitcoin_cli -generate 1
 
@@ -97,7 +97,7 @@ teardown_file() {
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")
 
-  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "203" ]]
+  [[ "${n_utxos}" == "1" && "${utxo_block_height}" == "203" ]] || exit 1
 }
 
 @test "bitcoind_signer_sync: Can handle spend from mix of unconfirmed UTXOs" {
