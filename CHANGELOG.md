@@ -1,3 +1,57 @@
+# [bria release v0.0.15](https://github.com/GaloyMoney/bria/releases/tag/0.0.15)
+
+
+### Bug Fixes
+
+- Switch to 'STANDARD' base64 engine to keep trailing '='
+- Add 'sighash_type' argument for signing psbt with bitcoind
+- Add missing Bitcoind connect branch
+
+### Documentation
+
+- Add demo in readme
+
+### Features
+
+- Update address
+- Implement bitcoind signer
+- Add 'BitcoindSignerConfig' handling to api grpc interface
+
+### Miscellaneous Tasks
+
+- Poll augmenter from OutboxListener
+- Use EcdsaSighashType as const
+- Bump serde_with from 2.3.3 to 3.0.0
+- Wire augment option through
+- Swap out deprecated base64 encode/decode
+- Reformat long command
+- Bump anyhow from 1.0.70 to 1.0.71
+
+### Refactor
+
+- Declare and assign a DEFAULT_SIGHASH_TYPE for re-use
+- Pass sighash from unsigned psbt into signer
+- Make OutboxEvent generic
+- Add 2nd bitcoind container for signer wallet
+- Remove intermediate SignerConfig type in cli module
+- Rename confirmed -> settledUtxo in balance summary
+
+### Testing
+
+- Back to bc
+- Remove dependency on bc
+- Connect to bitcoind-signer for payouts test
+- Test update-address via event augmentation
+- Restart bitcoind-signer as well to clear chain state
+- Flaky lnd_sync tests on re-run, or run after bitcoind_sync
+- Add a check for deliberate transition before block mine
+- Why sweepall is not confirming in bria
+- Add 'exit 1' to some checks
+- Swap out sendtoaddress for manual tx to spend unconfirmed
+- Add bitcoind sync tests
+- Update 'signing-complete' check
+- Swap in bitcoind as payout signer
+
 # [bria release v0.0.14](https://github.com/GaloyMoney/bria/releases/tag/0.0.14)
 
 
