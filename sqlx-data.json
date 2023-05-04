@@ -65,6 +65,56 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1 AND b.id = $2\n              ORDER BY e.sequence"
   },
+  "07d2cf59c7c5efb52cbabdee628dbfae0aea86115516dd300f053579317f014c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1\n              ORDER BY b.id, e.sequence"
+  },
   "07dfe35dc6e9ce9c7435aa03ba6a346ce4ced6f651af14b35bc470d17144b93f": {
     "describe": {
       "columns": [

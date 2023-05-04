@@ -19,10 +19,11 @@ service BriaService {
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
+  rpc ListBatchGroups (ListBatchGroupsRequest) returns (ListBatchGroupsResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
-
+  
   rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
 }
 
@@ -199,6 +200,18 @@ enum TxPriority {
 message CreateBatchGroupResponse {
   string id = 1;
 }
+
+message BatchGroup {
+  string id = 1;
+  string name = 2;
+  BatchGroupConfig config = 3;
+}
+
+message ListBatchGroupsResponse {
+  repeated BatchGroup batch_groups = 1;
+}
+
+message ListBatchGroupsRequest {}
 
 message QueuePayoutRequest {
   string wallet_name = 1;

@@ -146,6 +146,37 @@ impl From<Payout> for proto::Payout {
     }
 }
 
+impl From<BatchGroup> for proto::BatchGroup {
+    fn from(batch_group: BatchGroup) -> Self {
+        let id = batch_group.id.to_string();
+        let name = batch_group.name;
+        let consolidate_deprecated_keychains = batch_group.config.consolidate_deprecated_keychains;
+        let trigger = match batch_group.config.trigger {
+            BatchGroupTrigger::Manual => proto::batch_group_config::Trigger::Manual(true),
+            BatchGroupTrigger::Immediate => proto::batch_group_config::Trigger::Immediate(true),
+            BatchGroupTrigger::Interval { seconds } => {
+                proto::batch_group_config::Trigger::IntervalSecs(seconds.as_secs() as u32)
+            }
+        };
+        let tx_priority: proto::TxPriority = batch_group.config.tx_priority.into();
+        let config = Some(proto::BatchGroupConfig {
+            trigger: Some(trigger),
+            tx_priority: tx_priority as i32,
+            consolidate_deprecated_keychains,
+        });
+        proto::BatchGroup { id, name, config }
+    }
+}
+impl From<TxPriority> for proto::TxPriority {
+    fn from(priority: TxPriority) -> Self {
+        match priority {
+            TxPriority::NextBlock => proto::TxPriority::NextBlock,
+            TxPriority::OneHour => proto::TxPriority::OneHour,
+            TxPriority::Economy => proto::TxPriority::Economy,
+        }
+    }
+}
+
 impl From<SigningSession> for proto::SigningSession {
     fn from(session: SigningSession) -> Self {
         proto::SigningSession {

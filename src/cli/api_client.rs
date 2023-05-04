@@ -298,7 +298,15 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
-
+    pub async fn list_batch_groups(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListBatchGroupsRequest {});
+        let response = self
+            .connect()
+            .await?
+            .list_batch_groups(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
     pub async fn list_signing_sessions(&self, batch_id: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListSigningSessionsRequest { batch_id });
         let response = self
