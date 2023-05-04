@@ -1,12 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::primitives::*;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
     settle_income_after_n_confs: u32,
     settle_change_after_n_confs: u32,
-    pub dust_threshold_sats: Satoshis,
 }
 
 impl WalletConfig {
@@ -32,7 +29,6 @@ impl Default for WalletConfig {
         Self {
             settle_income_after_n_confs: 2,
             settle_change_after_n_confs: 1,
-            dust_threshold_sats: Satoshis::from(0),
         }
     }
 }

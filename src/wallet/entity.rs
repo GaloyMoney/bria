@@ -106,22 +106,6 @@ impl Wallet {
         }
         ret
     }
-
-    pub fn is_dust_utxo(&self, value: Satoshis) -> bool {
-        value <= self.config.dust_threshold_sats
-    }
-
-    pub fn pick_dust_or_ledger_account(
-        &self,
-        value: Satoshis,
-        account: LedgerAccountId,
-    ) -> LedgerAccountId {
-        if self.is_dust_utxo(value) {
-            self.ledger_account_ids.dust_id
-        } else {
-            account
-        }
-    }
 }
 
 #[derive(Builder, Clone)]
