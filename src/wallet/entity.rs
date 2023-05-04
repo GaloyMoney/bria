@@ -46,7 +46,7 @@ pub struct Wallet {
     pub config: WalletConfig,
     pub network: bitcoin::Network,
     pub name: String,
-    
+
     events: EntityEvents<WalletEvent>,
 }
 
