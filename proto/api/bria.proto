@@ -114,6 +114,7 @@ message WalletConfig {
   uint32 settle_income_after_n_confs = 1;
   uint32 settle_change_after_n_confs = 2;
 }
+
 message NewAddressRequest {
   string wallet_name = 1;
   optional string external_id = 2;

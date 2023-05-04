@@ -151,7 +151,7 @@ impl From<Wallet> for proto::Wallet {
     fn from(wallet: Wallet) -> Self {
         let id = wallet.id.to_string();
         let name = wallet.name as String;
-        let config: proto::WalletConfig = wallet.config.into();
+        let config: proto::WalletConfig = proto::WalletConfig::from(wallet.config);
         proto::Wallet {
             id,
             name,
