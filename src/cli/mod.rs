@@ -304,6 +304,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+
+    /// List Wallets
+    ListWallets {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+    },
+
     /// List batch groups
     ListBatchGroups {
         #[clap(
@@ -568,6 +583,10 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_payouts(wallet).await?;
+        }
+        Command::ListWallets { url, api_key } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.list_wallets().await?;
         }
         Command::ListBatchGroups { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);

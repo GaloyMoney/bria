@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletConfig {
-    settle_income_after_n_confs: u32,
-    settle_change_after_n_confs: u32,
+    pub settle_income_after_n_confs: u32,
+    pub settle_change_after_n_confs: u32,
 }
 
 impl WalletConfig {
