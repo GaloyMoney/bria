@@ -305,7 +305,33 @@ impl ApiClient {
             .await?
             .list_batch_groups(self.inject_auth_token(request)?)
             .await?;
-        output_json(response)
+        let result = response.into_inner();
+        let batch_groups: Vec<_> = result
+            .batch_groups
+            .into_iter()
+            .map(|bg| {
+                let tx_priority = TxPriority::from(
+                    proto::TxPriority::from_i32(bg.config.as_ref().unwrap().tx_priority).unwrap(),
+                );
+                let mut json = serde_json::to_value(bg).unwrap();
+                json.as_object_mut()
+                    .unwrap()
+                    .get_mut("config")
+                    .unwrap()
+                    .as_object_mut()
+                    .unwrap()
+                    .insert("txPriority".to_string(), format!("{tx_priority:?}").into());
+                json
+            })
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "batchGroups": batch_groups,
+            }))
+            .unwrap()
+        );
+        Ok(())
     }
     pub async fn list_signing_sessions(&self, batch_id: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListSigningSessionsRequest { batch_id });
