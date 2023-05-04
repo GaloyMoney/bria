@@ -40,7 +40,6 @@ rsync --delete --exclude target -avr -e "ssh -l ${DOCKER_HOST_USER} ${ADDITIONAL
 echo "Done!"
 
 docker compose down --remove-orphans --timeout 1
-docker compose pull
 
 ssh ${ADDITIONAL_SSH_OPTS} ${DOCKER_HOST_USER}@${DOCKER_HOST_IP} \
   "cd ${REPO_PATH}; docker compose -f docker-compose.yml up integration-tests"
