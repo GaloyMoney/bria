@@ -1,6 +1,7 @@
 mod admin_client;
 mod api_client;
 mod config;
+mod gen;
 mod token_store;
 
 use anyhow::Context;
@@ -370,6 +371,10 @@ enum Command {
         #[clap(long, default_value = "false")]
         augment: bool,
     },
+    GenDescriptorWallet {
+        #[clap(short, long, default_value = "bitcoin")]
+        network: crate::primitives::bitcoin::Network,
+    },
 }
 
 #[derive(Subcommand)]
@@ -610,6 +615,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.watch_events(one_shot, after, augment).await?;
         }
+        Command::GenDescriptorWallet { network } => gen::gen_bitcoind_wallet(network)?,
     }
     Ok(())
 }

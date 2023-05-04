@@ -97,6 +97,7 @@ message CreateWalletResponse {
   string id = 1;
 }
 
+<<<<<<< HEAD
 message ListWalletsRequest {}
 
 message ListWalletsResponse {
@@ -114,6 +115,15 @@ message WalletConfig {
   uint32 settle_income_after_n_confs = 1;
   uint32 settle_change_after_n_confs = 2;
 }
+
+message ImportDescriptorsRequest {
+  string wallet_name = 1;
+  string descriptor = 2;
+  string change_descriptor = 3;
+  optional bool rotate = 4;
+}
+
+message ImportDescriptorsResponse {}
 
 message NewAddressRequest {
   string wallet_name = 1;
