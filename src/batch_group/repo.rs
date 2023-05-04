@@ -106,7 +106,7 @@ impl BatchGroups {
               JOIN bria_batch_group_events e ON b.id = e.id
               WHERE account_id = $1
               ORDER BY b.id, e.sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
         )
         .fetch_all(&self.pool)
         .await?;

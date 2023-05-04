@@ -18,10 +18,11 @@ service BriaService {
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
+  rpc ListBatchGroups (ListBatchGroupsRequest) returns (ListBatchGroupsResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
-  rpc ListBatchGroups (ListBatchGroupsRequest) returns (ListBatchGroupsResponse) {}
+  
   rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
 }
 
@@ -186,9 +187,8 @@ message CreateBatchGroupResponse {
 
 message BatchGroup {
   string id = 1;
-  string account_id = 2;
-  string name = 3;
-  BatchGroupConfig config = 4;
+  string name = 2;
+  BatchGroupConfig config = 3;
 }
 
 message ListBatchGroupsResponse {
