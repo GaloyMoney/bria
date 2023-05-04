@@ -57,7 +57,10 @@ bitcoin_signer_cli() {
 }
 
 convert_btc_to_sats() {
-  echo $1 | sed 's/\.//g' | sed -E 's/^0+//g'
+  echo $1 \
+    | awk '{printf "%.8f\n", $1}' \
+    | sed 's/\.//g' \
+    | sed -E 's/^0+//g'
 }
 
 bitcoin_signer_cli_send_all_utxos () {
