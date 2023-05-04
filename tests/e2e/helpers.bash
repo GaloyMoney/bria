@@ -57,7 +57,7 @@ bitcoin_signer_cli() {
 }
 
 convert_btc_to_sats() {
-  echo "$1 * $SATS_IN_ONE_BTC / 1" | bc
+  echo $1 | sed 's/\.//g' | sed -E 's/^0+//g'
 }
 
 bitcoin_signer_cli_send_all_utxos () {
