@@ -12,6 +12,7 @@ use crate::{
     signing_session::*,
     utxo::*,
     wallet::balance::WalletBalanceSummary,
+    wallet::*,
     xpub::*,
 };
 
@@ -142,6 +143,28 @@ impl From<Payout> for proto::Payout {
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
             external_id: payout.external_id,
+        }
+    }
+}
+
+impl From<Wallet> for proto::Wallet {
+    fn from(wallet: Wallet) -> Self {
+        let id = wallet.id.to_string();
+        let name = wallet.name as String;
+        let config: proto::WalletConfig = wallet.config.into();
+        proto::Wallet {
+            id,
+            name,
+            config: Some(config),
+        }
+    }
+}
+
+impl From<WalletConfig> for proto::WalletConfig {
+    fn from(config: WalletConfig) -> Self {
+        Self {
+            settle_income_after_n_confs: config.settle_income_after_n_confs,
+            settle_change_after_n_confs: config.settle_change_after_n_confs,
         }
     }
 }

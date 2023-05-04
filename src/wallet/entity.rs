@@ -45,7 +45,8 @@ pub struct Wallet {
     pub journal_id: JournalId,
     pub config: WalletConfig,
     pub network: bitcoin::Network,
-
+    pub name: String,
+    
     events: EntityEvents<WalletEvent>,
 }
 
@@ -199,6 +200,9 @@ impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
                 }
                 WalletConfigUpdated { config } => {
                     builder = builder.config(config.clone());
+                }
+                WalletNameUpdated { name } => {
+                    builder = builder.name(name.clone());
                 }
                 _ => (),
             }

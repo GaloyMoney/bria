@@ -439,6 +439,11 @@ impl App {
         Ok(id)
     }
 
+    #[instrument(name = "app.list_wallets", skip_all, err)]
+    pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, BriaError> {
+        self.wallets.list_by_account_id(profile.account_id).await
+    }
+
     #[instrument(name = "app.list_payouts", skip_all, err)]
     pub async fn list_payouts(
         &self,

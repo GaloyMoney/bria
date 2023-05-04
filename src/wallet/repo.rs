@@ -85,6 +85,33 @@ impl Wallets {
             Err(BriaError::WalletNotFound)
         }
     }
+    pub async fn list_by_account_id(
+        &self,
+        account_id: AccountId,
+    ) -> Result<Vec<Wallet>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_wallets b
+              JOIN bria_wallet_events e ON b.id = e.id
+              WHERE account_id = $1
+              ORDER BY e.sequence"#,
+            account_id as AccountId,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut events = HashMap::new();
+        for row in rows {
+            let id = WalletId::from(row.id);
+            let sequence = row.sequence;
+            let events = events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(sequence as usize, row.event)?;
+        }
+        Ok(events
+            .into_values()
+            .map(Wallet::try_from)
+            .collect::<Result<Vec<_>, _>>()?)
+    }
 
     pub async fn find_by_ids(
         &self,

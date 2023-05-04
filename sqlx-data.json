@@ -1877,6 +1877,56 @@
     },
     "query": "\n            INSERT INTO bria_outbox_events\n            (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            "
   },
+  "ccbffcf0dc4fec403b76afecafd708decb30f8c3124db79f2444a18754fe77a3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE account_id = $1\n              ORDER BY e.sequence"
+  },
   "ce7720223d3043460b6c5ad4ed599d0b67ed6d22437408dc8fd90705f3fc4131": {
     "describe": {
       "columns": [],

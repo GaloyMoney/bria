@@ -319,6 +319,22 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_wallets(
+        &self,
+        request: Request<ListWalletsRequest>,
+    ) -> Result<Response<ListWalletsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let wallets = self.app.list_wallets(profile).await?;
+        let wallet_messages: Vec<proto::Wallet> =
+            wallets.into_iter().map(proto::Wallet::from).collect();
+        let response = ListWalletsResponse {
+            wallets: wallet_messages,
+        };
+        Ok(Response::new(response))
+    }
+
+    #[instrument(skip_all, err)]
     async fn list_batch_groups(
         &self,
         request: Request<ListBatchGroupsRequest>,
