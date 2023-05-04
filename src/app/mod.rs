@@ -431,6 +431,14 @@ impl App {
             .list_for_wallet(profile.account_id, wallet.id)
             .await
     }
+    #[instrument(name = "app.list_batch_groups", skip_all, err)]
+    pub async fn list_batch_groups(&self, profile: Profile) -> Result<Vec<BatchGroup>, BriaError> {
+        let batch_groups = self
+            .batch_groups
+            .list_by_account_id(profile.account_id)
+            .await?;
+        Ok(batch_groups)
+    }
 
     #[instrument(name = "app.list_signing_sessions", skip_all, err)]
     pub async fn list_signing_sessions(

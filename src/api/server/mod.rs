@@ -291,6 +291,24 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_batch_groups(
+        &self,
+        request: Request<ListBatchGroupsRequest>,
+    ) -> Result<Response<ListBatchGroupsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let batch_groups = self.app.list_batch_groups(profile).await?;
+        let batch_group_messages: Vec<proto::BatchGroup> = batch_groups
+            .into_iter()
+            .map(proto::BatchGroup::from)
+            .collect();
+        let response = ListBatchGroupsResponse {
+            batch_groups: batch_group_messages,
+        };
+        Ok(Response::new(response))
+    }
+
+    #[instrument(skip_all, err)]
     async fn list_signing_sessions(
         &self,
         request: Request<ListSigningSessionsRequest>,

@@ -95,7 +95,32 @@ impl BatchGroups {
         }
         Ok(BatchGroup::try_from(events)?)
     }
-
+    pub async fn list_by_account_id(
+        &self,
+        account_id: AccountId,
+    ) -> Result<Vec<BatchGroup>, BriaError> {
+        let rows = sqlx::query!(
+            r#"
+              SELECT b.*, e.sequence, e.event
+              FROM bria_batch_groups b
+              JOIN bria_batch_group_events e ON b.id = e.id
+              WHERE account_id = $1
+              ORDER BY b.id, e.sequence"#,
+            Uuid::from(account_id),
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut entity_events = HashMap::new();
+        for row in rows {
+            let id = BatchGroupId::from(row.id);
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(entity_events
+            .into_values()
+            .map(BatchGroup::try_from)
+            .collect::<Result<Vec<_>, _>>()?)
+    }
     pub async fn all(&self) -> Result<Vec<BatchGroup>, BriaError> {
         let rows = sqlx::query!(
             r#"
