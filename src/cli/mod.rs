@@ -152,30 +152,9 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
         #[clap(short, long)]
-        xpub: Vec<String>,
-        #[clap(short, long)]
         name: String,
-    },
-    /// Create or rotate a wallets keychain via descriptors
-    ImportDescriptors {
-        #[clap(
-            short,
-            long,
-            value_parser,
-            default_value = "http://localhost:2742",
-            env = "BRIA_API_URL"
-        )]
-        url: Option<Url>,
-        #[clap(env = "BRIA_API_KEY", default_value = "")]
-        api_key: String,
-        #[clap(short, long)]
-        wallet: String,
-        #[clap(short, long)]
-        descriptor: String,
-        #[clap(short, long)]
-        change_descriptor: String,
-        #[clap(long)]
-        rotate: bool,
+        #[clap(subcommand)]
+        command: CreateWalletCommand,
     },
     /// Report the balance of a wallet (as reflected in the ledger)
     WalletBalance {
@@ -423,6 +402,28 @@ enum AdminCommand {
 }
 
 #[derive(Subcommand)]
+enum CreateWalletCommand {
+    /// Initialize the wallet via wpkh
+    Wpkh {
+        /// The xpub-ref or xpub to use
+        #[clap(short, long)]
+        xpub: String,
+        /// If an xpub is being imported, the derivation path to use
+        #[clap(short, long)]
+        derivation: Option<String>,
+    },
+    /// Initialize the wallet via descriptors
+    Descriptors {
+        /// The descriptor for external addresses
+        #[clap(short, long)]
+        descriptor: String,
+        /// The descriptor for internal addresses
+        #[clap(short, long)]
+        change_descriptor: String,
+    },
+}
+
+#[derive(Subcommand)]
 enum SetSignerConfigCommand {
     Lnd {
         #[clap(short, long)]
@@ -526,24 +527,11 @@ pub async fn run() -> anyhow::Result<()> {
         Command::CreateWallet {
             url,
             api_key,
-            xpub,
             name,
+            command,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.create_wallet(name, xpub).await?;
-        }
-        Command::ImportDescriptors {
-            url,
-            api_key,
-            wallet,
-            descriptor,
-            change_descriptor,
-            rotate,
-        } => {
-            let client = api_client(cli.bria_home, url, api_key);
-            client
-                .import_descriptor(wallet, descriptor, change_descriptor, rotate)
-                .await?;
+            client.create_wallet(name, command).await?;
         }
         Command::WalletBalance {
             url,
@@ -769,5 +757,24 @@ impl TryFrom<SetSignerConfigCommand> for crate::api::proto::set_signer_config_re
             }),
         };
         Ok(ret)
+    }
+}
+
+impl From<CreateWalletCommand> for crate::api::proto::keychain_config::Config {
+    fn from(command: CreateWalletCommand) -> Self {
+        use crate::api::proto::keychain_config::*;
+        match command {
+            CreateWalletCommand::Wpkh { xpub, derivation } => Config::Wpkh(Wpkh {
+                xpub,
+                derivation_path: derivation,
+            }),
+            CreateWalletCommand::Descriptors {
+                descriptor,
+                change_descriptor,
+            } => Config::Descriptors(Descriptors {
+                external: descriptor,
+                internal: change_descriptor,
+            }),
+        }
     }
 }

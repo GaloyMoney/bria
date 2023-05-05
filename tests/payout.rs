@@ -33,7 +33,7 @@ async fn test_payout() -> anyhow::Result<()> {
         AppConfig::default(),
     )
     .await?;
-    app.create_wallet(profile.clone(), wallet_name.clone(), vec![id.to_string()])
+    app.create_wpkh_wallet(profile.clone(), wallet_name.clone(), id.to_string(), None)
         .await?;
 
     let group_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);

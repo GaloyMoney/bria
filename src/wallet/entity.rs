@@ -28,12 +28,12 @@ pub enum WalletEvent {
         name: String,
     },
     WalletConfigUpdated {
-        config: WalletConfig,
+        wallet_config: WalletConfig,
     },
     WalletKeychainAdded {
         keychain_id: KeychainId,
         idx: usize,
-        descriptors: WalletKeychainDescriptors,
+        keychain_config: KeychainConfig,
     },
 }
 
@@ -51,13 +51,11 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    fn iter_keychains(
-        &self,
-    ) -> impl Iterator<Item = (&KeychainId, &WalletKeychainDescriptors)> + '_ {
+    fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &KeychainConfig)> + '_ {
         self.events.iter().rev().filter_map(|e| {
             if let WalletEvent::WalletKeychainAdded {
                 keychain_id,
-                descriptors: config,
+                keychain_config: config,
                 ..
             } = e
             {
@@ -119,7 +117,7 @@ pub struct NewWallet {
     pub(super) ledger_account_ids: WalletLedgerAccountIds,
     pub(super) name: String,
     #[builder(setter(into))]
-    keychain: WalletKeychainDescriptors,
+    keychain: KeychainConfig,
     #[builder(default)]
     config: WalletConfig,
 }
@@ -149,12 +147,12 @@ impl NewWallet {
             },
             WalletEvent::WalletNameUpdated { name: self.name },
             WalletEvent::WalletConfigUpdated {
-                config: self.config,
+                wallet_config: self.config,
             },
             WalletEvent::WalletKeychainAdded {
                 keychain_id: KeychainId::new(),
                 idx: 0,
-                descriptors: self.keychain,
+                keychain_config: self.keychain,
             },
         ])
     }
@@ -197,7 +195,9 @@ impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
                             dust_id: *dust_ledger_account_id,
                         });
                 }
-                WalletConfigUpdated { config } => {
+                WalletConfigUpdated {
+                    wallet_config: config,
+                } => {
                     builder = builder.config(config.clone());
                 }
                 WalletNameUpdated { name } => {

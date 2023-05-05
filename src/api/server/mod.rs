@@ -115,34 +115,39 @@ impl BriaService for Bria {
     ) -> Result<Response<CreateWalletResponse>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
-        let request = request.into_inner();
-        let id = self
-            .app
-            .create_wallet(profile, request.name, request.xpub_refs)
-            .await?;
-        Ok(Response::new(CreateWalletResponse { id: id.to_string() }))
-    }
-
-    #[instrument(skip_all, err)]
-    async fn import_descriptors(
-        &self,
-        request: Request<ImportDescriptorsRequest>,
-    ) -> Result<Response<ImportDescriptorsResponse>, Status> {
-        let key = extract_api_token(&request)?;
-        let profile = self.app.authenticate(key).await?;
-        let request = request.into_inner();
-        let (wallet_id, xpub_ids) = self
-            .app
-            .import_descriptors(
-                profile,
-                request.wallet_name,
-                request.descriptor,
-                request.change_descriptor,
-                request.rotate.unwrap_or(false),
-            )
-            .await?;
-        Ok(Response::new(ImportDescriptorsResponse {
-            wallet_id: wallet_id.to_string(),
+        let CreateWalletRequest {
+            name,
+            keychain_config,
+        } = request.into_inner();
+        let (id, xpub_ids) = match keychain_config {
+            Some(KeychainConfig {
+                config:
+                    Some(keychain_config::Config::Wpkh(keychain_config::Wpkh {
+                        xpub,
+                        derivation_path,
+                    })),
+            }) => {
+                self.app
+                    .create_wpkh_wallet(profile, name, xpub, derivation_path)
+                    .await?
+            }
+            Some(KeychainConfig {
+                config:
+                    Some(keychain_config::Config::Descriptors(keychain_config::Descriptors {
+                        external,
+                        internal,
+                    })),
+            }) => {
+                self.app
+                    .create_descriptors_wallet(profile, name, external, internal)
+                    .await?
+            }
+            _ => {
+                return Err(Status::invalid_argument("invalid keychain config"));
+            }
+        };
+        Ok(Response::new(CreateWalletResponse {
+            id: id.to_string(),
             xpub_ids: xpub_ids.into_iter().map(|id| id.to_string()).collect(),
         }))
     }
