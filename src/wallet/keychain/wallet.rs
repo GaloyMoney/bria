@@ -7,7 +7,7 @@ use bdk::{
 use sqlx::PgPool;
 use tracing::instrument;
 
-use super::descriptors::*;
+use super::config::*;
 use crate::{
     bdk::pg::SqlxWalletDb,
     error::*,
@@ -26,7 +26,7 @@ pub struct KeychainWallet {
     pub keychain_id: KeychainId,
     pool: PgPool,
     network: Network,
-    descriptors: WalletKeychainDescriptors,
+    config: KeychainConfig,
 }
 
 impl KeychainWallet {
@@ -34,13 +34,13 @@ impl KeychainWallet {
         pool: PgPool,
         network: Network,
         keychain_id: KeychainId,
-        descriptors: WalletKeychainDescriptors,
+        descriptors: KeychainConfig,
     ) -> Self {
         Self {
             pool,
             network,
             keychain_id,
-            descriptors,
+            config: descriptors,
         }
     }
 
@@ -109,7 +109,10 @@ impl KeychainWallet {
 
     #[instrument(name = "keychain_wallet.max_satisfaction_weight", skip_all)]
     pub async fn max_satisfaction_weight(&self) -> Result<usize, BriaError> {
-        Ok(self.descriptors.external.max_satisfaction_weight()?)
+        Ok(self
+            .config
+            .external_descriptor()
+            .max_satisfaction_weight()?)
     }
 
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>
@@ -117,14 +120,15 @@ impl KeychainWallet {
         F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> R,
         R: Send + 'static,
     {
-        let descriptors = self.descriptors.clone();
+        let external = self.config.external_descriptor();
+        let internal = self.config.internal_descriptor();
         let pool = self.pool.clone();
         let keychain_id = self.keychain_id;
         let network = self.network;
         let res = tokio::task::spawn_blocking(move || {
             let wallet = Wallet::new(
-                descriptors.external,
-                Some(descriptors.internal),
+                external,
+                Some(internal),
                 network,
                 SqlxWalletDb::new(pool, keychain_id),
             )

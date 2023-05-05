@@ -1,5 +1,5 @@
-mod descriptors;
+mod config;
 mod wallet;
 
-pub use descriptors::*;
+pub use config::*;
 pub use wallet::*;

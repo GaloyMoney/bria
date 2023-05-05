@@ -183,7 +183,7 @@ impl App {
         }
 
         let descriptors =
-            WalletKeychainDescriptors::try_from((descriptor.as_ref(), change_descriptor.as_ref()))?;
+            KeychainConfig::try_from((descriptor.as_ref(), change_descriptor.as_ref()))?;
         let mut tx = self.pool.begin().await?;
         let xpubs = descriptors.xpubs();
         let mut xpub_ids = Vec::new();
@@ -295,7 +295,7 @@ impl App {
             .account_id(profile.account_id)
             .journal_id(profile.account_id)
             .name(wallet_name.clone())
-            .keychain(WalletKeychainDescriptors::wpkh(
+            .keychain(KeychainConfig::wpkh(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
             ))
             .ledger_account_ids(wallet_ledger_accounts)
