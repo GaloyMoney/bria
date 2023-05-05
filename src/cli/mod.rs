@@ -371,7 +371,7 @@ enum Command {
         #[clap(long, default_value = "false")]
         augment: bool,
     },
-    GenDescriptorWallet {
+    GenDescriptorKeys {
         #[clap(short, long, default_value = "bitcoin")]
         network: crate::primitives::bitcoin::Network,
     },
@@ -615,7 +615,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.watch_events(one_shot, after, augment).await?;
         }
-        Command::GenDescriptorWallet { network } => gen::gen_bitcoind_wallet(network)?,
+        Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
     }
     Ok(())
 }

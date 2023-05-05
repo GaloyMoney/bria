@@ -6,7 +6,7 @@ use bdk::{
 
 use std::str::FromStr;
 
-pub fn gen_descriptor_wallet(network: Network) -> anyhow::Result<()> {
+pub fn gen_descriptor_keys(network: Network) -> anyhow::Result<()> {
     let root_key: GeneratedKey<bip32::ExtendedPrivKey, Segwitv0> =
         bip32::ExtendedPrivKey::generate(())?;
     let root_key = root_key.into_extended_key()?.into_xprv(network).unwrap();

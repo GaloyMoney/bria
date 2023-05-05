@@ -168,6 +168,19 @@ impl App {
         Ok(id)
     }
 
+    #[instrument(name = "app.import_descriptors", skip(self), err)]
+    pub async fn import_descriptors(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        descriptor: String,
+        change_descriptor: String,
+        rotate: bool,
+    ) -> Result<(), BriaError> {
+        // unimplemented!()
+        Ok(())
+    }
+
     #[instrument(name = "app.set_signer_config", skip(self), err)]
     pub async fn set_signer_config(
         &self,
@@ -234,7 +247,7 @@ impl App {
             .account_id(profile.account_id)
             .journal_id(uuid::Uuid::from(profile.account_id))
             .name(wallet_name.clone())
-            .keychain(WpkhKeyChainConfig::new(
+            .keychain(WalletKeychainDescriptors::wpkh(
                 xpubs.into_iter().next().expect("xpubs is empty").value,
             ))
             .ledger_account_ids(wallet_ledger_accounts)

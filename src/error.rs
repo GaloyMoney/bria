@@ -64,6 +64,8 @@ pub enum BriaError {
     XPubDepthMismatch(u8, usize),
     #[error("BriaError - XPubParseError: {0}")]
     XPubParseError(bdk::bitcoin::util::base58::Error),
+    #[error("BriaError - UnsupportedPubKeyType")]
+    UnsupportedPubKeyType,
     #[error("BriaError - BdkMiniscriptError: {0}")]
     BdkMiniscriptError(#[from] bdk::miniscript::Error),
     #[error("BriaError - FeeEstimation: {0}")]

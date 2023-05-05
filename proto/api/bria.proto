@@ -97,7 +97,6 @@ message CreateWalletResponse {
   string id = 1;
 }
 
-<<<<<<< HEAD
 message ListWalletsRequest {}
 
 message ListWalletsResponse {
