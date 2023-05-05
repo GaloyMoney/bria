@@ -176,9 +176,56 @@ impl App {
         descriptor: String,
         change_descriptor: String,
         rotate: bool,
-    ) -> Result<(), BriaError> {
-        // unimplemented!()
-        Ok(())
+    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
+        if rotate {
+            unimplemented!()
+        }
+
+        let descriptors =
+            WalletKeychainDescriptors::try_from((descriptor.as_ref(), change_descriptor.as_ref()))?;
+        let mut tx = self.pool.begin().await?;
+        let xpubs = descriptors.xpubs();
+        let mut xpub_ids = Vec::new();
+        for xpub in xpubs {
+            match self
+                .xpubs
+                .find_from_ref(profile.account_id, xpub.id())
+                .await
+            {
+                Ok(xpub) => {
+                    xpub_ids.push(xpub.id());
+                }
+                Err(_) => {
+                    let original = xpub.inner().to_string();
+                    let xpub = NewAccountXPub::builder()
+                        .account_id(profile.account_id)
+                        .key_name(original.clone())
+                        .original(original)
+                        .value(xpub)
+                        .build()
+                        .expect("Couldn't build xpub");
+                    xpub_ids.push(self.xpubs.persist_in_tx(&mut tx, xpub).await?);
+                }
+            }
+        }
+        let wallet_id = WalletId::new();
+        let wallet_ledger_accounts = self
+            .ledger
+            .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
+            .await?;
+        let new_wallet = NewWallet::builder()
+            .id(wallet_id)
+            .network(self.blockchain_cfg.network)
+            .account_id(profile.account_id)
+            .journal_id(profile.account_id)
+            .name(wallet_name.clone())
+            .keychain(descriptors)
+            .ledger_account_ids(wallet_ledger_accounts)
+            .build()
+            .expect("Couldn't build NewWallet");
+        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
+        tx.commit().await?;
+        Ok((wallet_id, xpub_ids))
     }
 
     #[instrument(name = "app.set_signer_config", skip(self), err)]
@@ -245,7 +292,7 @@ impl App {
             .id(wallet_id)
             .network(self.blockchain_cfg.network)
             .account_id(profile.account_id)
-            .journal_id(uuid::Uuid::from(profile.account_id))
+            .journal_id(profile.account_id)
             .name(wallet_name.clone())
             .keychain(WalletKeychainDescriptors::wpkh(
                 xpubs.into_iter().next().expect("xpubs is empty").value,

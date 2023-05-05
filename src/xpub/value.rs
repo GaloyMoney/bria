@@ -20,6 +20,10 @@ impl XPub {
     pub fn id(&self) -> XPubId {
         XPubId::from(self.inner.fingerprint())
     }
+
+    pub fn inner(&self) -> &ExtendedPubKey {
+        &self.inner
+    }
 }
 
 impl fmt::Display for XPub {

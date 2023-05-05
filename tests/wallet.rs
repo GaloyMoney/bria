@@ -66,7 +66,10 @@ async fn import_descriptor() -> anyhow::Result<()> {
     )
     .await?;
     let wallet_name = "test_import_descriptor".to_owned();
-    app.import_descriptors(profile, wallet_name, external, internal, false)
+    let (_, xpub_ids) = app
+        .import_descriptors(profile, wallet_name, external, internal, false)
         .await?;
+    assert_eq!(xpub_ids.len(), 1);
+    assert_eq!(xpub_ids[0].to_string(), "2f18f2f7");
     Ok(())
 }

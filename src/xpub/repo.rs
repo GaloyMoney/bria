@@ -17,8 +17,19 @@ impl XPubs {
 
     #[instrument(name = "xpubs.persist", skip(self))]
     pub async fn persist(&self, xpub: NewAccountXPub) -> Result<XPubId, BriaError> {
-        let xpub_id = xpub.id();
         let mut tx = self.pool.begin().await?;
+        let ret = self.persist_in_tx(&mut tx, xpub).await?;
+        tx.commit().await?;
+        Ok(ret)
+    }
+
+    #[instrument(name = "xpubs.persist_in_tx", skip(self))]
+    pub async fn persist_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        xpub: NewAccountXPub,
+    ) -> Result<XPubId, BriaError> {
+        let xpub_id = xpub.id();
         sqlx::query!(
             r#"INSERT INTO bria_xpubs
             (id, account_id, name, fingerprint)
@@ -28,16 +39,15 @@ impl XPubs {
             xpub.key_name,
             xpub_id.as_bytes()
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
         let id = xpub.db_uuid;
         EntityEvents::<XPubEvent>::persist(
             "bria_xpub_events",
-            &mut tx,
+            &mut *tx,
             xpub.initial_events().new_serialized_events(id),
         )
         .await?;
-        tx.commit().await?;
         Ok(xpub_id)
     }
 

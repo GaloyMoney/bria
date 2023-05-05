@@ -13,6 +13,7 @@ service BriaService {
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
+  rpc ImportDescriptors (ImportDescriptorsRequest) returns (ImportDescriptorsResponse) {}
   rpc ListWallets (ListWalletsRequest) returns (ListWalletsResponse) {}
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
@@ -122,7 +123,10 @@ message ImportDescriptorsRequest {
   optional bool rotate = 4;
 }
 
-message ImportDescriptorsResponse {}
+message ImportDescriptorsResponse {
+  string wallet_id = 1;
+  repeated string xpub_ids = 2;
+}
 
 message NewAddressRequest {
   string wallet_name = 1;
