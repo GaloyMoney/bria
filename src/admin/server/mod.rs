@@ -36,6 +36,21 @@ impl AdminService for Admin {
     }
 
     #[instrument(skip_all, err)]
+    async fn dev_bootstrap(
+        &self,
+        _request: Request<DevBootstrapRequest>,
+    ) -> Result<Response<DevBootstrapResponse>, Status> {
+        let super::AdminApiKey { id, name, key } = self.app.dev_bootstrap().await?;
+        Ok(Response::new(DevBootstrapResponse {
+            key: Some(AdminApiKey {
+                id: id.to_string(),
+                name,
+                key,
+            }),
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_account(
         &self,
         request: Request<CreateAccountRequest>,

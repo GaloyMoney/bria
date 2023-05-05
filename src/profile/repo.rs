@@ -5,6 +5,8 @@ use uuid::Uuid;
 use super::entity::*;
 use crate::{error::*, primitives::*};
 
+const BRIA_DEV_KEY: &str = "bria_dev_000000000000000000000";
+
 pub struct Profiles {
     pool: Pool<Postgres>,
 }
@@ -84,9 +86,14 @@ impl Profiles {
         &self,
         tx: &mut sqlx::Transaction<'_, Postgres>,
         profile: Profile,
+        dev: bool,
     ) -> Result<ProfileApiKey, BriaError> {
-        let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
-        let key = format!("bria_{code}");
+        let key = if dev {
+            BRIA_DEV_KEY.to_string()
+        } else {
+            let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
+            format!("bria_{code}")
+        };
         let record = sqlx::query!(
             r#"INSERT INTO bria_profile_api_keys (encrypted_key, profile_id)
             VALUES (crypt($1, gen_salt('bf')), (SELECT id FROM bria_profiles WHERE id = $2)) RETURNING (id)"#,

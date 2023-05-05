@@ -71,6 +71,15 @@ impl AdminApiClient {
         Ok(())
     }
 
+    pub async fn dev_bootstrap(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::DevBootstrapRequest {});
+        let response = self.connect().await?.dev_bootstrap(request).await?;
+        let key = response.into_inner().key.context("No key in response")?;
+        token_store::store_admin_token(&self.bria_home, &key.key)?;
+        print_admin_api_key(key);
+        Ok(())
+    }
+
     pub async fn account_create(&self, name: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::CreateAccountRequest { name });
         let response = self
