@@ -1,3 +1,12 @@
+# [bria release v0.0.17](https://github.com/GaloyMoney/bria/releases/tag/0.0.17)
+
+
+### Miscellaneous Tasks
+
+- Whitespace
+- Whitespace
+- Refactor keychain (#161)
+
 # [bria release v0.0.16](https://github.com/GaloyMoney/bria/releases/tag/0.0.16)
 
 
