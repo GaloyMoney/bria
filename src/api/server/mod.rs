@@ -153,14 +153,6 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn import_descriptors(
-        &self,
-        request: Request<ImportDescriptorsRequest>,
-    ) -> Result<Response<ImportDescriptorsResponse>, Status> {
-        unimplemented!()
-    }
-
-    #[instrument(skip_all, err)]
     async fn get_wallet_balance_summary(
         &self,
         request: Request<GetWalletBalanceSummaryRequest>,

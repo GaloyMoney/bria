@@ -129,37 +129,21 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn create_wallet(&self, name: String, xpubs: Vec<String>) -> anyhow::Result<()> {
-        unimplemented!()
-        // let request = tonic::Request::new(proto::CreateWalletRequest {
-        //     name,
-        //     xpub_refs: xpubs,
-        // });
-        // let response = self
-        //     .connect()
-        //     .await?
-        //     .create_wallet(self.inject_auth_token(request)?)
-        //     .await?;
-        // output_json(response)
-    }
-
-    pub async fn import_descriptor(
+    pub async fn create_wallet(
         &self,
-        wallet: String,
-        descriptor: String,
-        change_descriptor: String,
-        rotate: bool,
+        name: String,
+        config: impl Into<proto::keychain_config::Config>,
     ) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::ImportDescriptorsRequest {
-            wallet_name: wallet,
-            descriptor,
-            change_descriptor,
-            rotate: Some(rotate),
+        let request = tonic::Request::new(proto::CreateWalletRequest {
+            name,
+            keychain_config: Some(proto::KeychainConfig {
+                config: Some(config.into()),
+            }),
         });
         let response = self
             .connect()
             .await?
-            .import_descriptors(self.inject_auth_token(request)?)
+            .create_wallet(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }
