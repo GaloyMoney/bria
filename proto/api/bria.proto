@@ -120,11 +120,10 @@ message ListWalletsResponse {
   repeated Wallet wallets = 1;
 }
 
-message Wallet { 
-  string id = 1; 
-  string name = 2; 
-  WalletConfig config = 3; 
-
+message Wallet {
+  string id = 1;
+  string name = 2;
+  WalletConfig config = 3;
 }
 
 message WalletConfig { 
