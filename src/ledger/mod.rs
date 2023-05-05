@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use crate::{error::*, primitives::*, wallet::balance::*};
+use crate::{account::balance::*, error::*, primitives::*, wallet::balance::*};
 use constants::*;
 pub use event::*;
 pub use templates::*;
@@ -348,6 +348,52 @@ impl Ledger {
                 .and_then(|b| b.remove(&self.btc)),
             fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
             dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
+        })
+    }
+
+    #[instrument(name = "ledger.get_account_ledger_account_balances", skip(self))]
+    pub async fn get_account_ledger_account_balances(
+        &self,
+        journal_id: JournalId,
+    ) -> Result<AccountLedgerAccountBalances, BriaError> {
+        let mut balances = self
+            .inner
+            .balances()
+            .find_all(
+                journal_id,
+                [
+                    sqlx_ledger::AccountId::from(ONCHAIN_UTXO_INCOMING_ID),
+                    sqlx_ledger::AccountId::from(ONCHAIN_UTXO_AT_REST_ID),
+                    sqlx_ledger::AccountId::from(ONCHAIN_UTXO_OUTGOING_ID),
+                    sqlx_ledger::AccountId::from(LOGICAL_INCOMING_ID),
+                    sqlx_ledger::AccountId::from(LOGICAL_AT_REST_ID),
+                    sqlx_ledger::AccountId::from(LOGICAL_OUTGOING_ID),
+                    sqlx_ledger::AccountId::from(ONCHAIN_FEE_ID),
+                ],
+            )
+            .await?;
+        Ok(AccountLedgerAccountBalances {
+            onchain_incoming: balances
+                .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_UTXO_INCOMING_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            onchain_at_rest: balances
+                .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_UTXO_AT_REST_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            onchain_outgoing: balances
+                .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_UTXO_OUTGOING_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            logical_incoming: balances
+                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_INCOMING_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            logical_at_rest: balances
+                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_AT_REST_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            logical_outgoing: balances
+                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_OUTGOING_ID))
+                .and_then(|b| b.remove(&self.btc)),
+            fee: balances
+                .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_FEE_ID))
+                .and_then(|b| b.remove(&self.btc)),
         })
     }
 

@@ -2,6 +2,7 @@ mod helpers;
 
 use bdk::BlockTime;
 use bria::{
+    account::balance::*,
     ledger::*,
     primitives::{bitcoin::*, *},
     wallet::balance::WalletBalanceSummary,
@@ -73,6 +74,21 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     assert_eq!(summary.pending_incoming_utxos, one_btc);
     assert_eq!(summary.logical_pending_income, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
+
+    let account_summary = AccountBalanceSummary::from(
+        ledger
+            .get_account_ledger_account_balances(journal_id)
+            .await?,
+    );
+    assert_eq!(
+        account_summary.pending_incoming_utxos,
+        summary.pending_incoming_utxos
+    );
+    assert_eq!(
+        account_summary.logical_pending_income,
+        summary.logical_pending_income
+    );
+    assert_eq!(account_summary.encumbered_fees, summary.encumbered_fees);
 
     let confirmed_id = LedgerTransactionId::new();
 
