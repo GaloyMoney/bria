@@ -192,6 +192,20 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+
+    AccountBalance {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+    },
+
     /// Get a new address for a wallet
     NewAddress {
         #[clap(
@@ -538,6 +552,10 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.get_wallet_balance_summary(name).await?;
+        }
+        Command::AccountBalance { url, api_key } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.get_account_balance_summary().await?;
         }
         Command::NewAddress {
             url,

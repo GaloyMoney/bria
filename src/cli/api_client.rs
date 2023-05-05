@@ -173,6 +173,15 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn get_account_balance_summary(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::GetAccountBalanceSummaryRequest {});
+        let response = self
+            .connect()
+            .await?
+            .get_account_balance_summary(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
     pub async fn new_address(
         &self,
         wallet: String,

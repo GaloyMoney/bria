@@ -166,6 +166,18 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn get_account_balance_summary(
+        &self,
+        request: Request<GetAccountBalanceSummaryRequest>,
+    ) -> Result<Response<GetAccountBalanceSummaryResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let balance = self.app.get_account_balance_summary(profile).await?;
+        Ok(Response::new(GetAccountBalanceSummaryResponse::from(
+            balance,
+        )))
+    }
+    #[instrument(skip_all, err)]
     async fn new_address(
         &self,
         request: Request<NewAddressRequest>,
