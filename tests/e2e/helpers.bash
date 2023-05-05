@@ -98,6 +98,7 @@ bitcoind_init() {
   bitcoin_cli -generate 200
 
   bitcoin_signer_cli createwallet "default" || true
+  bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
 }
 
 start_daemon() {
@@ -116,24 +117,7 @@ bria_init() {
   bria_cmd admin create-account -n default
   sleep 3
 
-  bitcoin_signer_address=$(bitcoin_signer_cli getnewaddress)
-  if [ -z "$bitcoin_signer_address" ]; then
-    echo "Failed to get a new address"
-    exit 1
-  fi
-
-  tpub=$(
-    bitcoin_signer_cli getaddressinfo $bitcoin_signer_address \
-    | jq -r .'parent_desc' \
-    | sed -n -E "s/.*\](tpub[^/]*).*/\1/p"
-  )
-  if [ -z "$tpub" ]; then
-    echo "Failed to get tpub"
-    exit 1
-  fi
-
-  bria_cmd import-xpub -x $tpub -n bitcoind_key -d m/84h/1h/0h
-  bria_cmd create-wallet -n default -x bitcoind_key
+  bria_cmd import-descriptors -w default -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
 
   echo "Bria Initialization Complete"
 }
