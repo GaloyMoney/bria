@@ -6,7 +6,7 @@ use serde_json::json;
 use bria::{app::*, xpub::*};
 
 #[tokio::test]
-async fn test_create_wallet() -> anyhow::Result<()> {
+async fn create_wpkh_wallet() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
 
@@ -35,7 +35,7 @@ async fn test_create_wallet() -> anyhow::Result<()> {
         AppConfig::default(),
     )
     .await?;
-    app.create_wallet(profile.clone(), name.clone(), vec![id.to_string()])
+    app.create_wpkh_wallet(profile.clone(), name.clone(), id.to_string(), None)
         .await?;
 
     let addr = app
@@ -52,7 +52,7 @@ async fn test_create_wallet() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn import_descriptor() -> anyhow::Result<()> {
+async fn create_descriptors_wallet() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
 
@@ -67,7 +67,7 @@ async fn import_descriptor() -> anyhow::Result<()> {
     .await?;
     let wallet_name = "test_import_descriptor".to_owned();
     let (_, xpub_ids) = app
-        .import_descriptors(profile, wallet_name, external, internal, false)
+        .create_descriptors_wallet(profile, wallet_name, external, internal)
         .await?;
     assert_eq!(xpub_ids.len(), 1);
     assert_eq!(xpub_ids[0].to_string(), "2f18f2f7");

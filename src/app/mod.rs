@@ -169,23 +169,80 @@ impl App {
         Ok(id)
     }
 
-    #[instrument(name = "app.import_descriptors", skip(self), err)]
-    pub async fn import_descriptors(
+    #[instrument(name = "app.set_signer_config", skip(self), err)]
+    pub async fn set_signer_config(
+        &self,
+        profile: Profile,
+        xpub_ref: String,
+        config: SignerConfig,
+    ) -> Result<(), BriaError> {
+        let mut xpub = self
+            .xpubs
+            .find_from_ref(
+                profile.account_id,
+                xpub_ref
+                    .parse::<XPubRef>()
+                    .expect("ref should always parse"),
+            )
+            .await?;
+        let xpub_id = xpub.id();
+        xpub.set_signer_config(config);
+        let mut tx = self.pool.begin().await?;
+        self.xpubs.persist_updated(&mut tx, xpub).await?;
+        let batch_ids = self
+            .signing_sessions
+            .list_batch_ids_for(&mut tx, profile.account_id, xpub_id)
+            .await?;
+        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
+            .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "app.create_wpkh_wallet", skip(self), err)]
+    pub async fn create_wpkh_wallet(
         &self,
         profile: Profile,
         wallet_name: String,
-        descriptor: String,
-        change_descriptor: String,
-        rotate: bool,
+        xpub: String,
+        derivation: Option<String>,
     ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
-        if rotate {
-            unimplemented!()
-        }
+        let keychain = if let Ok(xpub) = XPub::try_from((&xpub, derivation)) {
+            KeychainConfig::wpkh(xpub)
+        } else {
+            KeychainConfig::wpkh(
+                self.xpubs
+                    .find_from_ref(
+                        profile.account_id,
+                        xpub.parse::<XPubRef>()
+                            .expect("xpub_ref should always parse"),
+                    )
+                    .await?
+                    .value,
+            )
+        };
+        self.create_wallet(profile, wallet_name, keychain).await
+    }
 
-        let descriptors =
-            KeychainConfig::try_from((descriptor.as_ref(), change_descriptor.as_ref()))?;
+    #[instrument(name = "app.create_descriptors_wallet", skip(self), err)]
+    pub async fn create_descriptors_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        external: String,
+        internal: String,
+    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
+        let keychain = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
+        self.create_wallet(profile, wallet_name, keychain).await
+    }
+
+    async fn create_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        keychain: KeychainConfig,
+    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
         let mut tx = self.pool.begin().await?;
-        let xpubs = descriptors.xpubs();
+        let xpubs = keychain.xpubs();
         let mut xpub_ids = Vec::new();
         for xpub in xpubs {
             match self
@@ -220,92 +277,13 @@ impl App {
             .account_id(profile.account_id)
             .journal_id(profile.account_id)
             .name(wallet_name.clone())
-            .keychain(descriptors)
+            .keychain(keychain)
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
         let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
         tx.commit().await?;
         Ok((wallet_id, xpub_ids))
-    }
-
-    #[instrument(name = "app.set_signer_config", skip(self), err)]
-    pub async fn set_signer_config(
-        &self,
-        profile: Profile,
-        xpub_ref: String,
-        config: SignerConfig,
-    ) -> Result<(), BriaError> {
-        let mut xpub = self
-            .xpubs
-            .find_from_ref(
-                profile.account_id,
-                xpub_ref
-                    .parse::<XPubRef>()
-                    .expect("ref should always parse"),
-            )
-            .await?;
-        let xpub_id = xpub.id();
-        xpub.set_signer_config(config);
-        let mut tx = self.pool.begin().await?;
-        self.xpubs.persist_updated(&mut tx, xpub).await?;
-        let batch_ids = self
-            .signing_sessions
-            .list_batch_ids_for(&mut tx, profile.account_id, xpub_id)
-            .await?;
-        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
-            .await?;
-        Ok(())
-    }
-
-    #[instrument(name = "app.create_wallet", skip(self), err)]
-    pub async fn create_wallet(
-        &self,
-        profile: Profile,
-        wallet_name: String,
-        xpub_refs: Vec<String>,
-    ) -> Result<WalletId, BriaError> {
-        let mut xpubs = Vec::new();
-        for xpub_ref in xpub_refs {
-            xpubs.push(
-                self.xpubs
-                    .find_from_ref(
-                        profile.account_id,
-                        xpub_ref
-                            .parse::<XPubRef>()
-                            .expect("xpub_ref should always parse"),
-                    )
-                    .await?,
-            );
-        }
-
-        if xpubs.len() != 1 {
-            unimplemented!()
-        }
-
-        let wallet_id = WalletId::new();
-        let mut tx = self.pool.begin().await?;
-        let wallet_ledger_accounts = self
-            .ledger
-            .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
-            .await?;
-        let new_wallet = NewWallet::builder()
-            .id(wallet_id)
-            .network(self.blockchain_cfg.network)
-            .account_id(profile.account_id)
-            .journal_id(profile.account_id)
-            .name(wallet_name.clone())
-            .keychain(KeychainConfig::wpkh(
-                xpubs.into_iter().next().expect("xpubs is empty").value,
-            ))
-            .ledger_account_ids(wallet_ledger_accounts)
-            .build()
-            .expect("Couldn't build NewWallet");
-        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
-
-        tx.commit().await?;
-
-        Ok(wallet_id)
     }
 
     #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]

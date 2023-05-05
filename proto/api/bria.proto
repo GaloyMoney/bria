@@ -90,13 +90,29 @@ message BitcoindSignerConfig {
 
 message SetSignerConfigResponse {}
 
+message KeychainConfig {
+    message Wpkh {
+        string xpub = 1;
+        optional string derivation_path = 2;
+    }
+    message Descriptors {
+        string external = 1;
+        string internal = 2;
+    }
+    oneof config {
+        Wpkh wpkh = 1;
+        Descriptors descriptors = 2;
+    }
+}
+
 message CreateWalletRequest {
   string name = 1;
-  repeated string xpub_refs = 2;
+  KeychainConfig keychain_config = 2;
 }
 
 message CreateWalletResponse {
   string id = 1;
+  repeated string xpub_ids = 2;
 }
 
 message ListWalletsRequest {}

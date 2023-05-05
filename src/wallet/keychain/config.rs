@@ -7,7 +7,7 @@ use std::{collections::HashMap, str::FromStr};
 
 use crate::xpub::*;
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum KeychainConfig {
     Wpkh {

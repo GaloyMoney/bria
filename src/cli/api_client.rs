@@ -130,16 +130,17 @@ impl ApiClient {
     }
 
     pub async fn create_wallet(&self, name: String, xpubs: Vec<String>) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::CreateWalletRequest {
-            name,
-            xpub_refs: xpubs,
-        });
-        let response = self
-            .connect()
-            .await?
-            .create_wallet(self.inject_auth_token(request)?)
-            .await?;
-        output_json(response)
+        unimplemented!()
+        // let request = tonic::Request::new(proto::CreateWalletRequest {
+        //     name,
+        //     xpub_refs: xpubs,
+        // });
+        // let response = self
+        //     .connect()
+        //     .await?
+        //     .create_wallet(self.inject_auth_token(request)?)
+        //     .await?;
+        // output_json(response)
     }
 
     pub async fn import_descriptor(
