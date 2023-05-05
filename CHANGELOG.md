@@ -20,6 +20,28 @@
 - Fix txPriority output in list-batch-groups
 - Remove (unused) dust config
 
+# [bria release v0.0.16](https://github.com/GaloyMoney/bria/releases/tag/0.0.16)
+
+
+### Bug Fixes
+
+- Address pr reviews
+- Fix formatting errors
+- Add suggested changes
+
+### Features
+
+- Add account balance summary (#159)
+- Add import-descriptors (#158)
+- Add list-wallets
+- Add list_batch_groups
+
+### Miscellaneous Tasks
+
+- Bump clap from 4.2.5 to 4.2.7
+- Fix txPriority output in list-batch-groups
+- Remove (unused) dust config
+
 # [bria release v0.0.15](https://github.com/GaloyMoney/bria/releases/tag/0.0.15)
 
 
