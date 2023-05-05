@@ -16,6 +16,7 @@ service BriaService {
   rpc ImportDescriptors (ImportDescriptorsRequest) returns (ImportDescriptorsResponse) {}
   rpc ListWallets (ListWalletsRequest) returns (ListWalletsResponse) {}
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
+  rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
   rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
@@ -195,6 +196,21 @@ message GetWalletBalanceSummaryRequest {
 }
 
 message GetWalletBalanceSummaryResponse {
+  uint64 logical_pending_income = 1;
+  uint64 logical_settled = 2;
+  uint64 logical_pending_outgoing = 3;
+  uint64 logical_encumbered_outgoing = 4;
+  uint64 encumbered_incoming_utxos = 5;
+  uint64 pending_incoming_utxos = 6;
+  uint64 settled_utxos = 7;
+  uint64 pending_outgoing_utxos = 8;
+  uint64 pending_fees = 9;
+  uint64 encumbered_fees = 10;
+}
+
+message GetAccountBalanceSummaryRequest {}
+
+message GetAccountBalanceSummaryResponse { 
   uint64 logical_pending_income = 1;
   uint64 logical_settled = 2;
   uint64 logical_pending_outgoing = 3;

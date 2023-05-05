@@ -6,6 +6,7 @@ use tracing::instrument;
 pub use config::*;
 
 use crate::{
+    account::balance::AccountBalanceSummary,
     address::*,
     batch::*,
     batch_group::*,
@@ -323,6 +324,19 @@ impl App {
             .await?;
         let summary = WalletBalanceSummary::from(wallet_ledger_account_balances);
 
+        Ok(summary)
+    }
+
+    #[instrument(name = "app.get_account_balance_summary", skip(self), err)]
+    pub async fn get_account_balance_summary(
+        &self,
+        profile: Profile,
+    ) -> Result<AccountBalanceSummary, BriaError> {
+        let account_ledger_account_balances = self
+            .ledger
+            .get_account_ledger_account_balances(profile.account_id.into())
+            .await?;
+        let summary = AccountBalanceSummary::from(account_ledger_account_balances);
         Ok(summary)
     }
 
