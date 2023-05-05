@@ -596,7 +596,6 @@ impl Ledger {
             .id(ONCHAIN_FEE_ID)
             .name(ONCHAIN_FEE_CODE)
             .description("Account for provisioning of onchain fees".to_string())
-            .normal_balance_type(DebitOrCredit::Debit)
             .build()
             .expect("Couldn't create onchain fee account");
         match ledger.accounts().create(new_account).await {
