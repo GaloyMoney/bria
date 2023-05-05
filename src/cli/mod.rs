@@ -1,6 +1,7 @@
 mod admin_client;
 mod api_client;
 mod config;
+mod gen;
 mod token_store;
 
 use anyhow::Context;
@@ -154,6 +155,27 @@ enum Command {
         xpub: Vec<String>,
         #[clap(short, long)]
         name: String,
+    },
+    /// Create or rotate a wallets keychain via descriptors
+    ImportDescriptors {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+        #[clap(short, long)]
+        descriptor: String,
+        #[clap(short, long)]
+        change_descriptor: String,
+        #[clap(long)]
+        rotate: bool,
     },
     /// Report the balance of a wallet (as reflected in the ledger)
     WalletBalance {
@@ -370,6 +392,10 @@ enum Command {
         #[clap(long, default_value = "false")]
         augment: bool,
     },
+    GenDescriptorKeys {
+        #[clap(short, long, default_value = "bitcoin")]
+        network: crate::primitives::bitcoin::Network,
+    },
 }
 
 #[derive(Subcommand)]
@@ -492,6 +518,19 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.create_wallet(name, xpub).await?;
         }
+        Command::ImportDescriptors {
+            url,
+            api_key,
+            wallet,
+            descriptor,
+            change_descriptor,
+            rotate,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client
+                .import_descriptor(wallet, descriptor, change_descriptor, rotate)
+                .await?;
+        }
         Command::WalletBalance {
             url,
             api_key,
@@ -610,6 +649,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.watch_events(one_shot, after, augment).await?;
         }
+        Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
     }
     Ok(())
 }

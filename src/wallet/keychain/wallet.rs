@@ -7,19 +7,12 @@ use bdk::{
 use sqlx::PgPool;
 use tracing::instrument;
 
+use super::descriptors::*;
 use crate::{
     bdk::pg::SqlxWalletDb,
     error::*,
     primitives::{bitcoin::*, *},
 };
-
-pub trait ToExternalDescriptor {
-    fn to_external_descriptor(&self) -> String;
-}
-
-pub trait ToInternalDescriptor {
-    fn to_internal_descriptor(&self) -> String;
-}
 
 pub trait BdkWalletVisitor: Sized + Send + 'static {
     fn visit_bdk_wallet<D: BatchDatabase>(
@@ -29,22 +22,25 @@ pub trait BdkWalletVisitor: Sized + Send + 'static {
     ) -> Result<Self, BriaError>;
 }
 
-pub struct KeychainWallet<T> {
+pub struct KeychainWallet {
     pub keychain_id: KeychainId,
     pool: PgPool,
     network: Network,
-    descriptor: T,
+    descriptors: WalletKeychainDescriptors,
 }
 
-impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'static>
-    KeychainWallet<T>
-{
-    pub fn new(pool: PgPool, network: Network, keychain_id: KeychainId, descriptor: T) -> Self {
+impl KeychainWallet {
+    pub fn new(
+        pool: PgPool,
+        network: Network,
+        keychain_id: KeychainId,
+        descriptors: WalletKeychainDescriptors,
+    ) -> Self {
         Self {
             pool,
             network,
             keychain_id,
-            descriptor,
+            descriptors,
         }
     }
 
@@ -113,14 +109,7 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
 
     #[instrument(name = "keychain_wallet.max_satisfaction_weight", skip_all)]
     pub async fn max_satisfaction_weight(&self) -> Result<usize, BriaError> {
-        let weight = self
-            .with_wallet(|wallet| {
-                wallet
-                    .get_descriptor_for_keychain(bdk::KeychainKind::External)
-                    .max_satisfaction_weight()
-            })
-            .await??;
-        Ok(weight)
+        Ok(self.descriptors.external.max_satisfaction_weight()?)
     }
 
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>
@@ -128,14 +117,14 @@ impl<T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'sta
         F: 'static + Send + FnOnce(Wallet<SqlxWalletDb>) -> R,
         R: Send + 'static,
     {
-        let descriptor = self.descriptor.clone();
+        let descriptors = self.descriptors.clone();
         let pool = self.pool.clone();
         let keychain_id = self.keychain_id;
         let network = self.network;
         let res = tokio::task::spawn_blocking(move || {
             let wallet = Wallet::new(
-                descriptor.to_external_descriptor().as_str(),
-                Some(descriptor.to_internal_descriptor().as_str()),
+                descriptors.external,
+                Some(descriptors.internal),
                 network,
                 SqlxWalletDb::new(pool, keychain_id),
             )

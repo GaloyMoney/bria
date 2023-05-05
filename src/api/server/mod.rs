@@ -124,6 +124,30 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn import_descriptors(
+        &self,
+        request: Request<ImportDescriptorsRequest>,
+    ) -> Result<Response<ImportDescriptorsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let (wallet_id, xpub_ids) = self
+            .app
+            .import_descriptors(
+                profile,
+                request.wallet_name,
+                request.descriptor,
+                request.change_descriptor,
+                request.rotate.unwrap_or(false),
+            )
+            .await?;
+        Ok(Response::new(ImportDescriptorsResponse {
+            wallet_id: wallet_id.to_string(),
+            xpub_ids: xpub_ids.into_iter().map(|id| id.to_string()).collect(),
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn get_wallet_balance_summary(
         &self,
         request: Request<GetWalletBalanceSummaryRequest>,

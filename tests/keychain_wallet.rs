@@ -1,46 +1,30 @@
 mod helpers;
 
 use bdk::bitcoin::Network;
-use uuid::Uuid;
 
-use bria::{wallet::*, xpub::*};
+use bria::{primitives::*, wallet::*};
 
 #[tokio::test]
 async fn new_address() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
-    let keychain_id = Uuid::new_v4();
-    let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
-    let keychain_cfg = WpkhKeyChainConfig::new(xpub);
-    let wallet = KeychainWallet::new(
-        pool.clone(),
-        Network::Regtest,
-        keychain_id.into(),
-        keychain_cfg,
-    );
+    let keychain_id = KeychainId::new();
+    let external = "wpkh([492ef832/84'/0'/0']tpubDCyf42ghP6mBAETwkz8AbXo97822jdUgHNug91bbX8GXpTP6ee298yGeiM5SvgL8Z85bcFyKioyRQokNh6J4eT3Fy8mgKDAKfynovRu3WzE/0/*)#gf2aklqx";
+    let internal = "wpkh([492ef832/84'/0'/0']tpubDCyf42ghP6mBAETwkz8AbXo97822jdUgHNug91bbX8GXpTP6ee298yGeiM5SvgL8Z85bcFyKioyRQokNh6J4eT3Fy8mgKDAKfynovRu3WzE/1/*)#ea0ut2s7";
+    let keychain_cfg = WalletKeychainDescriptors::try_from((external, internal)).unwrap();
+    let wallet = KeychainWallet::new(pool.clone(), Network::Regtest, keychain_id, keychain_cfg);
 
     let addr = wallet.new_external_address().await?;
     assert_eq!(
         addr.to_string(),
-        "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0"
+        "bcrt1qcv9xq3me73wsv4scy6qvx3f24e3dnt56h9m9z6"
     );
     let addr = wallet
         .find_address_from_path(101, bdk::KeychainKind::External)
         .await?;
     assert_eq!(
         addr.to_string(),
-        "bcrt1q9ctp73c2eyqltnvfjrmt5830hjun20yachdyd8"
-    );
-
-    let keychain_id = Uuid::new_v4();
-    let xpub = XPub::try_from(("tpubDD6sGNgWVAeKaMGF5XkfBhMAuSqjoiqUoSM7Dmf11auxu41PDg1AL4LDwTkuVEMUS2zY51zPESy1xr26cLj7BZHfwZQHd4Xf1Ym5WbvAMru", Some("m/86'/0'/0'"))).unwrap();
-    let keychain_cfg = TrKeyChainConfig::new(xpub);
-    let wallet = KeychainWallet::new(pool, Network::Regtest, keychain_id.into(), keychain_cfg);
-
-    let addr = wallet.new_external_address().await?;
-    assert_eq!(
-        addr.to_string(),
-        "bcrt1p7dr79qw9j5wrc5hyva5rzaqygcmzdp00msqh02l45szlx5rae38qjhmf4a"
+        "bcrt1ql30ktsmtdfj6a7243xhfn8n35hyghyw2yj9alf"
     );
 
     Ok(())

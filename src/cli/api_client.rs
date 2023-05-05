@@ -142,6 +142,27 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn import_descriptor(
+        &self,
+        wallet: String,
+        descriptor: String,
+        change_descriptor: String,
+        rotate: bool,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ImportDescriptorsRequest {
+            wallet_name: wallet,
+            descriptor,
+            change_descriptor,
+            rotate: Some(rotate),
+        });
+        let response = self
+            .connect()
+            .await?
+            .import_descriptors(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn get_wallet_balance_summary(&self, wallet_name: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::GetWalletBalanceSummaryRequest { wallet_name });
         let response = self

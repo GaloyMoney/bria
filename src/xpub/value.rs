@@ -1,3 +1,4 @@
+use bdk::descriptor::DescriptorPublicKey;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -19,6 +20,10 @@ impl XPub {
     pub fn id(&self) -> XPubId {
         XPubId::from(self.inner.fingerprint())
     }
+
+    pub fn inner(&self) -> &ExtendedPubKey {
+        &self.inner
+    }
 }
 
 impl fmt::Display for XPub {
@@ -32,6 +37,21 @@ impl fmt::Display for XPub {
         }
         write!(f, "{}", self.inner)?;
         Ok(())
+    }
+}
+
+impl TryFrom<&DescriptorPublicKey> for XPub {
+    type Error = BriaError;
+
+    fn try_from(pk: &DescriptorPublicKey) -> Result<Self, Self::Error> {
+        let derivation_path = pk.full_derivation_path();
+        match pk {
+            DescriptorPublicKey::Single(_) => Err(BriaError::UnsupportedPubKeyType),
+            DescriptorPublicKey::XPub(inner) => Ok(Self {
+                derivation: Some(derivation_path),
+                inner: inner.xkey,
+            }),
+        }
     }
 }
 

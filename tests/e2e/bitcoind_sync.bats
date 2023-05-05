@@ -15,16 +15,13 @@ teardown_file() {
 }
 
 @test "bitcoind_signer_sync: Generates the same address" {
-  # Catchup to bitcoind_signer generated address from tpub import
-  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
-
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
 
   [ "$bitcoind_signer_address" = "$bria_address" ] || exit 1
 
   n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
-  [ "$n_addresses" = "2" ] || exit 1
+  [ "$n_addresses" = "1" ] || exit 1
 }
 
 @test "bitcoind_signer_sync: Detects incoming transactions" {
@@ -44,7 +41,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 100000000 ]] || exit 1
 
   n_addresses=$(bria_cmd list-addresses -w default | jq -r '.addresses | length')
-  [ "$n_addresses" = "3" ] || exit 1
+  [ "$n_addresses" = "2" ] || exit 1
   utxos=$(bria_cmd list-utxos -w default)
   n_utxos=$(jq '.keychains[0].utxos | length' <<< "${utxos}")
   utxo_block_height=$(jq -r '.keychains[0].utxos[0].blockHeight' <<< "${utxos}")

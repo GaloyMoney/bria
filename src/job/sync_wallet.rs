@@ -466,10 +466,7 @@ pub async fn execute(
     Ok(data)
 }
 
-async fn fees_for_keychain<T>(keychain: &KeychainWallet<T>) -> Result<Satoshis, BriaError>
-where
-    T: ToInternalDescriptor + ToExternalDescriptor + Clone + Send + Sync + 'static,
-{
+async fn fees_for_keychain(keychain: &KeychainWallet) -> Result<Satoshis, BriaError> {
     let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(TxPriority::NextBlock)
         .await?
         .as_sat_per_vb();

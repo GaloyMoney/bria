@@ -33,7 +33,7 @@ pub enum WalletEvent {
     WalletKeychainAdded {
         keychain_id: KeychainId,
         idx: usize,
-        config: WalletKeyChainConfig,
+        descriptors: WalletKeychainDescriptors,
     },
 }
 
@@ -51,11 +51,13 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &WalletKeyChainConfig)> + '_ {
+    fn iter_keychains(
+        &self,
+    ) -> impl Iterator<Item = (&KeychainId, &WalletKeychainDescriptors)> + '_ {
         self.events.iter().rev().filter_map(|e| {
             if let WalletEvent::WalletKeychainAdded {
                 keychain_id,
-                config,
+                descriptors: config,
                 ..
             } = e
             {
@@ -73,15 +75,12 @@ impl Wallet {
     pub fn keychain_wallets(
         &self,
         pool: sqlx::PgPool,
-    ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
+    ) -> impl Iterator<Item = KeychainWallet> + '_ {
         let current = self.current_keychain_wallet(&pool);
         std::iter::once(current).chain(self.deprecated_keychain_wallets(pool))
     }
 
-    pub fn current_keychain_wallet(
-        &self,
-        pool: &sqlx::PgPool,
-    ) -> KeychainWallet<WalletKeyChainConfig> {
+    pub fn current_keychain_wallet(&self, pool: &sqlx::PgPool) -> KeychainWallet {
         let (id, cfg) = self.iter_keychains().next().expect("No current keychain");
         KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone())
     }
@@ -89,7 +88,7 @@ impl Wallet {
     pub fn deprecated_keychain_wallets(
         &self,
         pool: sqlx::PgPool,
-    ) -> impl Iterator<Item = KeychainWallet<WalletKeyChainConfig>> + '_ {
+    ) -> impl Iterator<Item = KeychainWallet> + '_ {
         self.iter_keychains()
             .skip(1)
             .map(move |(id, cfg)| KeychainWallet::new(pool.clone(), self.network, *id, cfg.clone()))
@@ -120,7 +119,7 @@ pub struct NewWallet {
     pub(super) ledger_account_ids: WalletLedgerAccountIds,
     pub(super) name: String,
     #[builder(setter(into))]
-    keychain: WalletKeyChainConfig,
+    keychain: WalletKeychainDescriptors,
     #[builder(default)]
     config: WalletConfig,
 }
@@ -155,7 +154,7 @@ impl NewWallet {
             WalletEvent::WalletKeychainAdded {
                 keychain_id: KeychainId::new(),
                 idx: 0,
-                config: self.keychain,
+                descriptors: self.keychain,
             },
         ])
     }

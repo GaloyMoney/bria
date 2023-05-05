@@ -35,7 +35,7 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let domain_current_keychain_id = Uuid::new_v4();
     let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
-    let keychain_cfg = WpkhKeyChainConfig::new(xpub);
+    let keychain_cfg = WalletKeychainDescriptors::wpkh(xpub);
     let domain_current_keychain = KeychainWallet::new(
         pool.clone(),
         Network::Regtest,

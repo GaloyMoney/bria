@@ -89,7 +89,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   bria_cmd set-signer-config \
-    --xpub bitcoind_key bitcoind \
+    --xpub "68bfb290" bitcoind \
     --endpoint "${BITCOIND_SIGNER_ENDPOINT}" \
     --rpc-user "rpcuser" \
     --rpc-password "rpcpassword"
