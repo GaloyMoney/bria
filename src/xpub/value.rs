@@ -59,7 +59,8 @@ impl<O: AsRef<str>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
     type Error = BriaError;
 
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
-        let derivation: Option<DerivationPath> = derivation.map(|d| d.as_ref().parse().unwrap());
+        let derivation: Option<DerivationPath> =
+            derivation.map(|d| d.as_ref().parse()).transpose()?;
         use bdk::bitcoin::util::base58;
         let mut xpub_data =
             base58::from_check(original.as_ref()).map_err(BriaError::XPubParseError)?;
