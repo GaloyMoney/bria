@@ -1,3 +1,10 @@
+# [bria release v0.0.18](https://github.com/GaloyMoney/bria/releases/tag/0.0.18)
+
+
+### Bug Fixes
+
+- Do not unwrap derivation path after parse
+
 # [bria release v0.0.17](https://github.com/GaloyMoney/bria/releases/tag/0.0.17)
 
 
