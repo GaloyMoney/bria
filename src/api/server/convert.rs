@@ -106,6 +106,16 @@ impl From<WalletAddress> for proto::WalletAddress {
     }
 }
 
+impl From<AccountXPub> for proto::Xpub {
+    fn from(xpub: AccountXPub) -> Self {
+        Self {
+            name: xpub.key_name.to_string(),
+            id: xpub.id().to_string(),
+            xpub: xpub.original,
+            derivation: "some_path".to_string(),
+        }
+    }
+}
 impl From<WalletUtxo> for proto::Utxo {
     fn from(utxo: WalletUtxo) -> Self {
         Self {

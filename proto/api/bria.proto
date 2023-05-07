@@ -11,6 +11,7 @@ service BriaService {
   rpc ListProfiles (ListProfilesRequest) returns (ListProfilesResponse) {}
   rpc CreateProfileApiKey (CreateProfileApiKeyRequest) returns (CreateProfileApiKeyResponse) {}
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
+  rpc ListXpubs (ListXpubsRequest) returns(ListXpubsResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc ListWallets (ListWalletsRequest) returns (ListWalletsResponse) {}
@@ -293,7 +294,6 @@ message Payout {
   string external_id = 7;
 }
 
-
 message ListPayoutsResponse {
   repeated Payout payouts = 1;
 }
@@ -349,4 +349,17 @@ message UtxoSettled {
   string address = 5;
   uint32 block_height = 6;
   uint64 block_time = 7;
+}
+
+message ListXpubsRequest {}
+
+message ListXpubsResponse {
+  repeated Xpub xpub = 1;
+}
+
+message Xpub{
+  string name = 1;
+  string xpub = 2;
+  string derivation = 3;
+  string id = 4;
 }

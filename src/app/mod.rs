@@ -392,6 +392,14 @@ impl App {
         Ok((wallet.id, addresses))
     }
 
+    #[instrument(name = "app.list_xpubs", skip(self), err)]
+    pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, BriaError> {
+        let xpubs = self
+            .xpubs
+            .list_xpubs_from_account_id(profile.account_id)
+            .await?;
+        Ok(xpubs)
+    }
     #[instrument(name = "app.list_utxos", skip(self), err)]
     pub async fn list_utxos(
         &self,

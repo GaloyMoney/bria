@@ -123,6 +123,19 @@ enum Command {
         #[clap(short, long)]
         derivation: Option<String>,
     },
+    /// List Xpubs
+    ListXpubs {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+    },
     SetSignerConfig {
         #[clap(
             short,
@@ -636,6 +649,10 @@ pub async fn run() -> anyhow::Result<()> {
         Command::ListBatchGroups { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_batch_groups().await?;
+        }
+        Command::ListXpubs { url, api_key } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.list_xpubs().await?;
         }
         Command::ListSigningSessions {
             url,

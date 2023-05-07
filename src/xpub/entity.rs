@@ -38,6 +38,7 @@ pub struct AccountXPub {
     pub account_id: AccountId,
     pub key_name: String,
     pub value: XPubValue,
+    pub original: String,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
@@ -130,6 +131,7 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                     account_id,
                     xpub,
                     derivation_path,
+                    original,
                     ..
                 } => {
                     builder = builder
@@ -138,7 +140,8 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                         .value(XPubValue {
                             inner: *xpub,
                             derivation: derivation_path.as_ref().cloned(),
-                        });
+                        })
+                        .original(original.clone());
                 }
                 XPubEvent::XpubNameUpdated { name } => {
                     builder = builder.key_name(name.clone());
