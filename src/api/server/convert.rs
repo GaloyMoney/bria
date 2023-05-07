@@ -111,8 +111,9 @@ impl From<AccountXPub> for proto::Xpub {
         Self {
             name: xpub.key_name.to_string(),
             id: xpub.id().to_string(),
-            xpub: xpub.original,
+            xpub: xpub.original.clone(),
             derivation: "some_path".to_string(),
+            has_signer_config: xpub.has_signer_config(),
         }
     }
 }

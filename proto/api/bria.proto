@@ -362,4 +362,5 @@ message Xpub{
   string xpub = 2;
   string derivation = 3;
   string id = 4;
+  bool has_signer_config = 5;
 }
