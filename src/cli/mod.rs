@@ -664,17 +664,44 @@ async fn run_cmd(
                 .context("Api server error"),
         );
     }));
+
+    if dev {
+        let bria_home_string = bria_home.to_string();
+        tokio::spawn(async move {
+            let admin_client = admin_client::AdminApiClient::new(
+                bria_home_string,
+                admin_client::AdminApiClientConfig::default(),
+                "".to_string(),
+            );
+
+            let mut retries = 5;
+            let delay = tokio::time::Duration::from_secs(1);
+            while retries > 0 {
+                let dev_bootstrap_result = admin_client.dev_bootstrap().await;
+                match dev_bootstrap_result {
+                    Ok(_) => {
+                        println!("Dev bootstrap completed successfully");
+                        break;
+                    }
+                    Err(e) => {
+                        eprintln!("Dev bootstrap failed: {:?}.\nRetrying...", e);
+                        retries -= 1;
+                        if retries > 0 {
+                            tokio::time::sleep(delay).await;
+                        } else {
+                            eprintln!("Dev bootstrap failed after retries: {:?}", e);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     let reason = receive.recv().await.expect("Didn't receive msg");
     for handle in handles {
         handle.abort();
     }
-    if dev {
-        tokio::spawn(async move {
-            unimplemented!()
-            // with retry (since admin server may not be ready yet)
-            // admin_client.dev_booststrap().await?
-        });
-    }
+
     reason
 }
 

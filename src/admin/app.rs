@@ -30,11 +30,12 @@ impl AdminApp {
 
 impl AdminApp {
     #[instrument(name = "admin_app.dev_bootstrap", skip(self), err)]
-    pub async fn dev_bootstrap(&self) -> Result<AdminApiKey, AdminApiError> {
+    pub async fn dev_bootstrap(&self) -> Result<(AdminApiKey, ProfileApiKey), AdminApiError> {
         if self.network == bitcoin::Network::Bitcoin {
             return Err(AdminApiError::BadNetworkForDev);
         }
-        let key = self.bootstrap().await?;
+        let admin_key = self.bootstrap().await?;
+
         let mut tx = self.pool.begin().await?;
         let account = self
             .accounts
@@ -47,11 +48,12 @@ impl AdminApp {
             .profiles
             .create_in_tx(&mut tx, account.id, account.name)
             .await?;
-        self.profiles
+        let profile_key = self
+            .profiles
             .create_key_for_profile_in_tx(&mut tx, profile, true)
             .await?;
         tx.commit().await?;
-        Ok(key)
+        Ok((admin_key, profile_key))
     }
 
     #[instrument(name = "admin_app.bootstrap", skip(self), err)]

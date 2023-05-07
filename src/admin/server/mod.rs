@@ -40,12 +40,19 @@ impl AdminService for Admin {
         &self,
         _request: Request<DevBootstrapRequest>,
     ) -> Result<Response<DevBootstrapResponse>, Status> {
-        let super::AdminApiKey { id, name, key } = self.app.dev_bootstrap().await?;
+        let (admin_key, profile_key) = self.app.dev_bootstrap().await?;
+        let name = admin_key.name;
         Ok(Response::new(DevBootstrapResponse {
-            key: Some(AdminApiKey {
-                id: id.to_string(),
+            admin_key: Some(AdminApiKey {
+                id: admin_key.id.to_string(),
+                name: name.clone(),
+                key: admin_key.key,
+            }),
+            profile_key: Some(ProfileApiKey {
+                profile_id: profile_key.id.to_string(),
                 name,
-                key,
+                key: profile_key.key,
+                account_id: admin_key.id.to_string(),
             }),
         }))
     }

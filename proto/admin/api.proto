@@ -19,7 +19,8 @@ message BootstrapResponse {
 message DevBootstrapRequest {}
 
 message DevBootstrapResponse {
-  AdminApiKey key = 1;
+  AdminApiKey admin_key = 1;
+  ProfileApiKey profile_key = 2;
 }
 
 message AdminApiKey {
