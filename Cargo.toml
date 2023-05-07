@@ -11,7 +11,7 @@ fail-on-warnings = []
 sqlx-ledger = { version = "0.8.0", features = ["otel"] }
 
 anyhow = "1.0.71"
-bitcoincore-rpc = "0.16.0"
+bitcoincore-rpc = "0.17.0"
 clap = { version = "4.2", features = ["derive", "env"] }
 chrono = { version = "0.4.22", features = ["clock", "serde"], default-features = false }
 derive_builder = "0.12.0"
