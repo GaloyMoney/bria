@@ -80,15 +80,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
-    assert_eq!(
-        account_summary.logical_pending_income,
-        summary.logical_pending_income
-    );
-    assert_eq!(account_summary.encumbered_fees, summary.encumbered_fees);
+    assert_summaries_match(summary, account_summary);
 
     let confirmed_id = LedgerTransactionId::new();
 
@@ -135,18 +127,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
-    assert_eq!(
-        account_summary.logical_pending_income,
-        summary.logical_pending_income
-    );
-    assert_eq!(account_summary.settled_utxos, summary.settled_utxos);
-    assert_eq!(account_summary.logical_settled, summary.logical_settled);
-    assert_eq!(account_summary.encumbered_fees, summary.encumbered_fees);
+    assert_summaries_match(summary, account_summary);
 
     let reserved_fees = ledger
         .sum_reserved_fees_in_txs(vec![pending_id, confirmed_id].into_iter())
@@ -225,15 +206,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
-    assert_eq!(
-        account_summary.logical_pending_income,
-        summary.logical_pending_income
-    );
-    assert_eq!(account_summary.encumbered_fees, summary.encumbered_fees);
+    assert_summaries_match(summary, account_summary);
 
     let confirmed_id = LedgerTransactionId::new();
 
@@ -278,15 +251,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
-    assert_eq!(
-        account_summary.logical_pending_income,
-        summary.logical_pending_income
-    );
-    assert_eq!(account_summary.encumbered_fees, summary.encumbered_fees);
+    assert_summaries_match(summary, account_summary);
 
     Ok(())
 }
@@ -349,11 +314,7 @@ async fn queue_payout() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-
-    assert_eq!(
-        account_summary.logical_encumbered_outgoing,
-        summary.logical_encumbered_outgoing
-    );
+    assert_summaries_match(summary, account_summary);
 
     Ok(())
 }
@@ -451,36 +412,7 @@ async fn create_batch() -> anyhow::Result<()> {
         .get_account_ledger_account_balances(journal_id)
         .await?;
     let account_summary = AccountBalanceSummary::from(account_balances);
-
-    assert_eq!(
-        account_summary.logical_pending_outgoing,
-        summary.logical_pending_outgoing
-    );
-    assert_eq!(
-        account_summary.logical_settled.flip_sign(),
-        summary.logical_settled.flip_sign()
-    );
-    assert_eq!(
-        account_summary.logical_encumbered_outgoing.flip_sign(),
-        summary.logical_encumbered_outgoing.flip_sign()
-    );
-    assert_eq!(
-        account_summary.encumbered_fees.flip_sign(),
-        summary.encumbered_fees.flip_sign()
-    );
-    assert_eq!(account_summary.pending_fees, summary.pending_fees);
-    assert_eq!(
-        account_summary.encumbered_incoming_utxos,
-        summary.encumbered_incoming_utxos
-    );
-    assert_eq!(
-        account_summary.settled_utxos.flip_sign(),
-        summary.settled_utxos.flip_sign()
-    );
-    assert_eq!(
-        account_summary.pending_outgoing_utxos,
-        summary.pending_outgoing_utxos
-    );
+    assert_summaries_match(summary, account_summary);
 
     Ok(())
 }
@@ -579,32 +511,7 @@ async fn spend_detected() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-
-    assert_eq!(
-        account_summary.logical_pending_outgoing,
-        summary.logical_pending_outgoing
-    );
-    assert_eq!(
-        account_summary.logical_settled.flip_sign(),
-        summary.logical_settled.flip_sign()
-    );
-    assert_eq!(
-        account_summary.encumbered_fees.flip_sign(),
-        summary.encumbered_fees.flip_sign()
-    );
-    assert_eq!(account_summary.pending_fees, summary.pending_fees);
-    assert_eq!(
-        account_summary.settled_utxos.flip_sign(),
-        summary.settled_utxos.flip_sign()
-    );
-    assert_eq!(
-        account_summary.pending_outgoing_utxos,
-        summary.pending_outgoing_utxos
-    );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
+    assert_summaries_match(summary, account_summary);
 
     let tx = pool.begin().await?;
     ledger
@@ -644,28 +551,7 @@ async fn spend_detected() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-
-    assert_eq!(
-        account_summary.logical_pending_outgoing,
-        summary.logical_pending_outgoing
-    );
-    assert_eq!(
-        account_summary.logical_settled.flip_sign(),
-        summary.logical_settled.flip_sign()
-    );
-    assert_eq!(account_summary.pending_fees, summary.pending_fees);
-    assert_eq!(
-        account_summary.settled_utxos.flip_sign(),
-        summary.settled_utxos.flip_sign()
-    );
-    assert_eq!(
-        account_summary.pending_outgoing_utxos,
-        summary.pending_outgoing_utxos
-    );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
+    assert_summaries_match(summary, account_summary);
 
     Ok(())
 }
@@ -767,26 +653,34 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
             .get_account_ledger_account_balances(journal_id)
             .await?,
     );
-    assert_eq!(
-        account_summary.logical_pending_outgoing,
-        summary.logical_pending_outgoing
-    );
-    assert_eq!(
-        account_summary.logical_settled.flip_sign(),
-        summary.logical_settled.flip_sign()
-    );
-    assert_eq!(
-        account_summary.settled_utxos.flip_sign(),
-        summary.settled_utxos.flip_sign()
-    );
-    assert_eq!(
-        account_summary.pending_outgoing_utxos,
-        summary.pending_outgoing_utxos
-    );
-    assert_eq!(
-        account_summary.pending_incoming_utxos,
-        summary.pending_incoming_utxos
-    );
+    assert_summaries_match(summary, account_summary);
 
     Ok(())
+}
+
+fn assert_summaries_match(wallet: WalletBalanceSummary, account: AccountBalanceSummary) {
+    assert_eq!(
+        wallet.logical_pending_outgoing,
+        account.logical_pending_outgoing
+    );
+    assert_eq!(wallet.logical_settled, account.logical_settled);
+    assert_eq!(
+        wallet.logical_pending_income,
+        account.logical_pending_income
+    );
+    assert_eq!(
+        wallet.encumbered_incoming_utxos,
+        account.encumbered_incoming_utxos
+    );
+    assert_eq!(
+        wallet.pending_incoming_utxos,
+        account.pending_incoming_utxos
+    );
+    assert_eq!(wallet.settled_utxos, account.settled_utxos);
+    assert_eq!(
+        wallet.pending_incoming_utxos,
+        account.pending_incoming_utxos
+    );
+    assert_eq!(wallet.encumbered_fees, account.encumbered_fees);
+    assert_eq!(wallet.pending_fees, account.pending_fees);
 }
