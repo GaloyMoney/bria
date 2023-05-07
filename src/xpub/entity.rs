@@ -61,7 +61,6 @@ impl AccountXPub {
         }
         ret
     }
-    
 
     pub fn has_signer_config(&self) -> bool {
         matches!(self.signing_cfg(), Some(_config))
