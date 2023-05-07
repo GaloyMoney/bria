@@ -1,4 +1,5 @@
 use derive_builder::Builder;
+use electrum_client::bitcoin::util::bip32::DerivationPath;
 use serde::{Deserialize, Serialize};
 
 use super::{signing_client::*, value::XPub as XPubValue};
@@ -66,6 +67,9 @@ impl AccountXPub {
         matches!(self.signing_cfg(), Some(_config))
     }
 
+    pub fn derivation_path(&self) -> Option<DerivationPath> {
+        self.value.derivation.clone()
+    }
     pub async fn remote_signing_client(
         &self,
     ) -> Result<Option<Box<dyn RemoteSigningClient + 'static>>, SigningClientError> {
