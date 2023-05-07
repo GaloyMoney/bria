@@ -135,7 +135,7 @@ impl SpentUtxoSettled {
             ParamDefinition::builder()
                 .name("withdraw_from_logical_settled")
                 .r#type(ParamDataType::DECIMAL)
-                .default_expr("dec('0')")
+                .default_expr("decimal('0')")
                 .build()
                 .unwrap(),
         );

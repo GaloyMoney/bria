@@ -315,7 +315,7 @@ impl SpendSettled {
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.change_spent ? params.change : 0")
+                .units("params.change_spent ? params.change : decimal('0')")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -324,7 +324,7 @@ impl SpendSettled {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.change_spent ? params.change : 0")
+                .units("params.change_spent ? params.change : decimal('0')")
                 .build()
                 .expect("Couldn't build entry"),
         ];
