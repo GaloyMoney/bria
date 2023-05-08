@@ -66,31 +66,38 @@ impl Outbox {
             current_span.set_parent(context);
         }
 
-        if let Ok(payload) = OutboxEventPayload::try_from(ledger_event.metadata) {
-            let sequences = self.sequences_for(ledger_event.account_id).await?;
-            let mut write_sequences = sequences.write().await;
-            let next_sequence = write_sequences.0.next();
-            let event = OutboxEvent::builder()
-                .account_id(ledger_event.account_id)
-                .sequence(next_sequence)
-                .payload(payload)
-                .ledger_event_id(ledger_event.ledger_event_id)
-                .ledger_tx_id(ledger_event.ledger_tx_id)
-                .recorded_at(ledger_event.recorded_at)
-                .build()
-                .expect("Could not build OutboxEvent");
+        let payloads = Vec::<OutboxEventPayload>::from(ledger_event.metadata);
+        let sequences = self.sequences_for(ledger_event.account_id).await?;
+        let mut write_sequences = sequences.write().await;
+        let mut sequence = write_sequences.0;
+        let events: Vec<OutboxEvent<_>> = payloads
+            .into_iter()
+            .map(|payload| {
+                sequence = sequence.next();
+                OutboxEvent::builder()
+                    .account_id(ledger_event.account_id)
+                    .sequence(sequence)
+                    .payload(payload)
+                    .ledger_event_id(ledger_event.ledger_event_id)
+                    .ledger_tx_id(ledger_event.ledger_tx_id)
+                    .recorded_at(ledger_event.recorded_at)
+                    .build()
+                    .expect("Could not build OutboxEvent")
+            })
+            .collect();
 
-            if let Err(res) = self.repo.persist_event(event.clone()).await {
-                let mut write_seqs = self.sequences.write().await;
-                write_seqs.remove(&ledger_event.account_id);
-                return Err(res);
-            }
+        if let Err(res) = self.repo.persist_events(&events).await {
+            let mut write_seqs = self.sequences.write().await;
+            write_seqs.remove(&ledger_event.account_id);
+            return Err(res);
+        }
+        for event in events {
             self.event_sender
                 .send(event)
                 .map_err(|_| BriaError::SendEventError)?;
-
-            *write_sequences = (next_sequence, Some(ledger_event.ledger_event_id));
         }
+
+        *write_sequences = (sequence, Some(ledger_event.ledger_event_id));
 
         Ok(())
     }

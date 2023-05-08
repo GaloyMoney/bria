@@ -63,23 +63,23 @@ pub enum OutboxEventPayload {
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
     },
+    // PayoutAssignedToBatch {},
 }
 
-impl TryFrom<JournalEventMetadata> for OutboxEventPayload {
-    type Error = ();
-
-    fn try_from(meta: JournalEventMetadata) -> Result<Self, ()> {
+impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
+    fn from(meta: JournalEventMetadata) -> Self {
         use JournalEventMetadata::*;
-        let res = match meta {
-            UtxoDetected(meta) => OutboxEventPayload::UtxoDetected {
+        let mut res = Vec::new();
+        match meta {
+            UtxoDetected(meta) => res.push(OutboxEventPayload::UtxoDetected {
                 tx_id: meta.outpoint.txid,
                 vout: meta.outpoint.vout,
                 satoshis: meta.satoshis,
                 address: meta.address,
                 wallet_id: meta.wallet_id,
                 keychain_id: meta.keychain_id,
-            },
-            UtxoSettled(meta) => OutboxEventPayload::UtxoSettled {
+            }),
+            UtxoSettled(meta) => res.push(OutboxEventPayload::UtxoSettled {
                 tx_id: meta.outpoint.txid,
                 vout: meta.outpoint.vout,
                 satoshis: meta.satoshis,
@@ -87,10 +87,10 @@ impl TryFrom<JournalEventMetadata> for OutboxEventPayload {
                 wallet_id: meta.wallet_id,
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
-            },
-            _ => return Err(()),
+            }),
+            _ => (),
         };
-        Ok(res)
+        res
     }
 }
 

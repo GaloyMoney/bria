@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use std::{collections::HashMap, sync::Arc};
@@ -16,23 +16,24 @@ impl OutboxRepo {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_event<T>(&self, event: OutboxEvent<T>) -> Result<(), BriaError> {
-        sqlx::query!(
-            r#"
-            INSERT INTO bria_outbox_events
-            (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            "#,
-            Uuid::from(event.id),
-            Uuid::from(event.account_id),
-            event.sequence as EventSequence,
-            event.ledger_event_id as Option<SqlxLedgerEventId>,
-            event.ledger_tx_id.map(Uuid::from),
-            serde_json::to_value(event.payload)?,
-            event.recorded_at,
-        )
-        .execute(&self.pool)
-        .await?;
+    pub async fn persist_events<T>(&self, event: &[OutboxEvent<T>]) -> Result<(), BriaError> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"INSERT INTO bria_outbox_events
+            (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)"#,
+        );
+        query_builder.push_values(event.iter(), |mut builder, event| {
+            builder.push_bind(event.id);
+            builder.push_bind(event.account_id);
+            builder.push_bind(event.sequence);
+            builder.push_bind(event.ledger_event_id);
+            builder.push_bind(event.ledger_tx_id);
+            builder.push_bind(
+                serde_json::to_value(event.payload.clone()).expect("Could not serialize payload"),
+            );
+            builder.push_bind(event.recorded_at);
+        });
+        let query = query_builder.build();
+        query.execute(&self.pool).await?;
         Ok(())
     }
 
