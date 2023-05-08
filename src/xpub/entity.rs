@@ -14,8 +14,7 @@ pub enum SignerConfig {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum XPubEvent {
-    // Spelling is Xpub for nicer serialization (not x_pub_initialized)
-    XpubInitialized {
+    Initialized {
         db_uuid: uuid::Uuid,
         account_id: AccountId,
         fingerprint: bitcoin::Fingerprint,
@@ -24,7 +23,7 @@ pub enum XPubEvent {
         xpub: bitcoin::ExtendedPubKey,
         derivation_path: Option<bitcoin::DerivationPath>,
     },
-    XpubNameUpdated {
+    NameUpdated {
         name: String,
     },
     SignerConfigUpdated {
@@ -112,7 +111,7 @@ impl NewAccountXPub {
     pub(super) fn initial_events(self) -> EntityEvents<XPubEvent> {
         let xpub = self.value.inner;
         EntityEvents::init([
-            XPubEvent::XpubInitialized {
+            XPubEvent::Initialized {
                 db_uuid: self.db_uuid,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
@@ -121,7 +120,7 @@ impl NewAccountXPub {
                 original: self.original,
                 derivation_path: self.value.derivation,
             },
-            XPubEvent::XpubNameUpdated {
+            XPubEvent::NameUpdated {
                 name: self.key_name,
             },
         ])
@@ -134,7 +133,7 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
         let mut builder = AccountXPubBuilder::default();
         for event in events.iter() {
             match event {
-                XPubEvent::XpubInitialized {
+                XPubEvent::Initialized {
                     db_uuid,
                     account_id,
                     xpub,
@@ -151,7 +150,7 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                         })
                         .original(original.clone());
                 }
-                XPubEvent::XpubNameUpdated { name } => {
+                XPubEvent::NameUpdated { name } => {
                     builder = builder.key_name(name.clone());
                 }
                 _ => (),

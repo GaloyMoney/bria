@@ -8,17 +8,17 @@ use crate::{entity::*, primitives::*};
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BatchGroupEvent {
-    BatchGroupInitialized {
+    Initialized {
         id: BatchGroupId,
         account_id: AccountId,
     },
-    BatchGroupNameUpdated {
+    NameUpdated {
         name: String,
     },
-    BatchGroupDescriptionUpdated {
+    DescriptionUpdated {
         description: String,
     },
-    BatchGroupConfigUpdated {
+    ConfigUpdated {
         config: BatchGroupConfig,
     },
 }
@@ -47,7 +47,7 @@ impl BatchGroup {
     pub fn description(&self) -> Option<String> {
         let mut ret = None;
         for event in self.events.iter() {
-            if let BatchGroupEvent::BatchGroupDescriptionUpdated { description } = event {
+            if let BatchGroupEvent::DescriptionUpdated { description } = event {
                 ret = Some(description.as_str());
             }
         }
@@ -77,17 +77,17 @@ impl NewBatchGroup {
 
     pub(super) fn initial_events(self) -> EntityEvents<BatchGroupEvent> {
         let mut events = EntityEvents::init([
-            BatchGroupEvent::BatchGroupInitialized {
+            BatchGroupEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
             },
-            BatchGroupEvent::BatchGroupNameUpdated { name: self.name },
-            BatchGroupEvent::BatchGroupConfigUpdated {
+            BatchGroupEvent::NameUpdated { name: self.name },
+            BatchGroupEvent::ConfigUpdated {
                 config: self.config,
             },
         ]);
         if let Some(description) = self.description {
-            events.push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
+            events.push(BatchGroupEvent::DescriptionUpdated { description });
         }
         events
     }
@@ -101,13 +101,13 @@ impl TryFrom<EntityEvents<BatchGroupEvent>> for BatchGroup {
         use BatchGroupEvent::*;
         for event in events.iter() {
             match event {
-                BatchGroupInitialized { id, account_id } => {
+                Initialized { id, account_id } => {
                     builder = builder.id(*id).account_id(*account_id);
                 }
-                BatchGroupNameUpdated { name } => {
+                NameUpdated { name } => {
                     builder = builder.name(name.clone());
                 }
-                BatchGroupConfigUpdated { config } => {
+                ConfigUpdated { config } => {
                     builder = builder.config(config.clone());
                 }
                 _ => (),

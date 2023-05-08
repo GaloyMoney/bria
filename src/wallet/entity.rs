@@ -10,7 +10,7 @@ use crate::{entity::*, primitives::*, xpub::XPub};
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum WalletEvent {
-    WalletInitialized {
+    Initialized {
         id: WalletId,
         network: bitcoin::Network,
         account_id: AccountId,
@@ -24,18 +24,18 @@ pub enum WalletEvent {
         logical_outgoing_ledger_account_id: LedgerAccountId,
         dust_ledger_account_id: LedgerAccountId,
     },
-    WalletNameUpdated {
+    NameUpdated {
         name: String,
     },
-    WalletConfigUpdated {
+    ConfigUpdated {
         wallet_config: WalletConfig,
     },
-    WalletKeychainAdded {
+    KeychainAdded {
         keychain_id: KeychainId,
         idx: usize,
         keychain_config: KeychainConfig,
     },
-    WalletKeychainActivated {
+    KeychainActivated {
         keychain_id: KeychainId,
     },
 }
@@ -56,7 +56,7 @@ pub struct Wallet {
 impl Wallet {
     fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &KeychainConfig)> + '_ {
         self.events.iter().rev().filter_map(|e| {
-            if let WalletEvent::WalletKeychainAdded {
+            if let WalletEvent::KeychainAdded {
                 keychain_id,
                 keychain_config: config,
                 ..
@@ -135,7 +135,7 @@ impl NewWallet {
     pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
         let keychain_id = KeychainId::new();
         EntityEvents::init([
-            WalletEvent::WalletInitialized {
+            WalletEvent::Initialized {
                 id: self.id,
                 network: self.network,
                 account_id: self.account_id,
@@ -149,16 +149,16 @@ impl NewWallet {
                 logical_outgoing_ledger_account_id: self.ledger_account_ids.logical_outgoing_id,
                 dust_ledger_account_id: self.ledger_account_ids.dust_id,
             },
-            WalletEvent::WalletNameUpdated { name: self.name },
-            WalletEvent::WalletConfigUpdated {
+            WalletEvent::NameUpdated { name: self.name },
+            WalletEvent::ConfigUpdated {
                 wallet_config: self.config,
             },
-            WalletEvent::WalletKeychainAdded {
+            WalletEvent::KeychainAdded {
                 keychain_id,
                 idx: 0,
                 keychain_config: self.keychain,
             },
-            WalletEvent::WalletKeychainActivated { keychain_id },
+            WalletEvent::KeychainActivated { keychain_id },
         ])
     }
 }
@@ -171,7 +171,7 @@ impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
         use WalletEvent::*;
         for event in events.iter() {
             match event {
-                WalletInitialized {
+                Initialized {
                     id,
                     network,
                     journal_id,
@@ -200,12 +200,12 @@ impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
                             dust_id: *dust_ledger_account_id,
                         });
                 }
-                WalletConfigUpdated {
+                ConfigUpdated {
                     wallet_config: config,
                 } => {
                     builder = builder.config(config.clone());
                 }
-                WalletNameUpdated { name } => {
+                NameUpdated { name } => {
                     builder = builder.name(name.clone());
                 }
                 _ => (),

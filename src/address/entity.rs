@@ -9,7 +9,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum AddressEvent {
-    AddressInitialized {
+    Initialized {
         db_uuid: uuid::Uuid,
         account_id: AccountId,
         wallet_id: WalletId,
@@ -87,7 +87,7 @@ impl NewAddress {
 
     pub fn initial_events(self) -> EntityEvents<AddressEvent> {
         let mut events = EntityEvents::init([
-            AddressEvent::AddressInitialized {
+            AddressEvent::Initialized {
                 db_uuid: self.db_uuid,
                 account_id: self.account_id,
                 wallet_id: self.wallet_id,
@@ -125,7 +125,7 @@ impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
         let mut builder = WalletAddressBuilder::default();
         for event in events.iter() {
             match event {
-                AddressEvent::AddressInitialized {
+                AddressEvent::Initialized {
                     db_uuid,
                     account_id,
                     wallet_id,
