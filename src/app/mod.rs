@@ -397,6 +397,7 @@ impl App {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
         Ok(xpubs)
     }
+
     #[instrument(name = "app.list_utxos", skip(self), err)]
     pub async fn list_utxos(
         &self,
@@ -515,6 +516,7 @@ impl App {
             .list_for_wallet(profile.account_id, wallet.id)
             .await
     }
+
     #[instrument(name = "app.list_batch_groups", skip_all, err)]
     pub async fn list_batch_groups(&self, profile: Profile) -> Result<Vec<BatchGroup>, BriaError> {
         let batch_groups = self

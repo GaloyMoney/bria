@@ -119,6 +119,7 @@ impl From<AccountXPub> for proto::Xpub {
         }
     }
 }
+
 impl From<WalletUtxo> for proto::Utxo {
     fn from(utxo: WalletUtxo) -> Self {
         Self {
@@ -204,6 +205,7 @@ impl From<BatchGroup> for proto::BatchGroup {
         proto::BatchGroup { id, name, config }
     }
 }
+
 impl From<TxPriority> for proto::TxPriority {
     fn from(priority: TxPriority) -> Self {
         match priority {

@@ -358,9 +358,9 @@ message ListXpubsResponse {
 }
 
 message Xpub{
+  string id = 4;
   string name = 1;
   string xpub = 2;
   optional string derivation_path = 3;
-  string id = 4;
   bool has_signer_config = 5;
 }

@@ -69,6 +69,7 @@ impl AccountXPub {
     pub fn derivation_path(&self) -> Option<bitcoin::DerivationPath> {
         self.value.derivation.clone()
     }
+
     pub async fn remote_signing_client(
         &self,
     ) -> Result<Option<Box<dyn RemoteSigningClient + 'static>>, SigningClientError> {

@@ -197,6 +197,7 @@ impl BriaService for Bria {
             balance,
         )))
     }
+
     #[instrument(skip_all, err)]
     async fn new_address(
         &self,
