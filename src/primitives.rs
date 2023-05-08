@@ -109,6 +109,16 @@ pub enum TxPriority {
     Economy,
 }
 
+impl TxPriority {
+    pub fn n_blocks(&self) -> usize {
+        match self {
+            Self::NextBlock => 1,
+            Self::OneHour => 6,
+            Self::Economy => 12 * 6,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {

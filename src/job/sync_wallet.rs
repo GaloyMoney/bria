@@ -174,7 +174,11 @@ pub async fn execute(
                                     outpoint: local_utxo.outpoint,
                                     satoshis: local_utxo.txout.value.into(),
                                     address: address_info.address,
-                                    encumbered_spending_fee_sats: fees_to_encumber,
+                                    encumbered_spending_fees: std::iter::once((
+                                        local_utxo.outpoint,
+                                        fees_to_encumber,
+                                    ))
+                                    .collect(),
                                     confirmation_time: unsynced_tx.confirmation_time.clone(),
                                 },
                             },
@@ -239,10 +243,10 @@ pub async fn execute(
                         (pool.begin().await?, None, LedgerTransactionId::new())
                     };
 
-                let change_utxo = if !change.is_empty() {
-                    let (utxo, path) = change[0].clone();
+                let mut change_utxos = Vec::new();
+                for (utxo, path) in change.iter() {
                     let address_info = keychain_wallet
-                        .find_address_from_path(path, utxo.keychain)
+                        .find_address_from_path(*path, utxo.keychain)
                         .await?;
                     let found_addr = NewAddress::builder()
                         .account_id(data.account_id)
@@ -257,10 +261,8 @@ pub async fn execute(
                     deps.bria_addresses
                         .persist_if_not_present(&mut tx, found_addr)
                         .await?;
-                    Some((utxo, address_info))
-                } else {
-                    None
-                };
+                    change_utxos.push((utxo, address_info));
+                }
 
                 if let Some((settled_sats, allocations)) = deps
                     .bria_utxos
@@ -273,7 +275,7 @@ pub async fn execute(
                         income_bria_utxos
                             .iter()
                             .map(|WalletUtxo { outpoint, .. }| outpoint),
-                        change_utxo.as_ref(),
+                        &change_utxos,
                         unsynced_tx.sats_per_vbyte_when_created,
                     )
                     .await?
@@ -291,11 +293,15 @@ pub async fn execute(
                     } else {
                         let reserved_fees = deps
                             .ledger
-                            .sum_reserved_fees_in_txs(
-                                income_bria_utxos
-                                    .iter()
-                                    .map(|u| u.utxo_detected_ledger_tx_id),
-                            )
+                            .sum_reserved_fees_in_txs(income_bria_utxos.iter().fold(
+                                HashMap::new(),
+                                |mut m, u| {
+                                    m.entry(u.utxo_detected_ledger_tx_id)
+                                        .or_insert_with(Vec::new)
+                                        .push(u.outpoint);
+                                    m
+                                },
+                            ))
                             .await?;
                         deps.ledger
                             .spend_detected(
@@ -306,9 +312,10 @@ pub async fn execute(
                                     ledger_account_ids: wallet.ledger_account_ids,
                                     reserved_fees,
                                     meta: SpendDetectedMeta {
-                                        encumbered_spending_fee_sats: change_utxo
-                                            .as_ref()
-                                            .map(|_| fees_to_encumber),
+                                        encumbered_spending_fees: change_utxos
+                                            .iter()
+                                            .map(|(u, _)| (u.outpoint, fees_to_encumber))
+                                            .collect(),
                                         withdraw_from_logical_when_settled: allocations,
                                         tx_summary: WalletTransactionSummary {
                                             account_id: data.account_id,
@@ -317,15 +324,15 @@ pub async fn execute(
                                             bitcoin_tx_id: unsynced_tx.tx_id,
                                             total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
                                             total_utxo_settled_in_sats: settled_sats,
-                                            change_sats: change_utxo
-                                                .as_ref()
-                                                .map(|(utxo, _)| Satoshis::from(utxo.txout.value))
-                                                .unwrap_or(Satoshis::ZERO),
                                             fee_sats: unsynced_tx.fee_sats,
-                                            change_outpoint: change_utxo
-                                                .as_ref()
-                                                .map(|(u, _)| u.outpoint),
-                                            change_address: change_utxo.map(|(_, a)| a.address),
+                                            change_utxos: change_utxos
+                                                .iter()
+                                                .map(|(u, a)| ChangeOutput {
+                                                    outpoint: u.outpoint,
+                                                    address: a.address.clone(),
+                                                    satoshis: Satoshis::from(u.txout.value),
+                                                })
+                                                .collect(),
                                         },
                                         confirmation_time: unsynced_tx.confirmation_time.clone(),
                                     },

@@ -6,14 +6,14 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use super::shared_meta::WalletTransactionSummary;
+use super::shared_meta::*;
 use crate::{
     error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendDetectedMeta {
-    pub encumbered_spending_fee_sats: Option<Satoshis>,
+    pub encumbered_spending_fees: EncumberedSpendingFees,
     pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
     pub confirmation_time: Option<BlockTime>,
@@ -133,15 +133,21 @@ impl From<SpendDetectedParams> for TxParams {
                     .date()
             })
             .unwrap_or_else(|| Utc::now().date_naive());
-        let encumbered_fee_diff =
-            reserved_fees - meta.encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
+        let encumbered_fee_diff = reserved_fees
+            - meta
+                .encumbered_spending_fees
+                .values()
+                .fold(Satoshis::ZERO, |t, d| t + *d);
         let WalletTransactionSummary {
             total_utxo_in_sats,
             total_utxo_settled_in_sats,
-            change_sats,
             fee_sats,
+            ref change_utxos,
             ..
         } = meta.tx_summary;
+        let change_sats = change_utxos
+            .iter()
+            .fold(Satoshis::ZERO, |s, d| s + d.satoshis);
         let deferred_logical_settled = meta
             .withdraw_from_logical_when_settled
             .values()

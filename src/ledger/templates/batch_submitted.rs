@@ -14,7 +14,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchSubmittedMeta {
     pub batch_info: BatchWalletInfo,
-    pub encumbered_spending_fee_sats: Option<Satoshis>,
+    pub encumbered_spending_fees: EncumberedSpendingFees,
     pub tx_summary: WalletTransactionSummary,
     pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
 }
@@ -82,10 +82,16 @@ impl From<BatchSubmittedParams> for TxParams {
         }: BatchSubmittedParams,
     ) -> Self {
         let effective = Utc::now().date_naive();
-        let change = meta.tx_summary.change_sats.to_btc();
+        let change = meta
+            .tx_summary
+            .change_utxos
+            .iter()
+            .fold(Satoshis::ZERO, |s, v| s + v.satoshis)
+            .to_btc();
         let fees = meta
-            .encumbered_spending_fee_sats
-            .unwrap_or(Satoshis::ZERO)
+            .encumbered_spending_fees
+            .values()
+            .fold(Satoshis::ZERO, |s, v| s + *v)
             .to_btc();
         let batch_id = Uuid::from(meta.batch_info.batch_id);
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");

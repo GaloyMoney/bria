@@ -86,10 +86,10 @@ impl Utxos {
         keychain_id: KeychainId,
         tx_id: LedgerTransactionId,
         inputs: impl Iterator<Item = &OutPoint>,
-        change_utxo: Option<&(LocalUtxo, AddressInfo)>,
+        change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
         sats_per_vbyte: f32,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, BriaError> {
-        if let Some((utxo, address)) = change_utxo {
+        for (utxo, address) in change_utxos.iter() {
             let new_utxo = NewUtxo::builder()
                 .account_id(account_id)
                 .wallet_id(wallet_id)
@@ -121,9 +121,9 @@ impl Utxos {
         let (total_settled_in, allocations) =
             logical_allocation::withdraw_from_logical_when_settled(
                 utxos,
-                change_utxo
-                    .map(|(u, _)| Satoshis::from(u.txout.value))
-                    .unwrap_or(Satoshis::ZERO),
+                change_utxos.iter().fold(Satoshis::ZERO, |s, (u, _)| {
+                    s + Satoshis::from(u.txout.value)
+                }),
             );
         Ok(Some((total_settled_in, allocations)))
     }
@@ -218,7 +218,7 @@ impl Utxos {
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<impl Iterator<Item = LedgerTransactionId>, BriaError> {
+    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, BriaError> {
         self.utxos
             .income_detected_ids_for_utxos_in(batch_id, wallet_id)
             .await

@@ -196,10 +196,11 @@ impl Ledger {
                 ledger_account_ids,
                 meta: BatchSubmittedMeta {
                     batch_info,
-                    encumbered_spending_fee_sats: tx_summary
-                        .change_address
-                        .as_ref()
-                        .map(|_| fees_to_encumber),
+                    encumbered_spending_fees: tx_summary
+                        .change_utxos
+                        .iter()
+                        .map(|u| (u.outpoint, fees_to_encumber))
+                        .collect(),
                     tx_summary,
                     withdraw_from_logical_when_settled: HashMap::new(),
                 },
@@ -276,20 +277,26 @@ impl Ledger {
     #[instrument(name = "ledger.get_ledger_entries_for_txns", skip(self, tx_ids))]
     pub async fn sum_reserved_fees_in_txs(
         &self,
-        tx_ids: impl IntoIterator<Item = LedgerTransactionId>,
+        tx_ids: HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>,
     ) -> Result<Satoshis, BriaError> {
         let mut reserved_fees = Satoshis::from(0);
         #[derive(serde::Deserialize)]
-        struct ExtractSpendingFee {
-            encumbered_spending_fee_sats: Option<Satoshis>,
+        struct ExtractSpendingFees {
+            #[serde(default)]
+            encumbered_spending_fees: EncumberedSpendingFees,
         }
-        let txs = self.inner.transactions().list_by_ids(tx_ids).await?;
+        let txs = self.inner.transactions().list_by_ids(tx_ids.keys()).await?;
         for tx in txs {
-            if let Some(ExtractSpendingFee {
-                encumbered_spending_fee_sats,
+            if let Some(ExtractSpendingFees {
+                encumbered_spending_fees,
             }) = tx.metadata()?
             {
-                reserved_fees += encumbered_spending_fee_sats.unwrap_or(Satoshis::ZERO);
+                for outpoint in tx_ids.get(&tx.id).unwrap_or(&vec![]) {
+                    reserved_fees += encumbered_spending_fees
+                        .get(outpoint)
+                        .copied()
+                        .unwrap_or(Satoshis::ZERO);
+                }
             }
         }
         Ok(reserved_fees)
