@@ -72,6 +72,7 @@ pub mod bitcoin {
             },
             Address, Network,
         },
+        descriptor::ExtendedDescriptor,
         BlockTime, KeychainKind,
     };
     pub mod pg {

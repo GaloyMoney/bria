@@ -10,6 +10,7 @@ pub mod batch;
 pub mod batch_group;
 pub mod bdk;
 pub mod cli;
+pub mod descriptor;
 mod entity;
 mod error;
 pub mod fee_estimation;

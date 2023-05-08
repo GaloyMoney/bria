@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
 pub struct XPub {
     pub(super) derivation: Option<DerivationPath>,
     pub(super) inner: ExtendedPubKey,

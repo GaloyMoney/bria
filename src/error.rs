@@ -54,6 +54,8 @@ pub enum BriaError {
     BatchNotFound,
     #[error("BriaError - PsbtMissingInSigningSessions")]
     PsbtMissingInSigningSessions,
+    #[error("BriaError - DescriptorAlreadyInUse")]
+    DescriptorAlreadyInUse,
     #[error("BriaError - BitcoinConsensusEncodeError: {0}")]
     BitcoinConsensusEncodeError(#[from] consensus::encode::Error),
     #[error("BriaError - TryFromIntError")]

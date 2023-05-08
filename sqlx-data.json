@@ -2200,6 +2200,41 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.wallet_id = $2\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"
   },
+  "efdd550e82e6bdfd1e6793a25106d1a29e17cacae16b0d3e3350dbe8338a16c5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "wallet_id: WalletId",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "keychainkind"
+            }
+          }
+        ]
+      }
+    },
+    "query": "WITH ins AS (\n                   INSERT INTO bria_descriptors (id, account_id, wallet_id, descriptor, checksum, kind)\n                   VALUES ($1, $2, $3, $4, $5, $6)\n                   ON CONFLICT (account_id, checksum) DO NOTHING\n                   RETURNING wallet_id\n               )\n               SELECT wallet_id AS \"wallet_id: WalletId\" FROM ins\n               UNION ALL\n               SELECT wallet_id FROM bria_descriptors\n               WHERE account_id = $2 AND checksum = $5\n               LIMIT 1;\n               "
+  },
   "f3e40cb1852fdfd9f7c3fd89e27760574d526b4746ff7d90677b1938bc2278bc": {
     "describe": {
       "columns": [
