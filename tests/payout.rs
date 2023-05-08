@@ -26,13 +26,7 @@ async fn test_payout() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app = App::run(
-        pool,
-        true,
-        BlockchainConfig::default(),
-        AppConfig::default(),
-    )
-    .await?;
+    let app = App::run(pool, BlockchainConfig::default(), AppConfig::default()).await?;
     app.create_wpkh_wallet(profile.clone(), wallet_name.clone(), id.to_string(), None)
         .await?;
 

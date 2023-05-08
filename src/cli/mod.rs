@@ -691,8 +691,7 @@ async fn run_cmd(
     bria_home: &str,
     Config {
         tracing,
-        db_con,
-        migrate_on_start,
+        db,
         admin,
         api,
         blockchain,
@@ -704,7 +703,7 @@ async fn run_cmd(
     println!("Starting server processes");
     let (send, mut receive) = tokio::sync::mpsc::channel(1);
     let mut handles = Vec::new();
-    let pool = init_pool(&db_con).await?;
+    let pool = init_pool(&db).await?;
 
     let admin_send = send.clone();
     let admin_pool = pool.clone();
@@ -718,7 +717,7 @@ async fn run_cmd(
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
         let _ = api_send.try_send(
-            super::api::run(pool, api, migrate_on_start, blockchain, app)
+            super::api::run(pool, api, blockchain, app)
                 .await
                 .context("Api server error"),
         );
