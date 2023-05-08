@@ -104,7 +104,7 @@ impl BriaService for Bria {
         let xpubs = self.app.list_xpubs(profile).await?;
         let xpub_messages: Vec<proto::Xpub> = xpubs.into_iter().map(proto::Xpub::from).collect();
         let response = ListXpubsResponse {
-            xpub: xpub_messages,
+            xpubs: xpub_messages,
         };
         Ok(Response::new(response))
     }

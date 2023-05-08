@@ -354,13 +354,13 @@ message UtxoSettled {
 message ListXpubsRequest {}
 
 message ListXpubsResponse {
-  repeated Xpub xpub = 1;
+  repeated Xpub xpubs = 1;
 }
 
 message Xpub{
   string name = 1;
   string xpub = 2;
-  string derivation = 3;
+  optional string derivation_path = 3;
   string id = 4;
   bool has_signer_config = 5;
 }

@@ -1,4 +1,4 @@
-pub mod entity;
+mod entity;
 mod reference;
 mod repo;
 mod signing_client;

@@ -110,17 +110,14 @@ impl XPubs {
         Ok(AccountXPub::try_from(events)?)
     }
 
-    pub async fn list_xpubs_from_account_id(
-        &self,
-        account_id: AccountId,
-    ) -> Result<Vec<AccountXPub>, BriaError> {
+    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, BriaError> {
         let rows = sqlx::query!(
             r#"SELECT b.*, e.sequence, e.event
             FROM bria_xpubs b
             JOIN bria_xpub_events e ON b.id = e.id
             WHERE account_id = $1
             ORDER BY b.id, e.sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
         )
         .fetch_all(&self.pool)
         .await?;

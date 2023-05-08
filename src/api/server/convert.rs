@@ -108,15 +108,13 @@ impl From<WalletAddress> for proto::WalletAddress {
 
 impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
-        let path = match xpub.derivation_path() {
-            Some(path) => path.to_string(),
-            None => "".to_string(),
-        };
         Self {
             name: xpub.key_name.to_string(),
             id: xpub.id().to_string(),
             xpub: xpub.original.clone(),
-            derivation: path.to_string(),
+            derivation_path: xpub
+                .derivation_path()
+                .map(|derivation_path| derivation_path.to_string()),
             has_signer_config: xpub.has_signer_config(),
         }
     }
