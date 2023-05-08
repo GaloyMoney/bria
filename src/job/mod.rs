@@ -217,7 +217,7 @@ async fn schedule_process_batch_group(mut current_job: CurrentJob) -> Result<(),
         .execute(|data| async move {
             let mut data: ProcessBatchGroupData = data.expect("no SyncWalletData available");
             data.tracing_data = crate::tracing::extract_tracing_data();
-            onto_account_utxo_queue(
+            onto_account_main_queue(
                 &pool,
                 data.account_id,
                 Uuid::new_v4(),
@@ -387,7 +387,7 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
-    onto_account_utxo_queue(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
+    onto_account_main_queue(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
     Ok(())
 }
 
@@ -580,7 +580,7 @@ fn schedule_batch_group_channel_arg(batch_group_id: BatchGroupId) -> String {
     format!("batch_group_id:{batch_group_id}")
 }
 
-async fn onto_account_utxo_queue<D: serde::Serialize>(
+async fn onto_account_main_queue<D: serde::Serialize>(
     pool: &sqlx::PgPool,
     account_id: AccountId,
     uuid: impl Into<Uuid>,
@@ -589,8 +589,8 @@ async fn onto_account_utxo_queue<D: serde::Serialize>(
 ) -> Result<D, BriaError> {
     match JobBuilder::new_with_id(uuid.into(), name)
         .set_ordered(true)
-        .set_channel_name("account_utxos")
-        .set_channel_args(&account_utxo_channel_arg(account_id))
+        .set_channel_name("account_main")
+        .set_channel_args(&account_main_channel_arg(account_id))
         .set_json(&data)
         .expect("Couldn't set json")
         .spawn(pool)
@@ -605,7 +605,7 @@ async fn onto_account_utxo_queue<D: serde::Serialize>(
     }
 }
 
-fn account_utxo_channel_arg(account_id: AccountId) -> String {
+fn account_main_channel_arg(account_id: AccountId) -> String {
     format!("account_id:{account_id}")
 }
 
