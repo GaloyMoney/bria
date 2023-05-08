@@ -30,6 +30,7 @@ pub struct BatchGroup {
     pub account_id: AccountId,
     pub name: String,
     pub config: BatchGroupConfig,
+    pub description: String,
 }
 
 impl BatchGroup {
@@ -98,7 +99,9 @@ impl TryFrom<EntityEvents<BatchGroupEvent>> for BatchGroup {
                 BatchGroupConfigUpdated { config } => {
                     builder = builder.config(config.clone());
                 }
-                _ => (),
+                BatchGroupDescriptionUpdated { description } => {
+                    builder = builder.description(description.clone());
+                }
             }
         }
         builder.build()
