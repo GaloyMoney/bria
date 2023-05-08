@@ -1,3 +1,21 @@
+# [bria release v0.0.19](https://github.com/GaloyMoney/bria/releases/tag/0.0.19)
+
+
+### Features
+
+- --dev flag for daemon to auto bootstrap (#157)
+- List-xpubs (#162)
+
+### Miscellaneous Tasks
+
+- Add descriptors to ensure no duplicate use (#163)
+- Bump sqlx-ledger
+- Bump serde from 1.0.160 to 1.0.162 (#160)
+
+### Testing
+
+- Assert_summaries_match helper
+
 # [bria release v0.0.18](https://github.com/GaloyMoney/bria/releases/tag/0.0.18)
 
 
