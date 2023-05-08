@@ -255,7 +255,7 @@ message CreateBatchGroupResponse {
 message BatchGroup {
   string id = 1;
   string name = 2;
-  string description = 3;
+  optional string description = 3;
   BatchGroupConfig config = 4;
 }
 

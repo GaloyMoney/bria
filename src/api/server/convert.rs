@@ -187,8 +187,8 @@ impl From<WalletConfig> for proto::WalletConfig {
 impl From<BatchGroup> for proto::BatchGroup {
     fn from(batch_group: BatchGroup) -> Self {
         let id = batch_group.id.to_string();
+        let description = batch_group.description();
         let name = batch_group.name;
-        let description = batch_group.description;
         let consolidate_deprecated_keychains = batch_group.config.consolidate_deprecated_keychains;
         let trigger = match batch_group.config.trigger {
             BatchGroupTrigger::Manual => proto::batch_group_config::Trigger::Manual(true),

@@ -30,7 +30,8 @@ pub struct BatchGroup {
     pub account_id: AccountId,
     pub name: String,
     pub config: BatchGroupConfig,
-    pub description: String,
+
+    events: EntityEvents<BatchGroupEvent>,
 }
 
 impl BatchGroup {
@@ -41,6 +42,16 @@ impl BatchGroup {
             Immediate => Some(Duration::from_secs(1)),
             Interval { seconds } => Some(seconds),
         }
+    }
+
+    pub fn description(&self) -> Option<String> {
+        let mut ret = None;
+        for event in self.events.iter() {
+            if let BatchGroupEvent::BatchGroupDescriptionUpdated { description } = event {
+                ret = Some(description.as_str());
+            }
+        }
+        ret.map(|s| s.to_string())
     }
 }
 
@@ -99,11 +110,9 @@ impl TryFrom<EntityEvents<BatchGroupEvent>> for BatchGroup {
                 BatchGroupConfigUpdated { config } => {
                     builder = builder.config(config.clone());
                 }
-                BatchGroupDescriptionUpdated { description } => {
-                    builder = builder.description(description.clone());
-                }
+                _ => (),
             }
         }
-        builder.build()
+        builder.events(events).build()
     }
 }
