@@ -319,6 +319,8 @@ enum Command {
         destination: String,
         #[clap(short, long)]
         amount: u64,
+        #[clap(short, long)]
+        external_id: Option<String>,
         #[clap(short, long, value_parser = parse_json)]
         metadata: Option<serde_json::Value>,
     },
@@ -633,11 +635,19 @@ pub async fn run() -> anyhow::Result<()> {
             group_name,
             destination,
             amount,
+            external_id,
             metadata,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
-                .queue_payout(wallet, group_name, destination, amount, metadata)
+                .queue_payout(
+                    wallet,
+                    group_name,
+                    destination,
+                    amount,
+                    external_id,
+                    metadata,
+                )
                 .await?;
         }
         Command::ListPayouts {

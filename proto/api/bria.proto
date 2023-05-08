@@ -272,7 +272,8 @@ message QueuePayoutRequest {
     string onchain_address = 3;
   };
   uint64 satoshis = 4;
-  optional google.protobuf.Struct metadata = 5;
+  optional string external_id = 5;
+  optional google.protobuf.Struct metadata = 6;
 }
 
 message QueuePayoutResponse {
@@ -315,6 +316,20 @@ message ListSigningSessionsResponse {
   repeated SigningSession sessions = 1;
 }
 
+message ListXpubsRequest {}
+
+message ListXpubsResponse {
+  repeated Xpub xpubs = 1;
+}
+
+message Xpub{
+  string id = 4;
+  string name = 1;
+  string xpub = 2;
+  optional string derivation_path = 3;
+  bool has_signer_config = 5;
+}
+
 message SubscribeAllRequest {
   optional uint64 after_sequence = 1;
   optional bool augment = 2;
@@ -327,11 +342,13 @@ message BriaEvent {
   oneof payload {
     UtxoDetected utxo_detected = 4;
     UtxoSettled utxo_settled = 5;
+    PayoutQueued payout_queued = 6;
   }
 }
 
 message EventAugmentation {
   optional WalletAddress address_info = 1;
+  optional Payout payout_info = 2;
 }
 
 message UtxoDetected {
@@ -352,16 +369,11 @@ message UtxoSettled {
   uint64 block_time = 7;
 }
 
-message ListXpubsRequest {}
-
-message ListXpubsResponse {
-  repeated Xpub xpubs = 1;
-}
-
-message Xpub{
-  string id = 4;
-  string name = 1;
-  string xpub = 2;
-  optional string derivation_path = 3;
-  bool has_signer_config = 5;
+message PayoutQueued {
+  string id = 1;
+  string wallet_id = 2;
+  uint64 satoshis = 3;
+  oneof destination {
+    string onchain_address = 4;
+  };
 }

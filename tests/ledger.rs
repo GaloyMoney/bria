@@ -277,7 +277,7 @@ async fn queue_payout() -> anyhow::Result<()> {
     tx.commit().await?;
 
     let payout_id = PayoutId::new();
-    let payout_satoshis = Satoshis::from(50_000_000);
+    let satoshis = Satoshis::from(50_000_000);
 
     let tx = pool.begin().await?;
     ledger
@@ -288,12 +288,12 @@ async fn queue_payout() -> anyhow::Result<()> {
                 journal_id,
                 logical_outgoing_account_id: wallet_ledger_accounts.logical_outgoing_id,
                 external_id: payout_id.to_string(),
-                payout_satoshis,
                 meta: PayoutQueuedMeta {
                     account_id,
                     payout_id,
                     wallet_id,
                     batch_group_id: BatchGroupId::new(),
+                    satoshis,
                     destination: PayoutDestination::OnchainAddress {
                         value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
                     },
@@ -308,7 +308,7 @@ async fn queue_payout() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.logical_encumbered_outgoing, payout_satoshis);
+    assert_eq!(summary.logical_encumbered_outgoing, satoshis);
 
     let account_summary = AccountBalanceSummary::from(
         ledger

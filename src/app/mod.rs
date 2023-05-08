@@ -57,7 +57,7 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
-        let outbox = Outbox::init(&pool, Augmenter::new(&addresses)).await?;
+        let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),
@@ -501,12 +501,12 @@ impl App {
                     journal_id: wallet.journal_id,
                     logical_outgoing_account_id: wallet.ledger_account_ids.logical_outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
-                    payout_satoshis: sats,
                     meta: PayoutQueuedMeta {
                         account_id: profile.account_id,
                         payout_id: id,
                         batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
+                        satoshis: sats,
                         destination,
                     },
                 },

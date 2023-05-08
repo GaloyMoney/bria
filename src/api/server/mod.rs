@@ -334,6 +334,7 @@ impl BriaService for Bria {
             batch_group_name,
             destination,
             satoshis,
+            external_id,
             metadata,
         } = request;
 
@@ -345,7 +346,7 @@ impl BriaService for Bria {
                 batch_group_name,
                 destination.try_into()?,
                 Satoshis::from(satoshis),
-                None,
+                external_id,
                 metadata
                     .map(serde_json::to_value)
                     .transpose()
