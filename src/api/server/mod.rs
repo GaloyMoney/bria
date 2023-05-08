@@ -95,6 +95,21 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn list_xpubs(
+        &self,
+        request: Request<ListXpubsRequest>,
+    ) -> Result<Response<ListXpubsResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let xpubs = self.app.list_xpubs(profile).await?;
+        let xpub_messages: Vec<proto::Xpub> = xpubs.into_iter().map(proto::Xpub::from).collect();
+        let response = ListXpubsResponse {
+            xpubs: xpub_messages,
+        };
+        Ok(Response::new(response))
+    }
+
+    #[instrument(skip_all, err)]
     async fn set_signer_config(
         &self,
         request: Request<SetSignerConfigRequest>,
@@ -182,6 +197,7 @@ impl BriaService for Bria {
             balance,
         )))
     }
+
     #[instrument(skip_all, err)]
     async fn new_address(
         &self,

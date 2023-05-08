@@ -106,6 +106,20 @@ impl From<WalletAddress> for proto::WalletAddress {
     }
 }
 
+impl From<AccountXPub> for proto::Xpub {
+    fn from(xpub: AccountXPub) -> Self {
+        Self {
+            name: xpub.key_name.to_string(),
+            id: xpub.id().to_string(),
+            xpub: xpub.original.clone(),
+            derivation_path: xpub
+                .derivation_path()
+                .map(|derivation_path| derivation_path.to_string()),
+            has_signer_config: xpub.has_signer_config(),
+        }
+    }
+}
+
 impl From<WalletUtxo> for proto::Utxo {
     fn from(utxo: WalletUtxo) -> Self {
         Self {
@@ -191,6 +205,7 @@ impl From<BatchGroup> for proto::BatchGroup {
         proto::BatchGroup { id, name, config }
     }
 }
+
 impl From<TxPriority> for proto::TxPriority {
     fn from(priority: TxPriority) -> Self {
         match priority {

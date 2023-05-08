@@ -111,6 +111,16 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn list_xpubs(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListXpubsRequest {});
+        let response = self
+            .connect()
+            .await?
+            .list_xpubs(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn set_signer_config(
         &self,
         xpub_ref: String,

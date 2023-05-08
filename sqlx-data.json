@@ -1328,6 +1328,62 @@
     },
     "query": "\n        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1"
   },
+  "747102dbe477b86627debbdddb9f30884dcb2e8bf06603f4a96240b364fb4b9f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "fingerprint",
+          "ordinal": 3,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 4,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 5,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT b.*, e.sequence, e.event\n            FROM bria_xpubs b\n            JOIN bria_xpub_events e ON b.id = e.id\n            WHERE account_id = $1\n            ORDER BY b.id, e.sequence"
+  },
   "7485e1380cc765f5da9bb1c7571b277a8aeba5c40baadf9a62cb9287d267331a": {
     "describe": {
       "columns": [],

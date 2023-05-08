@@ -38,6 +38,7 @@ pub struct AccountXPub {
     pub account_id: AccountId,
     pub key_name: String,
     pub value: XPubValue,
+    pub original: String,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
@@ -59,6 +60,14 @@ impl AccountXPub {
             }
         }
         ret
+    }
+
+    pub fn has_signer_config(&self) -> bool {
+        self.signing_cfg().is_some()
+    }
+
+    pub fn derivation_path(&self) -> Option<bitcoin::DerivationPath> {
+        self.value.derivation.clone()
     }
 
     pub async fn remote_signing_client(
@@ -130,6 +139,7 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                     account_id,
                     xpub,
                     derivation_path,
+                    original,
                     ..
                 } => {
                     builder = builder
@@ -138,7 +148,8 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                         .value(XPubValue {
                             inner: *xpub,
                             derivation: derivation_path.as_ref().cloned(),
-                        });
+                        })
+                        .original(original.clone());
                 }
                 XPubEvent::XpubNameUpdated { name } => {
                     builder = builder.key_name(name.clone());
