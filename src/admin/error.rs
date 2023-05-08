@@ -14,6 +14,8 @@ pub enum AdminApiError {
     SqlxLedgerError(#[from] SqlxLedgerError),
     #[error("AdminApiError - BriaError: {0}")]
     BriaError(BriaError),
+    #[error("AdminApiError - BadNetworkForDev")]
+    BadNetworkForDev,
 }
 
 impl From<BriaError> for AdminApiError {

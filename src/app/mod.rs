@@ -146,7 +146,7 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let key = self
             .profiles
-            .create_key_for_profile_in_tx(&mut tx, found_profile)
+            .create_key_for_profile_in_tx(&mut tx, found_profile, false)
             .await?;
         tx.commit().await?;
         Ok(key)

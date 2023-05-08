@@ -28,7 +28,7 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
         "TEST_{}",
         Alphanumeric.sample_string(&mut rand::thread_rng(), 32)
     );
-    let app = AdminApp::new(pool.clone());
+    let app = AdminApp::new(pool.clone(), bitcoin::Network::Regtest);
 
     let profile_key = app.create_account(name.clone()).await?;
     Ok(Profile {

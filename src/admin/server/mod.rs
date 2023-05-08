@@ -36,6 +36,28 @@ impl AdminService for Admin {
     }
 
     #[instrument(skip_all, err)]
+    async fn dev_bootstrap(
+        &self,
+        _request: Request<DevBootstrapRequest>,
+    ) -> Result<Response<DevBootstrapResponse>, Status> {
+        let (admin_key, profile_key) = self.app.dev_bootstrap().await?;
+        let name = admin_key.name;
+        Ok(Response::new(DevBootstrapResponse {
+            admin_key: Some(AdminApiKey {
+                id: admin_key.id.to_string(),
+                name: name.clone(),
+                key: admin_key.key,
+            }),
+            profile_key: Some(ProfileApiKey {
+                profile_id: profile_key.id.to_string(),
+                name,
+                key: profile_key.key,
+                account_id: admin_key.id.to_string(),
+            }),
+        }))
+    }
+
+    #[instrument(skip_all, err)]
     async fn create_account(
         &self,
         request: Request<CreateAccountRequest>,

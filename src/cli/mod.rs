@@ -48,6 +48,9 @@ enum Command {
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
+        /// Flag to auto-bootstrap for dev
+        #[clap(long)]
+        dev: bool,
     },
     /// Subcommand to interact with Admin API
     Admin {
@@ -464,10 +467,11 @@ pub async fn run() -> anyhow::Result<()> {
             config,
             crash_report_config,
             db_con,
+            dev,
         } => {
             let config = Config::from_path(config, EnvOverride { db_con })?;
             match (
-                run_cmd(&cli.bria_home, config.clone()).await,
+                run_cmd(&cli.bria_home, config.clone(), dev).await,
                 crash_report_config,
             ) {
                 (Err(e), Some(true)) => {
@@ -696,6 +700,7 @@ async fn run_cmd(
         blockchain,
         app,
     }: Config,
+    dev: bool,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
     token_store::store_daemon_pid(bria_home, std::process::id())?;
@@ -706,9 +711,10 @@ async fn run_cmd(
 
     let admin_send = send.clone();
     let admin_pool = pool.clone();
+    let network = blockchain.network;
     handles.push(tokio::spawn(async move {
         let _ = admin_send.try_send(
-            super::admin::run(admin_pool, admin)
+            super::admin::run(admin_pool, admin, network)
                 .await
                 .context("Admin server error"),
         );
@@ -721,10 +727,44 @@ async fn run_cmd(
                 .context("Api server error"),
         );
     }));
+
+    if dev {
+        let bria_home_string = bria_home.to_string();
+        tokio::spawn(async move {
+            let admin_client = admin_client::AdminApiClient::new(
+                bria_home_string,
+                admin_client::AdminApiClientConfig::default(),
+                "".to_string(),
+            );
+
+            let mut retries = 5;
+            let delay = tokio::time::Duration::from_secs(1);
+            while retries > 0 {
+                let dev_bootstrap_result = admin_client.dev_bootstrap().await;
+                match dev_bootstrap_result {
+                    Ok(_) => {
+                        println!("Dev bootstrap completed successfully");
+                        break;
+                    }
+                    Err(e) => {
+                        eprintln!("Dev bootstrap failed: {:?}.\nRetrying...", e);
+                        retries -= 1;
+                        if retries > 0 {
+                            tokio::time::sleep(delay).await;
+                        } else {
+                            eprintln!("Dev bootstrap failed after retries: {:?}", e);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     let reason = receive.recv().await.expect("Didn't receive msg");
     for handle in handles {
         handle.abort();
     }
+
     reason
 }
 
