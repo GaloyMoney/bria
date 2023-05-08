@@ -65,6 +65,7 @@ pub enum OutboxEventPayload {
     },
     PayoutQueued {
         id: PayoutId,
+        profile_id: ProfileId,
         wallet_id: WalletId,
         satoshis: Satoshis,
         destination: PayoutDestination,
@@ -96,6 +97,7 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
             PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutQueued {
                 id: meta.payout_id,
                 wallet_id: meta.wallet_id,
+                profile_id: meta.profile_id,
                 satoshis: meta.satoshis,
                 destination: meta.destination,
             }),

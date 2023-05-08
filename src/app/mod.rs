@@ -506,6 +506,7 @@ impl App {
                         payout_id: id,
                         batch_group_id: batch_group.id,
                         wallet_id: wallet.id,
+                        profile_id: profile.id,
                         satoshis: sats,
                         destination,
                     },

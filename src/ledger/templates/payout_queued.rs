@@ -11,6 +11,7 @@ pub struct PayoutQueuedMeta {
     pub payout_id: PayoutId,
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,
+    pub profile_id: ProfileId,
     pub satoshis: Satoshis,
     pub destination: PayoutDestination,
 }

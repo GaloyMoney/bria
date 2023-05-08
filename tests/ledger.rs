@@ -293,6 +293,7 @@ async fn queue_payout() -> anyhow::Result<()> {
                     payout_id,
                     wallet_id,
                     batch_group_id: BatchGroupId::new(),
+                    profile_id: ProfileId::new(),
                     satoshis,
                     destination: PayoutDestination::OnchainAddress {
                         value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),

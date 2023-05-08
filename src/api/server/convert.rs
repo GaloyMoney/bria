@@ -367,6 +367,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
+                ..
             } => proto::bria_event::Payload::PayoutQueued(proto::PayoutQueued {
                 id: id.to_string(),
                 wallet_id: wallet_id.to_string(),
