@@ -229,25 +229,6 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let (change_utxo, found_addr) = if !change.is_empty() {
-                    let (utxo, path) = change[0].clone();
-                    let address_info = keychain_wallet
-                        .find_address_from_path(path, utxo.keychain)
-                        .await?;
-                    let found_address = NewAddress::builder()
-                        .account_id(data.account_id)
-                        .wallet_id(data.wallet_id)
-                        .keychain_id(keychain_id)
-                        .address(address_info.address.clone())
-                        .kind(address_info.keychain)
-                        .address_idx(address_info.index)
-                        .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
-                        .build()
-                        .expect("Could not build new address in sync wallet");
-                    (Some((utxo, address_info)), Some(found_address))
-                } else {
-                    (None, None)
-                };
                 let (mut tx, create_batch_tx_id, tx_id) =
                     if let Some((tx, create_batch_tx_id, tx_id)) = batches
                         .set_batch_submitted_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
@@ -257,6 +238,30 @@ pub async fn execute(
                     } else {
                         (pool.begin().await?, None, LedgerTransactionId::new())
                     };
+
+                let change_utxo = if !change.is_empty() {
+                    let (utxo, path) = change[0].clone();
+                    let address_info = keychain_wallet
+                        .find_address_from_path(path, utxo.keychain)
+                        .await?;
+                    let found_addr = NewAddress::builder()
+                        .account_id(data.account_id)
+                        .wallet_id(data.wallet_id)
+                        .keychain_id(keychain_id)
+                        .address(address_info.address.clone())
+                        .kind(address_info.keychain)
+                        .address_idx(address_info.index)
+                        .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
+                        .build()
+                        .expect("Could not build new address in sync wallet");
+                    deps.bria_addresses
+                        .persist_if_not_present(&mut tx, found_addr)
+                        .await?;
+                    Some((utxo, address_info))
+                } else {
+                    None
+                };
+
                 if let Some((settled_sats, allocations)) = deps
                     .bria_utxos
                     .spend_detected(
@@ -273,11 +278,6 @@ pub async fn execute(
                     )
                     .await?
                 {
-                    if let Some(found_addr) = found_addr {
-                        deps.bria_addresses
-                            .persist_if_not_present(&mut tx, found_addr)
-                            .await?;
-                    }
                     if let Some(create_batch_tx_id) = create_batch_tx_id {
                         deps.ledger
                             .batch_submitted(
