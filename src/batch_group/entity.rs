@@ -31,7 +31,7 @@ pub struct BatchGroup {
     pub name: String,
     pub config: BatchGroupConfig,
 
-    events: EntityEvents<BatchGroupEvent>,
+    pub(super) events: EntityEvents<BatchGroupEvent>,
 }
 
 impl BatchGroup {
@@ -52,6 +52,11 @@ impl BatchGroup {
             }
         }
         ret.map(|s| s.to_string())
+    }
+
+    pub fn update_description(&mut self, description: String) {
+        self.events
+            .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
     }
 }
 

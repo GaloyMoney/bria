@@ -23,6 +23,7 @@ service BriaService {
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
   rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
   rpc ListBatchGroups (ListBatchGroupsRequest) returns (ListBatchGroupsResponse) {}
+  rpc UpdateBatchGroup (UpdateBatchGroupRequest) returns (UpdateBatchGroupResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
@@ -264,6 +265,14 @@ message ListBatchGroupsResponse {
 }
 
 message ListBatchGroupsRequest {}
+
+message UpdateBatchGroupRequest{
+  string id = 1;
+  optional string new_description = 2;
+  // optional BatchGroupConfig config = 3;
+}
+
+message UpdateBatchGroupResponse{}
 
 message QueuePayoutRequest {
   string wallet_name = 1;

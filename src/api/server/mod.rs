@@ -411,6 +411,29 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
+    async fn update_batch_group(
+        &self,
+        request: Request<UpdateBatchGroupRequest>,
+    ) -> Result<Response<UpdateBatchGroupResponse>, Status> {
+        let key = extract_api_token(&request)?;
+        let profile = self.app.authenticate(key).await?;
+        let request = request.into_inner();
+        let UpdateBatchGroupRequest {
+            id,
+            new_description,
+        } = request;
+
+        self.app
+            .update_batch_group(
+                profile,
+                id.parse().map_err(BriaError::CouldNotParseIncomingUuid)?,
+                new_description,
+            )
+            .await?;
+        Ok(Response::new(UpdateBatchGroupResponse {}))
+    }
+
+    #[instrument(skip_all, err)]
     async fn list_signing_sessions(
         &self,
         request: Request<ListSigningSessionsRequest>,

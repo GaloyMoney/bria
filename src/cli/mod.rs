@@ -367,7 +367,25 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
     },
-
+    /// Update Batch Group
+    UpdateBatchGroup {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        /// The id to update
+        #[clap(short, long)]
+        id: String,
+        ///  The new description
+        #[clap(short, long)]
+        description: Option<String>,
+    },
     /// List signing sessions for batch
     ListSigningSessions {
         #[clap(
@@ -665,6 +683,15 @@ pub async fn run() -> anyhow::Result<()> {
         Command::ListBatchGroups { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_batch_groups().await?;
+        }
+        Command::UpdateBatchGroup {
+            url,
+            api_key,
+            id,
+            description,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.update_batch_group(id, description).await?;
         }
         Command::ListXpubs { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
