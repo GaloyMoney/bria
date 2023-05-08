@@ -1,11 +1,13 @@
 mod admin_client;
 mod api_client;
 mod config;
+mod db;
 mod gen;
 mod token_store;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
+use db::*;
 use std::path::PathBuf;
 use url::Url;
 
@@ -702,7 +704,7 @@ async fn run_cmd(
     println!("Starting server processes");
     let (send, mut receive) = tokio::sync::mpsc::channel(1);
     let mut handles = Vec::new();
-    let pool = sqlx::PgPool::connect(&db_con).await?;
+    let pool = init_pool(&db_con).await?;
 
     let admin_send = send.clone();
     let admin_pool = pool.clone();
