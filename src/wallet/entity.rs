@@ -35,6 +35,9 @@ pub enum WalletEvent {
         idx: usize,
         keychain_config: KeychainConfig,
     },
+    WalletKeychainActivated {
+        keychain_id: KeychainId,
+    },
 }
 
 #[derive(Builder)]
@@ -130,6 +133,7 @@ impl NewWallet {
     }
 
     pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
+        let keychain_id = KeychainId::new();
         EntityEvents::init([
             WalletEvent::WalletInitialized {
                 id: self.id,
@@ -150,10 +154,11 @@ impl NewWallet {
                 wallet_config: self.config,
             },
             WalletEvent::WalletKeychainAdded {
-                keychain_id: KeychainId::new(),
+                keychain_id,
                 idx: 0,
                 keychain_config: self.keychain,
             },
+            WalletEvent::WalletKeychainActivated { keychain_id },
         ])
     }
 }

@@ -10,6 +10,7 @@ use crate::{
     address::*,
     batch::*,
     batch_group::*,
+    descriptor::*,
     error::*,
     job,
     ledger::*,
@@ -29,6 +30,7 @@ pub struct App {
     outbox: Outbox,
     profiles: Profiles,
     xpubs: XPubs,
+    descriptors: Descriptors,
     wallets: Wallets,
     batch_groups: BatchGroups,
     payouts: Payouts,
@@ -90,6 +92,7 @@ impl App {
             outbox,
             profiles: Profiles::new(&pool),
             xpubs,
+            descriptors: Descriptors::new(&pool),
             wallets,
             batch_groups,
             payouts,
@@ -276,12 +279,31 @@ impl App {
             .network(self.blockchain_cfg.network)
             .account_id(profile.account_id)
             .journal_id(profile.account_id)
-            .name(wallet_name.clone())
-            .keychain(keychain)
+            .name(wallet_name)
+            .keychain(keychain.clone())
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
         let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
+        let descriptors = vec![
+            NewDescriptor::builder()
+                .account_id(profile.account_id)
+                .wallet_id(wallet_id)
+                .descriptor(keychain.external_descriptor())
+                .keychain_kind(bitcoin::KeychainKind::External)
+                .build()
+                .expect("Could not build descriptor"),
+            NewDescriptor::builder()
+                .account_id(profile.account_id)
+                .wallet_id(wallet_id)
+                .descriptor(keychain.internal_descriptor())
+                .keychain_kind(bitcoin::KeychainKind::Internal)
+                .build()
+                .expect("Could not build descriptor"),
+        ];
+        self.descriptors
+            .persist_all_in_tx(&mut tx, descriptors)
+            .await?;
         tx.commit().await?;
         Ok((wallet_id, xpub_ids))
     }

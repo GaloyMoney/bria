@@ -1,13 +1,10 @@
-use bdk::{
-    descriptor::{DescriptorPublicKey, ExtendedDescriptor},
-    miniscript::ForEachKey,
-};
+use bdk::{descriptor::DescriptorPublicKey, miniscript::ForEachKey};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 
-use crate::xpub::*;
+use crate::{primitives::bitcoin::ExtendedDescriptor, xpub::*};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Clone, Debug)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum KeychainConfig {
     Wpkh {

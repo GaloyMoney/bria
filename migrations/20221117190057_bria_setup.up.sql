@@ -73,6 +73,16 @@ CREATE TABLE bria_wallet_events (
   UNIQUE(id, sequence)
 );
 
+CREATE TABLE bria_descriptors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+  wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+  descriptor VARCHAR NOT NULL,
+  checksum VARCHAR NOT NULL,
+  kind KeychainKind NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(account_id, checksum)
+);
 
 CREATE TABLE bria_addresses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
