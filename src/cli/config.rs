@@ -1,3 +1,4 @@
+use super::db::DbConfig;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -7,9 +8,7 @@ use crate::{admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfi
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
-    pub db_con: String,
-    #[serde(default = "bool_true")]
-    pub migrate_on_start: bool,
+    pub db: DbConfig,
     #[serde(default)]
     pub blockchain: BlockchainConfig,
     #[serde(default)]
@@ -35,12 +34,8 @@ impl Config {
         let mut config: Config =
             serde_yaml::from_str(&config_file).context("Couldn't parse config file")?;
 
-        config.db_con = db_con;
+        config.db.pg_con = db_con;
 
         Ok(config)
     }
-}
-
-fn bool_true() -> bool {
-    true
 }

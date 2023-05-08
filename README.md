@@ -31,7 +31,7 @@ bria list-profiles
 
 # Create wallet
 bria import-xpub -n lnd_key -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -d m/84h/0h/0h
-bria create-wallet -n demo -x lnd_key
+bria create-wallet -n demo wpkh -x lnd_key
 
 # Create address
 
