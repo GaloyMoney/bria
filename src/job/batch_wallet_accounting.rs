@@ -58,6 +58,17 @@ pub async fn execute(
         .set_batch_created_ledger_tx_id(data.batch_id, data.wallet_id)
         .await?
     {
+        let mut change_utxos = Vec::new();
+        if let (Some(outpoint), Some(address)) = (
+            wallet_summary.change_outpoint,
+            wallet_summary.change_address,
+        ) {
+            change_utxos.push(ChangeOutput {
+                outpoint,
+                address,
+                satoshis: wallet_summary.change_sats,
+            });
+        }
         ledger
             .batch_created(
                 tx,
@@ -82,9 +93,7 @@ pub async fn execute(
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: wallet_summary.total_in_sats,
-                            change_sats: wallet_summary.change_sats,
-                            change_outpoint: wallet_summary.change_outpoint,
-                            change_address: wallet_summary.change_address,
+                            change_utxos,
                         },
                     },
                 },

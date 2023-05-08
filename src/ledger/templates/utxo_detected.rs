@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
+use super::shared_meta::*;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub struct UtxoDetectedMeta {
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
     pub address: bitcoin::Address,
-    pub encumbered_spending_fee_sats: Satoshis,
+    pub encumbered_spending_fees: EncumberedSpendingFees,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -85,7 +86,11 @@ impl From<UtxoDetectedParams> for TxParams {
         }: UtxoDetectedParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
-        let fees = meta.encumbered_spending_fee_sats.to_btc();
+        let fees = meta
+            .encumbered_spending_fees
+            .values()
+            .fold(Satoshis::ZERO, |s, v| s + *v)
+            .to_btc();
         let effective = meta
             .confirmation_time
             .as_ref()

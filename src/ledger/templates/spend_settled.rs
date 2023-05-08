@@ -74,8 +74,8 @@ impl SpendSettledParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("change_spent")
-                .r#type(ParamDataType::BOOLEAN)
+                .name("spent_change")
+                .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -113,10 +113,14 @@ impl From<SpendSettledParams> for TxParams {
                 .date();
         let WalletTransactionSummary {
             total_utxo_in_sats,
-            change_sats,
+            ref change_utxos,
             fee_sats,
             ..
         } = meta.tx_summary;
+        let change = change_utxos
+            .iter()
+            .fold(Satoshis::ZERO, |s, u| s + u.satoshis)
+            .to_btc();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
@@ -140,8 +144,15 @@ impl From<SpendSettledParams> for TxParams {
         );
         params.insert("fees", fee_sats.to_btc());
         params.insert("total_utxo_in", total_utxo_in_sats.to_btc());
-        params.insert("change", change_sats.to_btc());
-        params.insert("change_spent", change_spent);
+        params.insert("change", change);
+        params.insert(
+            "spent_change",
+            if change_spent {
+                change
+            } else {
+                rust_decimal::Decimal::ZERO
+            },
+        );
         params.insert("correlation_id", pending_id);
         params.insert("effective", effective);
         params
@@ -315,7 +326,7 @@ impl SpendSettled {
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.change_spent ? params.change : decimal('0')")
+                .units("params.spent_change")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -324,7 +335,7 @@ impl SpendSettled {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.change_spent ? params.change : decimal('0')")
+                .units("params.spent_change")
                 .build()
                 .expect("Couldn't build entry"),
         ];

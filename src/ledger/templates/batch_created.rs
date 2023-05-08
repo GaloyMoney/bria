@@ -116,13 +116,16 @@ impl From<BatchCreatedParams> for TxParams {
     ) -> Self {
         let WalletTransactionSummary {
             fee_sats,
-            change_sats,
+            ref change_utxos,
             total_utxo_in_sats,
             ..
         } = meta.tx_summary;
         let batch_id = meta.batch_info.batch_id;
         let total_utxo_in = total_utxo_in_sats.to_btc();
-        let change = change_sats.to_btc();
+        let change = change_utxos
+            .iter()
+            .fold(Satoshis::ZERO, |s, u| s + u.satoshis)
+            .to_btc();
         let fee_sats = fee_sats.to_btc();
         let encumbered_fees = encumbered_fees.to_btc();
         let effective = Utc::now().date_naive();

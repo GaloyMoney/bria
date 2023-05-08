@@ -58,7 +58,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
                     outpoint,
                     satoshis: one_btc,
                     address: address.clone(),
-                    encumbered_spending_fee_sats: one_sat,
+                    encumbered_spending_fees: std::iter::once((outpoint, one_sat)).collect(),
                     confirmation_time: None,
                 },
             },
@@ -129,9 +129,10 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     );
     assert_summaries_match(summary, account_summary);
 
-    let reserved_fees = ledger
-        .sum_reserved_fees_in_txs(vec![pending_id, confirmed_id].into_iter())
-        .await?;
+    let reserved_fees_check = [(pending_id, vec![outpoint]), (confirmed_id, vec![outpoint])]
+        .into_iter()
+        .collect();
+    let reserved_fees = ledger.sum_reserved_fees_in_txs(reserved_fees_check).await?;
     assert_eq!(reserved_fees, one_sat);
 
     Ok(())
@@ -184,7 +185,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
                     outpoint,
                     satoshis: one_btc,
                     address: address.clone(),
-                    encumbered_spending_fee_sats: one_sat,
+                    encumbered_spending_fees: std::iter::once((outpoint, one_sat)).collect(),
                     confirmation_time: None,
                 },
             },
@@ -343,6 +344,13 @@ async fn create_batch() -> anyhow::Result<()> {
     let total_spent_sats = Satoshis::from(100_000_000);
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let change_sats = total_utxo_in_sats - total_spent_sats - fee_sats;
+    let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
+    let outpoint = OutPoint {
+        txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap(),
+        vout: 0,
+    };
     let encumbered_fees = Satoshis::from(12_346);
 
     let tx = pool.begin().await?;
@@ -371,10 +379,13 @@ async fn create_batch() -> anyhow::Result<()> {
                                 .unwrap(),
                         total_utxo_settled_in_sats: total_utxo_in_sats,
                         total_utxo_in_sats,
-                        change_sats,
                         fee_sats,
-                        change_address: None,
-                        change_outpoint: None,
+                        change_utxos: std::iter::once(ChangeOutput {
+                            outpoint,
+                            satoshis: change_sats,
+                            address,
+                        })
+                        .collect(),
                         current_keychain_id: KeychainId::new(),
                     },
                 },
@@ -442,6 +453,13 @@ async fn spend_detected() -> anyhow::Result<()> {
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(200_000_000);
     let reserved_fees = Satoshis::from(12_346);
+    let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
+    let outpoint = OutPoint {
+        txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap(),
+        vout: 0,
+    };
     let encumbered_spending_fee_sats = Satoshis::ONE;
 
     let pending_id = LedgerTransactionId::new();
@@ -466,12 +484,19 @@ async fn spend_detected() -> anyhow::Result<()> {
                                 .unwrap(),
                         total_utxo_in_sats,
                         total_utxo_settled_in_sats,
-                        change_sats,
                         fee_sats,
-                        change_address: None,
-                        change_outpoint: None,
+                        change_utxos: std::iter::once(ChangeOutput {
+                            outpoint,
+                            satoshis: change_sats,
+                            address,
+                        })
+                        .collect(),
                     },
-                    encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),
+                    encumbered_spending_fees: std::iter::once((
+                        outpoint,
+                        encumbered_spending_fee_sats,
+                    ))
+                    .collect(),
                     confirmation_time: None,
                 },
             },
@@ -580,6 +605,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
     let change_sats = Satoshis::from(40_000_000);
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
+    let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -613,12 +639,19 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
                                 .unwrap(),
                         total_utxo_in_sats,
                         total_utxo_settled_in_sats,
-                        change_sats,
                         fee_sats,
-                        change_address: None,
-                        change_outpoint: None,
+                        change_utxos: std::iter::once(ChangeOutput {
+                            outpoint,
+                            satoshis: change_sats,
+                            address,
+                        })
+                        .collect(),
                     },
-                    encumbered_spending_fee_sats: Some(encumbered_spending_fee_sats),
+                    encumbered_spending_fees: std::iter::once((
+                        outpoint,
+                        encumbered_spending_fee_sats,
+                    ))
+                    .collect(),
                     confirmation_time: None,
                 },
             },

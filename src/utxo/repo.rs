@@ -319,13 +319,20 @@ impl UtxoRepo {
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<impl Iterator<Item = LedgerTransactionId>, BriaError> {
-        let rows = sqlx::query!("SELECT income_detected_ledger_tx_id FROM bria_utxos WHERE spending_batch_id = $1 AND wallet_id = $2", batch_id as BatchId, wallet_id as WalletId)
+    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, BriaError> {
+        let rows = sqlx::query!("SELECT income_detected_ledger_tx_id, tx_id, vout FROM bria_utxos WHERE spending_batch_id = $1 AND wallet_id = $2", batch_id as BatchId, wallet_id as WalletId)
             .fetch_all(&self.pool)
             .await?;
-        Ok(rows
-            .into_iter()
-            .map(|r| LedgerTransactionId::from(r.income_detected_ledger_tx_id)))
+        let mut map = HashMap::new();
+        for row in rows {
+            map.entry(LedgerTransactionId::from(row.income_detected_ledger_tx_id))
+                .or_insert_with(Vec::new)
+                .push(bitcoin::OutPoint {
+                    txid: row.tx_id.parse().unwrap(),
+                    vout: row.vout as u32,
+                });
+        }
+        Ok(map)
     }
 
     pub async fn list_utxos_by_outpoint(
