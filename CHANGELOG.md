@@ -1,3 +1,20 @@
+# [bria release v0.0.20](https://github.com/GaloyMoney/bria/releases/tag/0.0.20)
+
+
+### Bug Fixes
+
+- Batch group description is optional
+
+### Miscellaneous Tasks
+
+- Add description in list-batch-groups (#165)
+- Add DbConfig (#164)
+- Add electrum fee estimator
+
+### Refactor
+
+- Multi change outputs (#166)
+
 # [bria release v0.0.19](https://github.com/GaloyMoney/bria/releases/tag/0.0.19)
 
 
