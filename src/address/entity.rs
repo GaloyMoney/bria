@@ -50,13 +50,17 @@ impl WalletAddress {
     }
 
     pub fn update_external_id(&mut self, external_id: String) {
-        self.external_id = external_id.clone();
-        self.events
-            .push(AddressEvent::ExternalIdUpdated { external_id });
+        if self.external_id != external_id {
+            self.external_id = external_id.clone();
+            self.events
+                .push(AddressEvent::ExternalIdUpdated { external_id });
+        }
     }
 
     pub fn update_metadata(&mut self, metadata: serde_json::Value) {
-        self.events.push(AddressEvent::MetadataUpdated { metadata });
+        if self.metadata() != Some(&metadata) {
+            self.events.push(AddressEvent::MetadataUpdated { metadata });
+        }
     }
 }
 

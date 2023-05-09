@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crate::primitives::TxPriority;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BatchGroupConfig {
     pub tx_priority: TxPriority,
     pub consolidate_deprecated_keychains: bool,
@@ -11,7 +11,7 @@ pub struct BatchGroupConfig {
 }
 
 #[serde_with::serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum BatchGroupTrigger {
     Manual,

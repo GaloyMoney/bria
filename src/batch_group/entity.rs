@@ -55,13 +55,17 @@ impl BatchGroup {
     }
 
     pub fn update_description(&mut self, description: String) {
-        self.events
-            .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
+        if self.description() != Some(description.clone()) {
+            self.events
+                .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
+        }
     }
 
     pub fn update_config(&mut self, config: BatchGroupConfig) {
-        self.events
-            .push(BatchGroupEvent::BatchGroupConfigUpdated { config });
+        if self.config != config {
+            self.events
+                .push(BatchGroupEvent::BatchGroupConfigUpdated { config });
+        }
     }
 }
 
