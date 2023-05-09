@@ -71,9 +71,9 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.pending_incoming_utxos, one_btc);
+    assert_eq!(summary.utxo_pending_incoming, one_btc);
     assert_eq!(summary.effective_pending_income, one_btc);
-    assert_eq!(summary.encumbered_fees, one_sat);
+    assert_eq!(summary.fees_encumbered, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -116,11 +116,11 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.pending_incoming_utxos, zero);
+    assert_eq!(summary.utxo_pending_incoming, zero);
     assert_eq!(summary.effective_pending_income, zero);
-    assert_eq!(summary.settled_utxos, one_btc);
+    assert_eq!(summary.utxo_settled, one_btc);
     assert_eq!(summary.effective_settled, one_btc);
-    assert_eq!(summary.encumbered_fees, one_sat);
+    assert_eq!(summary.fees_encumbered, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -198,9 +198,9 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.pending_incoming_utxos, one_btc);
+    assert_eq!(summary.utxo_pending_incoming, one_btc);
     assert_eq!(summary.effective_pending_income, one_btc);
-    assert_eq!(summary.encumbered_fees, one_sat);
+    assert_eq!(summary.fees_encumbered, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -243,9 +243,9 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.pending_incoming_utxos, zero);
+    assert_eq!(summary.utxo_pending_incoming, zero);
     assert_eq!(summary.effective_pending_income, zero);
-    assert_eq!(summary.settled_utxos, zero);
+    assert_eq!(summary.utxo_settled, zero);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -408,17 +408,14 @@ async fn create_batch() -> anyhow::Result<()> {
         summary.effective_encumbered_outgoing.flip_sign(),
         total_spent_sats
     );
-    assert_eq!(summary.encumbered_fees.flip_sign(), encumbered_fees);
-    assert_eq!(summary.pending_fees, fee_sats);
+    assert_eq!(summary.fees_encumbered.flip_sign(), encumbered_fees);
+    assert_eq!(summary.fees_pending, fee_sats);
     assert_eq!(
-        summary.encumbered_incoming_utxos,
+        summary.utxo_encumbered_incoming,
         total_utxo_in_sats - fee_sats - total_spent_sats
     );
-    assert_eq!(summary.settled_utxos.flip_sign(), total_utxo_in_sats);
-    assert_eq!(
-        summary.pending_outgoing_utxos,
-        total_utxo_in_sats - fee_sats
-    );
+    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_in_sats);
+    assert_eq!(summary.utxo_pending_outgoing, total_utxo_in_sats - fee_sats);
 
     let account_balances = ledger
         .get_account_ledger_account_balances(journal_id)
@@ -518,19 +515,13 @@ async fn spend_detected() -> anyhow::Result<()> {
         total_utxo_in_sats - change_sats
     );
     assert_eq!(
-        summary.encumbered_fees.flip_sign(),
+        summary.fees_encumbered.flip_sign(),
         reserved_fees - encumbered_spending_fee_sats
     );
-    assert_eq!(summary.pending_fees, fee_sats);
-    assert_eq!(
-        summary.settled_utxos.flip_sign(),
-        total_utxo_settled_in_sats
-    );
-    assert_eq!(
-        summary.pending_outgoing_utxos,
-        total_utxo_in_sats - fee_sats
-    );
-    assert_eq!(summary.pending_incoming_utxos, change_sats);
+    assert_eq!(summary.fees_pending, fee_sats);
+    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_settled_in_sats);
+    assert_eq!(summary.utxo_pending_outgoing, total_utxo_in_sats - fee_sats);
+    assert_eq!(summary.utxo_pending_incoming, change_sats);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -564,13 +555,13 @@ async fn spend_detected() -> anyhow::Result<()> {
         summary.effective_settled.flip_sign(),
         total_utxo_in_sats - change_sats
     );
-    assert_eq!(summary.pending_fees, Satoshis::ZERO);
+    assert_eq!(summary.fees_pending, Satoshis::ZERO);
     assert_eq!(
-        summary.settled_utxos.flip_sign(),
+        summary.utxo_settled.flip_sign(),
         total_utxo_in_sats - change_sats
     );
-    assert_eq!(summary.pending_outgoing_utxos, Satoshis::ZERO);
-    assert_eq!(summary.pending_incoming_utxos, Satoshis::ZERO);
+    assert_eq!(summary.utxo_pending_outgoing, Satoshis::ZERO);
+    assert_eq!(summary.utxo_pending_incoming, Satoshis::ZERO);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -672,15 +663,9 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
         summary.effective_settled.flip_sign(),
         total_utxo_in_sats - change_sats - deferred_sats
     );
-    assert_eq!(
-        summary.settled_utxos.flip_sign(),
-        total_utxo_settled_in_sats
-    );
-    assert_eq!(
-        summary.pending_outgoing_utxos,
-        total_utxo_in_sats - fee_sats
-    );
-    assert_eq!(summary.pending_incoming_utxos, change_sats);
+    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_settled_in_sats);
+    assert_eq!(summary.utxo_pending_outgoing, total_utxo_in_sats - fee_sats);
+    assert_eq!(summary.utxo_pending_incoming, change_sats);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -703,18 +688,12 @@ fn assert_summaries_match(wallet: WalletBalanceSummary, account: AccountBalanceS
         account.effective_pending_income
     );
     assert_eq!(
-        wallet.encumbered_incoming_utxos,
+        wallet.utxo_encumbered_incoming,
         account.encumbered_incoming_utxos
     );
-    assert_eq!(
-        wallet.pending_incoming_utxos,
-        account.pending_incoming_utxos
-    );
-    assert_eq!(wallet.settled_utxos, account.settled_utxos);
-    assert_eq!(
-        wallet.pending_incoming_utxos,
-        account.pending_incoming_utxos
-    );
-    assert_eq!(wallet.encumbered_fees, account.encumbered_fees);
-    assert_eq!(wallet.pending_fees, account.pending_fees);
+    assert_eq!(wallet.utxo_pending_incoming, account.pending_incoming_utxos);
+    assert_eq!(wallet.utxo_settled, account.settled_utxos);
+    assert_eq!(wallet.utxo_pending_incoming, account.pending_incoming_utxos);
+    assert_eq!(wallet.fees_encumbered, account.encumbered_fees);
+    assert_eq!(wallet.fees_pending, account.pending_fees);
 }

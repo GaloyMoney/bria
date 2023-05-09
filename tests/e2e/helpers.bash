@@ -21,15 +21,15 @@ cache_default_wallet_balance() {
 }
 
 cached_pending_income() {
-  echo ${balance} | jq -r '.pendingIncomingUtxos'
+  echo ${balance} | jq -r '.utxoPendingIncoming'
 }
 
 cached_encumbered_fees() {
-  echo ${balance} | jq -r '.encumberedFees'
+  echo ${balance} | jq -r '.feesEncumbered'
 }
 
 cached_current_settled() {
-  echo ${balance} | jq -r '.settledUtxos'
+  echo ${balance} | jq -r '.utxoSettled'
 }
 
 cached_effective_settled() {
@@ -41,7 +41,7 @@ cached_pending_outgoing() {
 }
 
 cached_pending_fees() {
-  echo ${balance} | jq -r '.pendingFees'
+  echo ${balance} | jq -r '.feesPending'
 }
 
 cached_encumbered_outgoing() {

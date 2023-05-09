@@ -281,15 +281,15 @@ impl From<proto::TxPriority> for TxPriority {
 impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     fn from(balance: WalletBalanceSummary) -> Self {
         Self {
-            encumbered_incoming_utxos: u64::try_from(balance.encumbered_incoming_utxos)
+            encumbered_incoming_utxos: u64::try_from(balance.utxo_encumbered_incoming)
                 .expect("Satoshis -> u64 failed"),
-            pending_incoming_utxos: u64::try_from(balance.pending_incoming_utxos)
+            pending_incoming_utxos: u64::try_from(balance.utxo_pending_incoming)
                 .expect("Satoshis -> u64 failed"),
-            settled_utxos: u64::try_from(balance.settled_utxos).expect("Satoshis -> u64 failed"),
-            pending_outgoing_utxos: u64::try_from(balance.pending_outgoing_utxos)
+            settled_utxos: u64::try_from(balance.utxo_settled).expect("Satoshis -> u64 failed"),
+            pending_outgoing_utxos: u64::try_from(balance.utxo_pending_outgoing)
                 .expect("Satoshis -> u64 failed"),
-            pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
-            encumbered_fees: u64::try_from(balance.encumbered_fees)
+            pending_fees: u64::try_from(balance.fees_pending).expect("Satoshis -> u64 failed"),
+            encumbered_fees: u64::try_from(balance.fees_encumbered)
                 .expect("Satoshis -> u64 failed"),
             effective_pending_income: u64::try_from(balance.effective_pending_income)
                 .expect("Satoshis -> u64 failed"),
