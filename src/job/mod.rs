@@ -31,7 +31,7 @@ const RESPAWN_ALL_OUTBOX_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003"
 #[derive(Debug, Clone)]
 struct SyncAllWalletsDelay(std::time::Duration);
 #[derive(Debug, Clone)]
-struct ProcessAllBatchesDelay(std::time::Duration);
+struct ProcessAllQueuesDelay(std::time::Duration);
 #[derive(Debug, Clone)]
 struct RespawnAllOutboxHandlersDelay(std::time::Duration);
 
@@ -66,7 +66,7 @@ pub async fn start_job_runner(
         populate_outbox,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
-    registry.set_context(ProcessAllBatchesDelay(process_all_payout_queues_delay));
+    registry.set_context(ProcessAllQueuesDelay(process_all_payout_queues_delay));
     registry.set_context(RespawnAllOutboxHandlersDelay(
         respawn_all_outbox_handlers_delay,
     ));
@@ -110,7 +110,7 @@ async fn sync_all_wallets(
 async fn process_all_payout_queues(
     mut current_job: CurrentJob,
     payout_queues: PayoutQueues,
-    ProcessAllBatchesDelay(delay): ProcessAllBatchesDelay,
+    ProcessAllQueuesDelay(delay): ProcessAllQueuesDelay,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -217,7 +217,7 @@ async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<()
         .execute(|data| async move {
             let mut data: ProcessPayoutQueueData = data.expect("no SyncWalletData available");
             data.tracing_data = crate::tracing::extract_tracing_data();
-            onto_account_main_queue(
+            onto_account_main_channel(
                 &pool,
                 data.account_id,
                 Uuid::new_v4(),
@@ -387,7 +387,7 @@ pub async fn spawn_sync_all_wallets(
 
 #[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
 async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
-    onto_account_main_queue(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
+    onto_account_main_channel(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
     Ok(())
 }
 
@@ -580,7 +580,7 @@ fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {
     format!("payout_queue_id:{payout_queue_id}")
 }
 
-async fn onto_account_main_queue<D: serde::Serialize>(
+async fn onto_account_main_channel<D: serde::Serialize>(
     pool: &sqlx::PgPool,
     account_id: AccountId,
     uuid: impl Into<Uuid>,
