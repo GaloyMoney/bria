@@ -33,7 +33,7 @@ pub async fn execute(
     let Batch {
         id,
         bitcoin_tx_id,
-        batch_group_id,
+        payout_queue_id,
         mut wallet_summaries,
         ..
     } = batches.find_by_id(data.account_id, data.batch_id).await?;
@@ -82,7 +82,7 @@ pub async fn execute(
                             account_id: data.account_id,
                             wallet_id: data.wallet_id,
                             batch_id: id,
-                            batch_group_id,
+                            payout_queue_id,
                             included_payouts: payouts.into_iter().map(PayoutInfo::from).collect(),
                         },
                         tx_summary: WalletTransactionSummary {

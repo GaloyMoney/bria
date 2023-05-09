@@ -7,7 +7,7 @@ use crate::primitives::*;
 pub struct Batch {
     pub id: BatchId,
     pub account_id: AccountId,
-    pub batch_group_id: BatchGroupId,
+    pub payout_queue_id: PayoutQueueId,
     pub bitcoin_tx_id: bitcoin::Txid,
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
@@ -26,7 +26,7 @@ impl Batch {
 pub struct NewBatch {
     pub id: BatchId,
     pub(super) account_id: AccountId,
-    pub(super) batch_group_id: BatchGroupId,
+    pub(super) payout_queue_id: PayoutQueueId,
     pub(super) tx_id: bitcoin::Txid,
     pub(super) total_fee_sats: Satoshis,
     pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,

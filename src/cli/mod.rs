@@ -274,7 +274,7 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
-    CreateBatchGroup {
+    CreatePayoutQueue {
         #[clap(
             short,
             long,
@@ -355,7 +355,7 @@ enum Command {
     },
 
     /// List batch groups
-    ListBatchGroups {
+    ListPayoutQueues {
         #[clap(
             short,
             long,
@@ -368,7 +368,7 @@ enum Command {
         api_key: String,
     },
     /// Update Batch Group
-    UpdateBatchGroup {
+    UpdatePayoutQueue {
         #[clap(
             short,
             long,
@@ -632,7 +632,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_utxos(wallet).await?;
         }
-        Command::CreateBatchGroup {
+        Command::CreatePayoutQueue {
             url,
             api_key,
             name,
@@ -645,7 +645,7 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
-                .create_batch_group(
+                .create_payout_queue(
                     name,
                     description,
                     tx_priority,
@@ -690,11 +690,11 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_wallets().await?;
         }
-        Command::ListBatchGroups { url, api_key } => {
+        Command::ListPayoutQueues { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.list_batch_groups().await?;
+            client.list_payout_queues().await?;
         }
-        Command::UpdateBatchGroup {
+        Command::UpdatePayoutQueue {
             url,
             api_key,
             id,
@@ -707,7 +707,7 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
-                .update_batch_group(
+                .update_payout_queue(
                     id,
                     description,
                     tx_priority,

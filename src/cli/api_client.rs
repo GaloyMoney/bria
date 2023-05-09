@@ -240,7 +240,7 @@ impl ApiClient {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn create_batch_group(
+    pub async fn create_payout_queue(
         &self,
         name: String,
         description: Option<String>,
@@ -257,22 +257,22 @@ impl ApiClient {
         };
 
         let trigger = if manual_trigger {
-            Some(proto::batch_group_config::Trigger::Manual(manual_trigger))
+            Some(proto::payout_queue_config::Trigger::Manual(manual_trigger))
         } else if immediate_trigger {
-            Some(proto::batch_group_config::Trigger::Immediate(
+            Some(proto::payout_queue_config::Trigger::Immediate(
                 immediate_trigger,
             ))
         } else {
-            interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
+            interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs)
         };
 
-        let config = proto::BatchGroupConfig {
+        let config = proto::PayoutQueueConfig {
             tx_priority,
             consolidate_deprecated_keychains,
             trigger,
         };
 
-        let request = tonic::Request::new(proto::CreateBatchGroupRequest {
+        let request = tonic::Request::new(proto::CreatePayoutQueueRequest {
             name,
             description,
             config: Some(config),
@@ -281,7 +281,7 @@ impl ApiClient {
         let response = self
             .connect()
             .await?
-            .create_batch_group(self.inject_auth_token(request)?)
+            .create_payout_queue(self.inject_auth_token(request)?)
             .await?;
 
         output_json(response)
@@ -290,7 +290,7 @@ impl ApiClient {
     pub async fn queue_payout(
         &self,
         wallet_name: String,
-        batch_group_name: String,
+        payout_queue_name: String,
         on_chain_address: String,
         satoshis: u64,
         external_id: Option<String>,
@@ -298,7 +298,7 @@ impl ApiClient {
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::QueuePayoutRequest {
             wallet_name,
-            batch_group_name,
+            payout_queue_name,
             destination: Some(proto::queue_payout_request::Destination::OnchainAddress(
                 on_chain_address,
             )),
@@ -335,16 +335,16 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
-    pub async fn list_batch_groups(&self) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::ListBatchGroupsRequest {});
+    pub async fn list_payout_queues(&self) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::ListPayoutQueuesRequest {});
         let response = self
             .connect()
             .await?
-            .list_batch_groups(self.inject_auth_token(request)?)
+            .list_payout_queues(self.inject_auth_token(request)?)
             .await?;
         let result = response.into_inner();
-        let batch_groups: Vec<_> = result
-            .batch_groups
+        let payout_queues: Vec<_> = result
+            .payout_queues
             .into_iter()
             .map(|bg| {
                 let tx_priority = TxPriority::from(
@@ -364,7 +364,7 @@ impl ApiClient {
         println!(
             "{}",
             serde_json::to_string_pretty(&serde_json::json!({
-                "batchGroups": batch_groups,
+                "PayoutQueues": payout_queues,
             }))
             .unwrap()
         );
@@ -372,7 +372,7 @@ impl ApiClient {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub async fn update_batch_group(
+    pub async fn update_payout_queue(
         &self,
         id: String,
         description: Option<String>,
@@ -389,19 +389,19 @@ impl ApiClient {
         });
 
         let trigger = if let Some(manual_trigger) = manual_trigger {
-            Some(proto::batch_group_config::Trigger::Manual(manual_trigger))
+            Some(proto::payout_queue_config::Trigger::Manual(manual_trigger))
         } else if let Some(immediate_trigger) = immediate_trigger {
-            Some(proto::batch_group_config::Trigger::Immediate(
+            Some(proto::payout_queue_config::Trigger::Immediate(
                 immediate_trigger,
             ))
         } else {
-            interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
+            interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs)
         };
 
         let config = if let (Some(tx_priority), Some(consolidate_deprecated_keychains)) =
             (tx_priority, consolidate_deprecated_keychains)
         {
-            Some(proto::BatchGroupConfig {
+            Some(proto::PayoutQueueConfig {
                 tx_priority,
                 consolidate_deprecated_keychains,
                 trigger,
@@ -409,7 +409,7 @@ impl ApiClient {
         } else {
             None
         };
-        let request = tonic::Request::new(proto::UpdateBatchGroupRequest {
+        let request = tonic::Request::new(proto::UpdatePayoutQueueRequest {
             id,
             new_description: description,
             new_config: config,
@@ -417,7 +417,7 @@ impl ApiClient {
         let response = self
             .connect()
             .await?
-            .update_batch_group(self.inject_auth_token(request)?)
+            .update_payout_queue(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }

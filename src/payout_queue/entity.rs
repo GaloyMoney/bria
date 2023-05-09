@@ -7,9 +7,9 @@ use crate::{entity::*, primitives::*};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum BatchGroupEvent {
+pub enum PayoutQueueEvent {
     Initialized {
-        id: BatchGroupId,
+        id: PayoutQueueId,
         account_id: AccountId,
     },
     NameUpdated {
@@ -19,24 +19,24 @@ pub enum BatchGroupEvent {
         description: String,
     },
     ConfigUpdated {
-        config: BatchGroupConfig,
+        config: PayoutQueueConfig,
     },
 }
 
 #[derive(Builder)]
 #[builder(pattern = "owned", build_fn(error = "EntityError"))]
-pub struct BatchGroup {
-    pub id: BatchGroupId,
+pub struct PayoutQueue {
+    pub id: PayoutQueueId,
     pub account_id: AccountId,
     pub name: String,
-    pub config: BatchGroupConfig,
+    pub config: PayoutQueueConfig,
 
-    pub(super) events: EntityEvents<BatchGroupEvent>,
+    pub(super) events: EntityEvents<PayoutQueueEvent>,
 }
 
-impl BatchGroup {
+impl PayoutQueue {
     pub fn spawn_in(&self) -> Option<Duration> {
-        use BatchGroupTrigger::*;
+        use PayoutQueueTrigger::*;
         match self.config.trigger {
             Manual => None,
             Immediate => Some(Duration::from_secs(1)),
@@ -47,7 +47,7 @@ impl BatchGroup {
     pub fn description(&self) -> Option<String> {
         let mut ret = None;
         for event in self.events.iter() {
-            if let BatchGroupEvent::DescriptionUpdated { description } = event {
+            if let PayoutQueueEvent::DescriptionUpdated { description } = event {
                 ret = Some(description.as_str());
             }
         }
@@ -57,61 +57,61 @@ impl BatchGroup {
     pub fn update_description(&mut self, description: String) {
         if self.description().as_ref() != Some(&description) {
             self.events
-                .push(BatchGroupEvent::DescriptionUpdated { description });
+                .push(PayoutQueueEvent::DescriptionUpdated { description });
         }
     }
 
-    pub fn update_config(&mut self, config: BatchGroupConfig) {
+    pub fn update_config(&mut self, config: PayoutQueueConfig) {
         if self.config != config {
-            self.events.push(BatchGroupEvent::ConfigUpdated { config });
+            self.events.push(PayoutQueueEvent::ConfigUpdated { config });
         }
     }
 }
 
 #[derive(Debug, Builder, Clone)]
-pub struct NewBatchGroup {
+pub struct NewPayoutQueue {
     #[builder(setter(into))]
-    pub(super) id: BatchGroupId,
+    pub(super) id: PayoutQueueId,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
     #[builder(default)]
     pub(super) description: Option<String>,
     #[builder(default)]
-    pub(super) config: BatchGroupConfig,
+    pub(super) config: PayoutQueueConfig,
 }
 
-impl NewBatchGroup {
-    pub fn builder() -> NewBatchGroupBuilder {
-        let mut builder = NewBatchGroupBuilder::default();
-        builder.id(BatchGroupId::new());
+impl NewPayoutQueue {
+    pub fn builder() -> NewPayoutQueueBuilder {
+        let mut builder = NewPayoutQueueBuilder::default();
+        builder.id(PayoutQueueId::new());
         builder
     }
 
-    pub(super) fn initial_events(self) -> EntityEvents<BatchGroupEvent> {
+    pub(super) fn initial_events(self) -> EntityEvents<PayoutQueueEvent> {
         let mut events = EntityEvents::init([
-            BatchGroupEvent::Initialized {
+            PayoutQueueEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
             },
-            BatchGroupEvent::NameUpdated { name: self.name },
-            BatchGroupEvent::ConfigUpdated {
+            PayoutQueueEvent::NameUpdated { name: self.name },
+            PayoutQueueEvent::ConfigUpdated {
                 config: self.config,
             },
         ]);
         if let Some(description) = self.description {
-            events.push(BatchGroupEvent::DescriptionUpdated { description });
+            events.push(PayoutQueueEvent::DescriptionUpdated { description });
         }
         events
     }
 }
 
-impl TryFrom<EntityEvents<BatchGroupEvent>> for BatchGroup {
+impl TryFrom<EntityEvents<PayoutQueueEvent>> for PayoutQueue {
     type Error = EntityError;
 
-    fn try_from(events: EntityEvents<BatchGroupEvent>) -> Result<Self, Self::Error> {
-        let mut builder = BatchGroupBuilder::default();
-        use BatchGroupEvent::*;
+    fn try_from(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, Self::Error> {
+        let mut builder = PayoutQueueBuilder::default();
+        use PayoutQueueEvent::*;
         for event in events.iter() {
             match event {
                 Initialized { id, account_id } => {

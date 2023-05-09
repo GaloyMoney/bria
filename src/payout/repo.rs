@@ -29,7 +29,7 @@ impl Payouts {
             Uuid::from(new_payout.id),
             Uuid::from(new_payout.account_id),
             Uuid::from(new_payout.wallet_id),
-            Uuid::from(new_payout.batch_group_id),
+            Uuid::from(new_payout.payout_queue_id),
             Uuid::from(new_payout.profile_id),
             new_payout.external_id,
         ).execute(&mut *tx).await?;
@@ -76,7 +76,7 @@ impl Payouts {
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
-        batch_group_id: BatchGroupId,
+        payout_queue_id: PayoutQueueId,
     ) -> Result<HashMap<WalletId, Vec<UnbatchedPayout>>, BriaError> {
         let rows = sqlx::query!(
             r#"
@@ -85,7 +85,7 @@ impl Payouts {
               JOIN bria_payout_events e ON b.id = e.id
               WHERE b.batch_id IS NULL AND b.batch_group_id = $1
               ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            Uuid::from(batch_group_id)
+            Uuid::from(payout_queue_id)
         )
         .fetch_all(&self.pool)
         .await?;

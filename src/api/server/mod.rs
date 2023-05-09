@@ -12,7 +12,7 @@ use tracing::instrument;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, batch_group, error::*, primitives::*};
+use crate::{app::*, error::*, payout_queue, primitives::*};
 
 pub const PROFILE_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -300,23 +300,23 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn create_batch_group(
+    async fn create_payout_queue(
         &self,
-        request: Request<CreateBatchGroupRequest>,
-    ) -> Result<Response<CreateBatchGroupResponse>, Status> {
+        request: Request<CreatePayoutQueueRequest>,
+    ) -> Result<Response<CreatePayoutQueueResponse>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
         let id = self
             .app
-            .create_batch_group(
+            .create_payout_queue(
                 profile,
                 request.name,
                 request.description,
-                request.config.map(batch_group::BatchGroupConfig::from),
+                request.config.map(payout_queue::PayoutQueueConfig::from),
             )
             .await?;
-        Ok(Response::new(CreateBatchGroupResponse {
+        Ok(Response::new(CreatePayoutQueueResponse {
             id: id.to_string(),
         }))
     }
@@ -331,7 +331,7 @@ impl BriaService for Bria {
         let request = request.into_inner();
         let QueuePayoutRequest {
             wallet_name,
-            batch_group_name,
+            payout_queue_name,
             destination,
             satoshis,
             external_id,
@@ -343,7 +343,7 @@ impl BriaService for Bria {
             .queue_payout(
                 profile,
                 wallet_name,
-                batch_group_name,
+                payout_queue_name,
                 destination.try_into()?,
                 Satoshis::from(satoshis),
                 external_id,
@@ -393,46 +393,46 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn list_batch_groups(
+    async fn list_payout_queues(
         &self,
-        request: Request<ListBatchGroupsRequest>,
-    ) -> Result<Response<ListBatchGroupsResponse>, Status> {
+        request: Request<ListPayoutQueuesRequest>,
+    ) -> Result<Response<ListPayoutQueuesResponse>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
-        let batch_groups = self.app.list_batch_groups(profile).await?;
-        let batch_group_messages: Vec<proto::BatchGroup> = batch_groups
+        let payout_queues = self.app.list_payout_queues(profile).await?;
+        let payout_queue_messages: Vec<proto::PayoutQueue> = payout_queues
             .into_iter()
-            .map(proto::BatchGroup::from)
+            .map(proto::PayoutQueue::from)
             .collect();
-        let response = ListBatchGroupsResponse {
-            batch_groups: batch_group_messages,
+        let response = ListPayoutQueuesResponse {
+            payout_queues: payout_queue_messages,
         };
         Ok(Response::new(response))
     }
 
     #[instrument(skip_all, err)]
-    async fn update_batch_group(
+    async fn update_payout_queue(
         &self,
-        request: Request<UpdateBatchGroupRequest>,
-    ) -> Result<Response<UpdateBatchGroupResponse>, Status> {
+        request: Request<UpdatePayoutQueueRequest>,
+    ) -> Result<Response<UpdatePayoutQueueResponse>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let UpdateBatchGroupRequest {
+        let UpdatePayoutQueueRequest {
             id,
             new_description,
             new_config,
         } = request;
 
         self.app
-            .update_batch_group(
+            .update_payout_queue(
                 profile,
                 id.parse().map_err(BriaError::CouldNotParseIncomingUuid)?,
                 new_description,
-                new_config.map(batch_group::BatchGroupConfig::from),
+                new_config.map(payout_queue::PayoutQueueConfig::from),
             )
             .await?;
-        Ok(Response::new(UpdateBatchGroupResponse {}))
+        Ok(Response::new(UpdatePayoutQueueResponse {}))
     }
 
     #[instrument(skip_all, err)]

@@ -35,8 +35,8 @@ pub struct AppConfig {
     #[serde(default = "default_sync_all_wallets_delay")]
     pub sync_all_wallets_delay: Duration,
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
-    #[serde(default = "default_process_all_batch_groups_delay")]
-    pub process_all_batch_groups_delay: Duration,
+    #[serde(default = "default_process_all_payout_queues_delay")]
+    pub process_all_payout_queues_delay: Duration,
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_respawn_all_outbox_handlers_delay")]
     pub respawn_all_outbox_handlers_delay: Duration,
@@ -46,7 +46,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),
-            process_all_batch_groups_delay: default_process_all_batch_groups_delay(),
+            process_all_payout_queues_delay: default_process_all_payout_queues_delay(),
             respawn_all_outbox_handlers_delay: default_respawn_all_outbox_handlers_delay(),
         }
     }
@@ -56,7 +56,7 @@ fn default_sync_all_wallets_delay() -> Duration {
     Duration::from_secs(5)
 }
 
-fn default_process_all_batch_groups_delay() -> Duration {
+fn default_process_all_payout_queues_delay() -> Duration {
     Duration::from_secs(2)
 }
 

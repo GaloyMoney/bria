@@ -9,13 +9,13 @@ use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
     batch::*,
-    batch_group::*,
     descriptor::*,
     error::*,
     job,
     ledger::*,
     outbox::*,
     payout::*,
+    payout_queue::*,
     primitives::*,
     profile::*,
     signing_session::*,
@@ -32,7 +32,7 @@ pub struct App {
     xpubs: XPubs,
     descriptors: Descriptors,
     wallets: Wallets,
-    batch_groups: BatchGroups,
+    payout_queues: PayoutQueues,
     payouts: Payouts,
     signing_sessions: SigningSessions,
     ledger: Ledger,
@@ -50,7 +50,7 @@ impl App {
     ) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
-        let batch_groups = BatchGroups::new(&pool);
+        let payout_queues = PayoutQueues::new(&pool);
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;
@@ -63,7 +63,7 @@ impl App {
             outbox.clone(),
             wallets.clone(),
             xpubs.clone(),
-            batch_groups.clone(),
+            payout_queues.clone(),
             batches,
             signing_sessions.clone(),
             payouts.clone(),
@@ -71,14 +71,17 @@ impl App {
             utxos.clone(),
             addresses.clone(),
             app_cfg.sync_all_wallets_delay,
-            app_cfg.process_all_batch_groups_delay,
+            app_cfg.process_all_payout_queues_delay,
             app_cfg.respawn_all_outbox_handlers_delay,
             blockchain_cfg.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), app_cfg.sync_all_wallets_delay).await?;
-        Self::spawn_process_all_batch_groups(pool.clone(), app_cfg.process_all_batch_groups_delay)
-            .await?;
+        Self::spawn_process_all_payout_queues(
+            pool.clone(),
+            app_cfg.process_all_payout_queues_delay,
+        )
+        .await?;
         Self::spawn_respawn_all_outbox_handlers(
             pool.clone(),
             app_cfg.respawn_all_outbox_handlers_delay,
@@ -90,7 +93,7 @@ impl App {
             xpubs,
             descriptors: Descriptors::new(&pool),
             wallets,
-            batch_groups,
+            payout_queues,
             payouts,
             signing_sessions,
             pool,
@@ -437,25 +440,25 @@ impl App {
         Ok((wallet.id, ordered_utxos))
     }
 
-    #[instrument(name = "app.create_batch_group", skip(self), err)]
-    pub async fn create_batch_group(
+    #[instrument(name = "app.create_payout_queue", skip(self), err)]
+    pub async fn create_payout_queue(
         &self,
         profile: Profile,
-        batch_group_name: String,
+        payout_queue_name: String,
         description: Option<String>,
-        config: Option<BatchGroupConfig>,
-    ) -> Result<BatchGroupId, BriaError> {
-        let mut builder = NewBatchGroup::builder();
+        config: Option<PayoutQueueConfig>,
+    ) -> Result<PayoutQueueId, BriaError> {
+        let mut builder = NewPayoutQueue::builder();
         builder
             .account_id(profile.account_id)
-            .name(batch_group_name)
+            .name(payout_queue_name)
             .description(description);
         if let Some(config) = config {
             builder.config(config);
         }
-        let batch_group = builder.build().expect("Couldn't build NewBatchGroup");
-        let batch_group_id = self.batch_groups.create(batch_group).await?;
-        Ok(batch_group_id)
+        let payout_queue = builder.build().expect("Couldn't build NewPayoutQueue");
+        let payout_queue_id = self.payout_queues.create(payout_queue).await?;
+        Ok(payout_queue_id)
     }
 
     #[instrument(name = "app.queue_payout", skip(self), err)]
@@ -474,8 +477,8 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let batch_group = self
-            .batch_groups
+        let payout_queue = self
+            .payout_queues
             .find_by_name(profile.account_id, group_name)
             .await?;
         let mut builder = NewPayout::builder();
@@ -483,7 +486,7 @@ impl App {
             .account_id(profile.account_id)
             .profile_id(profile.id)
             .wallet_id(wallet.id)
-            .batch_group_id(batch_group.id)
+            .payout_queue_id(payout_queue.id)
             .destination(destination.clone())
             .satoshis(sats)
             .metadata(metadata.clone());
@@ -504,7 +507,7 @@ impl App {
                     meta: PayoutQueuedMeta {
                         account_id: profile.account_id,
                         payout_id: id,
-                        batch_group_id: batch_group.id,
+                        payout_queue_id: payout_queue.id,
                         wallet_id: wallet.id,
                         profile_id: profile.id,
                         satoshis: sats,
@@ -536,31 +539,37 @@ impl App {
             .await
     }
 
-    #[instrument(name = "app.list_batch_groups", skip_all, err)]
-    pub async fn list_batch_groups(&self, profile: Profile) -> Result<Vec<BatchGroup>, BriaError> {
-        let batch_groups = self
-            .batch_groups
-            .list_by_account_id(profile.account_id)
-            .await?;
-        Ok(batch_groups)
-    }
-
-    #[instrument(name = "app.update_batch_group", skip(self), err)]
-    pub async fn update_batch_group(
+    #[instrument(name = "app.list_payout_queues", skip_all, err)]
+    pub async fn list_payout_queues(
         &self,
         profile: Profile,
-        id: BatchGroupId,
+    ) -> Result<Vec<PayoutQueue>, BriaError> {
+        let payout_queues = self
+            .payout_queues
+            .list_by_account_id(profile.account_id)
+            .await?;
+        Ok(payout_queues)
+    }
+
+    #[instrument(name = "app.update_payout_queue", skip(self), err)]
+    pub async fn update_payout_queue(
+        &self,
+        profile: Profile,
+        id: PayoutQueueId,
         new_description: Option<String>,
-        new_config: Option<BatchGroupConfig>,
+        new_config: Option<PayoutQueueConfig>,
     ) -> Result<(), BriaError> {
-        let mut batch_group = self.batch_groups.find_by_id(profile.account_id, id).await?;
+        let mut payout_queue = self
+            .payout_queues
+            .find_by_id(profile.account_id, id)
+            .await?;
         if let Some(desc) = new_description {
-            batch_group.update_description(desc)
+            payout_queue.update_description(desc)
         }
         if let Some(config) = new_config {
-            batch_group.update_config(config)
+            payout_queue.update_config(config)
         }
-        self.batch_groups.update(batch_group).await?;
+        self.payout_queues.update(payout_queue).await?;
         Ok(())
     }
 
@@ -608,15 +617,15 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.spawn_process_all_batch_groups", skip_all, err)]
-    async fn spawn_process_all_batch_groups(
+    #[instrument(name = "app.spawn_process_all_payout_queues", skip_all, err)]
+    async fn spawn_process_all_payout_queues(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
     ) -> Result<(), BriaError> {
         tokio::spawn(async move {
             loop {
                 let _ =
-                    job::spawn_process_all_batch_groups(&pool, std::time::Duration::from_secs(1))
+                    job::spawn_process_all_payout_queues(&pool, std::time::Duration::from_secs(1))
                         .await;
                 tokio::time::sleep(delay).await;
             }

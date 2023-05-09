@@ -4,10 +4,10 @@ use super::proto;
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
-    batch_group::*,
     error::BriaError,
     outbox::*,
     payout::*,
+    payout_queue::*,
     primitives::{bitcoin::*, *},
     profile::*,
     signing_session::*,
@@ -153,7 +153,7 @@ impl From<Payout> for proto::Payout {
         proto::Payout {
             id: payout.id.to_string(),
             wallet_id: payout.wallet_id.to_string(),
-            batch_group_id: payout.batch_group_id.to_string(),
+            payout_queue_id: payout.payout_queue_id.to_string(),
             batch_id: payout.batch_id.map(|id| id.to_string()),
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
@@ -184,26 +184,26 @@ impl From<WalletConfig> for proto::WalletConfig {
     }
 }
 
-impl From<BatchGroup> for proto::BatchGroup {
-    fn from(batch_group: BatchGroup) -> Self {
-        let id = batch_group.id.to_string();
-        let description = batch_group.description();
-        let name = batch_group.name;
-        let consolidate_deprecated_keychains = batch_group.config.consolidate_deprecated_keychains;
-        let trigger = match batch_group.config.trigger {
-            BatchGroupTrigger::Manual => proto::batch_group_config::Trigger::Manual(true),
-            BatchGroupTrigger::Immediate => proto::batch_group_config::Trigger::Immediate(true),
-            BatchGroupTrigger::Interval { seconds } => {
-                proto::batch_group_config::Trigger::IntervalSecs(seconds.as_secs() as u32)
+impl From<PayoutQueue> for proto::PayoutQueue {
+    fn from(payout_queue: PayoutQueue) -> Self {
+        let id = payout_queue.id.to_string();
+        let description = payout_queue.description();
+        let name = payout_queue.name;
+        let consolidate_deprecated_keychains = payout_queue.config.consolidate_deprecated_keychains;
+        let trigger = match payout_queue.config.trigger {
+            PayoutQueueTrigger::Manual => proto::payout_queue_config::Trigger::Manual(true),
+            PayoutQueueTrigger::Immediate => proto::payout_queue_config::Trigger::Immediate(true),
+            PayoutQueueTrigger::Interval { seconds } => {
+                proto::payout_queue_config::Trigger::IntervalSecs(seconds.as_secs() as u32)
             }
         };
-        let tx_priority: proto::TxPriority = batch_group.config.tx_priority.into();
-        let config = Some(proto::BatchGroupConfig {
+        let tx_priority: proto::TxPriority = payout_queue.config.tx_priority.into();
+        let config = Some(proto::PayoutQueueConfig {
             trigger: Some(trigger),
             tx_priority: tx_priority as i32,
             consolidate_deprecated_keychains,
         });
-        proto::BatchGroup {
+        proto::PayoutQueue {
             id,
             name,
             description,
@@ -234,19 +234,21 @@ impl From<SigningSession> for proto::SigningSession {
     }
 }
 
-impl From<proto::BatchGroupConfig> for BatchGroupConfig {
-    fn from(proto_config: proto::BatchGroupConfig) -> Self {
+impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
+    fn from(proto_config: proto::PayoutQueueConfig) -> Self {
         let tx_priority =
             proto::TxPriority::from_i32(proto_config.tx_priority).map(TxPriority::from);
         let consolidate_deprecated_keychains = proto_config.consolidate_deprecated_keychains;
 
         let trigger = match proto_config.trigger {
-            Some(proto::batch_group_config::Trigger::Manual(_)) => Some(BatchGroupTrigger::Manual),
-            Some(proto::batch_group_config::Trigger::Immediate(_)) => {
-                Some(BatchGroupTrigger::Immediate)
+            Some(proto::payout_queue_config::Trigger::Manual(_)) => {
+                Some(PayoutQueueTrigger::Manual)
             }
-            Some(proto::batch_group_config::Trigger::IntervalSecs(interval)) => {
-                Some(BatchGroupTrigger::Interval {
+            Some(proto::payout_queue_config::Trigger::Immediate(_)) => {
+                Some(PayoutQueueTrigger::Immediate)
+            }
+            Some(proto::payout_queue_config::Trigger::IntervalSecs(interval)) => {
+                Some(PayoutQueueTrigger::Interval {
                     seconds: Duration::from_secs(interval as u64),
                 })
             }

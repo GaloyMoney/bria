@@ -31,7 +31,7 @@ impl Batches {
             VALUES ($1, $2, $3, $4, $5, $6)"#,
             batch.id as BatchId,
             batch.account_id as AccountId,
-            batch.batch_group_id as BatchGroupId,
+            batch.payout_queue_id as PayoutQueueId,
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
             bitcoin::consensus::encode::serialize(&batch.unsigned_psbt)
@@ -130,7 +130,7 @@ impl Batches {
         Ok(Batch {
             id,
             account_id,
-            batch_group_id: BatchGroupId::from(rows[0].batch_group_id),
+            payout_queue_id: PayoutQueueId::from(rows[0].batch_group_id),
             bitcoin_tx_id,
             unsigned_psbt,
             signed_tx,
