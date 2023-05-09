@@ -28,7 +28,7 @@ pub struct ChangeOutput {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchWalletInfo {
     pub account_id: AccountId,
-    pub batch_group_id: BatchGroupId,
+    pub payout_queue_id: PayoutQueueId,
     pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub included_payouts: Vec<PayoutInfo>,

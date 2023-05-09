@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
 
-use crate::{batch::*, batch_group::*, error::*, payout::*, primitives::*, utxo::*, wallet::*};
+use crate::{batch::*, error::*, payout::*, payout_queue::*, primitives::*, utxo::*, wallet::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProcessBatchGroupData {
-    pub(super) batch_group_id: BatchGroupId,
+pub struct ProcessPayoutQueueData {
+    pub(super) payout_queue_id: PayoutQueueId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
     #[serde(flatten)]
@@ -14,16 +14,16 @@ pub struct ProcessBatchGroupData {
 }
 
 #[instrument(
-    name = "job.process_batch_group",
+    name = "job.process_payout_queue",
     skip_all,
     fields(
         n_unbatched_payouts,
-        batch_group_name,
+        payout_queue_name,
         n_reserved_utxos,
         txid,
         psbt,
         batch_id,
-        batch_group_id
+        payout_queue_id
     ),
     err
 )]
@@ -32,32 +32,32 @@ pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
-    batch_groups: BatchGroups,
+    payout_queues: PayoutQueues,
     batches: Batches,
     utxos: Utxos,
-    data: ProcessBatchGroupData,
+    data: ProcessPayoutQueueData,
 ) -> Result<
     (
-        ProcessBatchGroupData,
+        ProcessPayoutQueueData,
         Option<(sqlx::Transaction<'a, sqlx::Postgres>, Vec<WalletId>)>,
     ),
     BriaError,
 > {
     let span = tracing::Span::current();
-    let BatchGroup {
+    let PayoutQueue {
         config: bg_cfg,
         name,
         ..
-    } = batch_groups
-        .find_by_id(data.account_id, data.batch_group_id)
+    } = payout_queues
+        .find_by_id(data.account_id, data.payout_queue_id)
         .await?;
-    span.record("batch_group_name", name);
+    span.record("payout_queue_name", name);
     span.record(
-        "batch_group_id",
-        &tracing::field::display(data.batch_group_id),
+        "payout_queue_id",
+        &tracing::field::display(data.payout_queue_id),
     );
 
-    let unbatched_payouts = payouts.list_unbatched(data.batch_group_id).await?;
+    let unbatched_payouts = payouts.list_unbatched(data.payout_queue_id).await?;
     span.record(
         "n_unbatched_payouts",
         unbatched_payouts.values().fold(0, |acc, v| acc + v.len()),
@@ -132,7 +132,7 @@ pub async fn execute<'a>(
         let batch = NewBatch::builder()
             .account_id(data.account_id)
             .id(data.batch_id)
-            .batch_group_id(data.batch_group_id)
+            .payout_queue_id(data.payout_queue_id)
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)

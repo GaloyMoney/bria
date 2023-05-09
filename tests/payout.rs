@@ -32,7 +32,7 @@ async fn test_payout() -> anyhow::Result<()> {
 
     let group_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let _ = app
-        .create_batch_group(profile.clone(), group_name.clone(), None, None)
+        .create_payout_queue(profile.clone(), group_name.clone(), None, None)
         .await?;
 
     let destination = PayoutDestination::OnchainAddress {

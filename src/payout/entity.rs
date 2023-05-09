@@ -9,7 +9,7 @@ pub enum PayoutEvent {
     Initialized {
         id: PayoutId,
         wallet_id: WalletId,
-        batch_group_id: BatchGroupId,
+        payout_queue_id: PayoutQueueId,
         profile_id: ProfileId,
         destination: PayoutDestination,
         satoshis: Satoshis,
@@ -31,7 +31,7 @@ pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
     pub profile_id: ProfileId,
-    pub batch_group_id: BatchGroupId,
+    pub payout_queue_id: PayoutQueueId,
     #[builder(setter(into), default)]
     pub batch_id: Option<BatchId>,
     pub satoshis: Satoshis,
@@ -67,7 +67,7 @@ pub struct NewPayout {
     #[builder(setter(into))]
     pub(super) wallet_id: WalletId,
     #[builder(setter(into))]
-    pub(super) batch_group_id: BatchGroupId,
+    pub(super) payout_queue_id: PayoutQueueId,
     pub(super) profile_id: ProfileId,
     pub(super) satoshis: Satoshis,
     pub(super) destination: PayoutDestination,
@@ -90,7 +90,7 @@ impl NewPayout {
             PayoutEvent::Initialized {
                 id: self.id,
                 wallet_id: self.wallet_id,
-                batch_group_id: self.batch_group_id,
+                payout_queue_id: self.payout_queue_id,
                 profile_id: self.profile_id,
                 destination: self.destination,
                 satoshis: self.satoshis,
@@ -142,7 +142,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                     id,
                     wallet_id,
                     profile_id,
-                    batch_group_id,
+                    payout_queue_id,
                     destination,
                     satoshis,
                     ..
@@ -151,7 +151,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                         .id(*id)
                         .wallet_id(*wallet_id)
                         .profile_id(*profile_id)
-                        .batch_group_id(*batch_group_id)
+                        .payout_queue_id(*payout_queue_id)
                         .destination(destination.clone())
                         .satoshis(*satoshis);
                 }

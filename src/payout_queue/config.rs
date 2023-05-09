@@ -4,16 +4,16 @@ use std::time::Duration;
 use crate::primitives::TxPriority;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct BatchGroupConfig {
+pub struct PayoutQueueConfig {
     pub tx_priority: TxPriority,
     pub consolidate_deprecated_keychains: bool,
-    pub trigger: BatchGroupTrigger,
+    pub trigger: PayoutQueueTrigger,
 }
 
 #[serde_with::serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum BatchGroupTrigger {
+pub enum PayoutQueueTrigger {
     Manual,
     Immediate,
     Interval {
@@ -23,12 +23,12 @@ pub enum BatchGroupTrigger {
     },
 }
 
-impl Default for BatchGroupConfig {
+impl Default for PayoutQueueConfig {
     fn default() -> Self {
         Self {
             tx_priority: TxPriority::NextBlock,
             consolidate_deprecated_keychains: true,
-            trigger: BatchGroupTrigger::Interval {
+            trigger: PayoutQueueTrigger::Interval {
                 seconds: default_interval(),
             },
         }

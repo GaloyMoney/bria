@@ -3,7 +3,7 @@ mod batch_signing;
 mod batch_wallet_accounting;
 mod executor;
 mod populate_outbox;
-mod process_batch_group;
+mod process_payout_queue;
 mod sync_wallet;
 
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
@@ -11,8 +11,8 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, batch_group::*, error::*,
-    ledger::Ledger, outbox::*, payout::*, primitives::*, signing_session::*, utxo::Utxos,
+    account::*, address::Addresses, app::BlockchainConfig, batch::*, error::*, ledger::Ledger,
+    outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*, utxo::Utxos,
     wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
@@ -21,11 +21,11 @@ use batch_wallet_accounting::BatchWalletAccountingData;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
 use populate_outbox::PopulateOutboxData;
-use process_batch_group::ProcessBatchGroupData;
+use process_payout_queue::ProcessPayoutQueueData;
 use sync_wallet::SyncWalletData;
 
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
-const PROCESS_ALL_BATCH_GROUPS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
+const PROCESS_ALL_PAYOUT_QUEUES_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 const RESPAWN_ALL_OUTBOX_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ pub async fn start_job_runner(
     outbox: Outbox,
     wallets: Wallets,
     xpubs: XPubs,
-    batch_groups: BatchGroups,
+    payout_queues: PayoutQueues,
     batches: Batches,
     signing_sessions: SigningSessions,
     payouts: Payouts,
@@ -49,16 +49,16 @@ pub async fn start_job_runner(
     utxos: Utxos,
     addresses: Addresses,
     sync_all_wallets_delay: std::time::Duration,
-    process_all_batch_groups_delay: std::time::Duration,
+    process_all_payout_queues_delay: std::time::Duration,
     respawn_all_outbox_handlers_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
 ) -> Result<OwnedHandle, BriaError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
         sync_wallet,
-        process_all_batch_groups,
-        schedule_process_batch_group,
-        process_batch_group,
+        process_all_payout_queues,
+        schedule_process_payout_queue,
+        process_payout_queue,
         batch_wallet_accounting,
         batch_signing,
         batch_broadcasting,
@@ -66,7 +66,7 @@ pub async fn start_job_runner(
         populate_outbox,
     ]);
     registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
-    registry.set_context(ProcessAllBatchesDelay(process_all_batch_groups_delay));
+    registry.set_context(ProcessAllBatchesDelay(process_all_payout_queues_delay));
     registry.set_context(RespawnAllOutboxHandlersDelay(
         respawn_all_outbox_handlers_delay,
     ));
@@ -74,7 +74,7 @@ pub async fn start_job_runner(
     registry.set_context(outbox);
     registry.set_context(wallets);
     registry.set_context(xpubs);
-    registry.set_context(batch_groups);
+    registry.set_context(payout_queues);
     registry.set_context(batches);
     registry.set_context(signing_sessions);
     registry.set_context(payouts);
@@ -106,10 +106,10 @@ async fn sync_all_wallets(
     Ok(())
 }
 
-#[job(name = "process_all_batch_groups")]
-async fn process_all_batch_groups(
+#[job(name = "process_all_payout_queues")]
+async fn process_all_payout_queues(
     mut current_job: CurrentJob,
-    batch_groups: BatchGroups,
+    payout_queues: PayoutQueues,
     ProcessAllBatchesDelay(delay): ProcessAllBatchesDelay,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
@@ -117,9 +117,9 @@ async fn process_all_batch_groups(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            for group in batch_groups.all().await? {
+            for group in payout_queues.all().await? {
                 if let Some(delay) = group.spawn_in() {
-                    let _ = spawn_schedule_process_batch_group(
+                    let _ = spawn_schedule_process_payout_queue(
                         &pool,
                         (group.account_id, group.id),
                         delay
@@ -132,7 +132,7 @@ async fn process_all_batch_groups(
             Ok::<(), BriaError>(())
         })
         .await?;
-    spawn_process_all_batch_groups(current_job.pool(), delay).await?;
+    spawn_process_all_payout_queues(current_job.pool(), delay).await?;
     Ok(())
 }
 
@@ -208,20 +208,20 @@ async fn sync_wallet(
     Ok(())
 }
 
-#[job(name = "schedule_process_batch_group")]
-async fn schedule_process_batch_group(mut current_job: CurrentJob) -> Result<(), BriaError> {
+#[job(name = "schedule_process_payout_queue")]
+async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
-            let mut data: ProcessBatchGroupData = data.expect("no SyncWalletData available");
+            let mut data: ProcessPayoutQueueData = data.expect("no SyncWalletData available");
             data.tracing_data = crate::tracing::extract_tracing_data();
             onto_account_main_queue(
                 &pool,
                 data.account_id,
                 Uuid::new_v4(),
-                "process_batch_group",
+                "process_payout_queue",
                 data,
             )
             .await
@@ -230,13 +230,13 @@ async fn schedule_process_batch_group(mut current_job: CurrentJob) -> Result<(),
     Ok(())
 }
 
-#[job(name = "process_batch_group")]
-async fn process_batch_group(
+#[job(name = "process_payout_queue")]
+async fn process_payout_queue(
     mut current_job: CurrentJob,
     payouts: Payouts,
     wallets: Wallets,
     utxos: Utxos,
-    batch_groups: BatchGroups,
+    payout_queues: PayoutQueues,
     batches: Batches,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
@@ -244,12 +244,12 @@ async fn process_batch_group(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
-            let data: ProcessBatchGroupData = data.expect("no ProcessBatchGroupData available");
-            let (data, res) = process_batch_group::execute(
+            let data: ProcessPayoutQueueData = data.expect("no ProcessPayoutQueueData available");
+            let (data, res) = process_payout_queue::execute(
                 pool,
                 payouts,
                 wallets,
-                batch_groups,
+                payout_queues,
                 batches,
                 utxos,
                 data,
@@ -391,13 +391,13 @@ async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<
     Ok(())
 }
 
-#[instrument(name = "job.spawn_process_all_batch_groups", skip_all, fields(error, error.level, error.message), err)]
-pub async fn spawn_process_all_batch_groups(
+#[instrument(name = "job.spawn_process_all_payout_queues", skip_all, fields(error, error.level, error.message), err)]
+pub async fn spawn_process_all_payout_queues(
     pool: &sqlx::PgPool,
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
-    match JobBuilder::new_with_id(PROCESS_ALL_BATCH_GROUPS_ID, "process_all_batch_groups")
-        .set_channel_name("process_all_batch_groups")
+    match JobBuilder::new_with_id(PROCESS_ALL_PAYOUT_QUEUES_ID, "process_all_payout_queues")
+        .set_channel_name("process_all_payout_queues")
         .set_delay(delay)
         .spawn(pool)
         .await
@@ -411,20 +411,20 @@ pub async fn spawn_process_all_batch_groups(
     }
 }
 
-#[instrument(name = "job.schedule_spawn_process_batch_group", skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_schedule_process_batch_group(
+#[instrument(name = "job.schedule_spawn_process_payout_queue", skip_all, fields(error, error.level, error.message), err)]
+async fn spawn_schedule_process_payout_queue(
     pool: &sqlx::PgPool,
-    data: impl Into<ProcessBatchGroupData>,
+    data: impl Into<ProcessPayoutQueueData>,
     delay: std::time::Duration,
 ) -> Result<(), BriaError> {
     let data = data.into();
     match JobBuilder::new_with_id(
-        Uuid::from(data.batch_group_id),
-        "schedule_process_batch_group",
+        Uuid::from(data.payout_queue_id),
+        "schedule_process_payout_queue",
     )
     .set_ordered(true)
-    .set_channel_name("schedule_batch_group")
-    .set_channel_args(&schedule_batch_group_channel_arg(data.batch_group_id))
+    .set_channel_name("schedule_payout_queue")
+    .set_channel_args(&schedule_payout_queue_channel_arg(data.payout_queue_id))
     .set_delay(delay)
     .set_json(&data)
     .expect("Couldn't set json")
@@ -576,8 +576,8 @@ pub async fn spawn_respawn_all_outbox_handlers(
     }
 }
 
-fn schedule_batch_group_channel_arg(batch_group_id: BatchGroupId) -> String {
-    format!("batch_group_id:{batch_group_id}")
+fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {
+    format!("payout_queue_id:{payout_queue_id}")
 }
 
 async fn onto_account_main_queue<D: serde::Serialize>(
@@ -609,10 +609,10 @@ fn account_main_channel_arg(account_id: AccountId) -> String {
     format!("account_id:{account_id}")
 }
 
-impl From<(AccountId, BatchGroupId)> for ProcessBatchGroupData {
-    fn from((account_id, batch_group_id): (AccountId, BatchGroupId)) -> Self {
+impl From<(AccountId, PayoutQueueId)> for ProcessPayoutQueueData {
+    fn from((account_id, payout_queue_id): (AccountId, PayoutQueueId)) -> Self {
         Self {
-            batch_group_id,
+            payout_queue_id,
             account_id,
             batch_id: BatchId::new(),
             tracing_data: crate::tracing::extract_tracing_data(),
@@ -620,8 +620,8 @@ impl From<(AccountId, BatchGroupId)> for ProcessBatchGroupData {
     }
 }
 
-impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
-    fn from((data, wallet_id): (&ProcessBatchGroupData, WalletId)) -> Self {
+impl From<(&ProcessPayoutQueueData, WalletId)> for BatchWalletAccountingData {
+    fn from((data, wallet_id): (&ProcessPayoutQueueData, WalletId)) -> Self {
         Self {
             tracing_data: crate::tracing::extract_tracing_data(),
             account_id: data.account_id,
@@ -631,8 +631,8 @@ impl From<(&ProcessBatchGroupData, WalletId)> for BatchWalletAccountingData {
     }
 }
 
-impl From<&ProcessBatchGroupData> for BatchSigningData {
-    fn from(data: &ProcessBatchGroupData) -> Self {
+impl From<&ProcessPayoutQueueData> for BatchSigningData {
+    fn from(data: &ProcessPayoutQueueData) -> Self {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,

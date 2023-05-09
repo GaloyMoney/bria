@@ -21,9 +21,9 @@ service BriaService {
   rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
-  rpc CreateBatchGroup (CreateBatchGroupRequest) returns (CreateBatchGroupResponse) {}
-  rpc ListBatchGroups (ListBatchGroupsRequest) returns (ListBatchGroupsResponse) {}
-  rpc UpdateBatchGroup (UpdateBatchGroupRequest) returns (UpdateBatchGroupResponse) {}
+  rpc CreatePayoutQueue (CreatePayoutQueueRequest) returns (CreatePayoutQueueResponse) {}
+  rpc ListPayoutQueues (ListPayoutQueuesRequest) returns (ListPayoutQueuesResponse) {}
+  rpc UpdatePayoutQueue (UpdatePayoutQueueRequest) returns (UpdatePayoutQueueResponse) {}
   rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
@@ -227,13 +227,13 @@ message GetAccountBalanceSummaryResponse {
   uint64 fees_encumbered = 10;
 }
 
-message CreateBatchGroupRequest {
+message CreatePayoutQueueRequest {
   string name = 1;
   optional string description = 2;
-  BatchGroupConfig config = 3;
+  PayoutQueueConfig config = 3;
 }
 
-message BatchGroupConfig {
+message PayoutQueueConfig {
   TxPriority tx_priority = 1;
   bool consolidate_deprecated_keychains = 2;
   oneof trigger {
@@ -249,34 +249,34 @@ enum TxPriority {
   ECONOMY = 2;
 }
 
-message CreateBatchGroupResponse {
+message CreatePayoutQueueResponse {
   string id = 1;
 }
 
-message BatchGroup {
+message PayoutQueue {
   string id = 1;
   string name = 2;
   optional string description = 3;
-  BatchGroupConfig config = 4;
+  PayoutQueueConfig config = 4;
 }
 
-message ListBatchGroupsResponse {
-  repeated BatchGroup batch_groups = 1;
+message ListPayoutQueuesResponse {
+  repeated PayoutQueue payout_queues = 1;
 }
 
-message ListBatchGroupsRequest {}
+message ListPayoutQueuesRequest {}
 
-message UpdateBatchGroupRequest{
+message UpdatePayoutQueueRequest{
   string id = 1;
   optional string new_description = 2;
-  optional BatchGroupConfig new_config = 3;
+  optional PayoutQueueConfig new_config = 3;
 }
 
-message UpdateBatchGroupResponse{}
+message UpdatePayoutQueueResponse{}
 
 message QueuePayoutRequest {
   string wallet_name = 1;
-  string batch_group_name = 2;
+  string payout_queue_name = 2;
   oneof destination {
     string onchain_address = 3;
   };
@@ -296,7 +296,7 @@ message ListPayoutsRequest {
 message Payout {
   string id = 1;
   string wallet_id = 2;
-  string batch_group_id = 3;
+  string payout_queue_id = 3;
   optional string batch_id = 4;
   uint64 satoshis = 5;
   oneof destination {

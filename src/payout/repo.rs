@@ -24,12 +24,12 @@ impl Payouts {
         new_payout: NewPayout,
     ) -> Result<PayoutId, BriaError> {
         sqlx::query!(
-            r#"INSERT INTO bria_payouts (id, account_id, wallet_id, batch_group_id, profile_id, external_id)
+            r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
                VALUES ($1, $2, $3, $4, $5, $6)"#,
             Uuid::from(new_payout.id),
             Uuid::from(new_payout.account_id),
             Uuid::from(new_payout.wallet_id),
-            Uuid::from(new_payout.batch_group_id),
+            Uuid::from(new_payout.payout_queue_id),
             Uuid::from(new_payout.profile_id),
             new_payout.external_id,
         ).execute(&mut *tx).await?;
@@ -76,16 +76,16 @@ impl Payouts {
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
-        batch_group_id: BatchGroupId,
+        payout_queue_id: PayoutQueueId,
     ) -> Result<HashMap<WalletId, Vec<UnbatchedPayout>>, BriaError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.batch_id IS NULL AND b.batch_group_id = $1
+              WHERE b.batch_id IS NULL AND b.payout_queue_id = $1
               ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            Uuid::from(batch_group_id)
+            Uuid::from(payout_queue_id)
         )
         .fetch_all(&self.pool)
         .await?;

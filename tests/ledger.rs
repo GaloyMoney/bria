@@ -292,7 +292,7 @@ async fn queue_payout() -> anyhow::Result<()> {
                     account_id,
                     payout_id,
                     wallet_id,
-                    batch_group_id: BatchGroupId::new(),
+                    payout_queue_id: PayoutQueueId::new(),
                     profile_id: ProfileId::new(),
                     satoshis,
                     destination: PayoutDestination::OnchainAddress {
@@ -368,7 +368,7 @@ async fn create_batch() -> anyhow::Result<()> {
                         account_id,
                         wallet_id,
                         batch_id,
-                        batch_group_id: BatchGroupId::new(),
+                        payout_queue_id: PayoutQueueId::new(),
                         included_payouts: Vec::new(),
                     },
                     tx_summary: WalletTransactionSummary {
