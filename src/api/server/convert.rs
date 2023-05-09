@@ -158,6 +158,9 @@ impl From<Payout> for proto::Payout {
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
             external_id: payout.external_id,
+            metadata: payout.metadata.map(|json| {
+                serde_json::from_value(json).expect("Could not transfer json -> struct")
+            }),
         }
     }
 }

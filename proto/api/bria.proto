@@ -303,6 +303,7 @@ message Payout {
     string onchain_address = 6;
   }
   string external_id = 7;
+  optional google.protobuf.Struct metadata = 8;
 }
 
 message ListPayoutsResponse {
