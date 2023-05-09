@@ -57,14 +57,13 @@ impl BatchGroup {
     pub fn update_description(&mut self, description: String) {
         if self.description().as_ref() != Some(&description) {
             self.events
-                .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
+                .push(BatchGroupEvent::DescriptionUpdated { description });
         }
     }
 
     pub fn update_config(&mut self, config: BatchGroupConfig) {
         if self.config != config {
-            self.events
-                .push(BatchGroupEvent::BatchGroupConfigUpdated { config });
+            self.events.push(BatchGroupEvent::ConfigUpdated { config });
         }
     }
 }
