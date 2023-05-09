@@ -124,7 +124,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 210000000 ]] || exit 1
-  [[ $(cached_logical_settled) != 0 ]] || exit 1
+  [[ $(cached_effective_settled) != 0 ]] || exit 1
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
@@ -135,8 +135,8 @@ teardown_file() {
 
   bitcoind_signer_balance_in_btc=$(bitcoin_signer_cli getbalance)
   bitcoind_signer_balance=$(convert_btc_to_sats "${bitcoind_signer_balance_in_btc}")
-  if [[ "$(cached_logical_settled)" != "${bitcoind_signer_balance}" ]]; then
-    echo "$(cached_logical_settled)" != "${bitcoind_signer_balance}"
+  if [[ "$(cached_effective_settled)" != "${bitcoind_signer_balance}" ]]; then
+    echo "$(cached_effective_settled)" != "${bitcoind_signer_balance}"
     exit 1
   fi
 }
@@ -167,7 +167,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
-  [[ $(cached_logical_settled) == 0 ]] || exit 1
+  [[ $(cached_effective_settled) == 0 ]] || exit 1
   [[ $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
@@ -192,7 +192,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 60000000 ]] || exit 1
-  [[ $(cached_logical_settled) == 0 ]] || exit 1
+  [[ $(cached_effective_settled) == 0 ]] || exit 1
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
@@ -201,8 +201,8 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 0 ]] || exit 1
-  [[ $(cached_logical_settled) == $(cached_current_settled) ]] || exit 1
+  [[ $(cached_effective_settled) == $(cached_current_settled) ]] || exit 1
   bitcoind_signer_balance_in_btc=$(bitcoin_signer_cli getbalance)
   bitcoind_signer_balance=$(convert_btc_to_sats "${bitcoind_signer_balance_in_btc}")
-  [[ "$(cached_logical_settled)" == "${bitcoind_signer_balance}" ]] || exit 1
+  [[ "$(cached_effective_settled)" == "${bitcoind_signer_balance}" ]] || exit 1
 }

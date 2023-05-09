@@ -34,7 +34,7 @@ impl SpendSettledParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_outgoing_account_id")
+                .name("effective_outgoing_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -126,8 +126,8 @@ impl From<SpendSettledParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("meta", meta);
         params.insert(
-            "logical_outgoing_account_id",
-            ledger_account_ids.logical_outgoing_id,
+            "effective_outgoing_account_id",
+            ledger_account_ids.effective_outgoing_id,
         );
         params.insert("onchain_fee_account_id", ledger_account_ids.fee_id);
         params.insert(
@@ -173,11 +173,11 @@ impl SpendSettled {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'SPEND_SETTLED_LOG_OUT_PEN_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -186,7 +186,7 @@ impl SpendSettled {
             EntryInput::builder()
                 .entry_type("'SPEND_SETTLED_LOG_OUT_PEN_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -195,7 +195,7 @@ impl SpendSettled {
             EntryInput::builder()
                 .entry_type("'SPEND_SETTLED_LOG_OUT_SET_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -204,7 +204,7 @@ impl SpendSettled {
             EntryInput::builder()
                 .entry_type("'SPEND_SETTLED_LOG_OUT_SET_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.total_utxo_in - params.change - params.fees")

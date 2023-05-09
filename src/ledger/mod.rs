@@ -40,9 +40,9 @@ impl Ledger {
         Self::onchain_outgoing_account(&inner).await?;
         Self::onchain_fee_account(&inner).await?;
 
-        Self::logical_income_account(&inner).await?;
-        Self::logical_at_rest_account(&inner).await?;
-        Self::logical_outgoing_account(&inner).await?;
+        Self::effective_income_account(&inner).await?;
+        Self::effective_at_rest_account(&inner).await?;
+        Self::effective_outgoing_account(&inner).await?;
 
         templates::UtxoDetected::init(&inner).await?;
         templates::UtxoSettled::init(&inner).await?;
@@ -110,7 +110,7 @@ impl Ledger {
         let (code, params) = if let Some(spent_tx) = params.meta.already_spent_tx_id {
             #[derive(serde::Deserialize)]
             struct ExtractAllocations {
-                withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
+                withdraw_from_effective_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
             }
             let txs = self
                 .inner
@@ -121,15 +121,15 @@ impl Ledger {
             let mut params = sqlx_ledger::tx_template::TxParams::from(params);
             if let Some(tx) = txs.get(0) {
                 if let Ok(Some(ExtractAllocations {
-                    mut withdraw_from_logical_when_settled,
+                    mut withdraw_from_effective_when_settled,
                 })) = tx.metadata()
                 {
-                    let withdraw_from_logical_settled = withdraw_from_logical_when_settled
+                    let withdraw_from_effective_settled = withdraw_from_effective_when_settled
                         .remove(&outpoint)
                         .unwrap_or(Satoshis::ZERO);
                     params.insert(
-                        "withdraw_from_logical_settled",
-                        withdraw_from_logical_settled.to_btc(),
+                        "withdraw_from_effective_settled",
+                        withdraw_from_effective_settled.to_btc(),
                     );
                 }
             }
@@ -202,7 +202,7 @@ impl Ledger {
                         .map(|u| (u.outpoint, fees_to_encumber))
                         .collect(),
                     tx_summary,
-                    withdraw_from_logical_when_settled: HashMap::new(),
+                    withdraw_from_effective_when_settled: HashMap::new(),
                 },
             };
             self.inner
@@ -310,9 +310,9 @@ impl Ledger {
             onchain_incoming_id,
             onchain_at_rest_id,
             onchain_outgoing_id,
-            logical_incoming_id,
-            logical_at_rest_id,
-            logical_outgoing_id,
+            effective_incoming_id,
+            effective_at_rest_id,
+            effective_outgoing_id,
             fee_id,
             dust_id,
         }: WalletLedgerAccountIds,
@@ -326,9 +326,9 @@ impl Ledger {
                     onchain_incoming_id,
                     onchain_at_rest_id,
                     onchain_outgoing_id,
-                    logical_incoming_id,
-                    logical_at_rest_id,
-                    logical_outgoing_id,
+                    effective_incoming_id,
+                    effective_at_rest_id,
+                    effective_outgoing_id,
                     fee_id,
                     dust_id,
                 ],
@@ -344,14 +344,14 @@ impl Ledger {
             onchain_outgoing: balances
                 .get_mut(&onchain_outgoing_id)
                 .and_then(|b| b.remove(&self.btc)),
-            logical_incoming: balances
-                .get_mut(&logical_incoming_id)
+            effective_incoming: balances
+                .get_mut(&effective_incoming_id)
                 .and_then(|b| b.remove(&self.btc)),
-            logical_at_rest: balances
-                .get_mut(&logical_at_rest_id)
+            effective_at_rest: balances
+                .get_mut(&effective_at_rest_id)
                 .and_then(|b| b.remove(&self.btc)),
-            logical_outgoing: balances
-                .get_mut(&logical_outgoing_id)
+            effective_outgoing: balances
+                .get_mut(&effective_outgoing_id)
                 .and_then(|b| b.remove(&self.btc)),
             fee: balances.get_mut(&fee_id).and_then(|b| b.remove(&self.btc)),
             dust: balances.get_mut(&dust_id).and_then(|b| b.remove(&self.btc)),
@@ -372,9 +372,9 @@ impl Ledger {
                     sqlx_ledger::AccountId::from(ONCHAIN_UTXO_INCOMING_ID),
                     sqlx_ledger::AccountId::from(ONCHAIN_UTXO_AT_REST_ID),
                     sqlx_ledger::AccountId::from(ONCHAIN_UTXO_OUTGOING_ID),
-                    sqlx_ledger::AccountId::from(LOGICAL_INCOMING_ID),
-                    sqlx_ledger::AccountId::from(LOGICAL_AT_REST_ID),
-                    sqlx_ledger::AccountId::from(LOGICAL_OUTGOING_ID),
+                    sqlx_ledger::AccountId::from(EFFECTIVE_INCOMING_ID),
+                    sqlx_ledger::AccountId::from(EFFECTIVE_AT_REST_ID),
+                    sqlx_ledger::AccountId::from(EFFECTIVE_OUTGOING_ID),
                     sqlx_ledger::AccountId::from(ONCHAIN_FEE_ID),
                 ],
             )
@@ -389,14 +389,14 @@ impl Ledger {
             onchain_outgoing: balances
                 .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_UTXO_OUTGOING_ID))
                 .and_then(|b| b.remove(&self.btc)),
-            logical_incoming: balances
-                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_INCOMING_ID))
+            effective_incoming: balances
+                .get_mut(&sqlx_ledger::AccountId::from(EFFECTIVE_INCOMING_ID))
                 .and_then(|b| b.remove(&self.btc)),
-            logical_at_rest: balances
-                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_AT_REST_ID))
+            effective_at_rest: balances
+                .get_mut(&sqlx_ledger::AccountId::from(EFFECTIVE_AT_REST_ID))
                 .and_then(|b| b.remove(&self.btc)),
-            logical_outgoing: balances
-                .get_mut(&sqlx_ledger::AccountId::from(LOGICAL_OUTGOING_ID))
+            effective_outgoing: balances
+                .get_mut(&sqlx_ledger::AccountId::from(EFFECTIVE_OUTGOING_ID))
                 .and_then(|b| b.remove(&self.btc)),
             fee: balances
                 .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_FEE_ID))
@@ -469,30 +469,30 @@ impl Ledger {
                     DebitOrCredit::Credit,
                 )
                 .await?,
-            logical_incoming_id: self
+            effective_incoming_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{wallet_id}_LOGICAL_INCOMING"),
-                    format!("{wallet_id}-logical-incoming"),
+                    format!("WALLET_{wallet_id}_EFFECTIVE_INCOMING"),
+                    format!("{wallet_id}-effective-incoming"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
-            logical_at_rest_id: self
+            effective_at_rest_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{wallet_id}_LOGICAL_AT_REST"),
-                    format!("{wallet_id}-logical-at-rest"),
+                    format!("WALLET_{wallet_id}_EFFECTIVE_AT_REST"),
+                    format!("{wallet_id}-effective-at-rest"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
-            logical_outgoing_id: self
+            effective_outgoing_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    format!("WALLET_{wallet_id}_LOGICAL_OUTGOING"),
-                    format!("{wallet_id}-logical-outgoing"),
+                    format!("WALLET_{wallet_id}_EFFECTIVE_OUTGOING"),
+                    format!("{wallet_id}-effective-outgoing"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -612,52 +612,58 @@ impl Ledger {
         }
     }
 
-    #[instrument(name = "ledger.logical_income_account", skip_all)]
-    async fn logical_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    #[instrument(name = "ledger.effective_income_account", skip_all)]
+    async fn effective_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(LOGICAL_INCOMING_CODE)
-            .id(LOGICAL_INCOMING_ID)
-            .name(LOGICAL_INCOMING_CODE)
-            .description("Account for logical incoming unconfirmed funds".to_string())
+            .code(EFFECTIVE_INCOMING_CODE)
+            .id(EFFECTIVE_INCOMING_ID)
+            .name(EFFECTIVE_INCOMING_CODE)
+            .description("Account for effective incoming unconfirmed funds".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
-            .expect("Couldn't create logical incoming account");
+            .expect("Couldn't create effective incoming account");
         match ledger.accounts().create(new_account).await {
-            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(LOGICAL_INCOMING_ID)),
+            Err(SqlxLedgerError::DuplicateKey(_)) => {
+                Ok(LedgerAccountId::from(EFFECTIVE_INCOMING_ID))
+            }
             Err(e) => Err(e.into()),
             Ok(id) => Ok(id),
         }
     }
 
-    #[instrument(name = "ledger.logical_at_rest_account", skip_all)]
-    async fn logical_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    #[instrument(name = "ledger.effective_at_rest_account", skip_all)]
+    async fn effective_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(LOGICAL_AT_REST_CODE)
-            .id(LOGICAL_AT_REST_ID)
-            .name(LOGICAL_AT_REST_CODE)
-            .description("Account for settlement of logical funds".to_string())
+            .code(EFFECTIVE_AT_REST_CODE)
+            .id(EFFECTIVE_AT_REST_ID)
+            .name(EFFECTIVE_AT_REST_CODE)
+            .description("Account for settlement of effective funds".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
-            .expect("Couldn't create logical at rest account");
+            .expect("Couldn't create effective at rest account");
         match ledger.accounts().create(new_account).await {
-            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(LOGICAL_AT_REST_ID)),
+            Err(SqlxLedgerError::DuplicateKey(_)) => {
+                Ok(LedgerAccountId::from(EFFECTIVE_AT_REST_ID))
+            }
             Err(e) => Err(e.into()),
             Ok(id) => Ok(id),
         }
     }
 
-    #[instrument(name = "ledger.logical_outgoing_account", skip_all)]
-    async fn logical_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    #[instrument(name = "ledger.effective_outgoing_account", skip_all)]
+    async fn effective_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
         let new_account = NewLedgerAccount::builder()
-            .code(LOGICAL_OUTGOING_CODE)
-            .id(LOGICAL_OUTGOING_ID)
-            .name(LOGICAL_OUTGOING_CODE)
-            .description("Account for outgoing logical funds".to_string())
+            .code(EFFECTIVE_OUTGOING_CODE)
+            .id(EFFECTIVE_OUTGOING_ID)
+            .name(EFFECTIVE_OUTGOING_CODE)
+            .description("Account for outgoing effective funds".to_string())
             .normal_balance_type(DebitOrCredit::Debit)
             .build()
-            .expect("Couldn't create logical  account");
+            .expect("Couldn't create effective  account");
         match ledger.accounts().create(new_account).await {
-            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(LedgerAccountId::from(LOGICAL_OUTGOING_ID)),
+            Err(SqlxLedgerError::DuplicateKey(_)) => {
+                Ok(LedgerAccountId::from(EFFECTIVE_OUTGOING_ID))
+            }
             Err(e) => Err(e.into()),
             Ok(id) => Ok(id),
         }

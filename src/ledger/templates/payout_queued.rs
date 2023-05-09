@@ -19,7 +19,7 @@ pub struct PayoutQueuedMeta {
 #[derive(Debug)]
 pub struct PayoutQueuedParams {
     pub journal_id: JournalId,
-    pub logical_outgoing_account_id: LedgerAccountId,
+    pub effective_outgoing_account_id: LedgerAccountId,
     pub external_id: String,
     pub meta: PayoutQueuedMeta,
 }
@@ -33,7 +33,7 @@ impl PayoutQueuedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_outgoing_account_id")
+                .name("effective_outgoing_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -65,7 +65,7 @@ impl From<PayoutQueuedParams> for TxParams {
     fn from(
         PayoutQueuedParams {
             journal_id,
-            logical_outgoing_account_id,
+            effective_outgoing_account_id,
             external_id,
             meta,
         }: PayoutQueuedParams,
@@ -75,7 +75,10 @@ impl From<PayoutQueuedParams> for TxParams {
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
-        params.insert("logical_outgoing_account_id", logical_outgoing_account_id);
+        params.insert(
+            "effective_outgoing_account_id",
+            effective_outgoing_account_id,
+        );
         params.insert("amount", amount);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
@@ -98,11 +101,11 @@ impl PayoutQueued {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")
@@ -111,7 +114,7 @@ impl PayoutQueued {
             EntryInput::builder()
                 .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.amount")

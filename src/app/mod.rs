@@ -499,7 +499,7 @@ impl App {
                 LedgerTransactionId::from(uuid::Uuid::from(id)),
                 PayoutQueuedParams {
                     journal_id: wallet.journal_id,
-                    logical_outgoing_account_id: wallet.ledger_account_ids.logical_outgoing_id,
+                    effective_outgoing_account_id: wallet.ledger_account_ids.effective_outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
                     meta: PayoutQueuedMeta {
                         account_id: profile.account_id,

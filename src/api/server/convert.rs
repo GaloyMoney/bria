@@ -291,13 +291,13 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
             pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
             encumbered_fees: u64::try_from(balance.encumbered_fees)
                 .expect("Satoshis -> u64 failed"),
-            logical_pending_income: u64::try_from(balance.logical_pending_income)
+            effective_pending_income: u64::try_from(balance.effective_pending_income)
                 .expect("Satoshis -> u64 failed"),
-            logical_settled: u64::try_from(balance.logical_settled)
+            effective_settled: u64::try_from(balance.effective_settled)
                 .expect("Satoshis -> u64 failed"),
-            logical_pending_outgoing: u64::try_from(balance.logical_pending_outgoing)
+            effective_pending_outgoing: u64::try_from(balance.effective_pending_outgoing)
                 .expect("Satoshis -> u64 failed"),
-            logical_encumbered_outgoing: u64::try_from(balance.logical_encumbered_outgoing)
+            effective_encumbered_outgoing: u64::try_from(balance.effective_encumbered_outgoing)
                 .expect("Satoshis -> u64 failed"),
         }
     }
@@ -316,13 +316,13 @@ impl From<AccountBalanceSummary> for proto::GetAccountBalanceSummaryResponse {
             pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
             encumbered_fees: u64::try_from(balance.encumbered_fees)
                 .expect("Satoshis -> u64 failed"),
-            logical_pending_income: u64::try_from(balance.logical_pending_income)
+            effective_pending_income: u64::try_from(balance.effective_pending_income)
                 .expect("Satoshis -> u64 failed"),
-            logical_settled: u64::try_from(balance.logical_settled)
+            effective_settled: u64::try_from(balance.effective_settled)
                 .expect("Satoshis -> u64 failed"),
-            logical_pending_outgoing: u64::try_from(balance.logical_pending_outgoing)
+            effective_pending_outgoing: u64::try_from(balance.effective_pending_outgoing)
                 .expect("Satoshis -> u64 failed"),
-            logical_encumbered_outgoing: u64::try_from(balance.logical_encumbered_outgoing)
+            effective_encumbered_outgoing: u64::try_from(balance.effective_encumbered_outgoing)
                 .expect("Satoshis -> u64 failed"),
         }
     }

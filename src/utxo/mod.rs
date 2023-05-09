@@ -1,5 +1,5 @@
+mod effective_allocation;
 mod entity;
-mod logical_allocation;
 mod repo;
 
 use bdk::{wallet::AddressInfo, LocalUtxo};
@@ -119,7 +119,7 @@ impl Utxos {
             return Ok(None);
         }
         let (total_settled_in, allocations) =
-            logical_allocation::withdraw_from_logical_when_settled(
+            effective_allocation::withdraw_from_effective_when_settled(
                 utxos,
                 change_utxos.iter().fold(Satoshis::ZERO, |s, (u, _)| {
                     s + Satoshis::from(u.txout.value)

@@ -50,7 +50,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
                 journal_id,
                 onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
-                logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
+                effective_incoming_account_id: wallet_ledger_accounts.effective_incoming_id,
                 meta: UtxoDetectedMeta {
                     account_id,
                     wallet_id,
@@ -72,7 +72,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     );
 
     assert_eq!(summary.pending_incoming_utxos, one_btc);
-    assert_eq!(summary.logical_pending_income, one_btc);
+    assert_eq!(summary.effective_pending_income, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
@@ -117,9 +117,9 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     );
 
     assert_eq!(summary.pending_incoming_utxos, zero);
-    assert_eq!(summary.logical_pending_income, zero);
+    assert_eq!(summary.effective_pending_income, zero);
     assert_eq!(summary.settled_utxos, one_btc);
-    assert_eq!(summary.logical_settled, one_btc);
+    assert_eq!(summary.effective_settled, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
@@ -177,7 +177,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
                 journal_id,
                 onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
                 onchain_fee_account_id: wallet_ledger_accounts.fee_id,
-                logical_incoming_account_id: wallet_ledger_accounts.logical_incoming_id,
+                effective_incoming_account_id: wallet_ledger_accounts.effective_incoming_id,
                 meta: UtxoDetectedMeta {
                     account_id,
                     wallet_id,
@@ -199,7 +199,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
     );
 
     assert_eq!(summary.pending_incoming_utxos, one_btc);
-    assert_eq!(summary.logical_pending_income, one_btc);
+    assert_eq!(summary.effective_pending_income, one_btc);
     assert_eq!(summary.encumbered_fees, one_sat);
 
     let account_summary = AccountBalanceSummary::from(
@@ -244,7 +244,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
     );
 
     assert_eq!(summary.pending_incoming_utxos, zero);
-    assert_eq!(summary.logical_pending_income, zero);
+    assert_eq!(summary.effective_pending_income, zero);
     assert_eq!(summary.settled_utxos, zero);
 
     let account_summary = AccountBalanceSummary::from(
@@ -286,7 +286,7 @@ async fn queue_payout() -> anyhow::Result<()> {
             LedgerTransactionId::new(),
             PayoutQueuedParams {
                 journal_id,
-                logical_outgoing_account_id: wallet_ledger_accounts.logical_outgoing_id,
+                effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
                 external_id: payout_id.to_string(),
                 meta: PayoutQueuedMeta {
                     account_id,
@@ -309,7 +309,7 @@ async fn queue_payout() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(summary.logical_encumbered_outgoing, satoshis);
+    assert_eq!(summary.effective_encumbered_outgoing, satoshis);
 
     let account_summary = AccountBalanceSummary::from(
         ledger
@@ -399,13 +399,13 @@ async fn create_batch() -> anyhow::Result<()> {
         .await?;
     let summary = WalletBalanceSummary::from(balances);
 
-    assert_eq!(summary.logical_pending_outgoing, total_spent_sats);
+    assert_eq!(summary.effective_pending_outgoing, total_spent_sats);
     assert_eq!(
-        summary.logical_settled.flip_sign(),
+        summary.effective_settled.flip_sign(),
         total_spent_sats + fee_sats
     );
     assert_eq!(
-        summary.logical_encumbered_outgoing.flip_sign(),
+        summary.effective_encumbered_outgoing.flip_sign(),
         total_spent_sats
     );
     assert_eq!(summary.encumbered_fees.flip_sign(), encumbered_fees);
@@ -474,7 +474,7 @@ async fn spend_detected() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
                 meta: SpendDetectedMeta {
-                    withdraw_from_logical_when_settled: HashMap::new(),
+                    withdraw_from_effective_when_settled: HashMap::new(),
                     tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,
@@ -510,11 +510,11 @@ async fn spend_detected() -> anyhow::Result<()> {
     let summary = WalletBalanceSummary::from(balances);
 
     assert_eq!(
-        summary.logical_pending_outgoing,
+        summary.effective_pending_outgoing,
         total_utxo_in_sats - fee_sats - change_sats
     );
     assert_eq!(
-        summary.logical_settled.flip_sign(),
+        summary.effective_settled.flip_sign(),
         total_utxo_in_sats - change_sats
     );
     assert_eq!(
@@ -559,9 +559,9 @@ async fn spend_detected() -> anyhow::Result<()> {
         .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
         .await?;
     let summary = WalletBalanceSummary::from(balances);
-    assert_eq!(summary.logical_pending_outgoing, Satoshis::ZERO);
+    assert_eq!(summary.effective_pending_outgoing, Satoshis::ZERO);
     assert_eq!(
-        summary.logical_settled.flip_sign(),
+        summary.effective_settled.flip_sign(),
         total_utxo_in_sats - change_sats
     );
     assert_eq!(summary.pending_fees, Satoshis::ZERO);
@@ -614,7 +614,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
         vout: 0,
     };
     let deferred_sats = Satoshis::from(50_000);
-    let withdraw_from_logical_when_settled = std::iter::once((outpoint, deferred_sats)).collect();
+    let withdraw_from_effective_when_settled = std::iter::once((outpoint, deferred_sats)).collect();
     let reserved_fees = Satoshis::from(12_346);
     let encumbered_spending_fee_sats = Satoshis::ONE;
 
@@ -629,7 +629,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
                 ledger_account_ids: wallet_ledger_accounts,
                 reserved_fees,
                 meta: SpendDetectedMeta {
-                    withdraw_from_logical_when_settled,
+                    withdraw_from_effective_when_settled,
                     tx_summary: WalletTransactionSummary {
                         account_id,
                         wallet_id,
@@ -665,11 +665,11 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
     let summary = WalletBalanceSummary::from(balances);
 
     assert_eq!(
-        summary.logical_pending_outgoing,
+        summary.effective_pending_outgoing,
         total_utxo_in_sats - fee_sats - change_sats
     );
     assert_eq!(
-        summary.logical_settled.flip_sign(),
+        summary.effective_settled.flip_sign(),
         total_utxo_in_sats - change_sats - deferred_sats
     );
     assert_eq!(
@@ -694,13 +694,13 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
 
 fn assert_summaries_match(wallet: WalletBalanceSummary, account: AccountBalanceSummary) {
     assert_eq!(
-        wallet.logical_pending_outgoing,
-        account.logical_pending_outgoing
+        wallet.effective_pending_outgoing,
+        account.effective_pending_outgoing
     );
-    assert_eq!(wallet.logical_settled, account.logical_settled);
+    assert_eq!(wallet.effective_settled, account.effective_settled);
     assert_eq!(
-        wallet.logical_pending_income,
-        account.logical_pending_income
+        wallet.effective_pending_income,
+        account.effective_pending_income
     );
     assert_eq!(
         wallet.encumbered_incoming_utxos,

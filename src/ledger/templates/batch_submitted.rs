@@ -16,7 +16,7 @@ pub struct BatchSubmittedMeta {
     pub batch_info: BatchWalletInfo,
     pub encumbered_spending_fees: EncumberedSpendingFees,
     pub tx_summary: WalletTransactionSummary,
-    pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
+    pub withdraw_from_effective_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
 }
 
 #[derive(Debug)]

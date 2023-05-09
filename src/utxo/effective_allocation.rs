@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::SpentUtxo;
 use crate::primitives::*;
 
-pub(super) fn withdraw_from_logical_when_settled(
+pub(super) fn withdraw_from_effective_when_settled(
     inputs: Vec<SpentUtxo>,
     change: Satoshis,
 ) -> (Satoshis, HashMap<bitcoin::OutPoint, Satoshis>) {
@@ -64,7 +64,7 @@ mod tests {
             confirmed: true,
         }];
         let change = Satoshis::ZERO;
-        let (_, allocations) = withdraw_from_logical_when_settled(inputs, change);
+        let (_, allocations) = withdraw_from_effective_when_settled(inputs, change);
 
         assert_eq!(*allocations.get(&outpoint1).unwrap(), Satoshis::ZERO);
     }
@@ -100,7 +100,7 @@ mod tests {
             },
         ];
         let change = Satoshis::from(30000);
-        let (_, allocations) = withdraw_from_logical_when_settled(inputs, change);
+        let (_, allocations) = withdraw_from_effective_when_settled(inputs, change);
 
         assert_eq!(*allocations.get(&outpoint1).unwrap(), Satoshis::ZERO);
         assert_eq!(*allocations.get(&outpoint2).unwrap(), one_btc);

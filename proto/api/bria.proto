@@ -200,10 +200,10 @@ message GetWalletBalanceSummaryRequest {
 }
 
 message GetWalletBalanceSummaryResponse {
-  uint64 logical_pending_income = 1;
-  uint64 logical_settled = 2;
-  uint64 logical_pending_outgoing = 3;
-  uint64 logical_encumbered_outgoing = 4;
+  uint64 effective_pending_income = 1;
+  uint64 effective_settled = 2;
+  uint64 effective_pending_outgoing = 3;
+  uint64 effective_encumbered_outgoing = 4;
   uint64 encumbered_incoming_utxos = 5;
   uint64 pending_incoming_utxos = 6;
   uint64 settled_utxos = 7;
@@ -215,10 +215,10 @@ message GetWalletBalanceSummaryResponse {
 message GetAccountBalanceSummaryRequest {}
 
 message GetAccountBalanceSummaryResponse {
-  uint64 logical_pending_income = 1;
-  uint64 logical_settled = 2;
-  uint64 logical_pending_outgoing = 3;
-  uint64 logical_encumbered_outgoing = 4;
+  uint64 effective_pending_income = 1;
+  uint64 effective_settled = 2;
+  uint64 effective_pending_outgoing = 3;
+  uint64 effective_encumbered_outgoing = 4;
   uint64 encumbered_incoming_utxos = 5;
   uint64 pending_incoming_utxos = 6;
   uint64 settled_utxos = 7;

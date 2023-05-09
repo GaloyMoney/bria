@@ -116,7 +116,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 210000000 ]] || exit 1
-  [[ $(cached_logical_settled) != 0 ]] || exit 1
+  [[ $(cached_effective_settled) != 0 ]] || exit 1
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
@@ -126,7 +126,7 @@ teardown_file() {
   done
 
   lnd_balance=$(lnd_cli walletbalance | jq -r '.total_balance')
-  [[ "$(cached_logical_settled)" == "${lnd_balance}" ]] || exit 1
+  [[ "$(cached_effective_settled)" == "${lnd_balance}" ]] || exit 1
 }
 
 @test "lnd_sync: Can sweep all" {
@@ -140,7 +140,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_encumbered_fees) == 0 ]] || exit 1
-  [[ $(cached_logical_settled) == 0 ]] || exit 1
+  [[ $(cached_effective_settled) == 0 ]] || exit 1
 }
 
 @test "lnd_sync: Can spend only from unconfirmed" {
@@ -155,7 +155,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 60000000 ]] || exit 1
-  [[ $(cached_logical_settled) == 0 ]] || exit 1
+  [[ $(cached_effective_settled) == 0 ]] || exit 1
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
@@ -164,7 +164,7 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_pending_outgoing) == 0 ]] || exit 1
-  [[ $(cached_logical_settled) == $(cached_current_settled) ]] || exit 1
+  [[ $(cached_effective_settled) == $(cached_current_settled) ]] || exit 1
   lnd_balance=$(lnd_cli walletbalance | jq -r '.total_balance')
-  [[ "$(cached_logical_settled)" == "${lnd_balance}" ]] || exit 1
+  [[ "$(cached_effective_settled)" == "${lnd_balance}" ]] || exit 1
 }

@@ -18,11 +18,11 @@ impl SpentUtxoSettled {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_IN_PEN_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_incoming_account_id")
+                .account_id("params.effective_incoming_account_id")
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
@@ -31,7 +31,7 @@ impl SpentUtxoSettled {
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_IN_PEN_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_INCOMING_ID}')"))
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")
@@ -40,7 +40,7 @@ impl SpentUtxoSettled {
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_SET_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_AT_REST_ID}')"))
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.amount")
@@ -49,7 +49,7 @@ impl SpentUtxoSettled {
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_SET_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_at_rest_account_id")
+                .account_id("params.effective_at_rest_account_id")
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.amount")
@@ -58,19 +58,19 @@ impl SpentUtxoSettled {
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_SET_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_at_rest_account_id")
+                .account_id("params.effective_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.withdraw_from_logical_settled")
+                .units("params.withdraw_from_effective_settled")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
                 .entry_type("'SPENT_UTXO_SETTLED_LOG_SET_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.withdraw_from_logical_settled")
+                .units("params.withdraw_from_effective_settled")
                 .build()
                 .expect("Couldn't build entry"),
             // UTXO
@@ -133,7 +133,7 @@ impl SpentUtxoSettled {
         let mut params = UtxoSettledParams::defs();
         params.push(
             ParamDefinition::builder()
-                .name("withdraw_from_logical_settled")
+                .name("withdraw_from_effective_settled")
                 .r#type(ParamDataType::DECIMAL)
                 .default_expr("decimal('0')")
                 .build()

@@ -32,12 +32,12 @@ impl BatchCreatedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_outgoing_account_id")
+                .name("effective_outgoing_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_at_rest_account_id")
+                .name("effective_at_rest_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -133,12 +133,12 @@ impl From<BatchCreatedParams> for TxParams {
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert(
-            "logical_outgoing_account_id",
-            ledger_account_ids.logical_outgoing_id,
+            "effective_outgoing_account_id",
+            ledger_account_ids.effective_outgoing_id,
         );
         params.insert(
-            "logical_at_rest_account_id",
-            ledger_account_ids.logical_at_rest_id,
+            "effective_at_rest_account_id",
+            ledger_account_ids.effective_at_rest_id,
         );
         params.insert("onchain_fee_account_id", ledger_account_ids.fee_id);
         params.insert(
@@ -178,11 +178,11 @@ impl BatchCreated {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_OUT_ENC_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("DEBIT")
                 .layer("ENCUMBERED")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -191,7 +191,7 @@ impl BatchCreated {
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_OUT_ENC_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("CREDIT")
                 .layer("ENCUMBERED")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -200,7 +200,7 @@ impl BatchCreated {
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_OUT_PEN_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -209,7 +209,7 @@ impl BatchCreated {
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_OUT_PEN_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -218,7 +218,7 @@ impl BatchCreated {
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_SET_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_at_rest_account_id")
+                .account_id("params.effective_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
                 .units("params.total_utxo_in - params.change")
@@ -227,7 +227,7 @@ impl BatchCreated {
             EntryInput::builder()
                 .entry_type("'BATCH_CREATED_LOG_SET_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
                 .units("params.total_utxo_in - params.change")

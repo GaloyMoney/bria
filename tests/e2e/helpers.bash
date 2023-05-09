@@ -32,12 +32,12 @@ cached_current_settled() {
   echo ${balance} | jq -r '.settledUtxos'
 }
 
-cached_logical_settled() {
-  echo ${balance} | jq -r '.logicalSettled'
+cached_effective_settled() {
+  echo ${balance} | jq -r '.effectiveSettled'
 }
 
 cached_pending_outgoing() {
-  echo ${balance} | jq -r '.logicalPendingOutgoing'
+  echo ${balance} | jq -r '.effectivePendingOutgoing'
 }
 
 cached_pending_fees() {
@@ -45,7 +45,7 @@ cached_pending_fees() {
 }
 
 cached_encumbered_outgoing() {
-  echo ${balance} | jq -r '.logicalEncumberedOutgoing'
+  echo ${balance} | jq -r '.effectiveEncumberedOutgoing'
 }
 
 bitcoin_cli() {

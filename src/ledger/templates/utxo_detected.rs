@@ -23,7 +23,7 @@ pub struct UtxoDetectedMeta {
 pub struct UtxoDetectedParams {
     pub journal_id: JournalId,
     pub onchain_incoming_account_id: LedgerAccountId,
-    pub logical_incoming_account_id: LedgerAccountId,
+    pub effective_incoming_account_id: LedgerAccountId,
     pub onchain_fee_account_id: LedgerAccountId,
     pub meta: UtxoDetectedMeta,
 }
@@ -42,7 +42,7 @@ impl UtxoDetectedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_incoming_account_id")
+                .name("effective_incoming_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -80,7 +80,7 @@ impl From<UtxoDetectedParams> for TxParams {
         UtxoDetectedParams {
             journal_id,
             onchain_incoming_account_id,
-            logical_incoming_account_id,
+            effective_incoming_account_id,
             onchain_fee_account_id,
             meta,
         }: UtxoDetectedParams,
@@ -104,7 +104,10 @@ impl From<UtxoDetectedParams> for TxParams {
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert("onchain_incoming_account_id", onchain_incoming_account_id);
-        params.insert("logical_incoming_account_id", logical_incoming_account_id);
+        params.insert(
+            "effective_incoming_account_id",
+            effective_incoming_account_id,
+        );
         params.insert("onchain_fee_account_id", onchain_fee_account_id);
         params.insert("amount", amount);
         params.insert("encumbered_spending_fees", fees);
@@ -127,11 +130,11 @@ impl UtxoDetected {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'UTXO_DETECTED_LOG_IN_PEN_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_INCOMING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_INCOMING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.amount")
@@ -140,7 +143,7 @@ impl UtxoDetected {
             EntryInput::builder()
                 .entry_type("'UTXO_DETECTED_LOG_IN_PEN_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_incoming_account_id")
+                .account_id("params.effective_incoming_account_id")
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.amount")
