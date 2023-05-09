@@ -398,8 +398,8 @@ impl ApiClient {
             interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
         };
 
-        let config = if let (Some(tx_priority), Some(consolidate_deprecated_keychains), trigger) =
-            (tx_priority, consolidate_deprecated_keychains, trigger)
+        let config = if let (Some(tx_priority), Some(consolidate_deprecated_keychains)) =
+            (tx_priority, consolidate_deprecated_keychains)
         {
             Some(proto::BatchGroupConfig {
                 tx_priority,
