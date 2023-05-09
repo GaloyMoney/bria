@@ -1,7 +1,10 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::{ledger::JournalEventMetadata, primitives::*};
+use crate::{
+    ledger::{BatchCreatedMeta, JournalEventMetadata},
+    primitives::*,
+};
 
 pub type WithoutAugmentation = ();
 
@@ -71,6 +74,15 @@ pub enum OutboxEventPayload {
         satoshis: Satoshis,
         destination: PayoutDestination,
     },
+    PayoutCommitted {
+        id: PayoutId,
+        profile_id: ProfileId,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        tx_id: bitcoin::Txid,
+        satoshis: Satoshis,
+        destination: PayoutDestination,
+    },
 }
 
 impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
@@ -103,6 +115,22 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 satoshis: meta.satoshis,
                 destination: meta.destination,
             }),
+            BatchCreated(BatchCreatedMeta {
+                batch_info,
+                tx_summary,
+            }) => {
+                for payout in batch_info.included_payouts {
+                    res.push(OutboxEventPayload::PayoutCommitted {
+                        id: payout.id,
+                        wallet_id: batch_info.wallet_id,
+                        payout_queue_id: batch_info.payout_queue_id,
+                        profile_id: payout.profile_id,
+                        tx_id: tx_summary.bitcoin_tx_id,
+                        satoshis: payout.satoshis,
+                        destination: payout.destination,
+                    })
+                }
+            }
             _ => (),
         };
         res

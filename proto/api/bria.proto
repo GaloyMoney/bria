@@ -352,6 +352,7 @@ message BriaEvent {
     UtxoDetected utxo_detected = 4;
     UtxoSettled utxo_settled = 5;
     PayoutSubmitted payout_submitted = 6;
+    PayoutCommitted payout_committed = 7;
   }
 }
 
@@ -385,5 +386,16 @@ message PayoutSubmitted {
   uint64 satoshis = 4;
   oneof destination {
     string onchain_address = 5;
+  };
+}
+
+message PayoutCommitted {
+  string id = 1;
+  string tx_id = 2;
+  string wallet_id = 3;
+  string payout_queue_id = 4;
+  uint64 satoshis = 5;
+  oneof destination {
+    string onchain_address = 6;
   };
 }

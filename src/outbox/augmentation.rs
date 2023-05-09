@@ -68,7 +68,8 @@ impl Augmenter {
                     payout: None,
                 })
             }
-            OutboxEventPayload::PayoutSubmitted { id, .. } => {
+            OutboxEventPayload::PayoutSubmitted { id, .. }
+            | OutboxEventPayload::PayoutCommitted { id, .. } => {
                 let payout = self.payouts.find_by_id(account_id, id).await?;
                 Ok(Augmentation {
                     payout: Some(payout),

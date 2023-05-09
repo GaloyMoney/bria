@@ -380,6 +380,24 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                     destination.to_string(),
                 )),
             }),
+            OutboxEventPayload::PayoutCommitted {
+                id,
+                tx_id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination: PayoutDestination::OnchainAddress { value: destination },
+                ..
+            } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
+                id: id.to_string(),
+                tx_id: tx_id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_committed::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
         };
 
         let augmentation = event.augmentation.map(|a| proto::EventAugmentation {
