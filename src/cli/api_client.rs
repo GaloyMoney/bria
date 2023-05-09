@@ -371,14 +371,52 @@ impl ApiClient {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn update_batch_group(
         &self,
         id: String,
         description: Option<String>,
+        tx_priority: Option<TxPriority>,
+        consolidate_deprecated_keychains: Option<bool>,
+        manual_trigger: Option<bool>,
+        immediate_trigger: Option<bool>,
+        interval_trigger: Option<u32>,
     ) -> anyhow::Result<()> {
+        let tx_priority = tx_priority.map(|priority| match priority {
+            TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
+            TxPriority::OneHour => proto::TxPriority::OneHour as i32,
+            TxPriority::Economy => proto::TxPriority::Economy as i32,
+        });
+
+        let trigger = if manual_trigger.is_some() {
+            Some(proto::batch_group_config::Trigger::Manual(
+                manual_trigger.unwrap(),
+            ))
+        } else if immediate_trigger.is_some() {
+            Some(proto::batch_group_config::Trigger::Immediate(
+                immediate_trigger.unwrap(),
+            ))
+        } else {
+            interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
+        };
+
+        let config = if tx_priority.is_some()
+            || consolidate_deprecated_keychains.is_some()
+            || trigger.is_some()
+        {
+            Some(proto::BatchGroupConfig {
+                tx_priority: tx_priority.unwrap_or_default(),
+                consolidate_deprecated_keychains: consolidate_deprecated_keychains
+                    .unwrap_or_default(),
+                trigger,
+            })
+        } else {
+            None
+        };
         let request = tonic::Request::new(proto::UpdateBatchGroupRequest {
             id,
             new_description: description,
+            new_config: config,
         });
         let response = self
             .connect()

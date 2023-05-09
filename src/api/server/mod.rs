@@ -421,6 +421,7 @@ impl BriaService for Bria {
         let UpdateBatchGroupRequest {
             id,
             new_description,
+            new_config,
         } = request;
 
         self.app
@@ -428,6 +429,7 @@ impl BriaService for Bria {
                 profile,
                 id.parse().map_err(BriaError::CouldNotParseIncomingUuid)?,
                 new_description,
+                new_config.map(batch_group::BatchGroupConfig::from),
             )
             .await?;
         Ok(Response::new(UpdateBatchGroupResponse {}))

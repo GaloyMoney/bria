@@ -269,7 +269,7 @@ message ListBatchGroupsRequest {}
 message UpdateBatchGroupRequest{
   string id = 1;
   optional string new_description = 2;
-  // optional BatchGroupConfig config = 3;
+  optional BatchGroupConfig new_config = 3;
 }
 
 message UpdateBatchGroupResponse{}

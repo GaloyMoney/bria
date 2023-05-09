@@ -58,6 +58,11 @@ impl BatchGroup {
         self.events
             .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
     }
+
+    pub fn update_config(&mut self, config: BatchGroupConfig) {
+        self.events
+            .push(BatchGroupEvent::BatchGroupConfigUpdated { config });
+    }
 }
 
 #[derive(Debug, Builder, Clone)]
