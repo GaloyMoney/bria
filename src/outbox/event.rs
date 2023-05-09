@@ -63,10 +63,11 @@ pub enum OutboxEventPayload {
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
     },
-    PayoutQueued {
+    PayoutSubmitted {
         id: PayoutId,
         profile_id: ProfileId,
         wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
         satoshis: Satoshis,
         destination: PayoutDestination,
     },
@@ -94,9 +95,10 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
             }),
-            PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutQueued {
+            PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
                 id: meta.payout_id,
                 wallet_id: meta.wallet_id,
+                payout_queue_id: meta.payout_queue_id,
                 profile_id: meta.profile_id,
                 satoshis: meta.satoshis,
                 destination: meta.destination,

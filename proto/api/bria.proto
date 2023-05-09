@@ -351,7 +351,7 @@ message BriaEvent {
   oneof payload {
     UtxoDetected utxo_detected = 4;
     UtxoSettled utxo_settled = 5;
-    PayoutQueued payout_queued = 6;
+    PayoutSubmitted payout_submitted = 6;
   }
 }
 
@@ -378,11 +378,12 @@ message UtxoSettled {
   uint64 block_time = 7;
 }
 
-message PayoutQueued {
+message PayoutSubmitted {
   string id = 1;
   string wallet_id = 2;
-  uint64 satoshis = 3;
+  string payout_queue_id = 3;
+  uint64 satoshis = 4;
   oneof destination {
-    string onchain_address = 4;
+    string onchain_address = 5;
   };
 }

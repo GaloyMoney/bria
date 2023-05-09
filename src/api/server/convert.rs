@@ -364,17 +364,19 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 block_height: confirmation_time.height,
                 block_time: confirmation_time.timestamp,
             }),
-            OutboxEventPayload::PayoutQueued {
+            OutboxEventPayload::PayoutSubmitted {
                 id,
                 wallet_id,
+                payout_queue_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
                 ..
-            } => proto::bria_event::Payload::PayoutQueued(proto::PayoutQueued {
+            } => proto::bria_event::Payload::PayoutSubmitted(proto::PayoutSubmitted {
                 id: id.to_string(),
                 wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_queued::Destination::OnchainAddress(
+                destination: Some(proto::payout_submitted::Destination::OnchainAddress(
                     destination.to_string(),
                 )),
             }),
