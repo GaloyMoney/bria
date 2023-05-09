@@ -281,15 +281,15 @@ impl From<proto::TxPriority> for TxPriority {
 impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     fn from(balance: WalletBalanceSummary) -> Self {
         Self {
-            encumbered_incoming_utxos: u64::try_from(balance.utxo_encumbered_incoming)
+            utxo_encumbered_incoming: u64::try_from(balance.utxo_encumbered_incoming)
                 .expect("Satoshis -> u64 failed"),
-            pending_incoming_utxos: u64::try_from(balance.utxo_pending_incoming)
+            utxo_pending_incoming: u64::try_from(balance.utxo_pending_incoming)
                 .expect("Satoshis -> u64 failed"),
-            settled_utxos: u64::try_from(balance.utxo_settled).expect("Satoshis -> u64 failed"),
-            pending_outgoing_utxos: u64::try_from(balance.utxo_pending_outgoing)
+            utxo_settled: u64::try_from(balance.utxo_settled).expect("Satoshis -> u64 failed"),
+            utxo_pending_outgoing: u64::try_from(balance.utxo_pending_outgoing)
                 .expect("Satoshis -> u64 failed"),
-            pending_fees: u64::try_from(balance.fees_pending).expect("Satoshis -> u64 failed"),
-            encumbered_fees: u64::try_from(balance.fees_encumbered)
+            fees_pending: u64::try_from(balance.fees_pending).expect("Satoshis -> u64 failed"),
+            fees_encumbered: u64::try_from(balance.fees_encumbered)
                 .expect("Satoshis -> u64 failed"),
             effective_pending_income: u64::try_from(balance.effective_pending_income)
                 .expect("Satoshis -> u64 failed"),
@@ -306,15 +306,15 @@ impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
 impl From<AccountBalanceSummary> for proto::GetAccountBalanceSummaryResponse {
     fn from(balance: AccountBalanceSummary) -> Self {
         Self {
-            encumbered_incoming_utxos: u64::try_from(balance.encumbered_incoming_utxos)
+            utxo_encumbered_incoming: u64::try_from(balance.utxo_encumbered_incoming)
                 .expect("Satoshis -> u64 failed"),
-            pending_incoming_utxos: u64::try_from(balance.pending_incoming_utxos)
+            utxo_pending_incoming: u64::try_from(balance.utxo_pending_incoming)
                 .expect("Satoshis -> u64 failed"),
-            settled_utxos: u64::try_from(balance.settled_utxos).expect("Satoshis -> u64 failed"),
-            pending_outgoing_utxos: u64::try_from(balance.pending_outgoing_utxos)
+            utxo_settled: u64::try_from(balance.utxo_settled).expect("Satoshis -> u64 failed"),
+            utxo_pending_outgoing: u64::try_from(balance.utxo_pending_outgoing)
                 .expect("Satoshis -> u64 failed"),
-            pending_fees: u64::try_from(balance.pending_fees).expect("Satoshis -> u64 failed"),
-            encumbered_fees: u64::try_from(balance.encumbered_fees)
+            fees_pending: u64::try_from(balance.fees_pending).expect("Satoshis -> u64 failed"),
+            fees_encumbered: u64::try_from(balance.fees_encumbered)
                 .expect("Satoshis -> u64 failed"),
             effective_pending_income: u64::try_from(balance.effective_pending_income)
                 .expect("Satoshis -> u64 failed"),

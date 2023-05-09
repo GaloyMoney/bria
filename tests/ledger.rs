@@ -689,11 +689,11 @@ fn assert_summaries_match(wallet: WalletBalanceSummary, account: AccountBalanceS
     );
     assert_eq!(
         wallet.utxo_encumbered_incoming,
-        account.encumbered_incoming_utxos
+        account.utxo_encumbered_incoming
     );
-    assert_eq!(wallet.utxo_pending_incoming, account.pending_incoming_utxos);
-    assert_eq!(wallet.utxo_settled, account.settled_utxos);
-    assert_eq!(wallet.utxo_pending_incoming, account.pending_incoming_utxos);
-    assert_eq!(wallet.fees_encumbered, account.encumbered_fees);
-    assert_eq!(wallet.fees_pending, account.pending_fees);
+    assert_eq!(wallet.utxo_pending_incoming, account.utxo_pending_incoming);
+    assert_eq!(wallet.utxo_settled, account.utxo_settled);
+    assert_eq!(wallet.utxo_pending_incoming, account.utxo_pending_incoming);
+    assert_eq!(wallet.fees_encumbered, account.fees_encumbered);
+    assert_eq!(wallet.fees_pending, account.fees_pending);
 }
