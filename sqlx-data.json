@@ -1927,23 +1927,80 @@
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
   },
-  "cc188a17c0079caba98bcc073101da685f209c40f8eb9db0ca3e02edc447a405": {
+  "bac453e06ae1ceebef3012cf0119ec13fcc982c544b3fde38f557b264dea6e9a": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_group_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "profile_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "external_id",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
       "parameters": {
         "Left": [
           "Uuid",
-          "Uuid",
-          "Int8",
-          "Int8",
-          "Uuid",
-          "Jsonb",
-          "Timestamptz"
+          "Uuid"
         ]
       }
     },
-    "query": "\n            INSERT INTO bria_outbox_events\n            (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            "
+    "query": "\n          SELECT b.*, e.sequence, e.event\n          FROM bria_payouts b\n          JOIN bria_payout_events e ON b.id = e.id\n          WHERE account_id = $1 AND b.id = $2\n          ORDER BY b.created_at, b.id, e.sequence"
   },
   "ccbffcf0dc4fec403b76afecafd708decb30f8c3124db79f2444a18754fe77a3": {
     "describe": {

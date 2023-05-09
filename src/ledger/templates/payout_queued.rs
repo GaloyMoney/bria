@@ -11,6 +11,8 @@ pub struct PayoutQueuedMeta {
     pub payout_id: PayoutId,
     pub wallet_id: WalletId,
     pub batch_group_id: BatchGroupId,
+    pub profile_id: ProfileId,
+    pub satoshis: Satoshis,
     pub destination: PayoutDestination,
 }
 
@@ -19,7 +21,6 @@ pub struct PayoutQueuedParams {
     pub journal_id: JournalId,
     pub logical_outgoing_account_id: LedgerAccountId,
     pub external_id: String,
-    pub payout_satoshis: Satoshis,
     pub meta: PayoutQueuedMeta,
 }
 
@@ -66,16 +67,16 @@ impl From<PayoutQueuedParams> for TxParams {
             journal_id,
             logical_outgoing_account_id,
             external_id,
-            payout_satoshis,
             meta,
         }: PayoutQueuedParams,
     ) -> Self {
         let effective = Utc::now().date_naive();
+        let amount = meta.satoshis.to_btc();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
         params.insert("logical_outgoing_account_id", logical_outgoing_account_id);
-        params.insert("amount", payout_satoshis.to_btc());
+        params.insert("amount", amount);
         params.insert("external_id", external_id);
         params.insert("meta", meta);
         params.insert("effective", effective);

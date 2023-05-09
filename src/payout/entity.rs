@@ -6,7 +6,7 @@ use crate::{entity::*, primitives::*};
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutEvent {
-    PayoutInitialized {
+    Initialized {
         id: PayoutId,
         wallet_id: WalletId,
         batch_group_id: BatchGroupId,
@@ -14,13 +14,13 @@ pub enum PayoutEvent {
         destination: PayoutDestination,
         satoshis: Satoshis,
     },
-    PayoutExternalIdUpdated {
+    ExternalIdUpdated {
         external_id: String,
     },
-    PayoutMetadataUpdated {
+    MetadataUpdated {
         metadata: serde_json::Value,
     },
-    PayoutAddedToBatch {
+    AddedToBatch {
         batch_id: BatchId,
     },
 }
@@ -54,8 +54,7 @@ pub struct UnbatchedPayout {
 
 impl UnbatchedPayout {
     pub(super) fn add_to_batch(&mut self, batch_id: BatchId) {
-        self.events
-            .push(PayoutEvent::PayoutAddedToBatch { batch_id });
+        self.events.push(PayoutEvent::AddedToBatch { batch_id });
     }
 }
 
@@ -88,7 +87,7 @@ impl NewPayout {
 
     pub(super) fn initial_events(self) -> EntityEvents<PayoutEvent> {
         let mut events = EntityEvents::init([
-            PayoutEvent::PayoutInitialized {
+            PayoutEvent::Initialized {
                 id: self.id,
                 wallet_id: self.wallet_id,
                 batch_group_id: self.batch_group_id,
@@ -96,12 +95,12 @@ impl NewPayout {
                 destination: self.destination,
                 satoshis: self.satoshis,
             },
-            PayoutEvent::PayoutExternalIdUpdated {
+            PayoutEvent::ExternalIdUpdated {
                 external_id: self.external_id,
             },
         ]);
         if let Some(metadata) = self.metadata {
-            events.push(PayoutEvent::PayoutMetadataUpdated { metadata });
+            events.push(PayoutEvent::MetadataUpdated { metadata });
         }
         events
     }
@@ -113,7 +112,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
     fn try_from(events: EntityEvents<PayoutEvent>) -> Result<Self, Self::Error> {
         let mut builder = UnbatchedPayoutBuilder::default();
         for event in events.iter() {
-            if let PayoutEvent::PayoutInitialized {
+            if let PayoutEvent::Initialized {
                 id,
                 wallet_id,
                 destination,
@@ -139,7 +138,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
         let mut builder = PayoutBuilder::default();
         for event in events.iter() {
             match event {
-                PayoutEvent::PayoutInitialized {
+                PayoutEvent::Initialized {
                     id,
                     wallet_id,
                     profile_id,
@@ -157,13 +156,13 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                         .satoshis(*satoshis);
                 }
 
-                PayoutEvent::PayoutExternalIdUpdated { external_id } => {
+                PayoutEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.clone());
                 }
-                PayoutEvent::PayoutMetadataUpdated { metadata } => {
+                PayoutEvent::MetadataUpdated { metadata } => {
                     builder = builder.metadata(metadata.clone());
                 }
-                PayoutEvent::PayoutAddedToBatch { batch_id } => {
+                PayoutEvent::AddedToBatch { batch_id } => {
                     builder = builder.batch_id(*batch_id);
                 }
             }

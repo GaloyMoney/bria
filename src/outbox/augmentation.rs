@@ -1,9 +1,10 @@
-use crate::{address::*, error::*, primitives::*};
+use crate::{address::*, error::*, payout::*, primitives::*};
 
 use super::event::*;
 
 pub struct Augmentation {
     pub address: Option<AddressAugmentation>,
+    pub payout: Option<Payout>,
 }
 
 pub struct AddressAugmentation {
@@ -16,12 +17,14 @@ pub struct AddressAugmentation {
 #[derive(Clone)]
 pub struct Augmenter {
     addresses: Addresses,
+    payouts: Payouts,
 }
 
 impl Augmenter {
-    pub fn new(addresses: &Addresses) -> Self {
+    pub fn new(addresses: &Addresses, payouts: &Payouts) -> Self {
         Self {
             addresses: addresses.clone(),
+            payouts: payouts.clone(),
         }
     }
 
@@ -45,6 +48,7 @@ impl Augmenter {
                         metadata: address_info.metadata().cloned(),
                         external_id: address_info.external_id,
                     }),
+                    payout: None,
                 })
             }
             OutboxEventPayload::UtxoSettled {
@@ -61,6 +65,14 @@ impl Augmenter {
                         metadata: address_info.metadata().cloned(),
                         external_id: address_info.external_id,
                     }),
+                    payout: None,
+                })
+            }
+            OutboxEventPayload::PayoutQueued { id, .. } => {
+                let payout = self.payouts.find_by_id(account_id, id).await?;
+                Ok(Augmentation {
+                    payout: Some(payout),
+                    address: None,
                 })
             }
         }

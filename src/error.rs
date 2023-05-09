@@ -42,6 +42,8 @@ pub enum BriaError {
     Bip32(#[from] bip32::Error),
     #[error("BriaError - WalletNotFound")]
     WalletNotFound,
+    #[error("BriaError - PayoutNotFound")]
+    PayoutNotFound,
     #[error("BriaError - ProfileNotFound")]
     ProfileNotFound,
     #[error("BriaError - BatchSigningSessionNotFound")]

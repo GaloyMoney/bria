@@ -13,7 +13,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SigningSessionEvent {
-    SigningSessionInitialized {
+    Initialized {
         id: SigningSessionId,
         xpub_id: XPubId,
         account_id: AccountId,
@@ -139,7 +139,7 @@ impl NewSigningSession {
     }
 
     pub(super) fn initial_events(self) -> EntityEvents<SigningSessionEvent> {
-        EntityEvents::init([SigningSessionEvent::SigningSessionInitialized {
+        EntityEvents::init([SigningSessionEvent::Initialized {
             id: self.id,
             account_id: self.account_id,
             batch_id: self.batch_id,
@@ -155,7 +155,7 @@ impl TryFrom<EntityEvents<SigningSessionEvent>> for SigningSession {
     fn try_from(events: EntityEvents<SigningSessionEvent>) -> Result<Self, Self::Error> {
         let mut builder = SigningSessionBuilder::default();
         for event in events.iter() {
-            if let SigningSessionEvent::SigningSessionInitialized {
+            if let SigningSessionEvent::Initialized {
                 id,
                 account_id,
                 batch_id,

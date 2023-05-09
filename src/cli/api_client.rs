@@ -293,6 +293,7 @@ impl ApiClient {
         batch_group_name: String,
         on_chain_address: String,
         satoshis: u64,
+        external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::QueuePayoutRequest {
@@ -302,6 +303,7 @@ impl ApiClient {
                 on_chain_address,
             )),
             satoshis,
+            external_id,
             metadata: metadata.map(serde_json::from_value).transpose()?,
         });
         let response = self
