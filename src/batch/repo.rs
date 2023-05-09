@@ -39,7 +39,7 @@ impl Batches {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
-            (batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id)"#,
+            (batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id)"#,
         );
         query_builder.push_values(
             batch.wallet_summaries,
@@ -61,7 +61,7 @@ impl Batches {
                 builder.push_bind(summary.change_outpoint.map(|out| out.vout as i32));
                 builder.push_bind(i64::from(summary.fee_sats));
                 builder.push_bind(summary.batch_created_ledger_tx_id);
-                builder.push_bind(summary.batch_submitted_ledger_tx_id);
+                builder.push_bind(summary.batch_broadcast_ledger_tx_id);
             },
         );
         let query = query_builder.build();
@@ -73,7 +73,7 @@ impl Batches {
     #[instrument(name = "batches.find_by_id", skip_all)]
     pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
         let rows = sqlx::query!(
-            r#"SELECT payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id
+            r#"SELECT payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
             FROM bria_batch_wallet_summaries s
             LEFT JOIN bria_batches b ON b.id = s.batch_id
             WHERE s.batch_id = $1 AND b.account_id = $2"#,
@@ -120,8 +120,8 @@ impl Batches {
                     batch_created_ledger_tx_id: row
                         .batch_created_ledger_tx_id
                         .map(LedgerTxId::from),
-                    batch_submitted_ledger_tx_id: row
-                        .batch_submitted_ledger_tx_id
+                    batch_broadcast_ledger_tx_id: row
+                        .batch_broadcast_ledger_tx_id
                         .map(LedgerTxId::from),
                 },
             );
@@ -182,8 +182,8 @@ impl Batches {
         }
     }
 
-    #[instrument(name = "batches.set_batch_submitted_ledger_tx_id", skip(self))]
-    pub async fn set_batch_submitted_ledger_tx_id(
+    #[instrument(name = "batches.set_batch_broadcast_ledger_tx_id", skip(self))]
+    pub async fn set_batch_broadcast_ledger_tx_id(
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
@@ -194,10 +194,10 @@ impl Batches {
                  SELECT id FROM bria_batches
                  WHERE bitcoin_tx_id = $1
                )
-               SELECT b.id, s.batch_submitted_ledger_tx_id as "ledger_id?", s.batch_created_ledger_tx_id
+               SELECT b.id, s.batch_broadcast_ledger_tx_id as "ledger_id?", s.batch_created_ledger_tx_id
                FROM b
                LEFT JOIN (
-                   SELECT batch_id, batch_submitted_ledger_tx_id, batch_created_ledger_tx_id
+                   SELECT batch_id, batch_broadcast_ledger_tx_id, batch_created_ledger_tx_id
                    FROM bria_batch_wallet_summaries
                    WHERE wallet_id = $2 AND batch_id = ANY(SELECT id FROM b)
                    FOR UPDATE
@@ -224,7 +224,7 @@ impl Batches {
         let ledger_transaction_id = LedgerTxId::new();
         sqlx::query!(
             r#"UPDATE bria_batch_wallet_summaries
-               SET batch_submitted_ledger_tx_id = $1
+               SET batch_broadcast_ledger_tx_id = $1
                WHERE bria_batch_wallet_summaries.batch_id = $2
                  AND bria_batch_wallet_summaries.wallet_id = $3"#,
             ledger_transaction_id as LedgerTxId,

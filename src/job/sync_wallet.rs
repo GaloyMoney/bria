@@ -235,7 +235,7 @@ pub async fn execute(
             if spend_tx {
                 let (mut tx, create_batch_tx_id, tx_id) =
                     if let Some((tx, create_batch_tx_id, tx_id)) = batches
-                        .set_batch_submitted_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
+                        .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
                         .await?
                     {
                         (tx, Some(create_batch_tx_id), tx_id)
@@ -282,7 +282,7 @@ pub async fn execute(
                 {
                     if let Some(create_batch_tx_id) = create_batch_tx_id {
                         deps.ledger
-                            .batch_submitted(
+                            .batch_broadcast(
                                 tx,
                                 create_batch_tx_id,
                                 tx_id,

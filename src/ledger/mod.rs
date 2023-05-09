@@ -51,7 +51,7 @@ impl Ledger {
         templates::SpendSettled::init(&inner).await?;
         templates::PayoutQueued::init(&inner).await?;
         templates::BatchCreated::init(&inner).await?;
-        templates::BatchSubmitted::init(&inner).await?;
+        templates::BatchBroadcast::init(&inner).await?;
 
         Ok(Self {
             inner,
@@ -172,8 +172,8 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.batch_submitted", skip(self, tx))]
-    pub async fn batch_submitted(
+    #[instrument(name = "ledger.batch_broadcast", skip(self, tx))]
+    pub async fn batch_broadcast(
         &self,
         tx: Transaction<'_, Postgres>,
         create_batch_tx_id: LedgerTransactionId,
@@ -191,10 +191,10 @@ impl Ledger {
             tx_summary,
         }) = txs[0].metadata()?
         {
-            let params = BatchSubmittedParams {
+            let params = BatchBroadcastParams {
                 journal_id: txs[0].journal_id,
                 ledger_account_ids,
-                meta: BatchSubmittedMeta {
+                meta: BatchBroadcastMeta {
                     batch_info,
                     encumbered_spending_fees: tx_summary
                         .change_utxos
@@ -206,7 +206,7 @@ impl Ledger {
                 },
             };
             self.inner
-                .post_transaction_in_tx(tx, submit_tx_id, BATCH_SUBMITTED_CODE, Some(params))
+                .post_transaction_in_tx(tx, submit_tx_id, BATCH_BROADCAST_CODE, Some(params))
                 .await?;
         }
         Ok(())

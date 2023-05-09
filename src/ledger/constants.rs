@@ -22,8 +22,8 @@ pub(super) const PAYOUT_QUEUED_ID: Uuid = uuid!("00000000-0000-0000-0000-0000000
 pub(super) const BATCH_CREATED_CODE: &str = "BATCH_CREATED";
 pub(super) const BATCH_CREATED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000007");
 
-pub(super) const BATCH_SUBMITTED_CODE: &str = "BATCH_SUBMITTED";
-pub(super) const BATCH_SUBMITTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000008");
+pub(super) const BATCH_BROADCAST_CODE: &str = "BATCH_BROADCAST";
+pub(super) const BATCH_BROADCAST_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000008");
 
 // Onchain/Omnibus Ledger Accounts
 pub(super) const ONCHAIN_UTXO_INCOMING_CODE: &str = "ONCHAIN_UTXO_INCOMING";

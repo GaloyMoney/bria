@@ -22,7 +22,7 @@ pub enum JournalEventMetadata {
     SpendSettled(SpendSettledMeta),
     PayoutQueued(PayoutQueuedMeta),
     BatchCreated(BatchCreatedMeta),
-    BatchSubmitted(BatchSubmittedMeta),
+    BatchBroadcast(BatchBroadcastMeta),
     UnknownTransaction(Option<serde_json::Value>),
 }
 
@@ -64,8 +64,8 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
                         tx.metadata::<BatchCreatedMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
-                    BATCH_SUBMITTED_ID => JournalEventMetadata::BatchSubmitted(
-                        tx.metadata::<BatchSubmittedMeta>()?
+                    BATCH_BROADCAST_ID => JournalEventMetadata::BatchBroadcast(
+                        tx.metadata::<BatchBroadcastMeta>()?
                             .ok_or(BriaError::MissingTxMetadata)?,
                     ),
                     _ => JournalEventMetadata::UnknownTransaction(tx.metadata_json),

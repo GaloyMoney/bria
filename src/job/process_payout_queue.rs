@@ -194,7 +194,7 @@ impl From<WalletTotals> for WalletSummary {
             change_outpoint: wt.change_outpoint,
             current_keychain_id: wt.change_keychain_id,
             batch_created_ledger_tx_id: None,
-            batch_submitted_ledger_tx_id: None,
+            batch_broadcast_ledger_tx_id: None,
         }
     }
 }
