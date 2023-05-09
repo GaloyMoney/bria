@@ -388,26 +388,22 @@ impl ApiClient {
             TxPriority::Economy => proto::TxPriority::Economy as i32,
         });
 
-        let trigger = if manual_trigger.is_some() {
-            Some(proto::batch_group_config::Trigger::Manual(
-                manual_trigger.unwrap(),
-            ))
-        } else if immediate_trigger.is_some() {
+        let trigger = if let Some(manual_trigger) = manual_trigger {
+            Some(proto::batch_group_config::Trigger::Manual(manual_trigger))
+        } else if let Some(immediate_trigger) = immediate_trigger {
             Some(proto::batch_group_config::Trigger::Immediate(
-                immediate_trigger.unwrap(),
+                immediate_trigger,
             ))
         } else {
             interval_trigger.map(proto::batch_group_config::Trigger::IntervalSecs)
         };
 
-        let config = if tx_priority.is_some()
-            || consolidate_deprecated_keychains.is_some()
-            || trigger.is_some()
+        let config = if let (Some(tx_priority), Some(consolidate_deprecated_keychains), trigger) =
+            (tx_priority, consolidate_deprecated_keychains, trigger)
         {
             Some(proto::BatchGroupConfig {
-                tx_priority: tx_priority.unwrap_or_default(),
-                consolidate_deprecated_keychains: consolidate_deprecated_keychains
-                    .unwrap_or_default(),
+                tx_priority,
+                consolidate_deprecated_keychains,
                 trigger,
             })
         } else {

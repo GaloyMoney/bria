@@ -55,7 +55,7 @@ impl BatchGroup {
     }
 
     pub fn update_description(&mut self, description: String) {
-        if self.description() != Some(description.clone()) {
+        if self.description().as_ref() != Some(&description) {
             self.events
                 .push(BatchGroupEvent::BatchGroupDescriptionUpdated { description });
         }
