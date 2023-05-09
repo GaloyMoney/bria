@@ -21,31 +21,31 @@ cache_default_wallet_balance() {
 }
 
 cached_pending_income() {
-  echo ${balance} | jq -r '.pendingIncomingUtxos'
+  echo ${balance} | jq -r '.utxoPendingIncoming'
 }
 
 cached_encumbered_fees() {
-  echo ${balance} | jq -r '.encumberedFees'
+  echo ${balance} | jq -r '.feesEncumbered'
 }
 
 cached_current_settled() {
-  echo ${balance} | jq -r '.settledUtxos'
+  echo ${balance} | jq -r '.utxoSettled'
 }
 
-cached_logical_settled() {
-  echo ${balance} | jq -r '.logicalSettled'
+cached_effective_settled() {
+  echo ${balance} | jq -r '.effectiveSettled'
 }
 
 cached_pending_outgoing() {
-  echo ${balance} | jq -r '.logicalPendingOutgoing'
+  echo ${balance} | jq -r '.effectivePendingOutgoing'
 }
 
 cached_pending_fees() {
-  echo ${balance} | jq -r '.pendingFees'
+  echo ${balance} | jq -r '.feesPending'
 }
 
 cached_encumbered_outgoing() {
-  echo ${balance} | jq -r '.logicalEncumberedOutgoing'
+  echo ${balance} | jq -r '.effectiveEncumberedOutgoing'
 }
 
 bitcoin_cli() {

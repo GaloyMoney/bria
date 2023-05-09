@@ -163,9 +163,9 @@ pub async fn execute(
                                 onchain_incoming_account_id: wallet
                                     .ledger_account_ids
                                     .onchain_incoming_id,
-                                logical_incoming_account_id: wallet
+                                effective_incoming_account_id: wallet
                                     .ledger_account_ids
-                                    .logical_incoming_id,
+                                    .effective_incoming_id,
                                 onchain_fee_account_id: wallet.ledger_account_ids.fee_id,
                                 meta: UtxoDetectedMeta {
                                     account_id: data.account_id,
@@ -316,7 +316,7 @@ pub async fn execute(
                                             .iter()
                                             .map(|(u, _)| (u.outpoint, fees_to_encumber))
                                             .collect(),
-                                        withdraw_from_logical_when_settled: allocations,
+                                        withdraw_from_effective_when_settled: allocations,
                                         tx_summary: WalletTransactionSummary {
                                             account_id: data.account_id,
                                             wallet_id: wallet.id,

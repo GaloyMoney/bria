@@ -8,9 +8,9 @@ pub struct WalletLedgerAccountIds {
     pub onchain_incoming_id: LedgerAccountId,
     pub onchain_at_rest_id: LedgerAccountId,
     pub onchain_outgoing_id: LedgerAccountId,
-    pub logical_incoming_id: LedgerAccountId,
-    pub logical_at_rest_id: LedgerAccountId,
-    pub logical_outgoing_id: LedgerAccountId,
+    pub effective_incoming_id: LedgerAccountId,
+    pub effective_at_rest_id: LedgerAccountId,
+    pub effective_outgoing_id: LedgerAccountId,
     pub fee_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
 }
@@ -20,91 +20,91 @@ pub struct WalletLedgerAccountBalances {
     pub onchain_incoming: Option<AccountBalance>,
     pub onchain_at_rest: Option<AccountBalance>,
     pub onchain_outgoing: Option<AccountBalance>,
-    pub logical_incoming: Option<AccountBalance>,
-    pub logical_at_rest: Option<AccountBalance>,
-    pub logical_outgoing: Option<AccountBalance>,
+    pub effective_incoming: Option<AccountBalance>,
+    pub effective_at_rest: Option<AccountBalance>,
+    pub effective_outgoing: Option<AccountBalance>,
     pub fee: Option<AccountBalance>,
     pub dust: Option<AccountBalance>,
 }
 
 #[derive(Debug)]
 pub struct WalletBalanceSummary {
-    pub encumbered_incoming_utxos: Satoshis,
-    pub pending_incoming_utxos: Satoshis,
-    pub settled_utxos: Satoshis,
-    pub pending_outgoing_utxos: Satoshis,
-    pub pending_fees: Satoshis,
-    pub encumbered_fees: Satoshis,
-    pub logical_settled: Satoshis,
-    pub logical_pending_income: Satoshis,
-    pub logical_pending_outgoing: Satoshis,
-    pub logical_encumbered_outgoing: Satoshis,
+    pub utxo_encumbered_incoming: Satoshis,
+    pub utxo_pending_incoming: Satoshis,
+    pub utxo_settled: Satoshis,
+    pub utxo_pending_outgoing: Satoshis,
+    pub fees_pending: Satoshis,
+    pub fees_encumbered: Satoshis,
+    pub effective_settled: Satoshis,
+    pub effective_pending_income: Satoshis,
+    pub effective_pending_outgoing: Satoshis,
+    pub effective_encumbered_outgoing: Satoshis,
 }
 
 impl From<WalletLedgerAccountBalances> for WalletBalanceSummary {
     fn from(balances: WalletLedgerAccountBalances) -> Self {
         Self {
-            encumbered_incoming_utxos: Satoshis::from_btc(
+            utxo_encumbered_incoming: Satoshis::from_btc(
                 balances
                     .onchain_incoming
                     .as_ref()
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),
-            pending_incoming_utxos: Satoshis::from_btc(
+            utxo_pending_incoming: Satoshis::from_btc(
                 balances
                     .onchain_incoming
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            pending_outgoing_utxos: Satoshis::from_btc(
+            utxo_pending_outgoing: Satoshis::from_btc(
                 balances
                     .onchain_outgoing
                     .as_ref()
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            settled_utxos: Satoshis::from_btc(
+            utxo_settled: Satoshis::from_btc(
                 balances
                     .onchain_at_rest
                     .map(|b| b.settled())
                     .unwrap_or(Decimal::ZERO),
             ),
-            pending_fees: Satoshis::from_btc(
+            fees_pending: Satoshis::from_btc(
                 balances
                     .fee
                     .as_ref()
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            encumbered_fees: Satoshis::from_btc(
+            fees_encumbered: Satoshis::from_btc(
                 balances
                     .fee
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),
-            logical_settled: Satoshis::from_btc(
+            effective_settled: Satoshis::from_btc(
                 balances
-                    .logical_at_rest
+                    .effective_at_rest
                     .map(|b| b.settled())
                     .unwrap_or(Decimal::ZERO),
             ),
-            logical_pending_income: Satoshis::from_btc(
+            effective_pending_income: Satoshis::from_btc(
                 balances
-                    .logical_incoming
+                    .effective_incoming
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            logical_pending_outgoing: Satoshis::from_btc(
+            effective_pending_outgoing: Satoshis::from_btc(
                 balances
-                    .logical_outgoing
+                    .effective_outgoing
                     .as_ref()
                     .map(|b| b.pending())
                     .unwrap_or(Decimal::ZERO),
             ),
-            logical_encumbered_outgoing: Satoshis::from_btc(
+            effective_encumbered_outgoing: Satoshis::from_btc(
                 balances
-                    .logical_outgoing
+                    .effective_outgoing
                     .map(|b| b.encumbered())
                     .unwrap_or(Decimal::ZERO),
             ),

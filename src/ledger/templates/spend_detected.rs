@@ -15,7 +15,7 @@ use crate::{
 pub struct SpendDetectedMeta {
     pub encumbered_spending_fees: EncumberedSpendingFees,
     pub tx_summary: WalletTransactionSummary,
-    pub withdraw_from_logical_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
+    pub withdraw_from_effective_when_settled: HashMap<bitcoin::OutPoint, Satoshis>,
     pub confirmation_time: Option<BlockTime>,
 }
 
@@ -36,12 +36,12 @@ impl SpendDetectedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_outgoing_account_id")
+                .name("effective_outgoing_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_at_rest_account_id")
+                .name("effective_at_rest_account_id")
                 .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
@@ -92,7 +92,7 @@ impl SpendDetectedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("logical_settled_out")
+                .name("effective_settled_out")
                 .r#type(ParamDataType::DECIMAL)
                 .build()
                 .unwrap(),
@@ -148,8 +148,8 @@ impl From<SpendDetectedParams> for TxParams {
         let change_sats = change_utxos
             .iter()
             .fold(Satoshis::ZERO, |s, d| s + d.satoshis);
-        let deferred_logical_settled = meta
-            .withdraw_from_logical_when_settled
+        let deferred_effective_settled = meta
+            .withdraw_from_effective_when_settled
             .values()
             .fold(Satoshis::ZERO, |t, d| t + *d);
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
@@ -157,12 +157,12 @@ impl From<SpendDetectedParams> for TxParams {
         params.insert("journal_id", journal_id);
         params.insert("meta", meta);
         params.insert(
-            "logical_outgoing_account_id",
-            ledger_account_ids.logical_outgoing_id,
+            "effective_outgoing_account_id",
+            ledger_account_ids.effective_outgoing_id,
         );
         params.insert(
-            "logical_at_rest_account_id",
-            ledger_account_ids.logical_at_rest_id,
+            "effective_at_rest_account_id",
+            ledger_account_ids.effective_at_rest_id,
         );
         params.insert("onchain_fee_account_id", ledger_account_ids.fee_id);
         params.insert(
@@ -185,8 +185,8 @@ impl From<SpendDetectedParams> for TxParams {
         params.insert("total_utxo_in", total_utxo_in_sats.to_btc());
         params.insert("total_utxo_settled_in", total_utxo_settled_in_sats.to_btc());
         params.insert(
-            "logical_settled_out",
-            (total_utxo_in_sats - change_sats - deferred_logical_settled).to_btc(),
+            "effective_settled_out",
+            (total_utxo_in_sats - change_sats - deferred_effective_settled).to_btc(),
         );
         params.insert("change", change_sats.to_btc());
         params.insert("effective", effective);
@@ -207,11 +207,11 @@ impl SpendDetected {
             .build()
             .expect("Couldn't build TxInput");
         let entries = vec![
-            // LOGICAL
+            // EFFECTIVE
             EntryInput::builder()
                 .entry_type("'SPEND_DETECTED_LOG_OUT_PEN_CR'")
                 .currency("'BTC'")
-                .account_id("params.logical_outgoing_account_id")
+                .account_id("params.effective_outgoing_account_id")
                 .direction("CREDIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -220,7 +220,7 @@ impl SpendDetected {
             EntryInput::builder()
                 .entry_type("'SPEND_DETECTED_LOG_OUT_PEN_DR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_OUTGOING_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("DEBIT")
                 .layer("PENDING")
                 .units("params.total_utxo_in - params.change - params.fees")
@@ -229,19 +229,19 @@ impl SpendDetected {
             EntryInput::builder()
                 .entry_type("'SPEND_DETECTED_LOG_SET_DR'")
                 .currency("'BTC'")
-                .account_id("params.logical_at_rest_account_id")
+                .account_id("params.effective_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.logical_settled_out")
+                .units("params.effective_settled_out")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
                 .entry_type("'SPEND_DETECTED_LOG_SET_CR'")
                 .currency("'BTC'")
-                .account_id(format!("uuid('{LOGICAL_AT_REST_ID}')"))
+                .account_id(format!("uuid('{EFFECTIVE_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.logical_settled_out")
+                .units("params.effective_settled_out")
                 .build()
                 .expect("Couldn't build entry"),
             // FEES
