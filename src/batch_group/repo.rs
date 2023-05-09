@@ -142,4 +142,20 @@ impl BatchGroups {
             .map(BatchGroup::try_from)
             .collect::<Result<Vec<_>, _>>()?)
     }
+
+    pub async fn update(&self, batch_group: BatchGroup) -> Result<(), BriaError> {
+        if !batch_group.events.is_dirty() {
+            return Ok(());
+        }
+
+        let mut tx = self.pool.begin().await?;
+        EntityEvents::<BatchGroupEvent>::persist(
+            "bria_batch_group_events",
+            &mut tx,
+            batch_group.events.new_serialized_events(batch_group.id),
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
+    }
 }

@@ -31,7 +31,7 @@ pub struct BatchGroup {
     pub name: String,
     pub config: BatchGroupConfig,
 
-    events: EntityEvents<BatchGroupEvent>,
+    pub(super) events: EntityEvents<BatchGroupEvent>,
 }
 
 impl BatchGroup {
@@ -52,6 +52,19 @@ impl BatchGroup {
             }
         }
         ret.map(|s| s.to_string())
+    }
+
+    pub fn update_description(&mut self, description: String) {
+        if self.description().as_ref() != Some(&description) {
+            self.events
+                .push(BatchGroupEvent::DescriptionUpdated { description });
+        }
+    }
+
+    pub fn update_config(&mut self, config: BatchGroupConfig) {
+        if self.config != config {
+            self.events.push(BatchGroupEvent::ConfigUpdated { config });
+        }
     }
 }
 

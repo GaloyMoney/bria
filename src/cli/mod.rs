@@ -367,7 +367,35 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
     },
-
+    /// Update Batch Group
+    UpdateBatchGroup {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        /// The id to update
+        #[clap(short, long)]
+        id: String,
+        ///  The new description
+        #[clap(short, long)]
+        description: Option<String>,
+        #[clap(short = 'p', long, default_value = "next-block")]
+        tx_priority: Option<TxPriority>,
+        #[clap(short = 'c', long = "consolidate", default_value = "true")]
+        consolidate_deprecated_keychains: Option<bool>,
+        #[clap(long, conflicts_with_all = &["immediate_trigger", "interval_trigger"])]
+        manual_trigger: Option<bool>,
+        #[clap(long, conflicts_with_all = &["manual_trigger", "interval_trigger"])]
+        immediate_trigger: Option<bool>,
+        #[clap( long, conflicts_with_all = &["manual_trigger", "immediate_trigger"])]
+        interval_trigger: Option<u32>,
+    },
     /// List signing sessions for batch
     ListSigningSessions {
         #[clap(
@@ -665,6 +693,30 @@ pub async fn run() -> anyhow::Result<()> {
         Command::ListBatchGroups { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_batch_groups().await?;
+        }
+        Command::UpdateBatchGroup {
+            url,
+            api_key,
+            id,
+            description,
+            tx_priority,
+            consolidate_deprecated_keychains,
+            manual_trigger,
+            immediate_trigger,
+            interval_trigger,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client
+                .update_batch_group(
+                    id,
+                    description,
+                    tx_priority,
+                    consolidate_deprecated_keychains,
+                    manual_trigger,
+                    immediate_trigger,
+                    interval_trigger,
+                )
+                .await?;
         }
         Command::ListXpubs { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);

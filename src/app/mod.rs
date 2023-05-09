@@ -545,6 +545,25 @@ impl App {
         Ok(batch_groups)
     }
 
+    #[instrument(name = "app.update_batch_group", skip(self), err)]
+    pub async fn update_batch_group(
+        &self,
+        profile: Profile,
+        id: BatchGroupId,
+        new_description: Option<String>,
+        new_config: Option<BatchGroupConfig>,
+    ) -> Result<(), BriaError> {
+        let mut batch_group = self.batch_groups.find_by_id(profile.account_id, id).await?;
+        if let Some(desc) = new_description {
+            batch_group.update_description(desc)
+        }
+        if let Some(config) = new_config {
+            batch_group.update_config(config)
+        }
+        self.batch_groups.update(batch_group).await?;
+        Ok(())
+    }
+
     #[instrument(name = "app.list_signing_sessions", skip_all, err)]
     pub async fn list_signing_sessions(
         &self,
