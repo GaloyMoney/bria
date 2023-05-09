@@ -14,107 +14,6 @@
     },
     "query": "UPDATE bria_addresses\n               SET external_id = $1\n               WHERE account_id = $2 AND address = $3"
   },
-  "06bea6f8b2a451ed7d746b84c7d60fb5174a5157dfd88f783ca875a02b4fb11e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 4,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event",
-          "ordinal": 5,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1 AND b.id = $2\n              ORDER BY e.sequence"
-  },
-  "07d2cf59c7c5efb52cbabdee628dbfae0aea86115516dd300f053579317f014c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 4,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event",
-          "ordinal": 5,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1\n              ORDER BY b.id, e.sequence"
-  },
   "07dfe35dc6e9ce9c7435aa03ba6a346ce4ced6f651af14b35bc470d17144b93f": {
     "describe": {
       "columns": [
@@ -296,7 +195,31 @@
     },
     "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
   },
-  "14c10c832b7132da6da6e7c1cc3d579511168267500675b8201f2cb2aef6ee23": {
+  "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "account_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"
+  },
+  "2007c8cee0c1f518fc56c7c465b77b0251220a30d28eff95089f68091cb92326": {
     "describe": {
       "columns": [
         {
@@ -339,51 +262,10 @@
         false
       ],
       "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
-  },
-  "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "account_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
         "Left": []
       }
     },
-    "query": "SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"
-  },
-  "2189c8e20be5fe40c336c4bd6938bc2dd277075c98930f86818223b3f12ae33c": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO bria_batch_groups (id, account_id, name)\n            VALUES ($1, $2, $3)\n            "
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payout_queues b\n              JOIN bria_payout_queue_events e ON b.id = e.id\n              ORDER BY b.id, e.sequence"
   },
   "21ea4761928aec144a72c1ced9baadc31fa57b51b94766af188b7ae448eb994f": {
     "describe": {
@@ -783,80 +665,6 @@
     },
     "query": "SELECT id, name FROM bria_accounts"
   },
-  "44539e13b35bc1717aa15f35927fd7a44d0e36a835b2638ba1ec7549a642487c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_group_id",
-          "ordinal": 3,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "profile_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "external_id",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 7,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 8,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.batch_id IS NULL AND b.batch_group_id = $1\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"
-  },
   "45ae4f218ab3a64c547f6b93d06003de96f1d2136f44e6936e450463ecde0fc1": {
     "describe": {
       "columns": [],
@@ -870,117 +678,6 @@
       }
     },
     "query": "UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
-  },
-  "45cb247476f534d77e9a23003e078f353e90c75fe21e7cda2a6334fe9674da2c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "batch_group_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "unsigned_psbt",
-          "ordinal": 1,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "signed_tx",
-          "ordinal": 2,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "bitcoin_tx_id",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "batch_id",
-          "ordinal": 4,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "wallet_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "current_keychain_id",
-          "ordinal": 6,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "signing_keychains",
-          "ordinal": 7,
-          "type_info": "UuidArray"
-        },
-        {
-          "name": "total_in_sats",
-          "ordinal": 8,
-          "type_info": "Int8"
-        },
-        {
-          "name": "total_spent_sats",
-          "ordinal": 9,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_sats",
-          "ordinal": 10,
-          "type_info": "Int8"
-        },
-        {
-          "name": "change_address",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "change_vout",
-          "ordinal": 12,
-          "type_info": "Int4"
-        },
-        {
-          "name": "fee_sats",
-          "ordinal": 13,
-          "type_info": "Int8"
-        },
-        {
-          "name": "batch_created_ledger_tx_id",
-          "ordinal": 14,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "batch_submitted_ledger_tx_id",
-          "ordinal": 15,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT batch_group_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id\n            FROM bria_batch_wallet_summaries s\n            LEFT JOIN bria_batches b ON b.id = s.batch_id\n            WHERE s.batch_id = $1 AND b.account_id = $2"
   },
   "46b5eee37f84d1274f4d22a0ee26d4399fe629ea70f25d5974a4859fee6cd0fe": {
     "describe": {
@@ -1049,23 +746,6 @@
       }
     },
     "query": "UPDATE bria_payouts SET batch_id = $1 WHERE id = ANY($2)"
-  },
-  "4f1ace817c87d6ed2bea3b3b3f64235a55533bd4d0bd947cd34c6ae05ceba72f": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Uuid",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, batch_group_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
   },
   "52f5cc540e8fc84b86957397d59684b8049ed1342f4050e7d9a7a9f2553ba4cf": {
     "describe": {
@@ -1257,7 +937,7 @@
     },
     "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                income_settled_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, income_detected_ledger_tx_id, spend_detected_ledger_tx_id"
   },
-  "72509807c2998dce16e4a796a489947e0ebfaf2cb74d35fc4eca538df5bf514c": {
+  "6c752d8fc85a3062ed39cbbed6e7d9729de1727487bd8e71e0e00ffcf1f4db1b": {
     "describe": {
       "columns": [
         {
@@ -1300,10 +980,12 @@
         false
       ],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Uuid"
+        ]
       }
     },
-    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_batch_groups b\n              JOIN bria_batch_group_events e ON b.id = e.id\n              ORDER BY b.id, e.sequence"
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payout_queues b\n              JOIN bria_payout_queue_events e ON b.id = e.id\n              WHERE account_id = $1\n              ORDER BY b.id, e.sequence"
   },
   "7296151c0d2387a0894ec37e082664d7d63ef81e673db3dfaa7a882c34ba8d25": {
     "describe": {
@@ -1479,22 +1161,116 @@
     },
     "query": "UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2"
   },
-  "7b42f9dc1c50d42990796270a1472cee8a251388b594d1ff039d81571686e1d2": {
+  "7c18235f1b3bd5fb9db4d747ac81c45fa689e79853bbb7d7cd649f8b8b409928": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "payout_queue_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "unsigned_psbt",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "signed_tx",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "bitcoin_tx_id",
+          "ordinal": 3,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "current_keychain_id",
+          "ordinal": 6,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "signing_keychains",
+          "ordinal": 7,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "total_in_sats",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "total_spent_sats",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_sats",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "change_address",
+          "ordinal": 11,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "change_vout",
+          "ordinal": 12,
+          "type_info": "Int4"
+        },
+        {
+          "name": "fee_sats",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "batch_created_ledger_tx_id",
+          "ordinal": 14,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_submitted_ledger_tx_id",
+          "ordinal": 15,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
       "parameters": {
         "Left": [
           "Uuid",
-          "Uuid",
-          "Uuid",
-          "Int8",
-          "Bytea",
-          "Bytea"
+          "Uuid"
         ]
       }
     },
-    "query": "INSERT INTO bria_batches (id, account_id, batch_group_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5, $6)"
+    "query": "SELECT payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_submitted_ledger_tx_id\n            FROM bria_batch_wallet_summaries s\n            LEFT JOIN bria_batches b ON b.id = s.batch_id\n            WHERE s.batch_id = $1 AND b.account_id = $2"
   },
   "7d36b5cd24ecbc930a45b73876bf356abb1a773c37ebb161c3a2c14fe63f9a15": {
     "describe": {
@@ -1562,6 +1338,23 @@
       }
     },
     "query": "WITH tx_to_sync AS (\n           SELECT tx_id, details_json, height\n           FROM bdk_transactions\n           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)\n           ORDER BY height ASC NULLS LAST\n           LIMIT 1\n           ),\n           previous_outputs AS (\n               SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n               FROM tx_to_sync\n           )\n           SELECT t.tx_id, details_json, utxo_json, path, vout,\n                  CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n           FROM bdk_utxos u\n           JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n               SELECT output FROM previous_outputs\n           ) OR u.tx_id = t.tx_id\n           JOIN bdk_script_pubkeys p\n           ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex\n           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)\n        "
+  },
+  "83ce7790000ed6abed021305761008d0d5423d191aab8e911e10c99da41458e1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Int8",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_batches (id, account_id, payout_queue_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)\n            VALUES ($1, $2, $3, $4, $5, $6)"
   },
   "8457bdb0419366f289fb8c02d6c89a68b26af13f5bf87ee838647e3d887a074d": {
     "describe": {
@@ -1808,7 +1601,7 @@
           "type_info": "Uuid"
         },
         {
-          "name": "batch_group_id",
+          "name": "payout_queue_id",
           "ordinal": 3,
           "type_info": "Uuid"
         },
@@ -1946,7 +1739,7 @@
           "type_info": "Uuid"
         },
         {
-          "name": "batch_group_id",
+          "name": "payout_queue_id",
           "ordinal": 3,
           "type_info": "Uuid"
         },
@@ -2051,6 +1844,80 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE account_id = $1\n              ORDER BY e.sequence"
+  },
+  "ce1b848feaaf03b0fabd795d0065122386d6c8c4795463bdae422d084a84f0b7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "payout_queue_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "profile_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "external_id",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.batch_id IS NULL AND b.payout_queue_id = $1\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"
   },
   "ce7720223d3043460b6c5ad4ed599d0b67ed6d22437408dc8fd90705f3fc4131": {
     "describe": {
@@ -2185,6 +2052,57 @@
     },
     "query": "INSERT INTO bria_admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
   },
+  "e6b22adbdcceb4afb26aeceb299fbb32d97989aa7d87ab7f529d2393c36e4f74": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payout_queues b\n              JOIN bria_payout_queue_events e ON b.id = e.id\n              WHERE account_id = $1 AND b.id = $2\n              ORDER BY e.sequence"
+  },
   "e9b1d1648ca75ee2bede0753abbf6d7f16a2537d968f46da9fb416e4ca403e4e": {
     "describe": {
       "columns": [
@@ -2216,6 +2134,57 @@
       }
     },
     "query": "SELECT p.id, p.account_id, p.name\n               FROM bria_profiles p\n               JOIN bria_profile_api_keys k ON k.profile_id = p.id\n               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"
+  },
+  "eb52716de47fe5a66c500d1bcd11bbb76b1d897bce46674bf97fc5e11c1133d9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 5,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payout_queues b\n              JOIN bria_payout_queue_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
   },
   "ef4fa83b91e32946383c58abacb5a4f0b728d32780c9e5323b489b20edca4e2a": {
     "describe": {
@@ -2269,7 +2238,7 @@
           "type_info": "Uuid"
         },
         {
-          "name": "batch_group_id",
+          "name": "payout_queue_id",
           "ordinal": 3,
           "type_info": "Uuid"
         },
@@ -2477,6 +2446,23 @@
     },
     "query": "SELECT script FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND keychain_kind = $2 AND path = $3"
   },
+  "f7df099ce3c2628910cef4b4d5445610313be8ece43f5f530d8e0e2322a62cf4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
+  },
   "f98408969915608cf7f432f25df49b78644ce36eabdfe2a23f1fc6c14763c774": {
     "describe": {
       "columns": [],
@@ -2502,5 +2488,19 @@
       }
     },
     "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_hex, script_fmt)\n            VALUES ($1, $2, $3, $4, ENCODE($4, 'hex'), $5) ON CONFLICT DO NOTHING"
+  },
+  "fa20681958de2a9b7764665edde5dbc0f5f839a0ea33b48dfdc2214966dd8efa": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO bria_payout_queues (id, account_id, name)\n            VALUES ($1, $2, $3)\n            "
   }
 }

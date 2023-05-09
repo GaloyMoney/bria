@@ -27,7 +27,7 @@ teardown_file() {
 }
 
 @test "event_augmentation: adds payout info to events" {
-  bria_cmd create-batch-group --name high --interval-trigger 5
+  bria_cmd create-payout-queue --name high --interval-trigger 5
   bria_cmd queue-payout --wallet default --group-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000 -e "external"
   external_id=$(bria_cmd watch-events -a 1 -o --augment | jq -r '.augmentation.payoutInfo.externalId')
   [ "$external_id" = "external" ] || exit 1

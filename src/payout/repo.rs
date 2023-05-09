@@ -24,7 +24,7 @@ impl Payouts {
         new_payout: NewPayout,
     ) -> Result<PayoutId, BriaError> {
         sqlx::query!(
-            r#"INSERT INTO bria_payouts (id, account_id, wallet_id, batch_group_id, profile_id, external_id)
+            r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
                VALUES ($1, $2, $3, $4, $5, $6)"#,
             Uuid::from(new_payout.id),
             Uuid::from(new_payout.account_id),
@@ -83,7 +83,7 @@ impl Payouts {
               SELECT b.*, e.sequence, e.event
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.batch_id IS NULL AND b.batch_group_id = $1
+              WHERE b.batch_id IS NULL AND b.payout_queue_id = $1
               ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
             Uuid::from(payout_queue_id)
         )

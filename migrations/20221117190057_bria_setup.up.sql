@@ -132,7 +132,7 @@ CREATE TABLE bria_utxos (
     UNIQUE(keychain_id, tx_id, vout)
 );
 
-CREATE TABLE bria_batch_groups (
+CREATE TABLE bria_payout_queues (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   name VARCHAR NOT NULL,
@@ -140,8 +140,8 @@ CREATE TABLE bria_batch_groups (
   UNIQUE(account_id, name)
 );
 
-CREATE TABLE bria_batch_group_events (
-  id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+CREATE TABLE bria_payout_queue_events (
+  id UUID REFERENCES bria_payout_queues(id) NOT NULL,
   sequence INT NOT NULL,
   event_type VARCHAR NOT NULL,
   event JSONB NOT NULL,
@@ -152,7 +152,7 @@ CREATE TABLE bria_batch_group_events (
 CREATE TABLE bria_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-  batch_group_id UUID NOT NULL,
+  payout_queue_id UUID NOT NULL,
   total_fee_sats BIGINT NOT NULL,
   bitcoin_tx_id BYTEA NOT NULL,
   unsigned_psbt BYTEA NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE bria_payouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
   wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
-  batch_group_id UUID REFERENCES bria_batch_groups(id) NOT NULL,
+  payout_queue_id UUID REFERENCES bria_payout_queues(id) NOT NULL,
   batch_id UUID REFERENCES bria_batches(id) DEFAULT NULL,
   profile_id UUID REFERENCES bria_profiles(id) NOT NULL,
   external_id VARCHAR NOT NULL,

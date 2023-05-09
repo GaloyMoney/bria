@@ -17,12 +17,12 @@ impl PayoutQueues {
         Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "batch_groups.create", skip(self))]
+    #[instrument(name = "payout_queues.create", skip(self))]
     pub async fn create(&self, group: NewPayoutQueue) -> Result<PayoutQueueId, BriaError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"
-            INSERT INTO bria_batch_groups (id, account_id, name)
+            INSERT INTO bria_payout_queues (id, account_id, name)
             VALUES ($1, $2, $3)
             "#,
             Uuid::from(group.id),
@@ -33,7 +33,7 @@ impl PayoutQueues {
         .await?;
         let id = group.id;
         EntityEvents::<PayoutQueueEvent>::persist(
-            "bria_batch_group_events",
+            "bria_payout_queue_events",
             &mut tx,
             group.initial_events().new_serialized_events(id),
         )
@@ -50,8 +50,8 @@ impl PayoutQueues {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
-              FROM bria_batch_groups b
-              JOIN bria_batch_group_events e ON b.id = e.id
+              FROM bria_payout_queues b
+              JOIN bria_payout_queue_events e ON b.id = e.id
               WHERE account_id = $1 AND name = $2
               ORDER BY e.sequence"#,
             Uuid::from(account_id),
@@ -77,8 +77,8 @@ impl PayoutQueues {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
-              FROM bria_batch_groups b
-              JOIN bria_batch_group_events e ON b.id = e.id
+              FROM bria_payout_queues b
+              JOIN bria_payout_queue_events e ON b.id = e.id
               WHERE account_id = $1 AND b.id = $2
               ORDER BY e.sequence"#,
             Uuid::from(account_id),
@@ -102,8 +102,8 @@ impl PayoutQueues {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
-              FROM bria_batch_groups b
-              JOIN bria_batch_group_events e ON b.id = e.id
+              FROM bria_payout_queues b
+              JOIN bria_payout_queue_events e ON b.id = e.id
               WHERE account_id = $1
               ORDER BY b.id, e.sequence"#,
             account_id as AccountId,
@@ -126,8 +126,8 @@ impl PayoutQueues {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
-              FROM bria_batch_groups b
-              JOIN bria_batch_group_events e ON b.id = e.id
+              FROM bria_payout_queues b
+              JOIN bria_payout_queue_events e ON b.id = e.id
               ORDER BY b.id, e.sequence"#,
         )
         .fetch_all(&self.pool)
@@ -151,7 +151,7 @@ impl PayoutQueues {
 
         let mut tx = self.pool.begin().await?;
         EntityEvents::<PayoutQueueEvent>::persist(
-            "bria_batch_group_events",
+            "bria_payout_queue_events",
             &mut tx,
             payout_queue.events.new_serialized_events(payout_queue.id),
         )
