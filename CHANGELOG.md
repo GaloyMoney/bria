@@ -1,3 +1,10 @@
+# [bria release v0.0.22](https://github.com/GaloyMoney/bria/releases/tag/0.0.22)
+
+
+### Refactor
+
+- CommittedToBatch
+
 # [bria release v0.0.21](https://github.com/GaloyMoney/bria/releases/tag/0.0.21)
 
 
