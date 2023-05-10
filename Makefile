@@ -16,7 +16,7 @@ check-code:
 	SQLX_OFFLINE=true cargo audit
 
 local-daemon:
-	cargo run --bin bria daemon --config ./tests/e2e/bria.local.yml
+	cargo run --bin bria daemon --config ./tests/e2e/bria.local.yml run
 
 build-x86_64-unknown-linux-musl-release:
 	SQLX_OFFLINE=true cargo build --release --locked --target x86_64-unknown-linux-musl

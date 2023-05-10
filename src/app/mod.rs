@@ -259,7 +259,7 @@ impl App {
                     let original = xpub.inner().to_string();
                     let xpub = NewAccountXPub::builder()
                         .account_id(profile.account_id)
-                        .key_name(original.clone())
+                        .key_name(format!("{wallet_name}-{}", xpub.id()))
                         .original(original)
                         .value(xpub)
                         .build()

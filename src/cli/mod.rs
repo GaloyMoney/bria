@@ -11,8 +11,11 @@ use db::*;
 use std::path::PathBuf;
 use url::Url;
 
+use crate::api::proto;
 use crate::primitives::TxPriority;
 use config::*;
+
+const DEV_WALLET_NAME: &str = "dev";
 
 #[derive(Parser)]
 #[clap(version, long_about = None)]
@@ -44,15 +47,13 @@ enum Command {
             value_name = "FILE"
         )]
         config: PathBuf,
-
-        #[clap(env = "CRASH_REPORT_CONFIG")]
-        crash_report_config: Option<bool>,
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
-        /// Flag to auto-bootstrap for dev
-        #[clap(long)]
-        dev: bool,
+        #[clap(env = "CRASH_REPORT_CONFIG")]
+        crash_report_config: Option<bool>,
+        #[clap(subcommand)]
+        command: DaemonCommand,
     },
     /// Subcommand to interact with Admin API
     Admin {
@@ -440,6 +441,19 @@ enum Command {
 }
 
 #[derive(Subcommand)]
+enum DaemonCommand {
+    Run,
+    Dev {
+        #[clap(short = 'x', long = "xpub")]
+        /// The base58 encoded extended public key
+        xpub: Option<String>,
+        /// The derivation from the parent key (eg. m/84'/0'/0')
+        #[clap(short = 'd', long = "derivation")]
+        derivation: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
 enum AdminCommand {
     Bootstrap,
     CreateAccount {
@@ -499,11 +513,22 @@ pub async fn run() -> anyhow::Result<()> {
             config,
             crash_report_config,
             db_con,
-            dev,
+            command,
         } => {
             let config = Config::from_path(config, EnvOverride { db_con })?;
+            let (dev, dev_xpub, dev_derivation) = match command {
+                DaemonCommand::Dev { xpub, derivation } => (true, xpub, derivation),
+                _ => (false, None, None),
+            };
             match (
-                run_cmd(&cli.bria_home, config.clone(), dev).await,
+                run_cmd(
+                    &cli.bria_home,
+                    config.clone(),
+                    dev,
+                    dev_xpub,
+                    dev_derivation,
+                )
+                .await,
                 crash_report_config,
             ) {
                 (Err(e), Some(true)) => {
@@ -764,6 +789,8 @@ async fn run_cmd(
         app,
     }: Config,
     dev: bool,
+    dev_xub: Option<String>,
+    dev_derivation: Option<String>,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
     token_store::store_daemon_pid(bria_home, std::process::id())?;
@@ -792,10 +819,12 @@ async fn run_cmd(
     }));
 
     if dev {
+        let mut profile_key = None;
+
         let bria_home_string = bria_home.to_string();
         tokio::spawn(async move {
             let admin_client = admin_client::AdminApiClient::new(
-                bria_home_string,
+                bria_home_string.clone(),
                 admin_client::AdminApiClientConfig::default(),
                 "".to_string(),
             );
@@ -805,7 +834,8 @@ async fn run_cmd(
             while retries > 0 {
                 let dev_bootstrap_result = admin_client.dev_bootstrap().await;
                 match dev_bootstrap_result {
-                    Ok(_) => {
+                    Ok(key) => {
+                        profile_key = Some(key);
                         println!("Dev bootstrap completed successfully");
                         break;
                     }
@@ -816,6 +846,41 @@ async fn run_cmd(
                             tokio::time::sleep(delay).await;
                         } else {
                             eprintln!("Dev bootstrap failed after retries: {:?}", e);
+                        }
+                    }
+                }
+            }
+
+            if let (Some(xpub), Some(key)) = (dev_xub, profile_key) {
+                let client = api_client(
+                    bria_home_string.clone(),
+                    Some(api_client::ApiClientConfig::default().url),
+                    key.key.clone(),
+                );
+
+                let command = proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
+                    xpub,
+                    derivation_path: dev_derivation,
+                });
+                retries = 10;
+                while retries > 0 {
+                    match client
+                        .create_wallet(DEV_WALLET_NAME.to_string(), command.clone())
+                        .await
+                    {
+                        Ok(_) => {
+                            println!("Successfully cerated wallet");
+                            break;
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create wallet: {:?}", e);
+                            retries -= 1;
+                            if retries > 0 {
+                                tokio::time::sleep(delay).await;
+                            } else {
+                                eprintln!("Failed to create wallet after retries: {:?}", e);
+                                return;
+                            }
                         }
                     }
                 }

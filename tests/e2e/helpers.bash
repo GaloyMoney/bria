@@ -102,7 +102,7 @@ bitcoind_init() {
 }
 
 start_daemon() {
-  background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml > .e2e-logs
+  background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml run > .e2e-logs
   sleep 5 # wait for daemon to be up and running
 }
 
