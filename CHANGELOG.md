@@ -1,3 +1,11 @@
+# [bria release v0.0.23](https://github.com/GaloyMoney/bria/releases/tag/0.0.23)
+
+
+### Miscellaneous Tasks
+
+- Add batch_id to payout events
+- Remove redundant config options (#175)
+
 # [bria release v0.0.22](https://github.com/GaloyMoney/bria/releases/tag/0.0.22)
 
 
