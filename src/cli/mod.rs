@@ -50,6 +50,10 @@ enum Command {
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
+        #[clap(env = "KEY", default_value = "")]
+        key: String,
+        #[clap(env = "NONCE", default_value = "")]
+        nonce: String,
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
         #[clap(subcommand)]
@@ -507,8 +511,10 @@ pub async fn run() -> anyhow::Result<()> {
             crash_report_config,
             db_con,
             command,
+            key,
+            nonce,
         } => {
-            let config = Config::from_path(config, EnvOverride { db_con })?;
+            let config = Config::from_path(config, EnvOverride { db_con, key, nonce })?;
             let (dev, dev_xpub, dev_derivation) = match command {
                 DaemonCommand::Dev { xpub, derivation } => (true, xpub, derivation),
                 _ => (false, None, None),

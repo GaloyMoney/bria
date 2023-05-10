@@ -1,3 +1,7 @@
+use chacha20poly1305::{
+    aead::{Aead, KeyInit},
+    ChaCha20Poly1305, Key, Nonce,
+};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +31,7 @@ pub enum XPubEvent {
         name: String,
     },
     SignerConfigUpdated {
-        config: SignerConfig,
+        encrypted_config: Vec<u8>,
     },
 }
 
@@ -47,18 +51,46 @@ impl AccountXPub {
         self.value.id()
     }
 
-    pub fn set_signer_config(&mut self, config: SignerConfig) {
-        self.events.push(XPubEvent::SignerConfigUpdated { config })
+    fn encrypt_config(&mut self, config: SignerConfig, key: &[u8], nonce: &[u8]) -> Vec<u8> {
+        // serialize the config
+        let config_vec = serde_json::to_vec(&config).unwrap();
+        let config_bytes = config_vec.as_slice();
+        let key_bytes = Key::from_slice(key);
+        let cipher = ChaCha20Poly1305::new(key_bytes);
+        let nonce_bytes = Nonce::from_slice(nonce);
+        let ciphertext: Vec<u8> = cipher.encrypt(&nonce_bytes, config_bytes).unwrap();
+        return ciphertext;
     }
 
-    fn signing_cfg(&self) -> Option<&SignerConfig> {
+    pub fn set_signer_config(&mut self, config: SignerConfig, key: Vec<u8>, nonce: Vec<u8>) {
+        let key_bytes = key.as_slice();
+        let nonce_bytes = nonce.as_slice();
+        let encrypted_config = self.encrypt_config(config, key_bytes, nonce_bytes);
+        self.events
+            .push(XPubEvent::SignerConfigUpdated { encrypted_config });
+    }
+
+    pub fn signing_cfg(&self) -> Option<SignerConfig> {
         let mut ret = None;
         for event in self.events.iter() {
-            if let XPubEvent::SignerConfigUpdated { config } = event {
-                ret = Some(config)
+            if let XPubEvent::SignerConfigUpdated { encrypted_config } = event {
+                let config = self.decrypt_config(encrypted_config.clone());
+                ret = Some(config);
             }
         }
         ret
+    }
+
+    fn decrypt_config(&self, encrypted_config: Vec<u8>) -> SignerConfig {
+        // let key: [u8; 32] = [
+        //     0x45, 0x54, 0x82, 0x41, 0x08, 0x1a, 0xa3, 0x91, 0x56, 0xa2, 0xd2, 0x14, 0x35, 0x0a,
+        //     0x0f, 0x50, 0xc9, 0x18, 0x2e, 0x0e, 0x50, 0x3c, 0x4e, 0xd6, 0x8d, 0x6a, 0xb5, 0xe4,
+        //     0x2f, 0x0a, 0x08, 0x77,
+        // ];
+
+        // let config: SignerConfig = serde_json::from_slice(&decrypted_config).unwrap();
+        // return config;
+        unimplemented!()
     }
 
     pub fn has_signer_config(&self) -> bool {
