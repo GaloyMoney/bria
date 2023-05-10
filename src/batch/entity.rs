@@ -51,5 +51,5 @@ pub struct WalletSummary {
     pub change_address: Option<bitcoin::Address>,
     pub change_outpoint: Option<bitcoin::OutPoint>,
     pub batch_created_ledger_tx_id: Option<LedgerTransactionId>,
-    pub batch_submitted_ledger_tx_id: Option<LedgerTransactionId>,
+    pub batch_broadcast_ledger_tx_id: Option<LedgerTransactionId>,
 }

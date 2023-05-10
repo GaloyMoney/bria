@@ -1,7 +1,10 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::{ledger::JournalEventMetadata, primitives::*};
+use crate::{
+    ledger::{BatchBroadcastMeta, BatchCreatedMeta, JournalEventMetadata, SpendSettledMeta},
+    primitives::*,
+};
 
 pub type WithoutAugmentation = ();
 
@@ -63,10 +66,38 @@ pub enum OutboxEventPayload {
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
     },
-    PayoutQueued {
+    PayoutSubmitted {
         id: PayoutId,
         profile_id: ProfileId,
         wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        satoshis: Satoshis,
+        destination: PayoutDestination,
+    },
+    PayoutCommitted {
+        id: PayoutId,
+        profile_id: ProfileId,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        tx_id: bitcoin::Txid,
+        satoshis: Satoshis,
+        destination: PayoutDestination,
+    },
+    PayoutBroadcast {
+        id: PayoutId,
+        profile_id: ProfileId,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        tx_id: bitcoin::Txid,
+        satoshis: Satoshis,
+        destination: PayoutDestination,
+    },
+    PayoutSettled {
+        id: PayoutId,
+        profile_id: ProfileId,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        tx_id: bitcoin::Txid,
         satoshis: Satoshis,
         destination: PayoutDestination,
     },
@@ -94,13 +125,64 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
             }),
-            PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutQueued {
+            PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
                 id: meta.payout_id,
                 wallet_id: meta.wallet_id,
+                payout_queue_id: meta.payout_queue_id,
                 profile_id: meta.profile_id,
                 satoshis: meta.satoshis,
                 destination: meta.destination,
             }),
+            BatchCreated(BatchCreatedMeta {
+                batch_info,
+                tx_summary,
+            }) => {
+                for payout in batch_info.included_payouts {
+                    res.push(OutboxEventPayload::PayoutCommitted {
+                        id: payout.id,
+                        wallet_id: batch_info.wallet_id,
+                        payout_queue_id: batch_info.payout_queue_id,
+                        profile_id: payout.profile_id,
+                        tx_id: tx_summary.bitcoin_tx_id,
+                        satoshis: payout.satoshis,
+                        destination: payout.destination,
+                    })
+                }
+            }
+            BatchBroadcast(BatchBroadcastMeta {
+                batch_info,
+                tx_summary,
+                ..
+            }) => {
+                for payout in batch_info.included_payouts {
+                    res.push(OutboxEventPayload::PayoutBroadcast {
+                        id: payout.id,
+                        wallet_id: batch_info.wallet_id,
+                        payout_queue_id: batch_info.payout_queue_id,
+                        profile_id: payout.profile_id,
+                        tx_id: tx_summary.bitcoin_tx_id,
+                        satoshis: payout.satoshis,
+                        destination: payout.destination,
+                    })
+                }
+            }
+            SpendSettled(SpendSettledMeta {
+                batch_info: Some(batch_info),
+                tx_summary,
+                ..
+            }) => {
+                for payout in batch_info.included_payouts {
+                    res.push(OutboxEventPayload::PayoutSettled {
+                        id: payout.id,
+                        wallet_id: batch_info.wallet_id,
+                        payout_queue_id: batch_info.payout_queue_id,
+                        profile_id: payout.profile_id,
+                        tx_id: tx_summary.bitcoin_tx_id,
+                        satoshis: payout.satoshis,
+                        destination: payout.destination,
+                    })
+                }
+            }
             _ => (),
         };
         res

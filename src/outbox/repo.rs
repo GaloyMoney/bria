@@ -16,12 +16,16 @@ impl OutboxRepo {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_events<T>(&self, event: &[OutboxEvent<T>]) -> Result<(), BriaError> {
+    pub async fn persist_events<T>(&self, events: &[OutboxEvent<T>]) -> Result<(), BriaError> {
+        if events.is_empty() {
+            return Ok(());
+        }
+
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_outbox_events
             (id, account_id, sequence, ledger_event_id, ledger_tx_id, payload, recorded_at)"#,
         );
-        query_builder.push_values(event.iter(), |mut builder, event| {
+        query_builder.push_values(events.iter(), |mut builder, event| {
             builder.push_bind(event.id);
             builder.push_bind(event.account_id);
             builder.push_bind(event.sequence);

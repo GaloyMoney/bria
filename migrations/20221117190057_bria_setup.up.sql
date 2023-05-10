@@ -174,7 +174,7 @@ CREATE TABLE bria_batch_wallet_summaries (
   change_vout INTEGER,
   fee_sats BIGINT NOT NULL,
   batch_created_ledger_tx_id UUID,
-  batch_submitted_ledger_tx_id UUID,
+  batch_broadcast_ledger_tx_id UUID,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(batch_id, wallet_id)

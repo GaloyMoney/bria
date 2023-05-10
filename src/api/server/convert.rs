@@ -158,6 +158,9 @@ impl From<Payout> for proto::Payout {
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
             external_id: payout.external_id,
+            metadata: payout.metadata.map(|json| {
+                serde_json::from_value(json).expect("Could not transfer json -> struct")
+            }),
         }
     }
 }
@@ -364,17 +367,73 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 block_height: confirmation_time.height,
                 block_time: confirmation_time.timestamp,
             }),
-            OutboxEventPayload::PayoutQueued {
+            OutboxEventPayload::PayoutSubmitted {
                 id,
                 wallet_id,
+                payout_queue_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
                 ..
-            } => proto::bria_event::Payload::PayoutQueued(proto::PayoutQueued {
+            } => proto::bria_event::Payload::PayoutSubmitted(proto::PayoutSubmitted {
                 id: id.to_string(),
                 wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_queued::Destination::OnchainAddress(
+                destination: Some(proto::payout_submitted::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
+            OutboxEventPayload::PayoutCommitted {
+                id,
+                tx_id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination: PayoutDestination::OnchainAddress { value: destination },
+                ..
+            } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
+                id: id.to_string(),
+                tx_id: tx_id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_committed::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
+            OutboxEventPayload::PayoutBroadcast {
+                id,
+                tx_id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination: PayoutDestination::OnchainAddress { value: destination },
+                ..
+            } => proto::bria_event::Payload::PayoutBroadcast(proto::PayoutBroadcast {
+                id: id.to_string(),
+                tx_id: tx_id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_broadcast::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
+            OutboxEventPayload::PayoutSettled {
+                id,
+                tx_id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination: PayoutDestination::OnchainAddress { value: destination },
+                ..
+            } => proto::bria_event::Payload::PayoutSettled(proto::PayoutSettled {
+                id: id.to_string(),
+                tx_id: tx_id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_settled::Destination::OnchainAddress(
                     destination.to_string(),
                 )),
             }),
