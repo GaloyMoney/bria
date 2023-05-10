@@ -39,7 +39,7 @@ async fn test_payout() -> anyhow::Result<()> {
         value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
     };
     let _ = app
-        .queue_payout(
+        .submit_payout(
             profile,
             wallet_name,
             group_name,

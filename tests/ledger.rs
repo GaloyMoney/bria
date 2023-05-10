@@ -281,14 +281,14 @@ async fn queue_payout() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     ledger
-        .payout_queued(
+        .payout_submitted(
             tx,
             LedgerTransactionId::new(),
-            PayoutQueuedParams {
+            PayoutSubmittedParams {
                 journal_id,
                 effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
                 external_id: payout_id.to_string(),
-                meta: PayoutQueuedMeta {
+                meta: PayoutSubmittedMeta {
                     account_id,
                     payout_id,
                     wallet_id,

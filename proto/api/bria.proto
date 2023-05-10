@@ -24,7 +24,7 @@ service BriaService {
   rpc CreatePayoutQueue (CreatePayoutQueueRequest) returns (CreatePayoutQueueResponse) {}
   rpc ListPayoutQueues (ListPayoutQueuesRequest) returns (ListPayoutQueuesResponse) {}
   rpc UpdatePayoutQueue (UpdatePayoutQueueRequest) returns (UpdatePayoutQueueResponse) {}
-  rpc QueuePayout (QueuePayoutRequest) returns (QueuePayoutResponse) {}
+  rpc SubmitPayout (SubmitPayoutRequest) returns (SubmitPayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
 
@@ -274,7 +274,7 @@ message UpdatePayoutQueueRequest{
 
 message UpdatePayoutQueueResponse{}
 
-message QueuePayoutRequest {
+message SubmitPayoutRequest {
   string wallet_name = 1;
   string payout_queue_name = 2;
   oneof destination {
@@ -285,7 +285,7 @@ message QueuePayoutRequest {
   optional google.protobuf.Struct metadata = 6;
 }
 
-message QueuePayoutResponse {
+message SubmitPayoutResponse {
   string id = 1;
 }
 

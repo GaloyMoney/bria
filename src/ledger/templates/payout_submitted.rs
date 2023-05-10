@@ -6,7 +6,7 @@ use tracing::instrument;
 use crate::{error::*, ledger::constants::*, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PayoutQueuedMeta {
+pub struct PayoutSubmittedMeta {
     pub account_id: AccountId,
     pub payout_id: PayoutId,
     pub wallet_id: WalletId,
@@ -17,14 +17,14 @@ pub struct PayoutQueuedMeta {
 }
 
 #[derive(Debug)]
-pub struct PayoutQueuedParams {
+pub struct PayoutSubmittedParams {
     pub journal_id: JournalId,
     pub effective_outgoing_account_id: LedgerAccountId,
     pub external_id: String,
-    pub meta: PayoutQueuedMeta,
+    pub meta: PayoutSubmittedMeta,
 }
 
-impl PayoutQueuedParams {
+impl PayoutSubmittedParams {
     pub fn defs() -> Vec<ParamDefinition> {
         vec![
             ParamDefinition::builder()
@@ -61,14 +61,14 @@ impl PayoutQueuedParams {
     }
 }
 
-impl From<PayoutQueuedParams> for TxParams {
+impl From<PayoutSubmittedParams> for TxParams {
     fn from(
-        PayoutQueuedParams {
+        PayoutSubmittedParams {
             journal_id,
             effective_outgoing_account_id,
             external_id,
             meta,
-        }: PayoutQueuedParams,
+        }: PayoutSubmittedParams,
     ) -> Self {
         let effective = Utc::now().date_naive();
         let amount = meta.satoshis.to_btc();
@@ -87,10 +87,10 @@ impl From<PayoutQueuedParams> for TxParams {
     }
 }
 
-pub struct PayoutQueued {}
+pub struct PayoutSubmitted {}
 
-impl PayoutQueued {
-    #[instrument(name = "ledger.payout_queued.init", skip_all)]
+impl PayoutSubmitted {
+    #[instrument(name = "ledger.payout_submitted.init", skip_all)]
     pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
@@ -103,7 +103,7 @@ impl PayoutQueued {
         let entries = vec![
             // EFFECTIVE
             EntryInput::builder()
-                .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_DR'")
+                .entry_type("'PAYOUT_SUBMITTED_LOG_OUT_ENC_DR'")
                 .currency("'BTC'")
                 .account_id(format!("uuid('{EFFECTIVE_OUTGOING_ID}')"))
                 .direction("DEBIT")
@@ -112,7 +112,7 @@ impl PayoutQueued {
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
-                .entry_type("'PAYOUT_QUEUED_LOG_OUT_ENC_CR'")
+                .entry_type("'PAYOUT_SUBMITTED_LOG_OUT_ENC_CR'")
                 .currency("'BTC'")
                 .account_id("params.effective_outgoing_account_id")
                 .direction("CREDIT")
@@ -122,15 +122,15 @@ impl PayoutQueued {
                 .expect("Couldn't build entry"),
         ];
 
-        let params = PayoutQueuedParams::defs();
+        let params = PayoutSubmittedParams::defs();
         let template = NewTxTemplate::builder()
-            .id(PAYOUT_QUEUED_ID)
-            .code(PAYOUT_QUEUED_CODE)
+            .id(PAYOUT_SUBMITTED_ID)
+            .code(PAYOUT_SUBMITTED_CODE)
             .tx_input(tx_input)
             .entries(entries)
             .params(params)
             .build()
-            .expect("Couldn't build PAYOUT_QUEUED_CODE");
+            .expect("Couldn't build PAYOUT_SUBMITTED_CODE");
         match ledger.tx_templates().create(template).await {
             Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
             Err(e) => Err(e.into()),

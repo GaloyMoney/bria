@@ -322,14 +322,14 @@ impl BriaService for Bria {
     }
 
     #[instrument(skip_all, err)]
-    async fn queue_payout(
+    async fn submit_payout(
         &self,
-        request: Request<QueuePayoutRequest>,
-    ) -> Result<Response<QueuePayoutResponse>, Status> {
+        request: Request<SubmitPayoutRequest>,
+    ) -> Result<Response<SubmitPayoutResponse>, Status> {
         let key = extract_api_token(&request)?;
         let profile = self.app.authenticate(key).await?;
         let request = request.into_inner();
-        let QueuePayoutRequest {
+        let SubmitPayoutRequest {
             wallet_name,
             payout_queue_name,
             destination,
@@ -340,7 +340,7 @@ impl BriaService for Bria {
 
         let id = self
             .app
-            .queue_payout(
+            .submit_payout(
                 profile,
                 wallet_name,
                 payout_queue_name,
@@ -353,7 +353,7 @@ impl BriaService for Bria {
                     .map_err(BriaError::CouldNotParseIncomingMetadata)?,
             )
             .await?;
-        Ok(Response::new(QueuePayoutResponse { id: id.to_string() }))
+        Ok(Response::new(SubmitPayoutResponse { id: id.to_string() }))
     }
 
     #[instrument(skip_all, err)]
