@@ -11,8 +11,12 @@ use db::*;
 use std::path::PathBuf;
 use url::Url;
 
+use crate::api::proto;
 use crate::primitives::TxPriority;
 use config::*;
+
+const DEV_WALLET_NAME: &str = "default";
+const DEV_XPUB_NAME: &str = "dev_key";
 
 #[derive(Parser)]
 #[clap(version, long_about = None)]
@@ -53,6 +57,12 @@ enum Command {
         /// Flag to auto-bootstrap for dev
         #[clap(long)]
         dev: bool,
+        #[clap(short = 'x', long = "xpub")]
+        /// The base58 encoded extended public key
+        dev_xpub: Option<String>,
+        /// The derivation from the parent key (eg. m/84'/0'/0')
+        #[clap(short = 'd', long = "derivation")]
+        dev_derivation: Option<String>,
     },
     /// Subcommand to interact with Admin API
     Admin {
@@ -500,10 +510,19 @@ pub async fn run() -> anyhow::Result<()> {
             crash_report_config,
             db_con,
             dev,
+            dev_xpub,
+            dev_derivation,
         } => {
             let config = Config::from_path(config, EnvOverride { db_con })?;
             match (
-                run_cmd(&cli.bria_home, config.clone(), dev).await,
+                run_cmd(
+                    &cli.bria_home,
+                    config.clone(),
+                    dev,
+                    dev_xpub,
+                    dev_derivation,
+                )
+                .await,
                 crash_report_config,
             ) {
                 (Err(e), Some(true)) => {
@@ -764,6 +783,8 @@ async fn run_cmd(
         app,
     }: Config,
     dev: bool,
+    dev_xub: Option<String>,
+    dev_derivation: Option<String>,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
     token_store::store_daemon_pid(bria_home, std::process::id())?;
@@ -792,10 +813,12 @@ async fn run_cmd(
     }));
 
     if dev {
+        let mut profile_key = None;
+
         let bria_home_string = bria_home.to_string();
         tokio::spawn(async move {
             let admin_client = admin_client::AdminApiClient::new(
-                bria_home_string,
+                bria_home_string.clone(),
                 admin_client::AdminApiClientConfig::default(),
                 "".to_string(),
             );
@@ -805,7 +828,8 @@ async fn run_cmd(
             while retries > 0 {
                 let dev_bootstrap_result = admin_client.dev_bootstrap().await;
                 match dev_bootstrap_result {
-                    Ok(_) => {
+                    Ok(key) => {
+                        profile_key = Some(key);
                         println!("Dev bootstrap completed successfully");
                         break;
                     }
@@ -816,6 +840,60 @@ async fn run_cmd(
                             tokio::time::sleep(delay).await;
                         } else {
                             eprintln!("Dev bootstrap failed after retries: {:?}", e);
+                        }
+                    }
+                }
+            }
+
+            if let Some(xpub) = dev_xub {
+                if let Some(key) = profile_key {
+                    let client = api_client(
+                        bria_home_string.clone(),
+                        Some(api_client::ApiClientConfig::default().url),
+                        key.key.clone(),
+                    );
+
+                    retries = 10;
+                    while retries > 0 {
+                        match client
+                            .import_xpub(
+                                DEV_XPUB_NAME.to_string(),
+                                xpub.clone(),
+                                dev_derivation.clone(),
+                            )
+                            .await
+                        {
+                            Ok(_) => {
+                                println!("Successfully imported xpub");
+                                break;
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to import xpub: {:?}", e);
+                                retries -= 1;
+                                if retries > 0 {
+                                    tokio::time::sleep(delay).await;
+                                } else {
+                                    eprintln!("Import xpub failed after retries: {:?}", e);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    let command =
+                        proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
+                            xpub: DEV_XPUB_NAME.to_string(),
+                            derivation_path: dev_derivation.clone(),
+                        });
+                    match client
+                        .create_wallet(DEV_WALLET_NAME.to_string(), command)
+                        .await
+                    {
+                        Ok(_) => {
+                            println!("Successfully created wallet");
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create wallet: {:?}", e);
                         }
                     }
                 }
