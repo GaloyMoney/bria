@@ -1,11 +1,13 @@
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
-
 pub use sqlx_ledger::{
     event::SqlxLedgerEventId, AccountId as LedgerAccountId, JournalId as LedgerJournalId,
     TransactionId as LedgerTransactionId,
 };
+
+use std::fmt;
+
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
 impl From<LedgerJournalId> for AccountId {
@@ -45,6 +47,12 @@ impl std::str::FromStr for XPubId {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let fingerprint = bitcoin::Fingerprint::from_str(s)?;
         Ok(Self(fingerprint))
+    }
+}
+
+impl fmt::Display for XPubId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 
