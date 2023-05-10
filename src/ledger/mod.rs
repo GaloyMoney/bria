@@ -49,7 +49,7 @@ impl Ledger {
         templates::SpentUtxoSettled::init(&inner).await?;
         templates::SpendDetected::init(&inner).await?;
         templates::SpendSettled::init(&inner).await?;
-        templates::PayoutQueued::init(&inner).await?;
+        templates::PayoutSubmitted::init(&inner).await?;
         templates::BatchCreated::init(&inner).await?;
         templates::BatchBroadcast::init(&inner).await?;
 
@@ -146,15 +146,15 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.payout_queued", skip(self, tx))]
-    pub async fn payout_queued(
+    #[instrument(name = "ledger.payout_submitted", skip(self, tx))]
+    pub async fn payout_submitted(
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: PayoutQueuedParams,
+        params: PayoutSubmittedParams,
     ) -> Result<(), BriaError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, PAYOUT_QUEUED_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id, PAYOUT_SUBMITTED_CODE, Some(params))
             .await?;
         Ok(())
     }

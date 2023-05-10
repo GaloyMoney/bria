@@ -301,7 +301,7 @@ enum Command {
         #[clap(short = 'i', long, conflicts_with_all = &["manual_trigger", "immediate_trigger"])]
         interval_trigger: Option<u32>,
     },
-    QueuePayout {
+    SubmitPayout {
         #[clap(
             short,
             long,
@@ -315,7 +315,7 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
         #[clap(short, long)]
-        group_name: String,
+        queue_name: String,
         #[clap(short, long)]
         destination: String,
         #[clap(short, long)]
@@ -681,11 +681,11 @@ pub async fn run() -> anyhow::Result<()> {
                 )
                 .await?;
         }
-        Command::QueuePayout {
+        Command::SubmitPayout {
             url,
             api_key,
             wallet,
-            group_name,
+            queue_name: group_name,
             destination,
             amount,
             external_id,
@@ -693,7 +693,7 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
-                .queue_payout(
+                .submit_payout(
                     wallet,
                     group_name,
                     destination,

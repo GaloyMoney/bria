@@ -71,11 +71,11 @@ bria wallet-balance -w demo
 lnd_cli sendcoins --addr=${bitcoind_addr} --sweepall
 
 # Send money from bria
-bria queue-payout -h
+bria submit-payout -h
 bria create-batch-group -h
 
 bria_cmd create-batch-group --name demo --interval-trigger 5
-bria_cmd queue-payout --wallet demo --group-name demo --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
+bria_cmd submit-payout --wallet demo --queue-name demo --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
 bria wallet-balance -w demo
 bria list-payouts -w demo
 

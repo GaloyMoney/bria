@@ -287,7 +287,7 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn queue_payout(
+    pub async fn submit_payout(
         &self,
         wallet_name: String,
         payout_queue_name: String,
@@ -296,10 +296,10 @@ impl ApiClient {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::QueuePayoutRequest {
+        let request = tonic::Request::new(proto::SubmitPayoutRequest {
             wallet_name,
             payout_queue_name,
-            destination: Some(proto::queue_payout_request::Destination::OnchainAddress(
+            destination: Some(proto::submit_payout_request::Destination::OnchainAddress(
                 on_chain_address,
             )),
             satoshis,
@@ -309,7 +309,7 @@ impl ApiClient {
         let response = self
             .connect()
             .await?
-            .queue_payout(self.inject_auth_token(request)?)
+            .submit_payout(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }

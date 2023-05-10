@@ -16,8 +16,8 @@ pub(super) const SPEND_DETECTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000
 pub(super) const SPEND_SETTLED_CODE: &str = "SPEND_SETTLED";
 pub(super) const SPEND_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000005");
 
-pub(super) const PAYOUT_QUEUED_CODE: &str = "PAYOUT_QUEUED";
-pub(super) const PAYOUT_QUEUED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000006");
+pub(super) const PAYOUT_SUBMITTED_CODE: &str = "PAYOUT_SUBMITTED";
+pub(super) const PAYOUT_SUBMITTED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000006");
 
 pub(super) const BATCH_CREATED_CODE: &str = "BATCH_CREATED";
 pub(super) const BATCH_CREATED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000007");

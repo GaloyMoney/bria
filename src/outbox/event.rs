@@ -125,7 +125,7 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
             }),
-            PayoutQueued(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
+            PayoutSubmitted(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
                 id: meta.payout_id,
                 wallet_id: meta.wallet_id,
                 payout_queue_id: meta.payout_queue_id,

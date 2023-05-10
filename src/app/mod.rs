@@ -461,9 +461,9 @@ impl App {
         Ok(payout_queue_id)
     }
 
-    #[instrument(name = "app.queue_payout", skip(self), err)]
+    #[instrument(name = "app.submit_payout", skip(self), err)]
     #[allow(clippy::too_many_arguments)]
-    pub async fn queue_payout(
+    pub async fn submit_payout(
         &self,
         profile: Profile,
         wallet_name: String,
@@ -497,14 +497,14 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let id = self.payouts.create_in_tx(&mut tx, new_payout).await?;
         self.ledger
-            .payout_queued(
+            .payout_submitted(
                 tx,
                 LedgerTransactionId::from(uuid::Uuid::from(id)),
-                PayoutQueuedParams {
+                PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
                     effective_outgoing_account_id: wallet.ledger_account_ids.effective_outgoing_id,
                     external_id: external_id.unwrap_or_else(|| id.to_string()),
-                    meta: PayoutQueuedMeta {
+                    meta: PayoutSubmittedMeta {
                         account_id: profile.account_id,
                         payout_id: id,
                         payout_queue_id: payout_queue.id,
