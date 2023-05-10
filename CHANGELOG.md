@@ -1,3 +1,23 @@
+# [bria release v0.0.21](https://github.com/GaloyMoney/bria/releases/tag/0.0.21)
+
+
+### Features
+
+- Add update-batch-group (#167)
+- Payout events (#168)
+
+### Miscellaneous Tasks
+
+- Add optional wallet creation in dev bootstrap (#173)
+- Missing payout events (#172)
+- Rename batch-group (#170)
+
+### Refactor
+
+- Rename payout-queued -> payout-submitted (#174)
+- Fix outstanding naming in job/mod.rs
+- Logical -> effective (#169)
+
 # [bria release v0.0.20](https://github.com/GaloyMoney/bria/releases/tag/0.0.20)
 
 
