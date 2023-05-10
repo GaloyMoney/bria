@@ -20,7 +20,7 @@ pub enum PayoutEvent {
     MetadataUpdated {
         metadata: serde_json::Value,
     },
-    AddedToBatch {
+    CommittedToBatch {
         batch_id: BatchId,
     },
 }
@@ -54,7 +54,7 @@ pub struct UnbatchedPayout {
 
 impl UnbatchedPayout {
     pub(super) fn add_to_batch(&mut self, batch_id: BatchId) {
-        self.events.push(PayoutEvent::AddedToBatch { batch_id });
+        self.events.push(PayoutEvent::CommittedToBatch { batch_id });
     }
 }
 
@@ -162,7 +162,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                 PayoutEvent::MetadataUpdated { metadata } => {
                     builder = builder.metadata(metadata.clone());
                 }
-                PayoutEvent::AddedToBatch { batch_id } => {
+                PayoutEvent::CommittedToBatch { batch_id } => {
                     builder = builder.batch_id(*batch_id);
                 }
             }
