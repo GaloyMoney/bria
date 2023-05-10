@@ -275,6 +275,7 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// Create a Payuot Queue
     CreatePayoutQueue {
         #[clap(
             short,
@@ -294,11 +295,7 @@ enum Command {
         tx_priority: TxPriority,
         #[clap(short = 'c', long = "consolidate", default_value = "true")]
         consolidate_deprecated_keychains: bool,
-        #[clap(long, conflicts_with_all = &["immediate_trigger", "interval_trigger"])]
-        manual_trigger: bool,
-        #[clap(long, conflicts_with_all = &["manual_trigger", "interval_trigger"])]
-        immediate_trigger: bool,
-        #[clap(short = 'i', long, conflicts_with_all = &["manual_trigger", "immediate_trigger"])]
+        #[clap(short = 'i', long = "interval-trigger")]
         interval_trigger: Option<u32>,
     },
     SubmitPayout {
@@ -355,7 +352,7 @@ enum Command {
         api_key: String,
     },
 
-    /// List batch groups
+    /// List Payout Queue
     ListPayoutQueues {
         #[clap(
             short,
@@ -368,7 +365,7 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
     },
-    /// Update Batch Group
+    /// Update Payout Group
     UpdatePayoutQueue {
         #[clap(
             short,
@@ -390,11 +387,7 @@ enum Command {
         tx_priority: Option<TxPriority>,
         #[clap(short = 'c', long = "consolidate", default_value = "true")]
         consolidate_deprecated_keychains: Option<bool>,
-        #[clap(long, conflicts_with_all = &["immediate_trigger", "interval_trigger"])]
-        manual_trigger: Option<bool>,
-        #[clap(long, conflicts_with_all = &["manual_trigger", "interval_trigger"])]
-        immediate_trigger: Option<bool>,
-        #[clap( long, conflicts_with_all = &["manual_trigger", "immediate_trigger"])]
+        #[clap(long = "interval-trigger")]
         interval_trigger: Option<u32>,
     },
     /// List signing sessions for batch
@@ -664,8 +657,6 @@ pub async fn run() -> anyhow::Result<()> {
             description,
             tx_priority,
             consolidate_deprecated_keychains,
-            manual_trigger,
-            immediate_trigger,
             interval_trigger,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
@@ -675,8 +666,6 @@ pub async fn run() -> anyhow::Result<()> {
                     description,
                     tx_priority,
                     consolidate_deprecated_keychains,
-                    manual_trigger,
-                    immediate_trigger,
                     interval_trigger,
                 )
                 .await?;
@@ -726,8 +715,6 @@ pub async fn run() -> anyhow::Result<()> {
             description,
             tx_priority,
             consolidate_deprecated_keychains,
-            manual_trigger,
-            immediate_trigger,
             interval_trigger,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
@@ -737,8 +724,6 @@ pub async fn run() -> anyhow::Result<()> {
                     description,
                     tx_priority,
                     consolidate_deprecated_keychains,
-                    manual_trigger,
-                    immediate_trigger,
                     interval_trigger,
                 )
                 .await?;

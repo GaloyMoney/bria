@@ -237,8 +237,6 @@ message PayoutQueueConfig {
   TxPriority tx_priority = 1;
   bool consolidate_deprecated_keychains = 2;
   oneof trigger {
-    bool manual = 3;
-    bool immediate = 4;
     uint32 interval_secs = 5;
   }
 }

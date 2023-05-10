@@ -246,8 +246,6 @@ impl ApiClient {
         description: Option<String>,
         tx_priority: TxPriority,
         consolidate_deprecated_keychains: bool,
-        manual_trigger: bool,
-        immediate_trigger: bool,
         interval_trigger: Option<u32>,
     ) -> anyhow::Result<()> {
         let tx_priority = match tx_priority {
@@ -256,15 +254,7 @@ impl ApiClient {
             TxPriority::Economy => proto::TxPriority::Economy as i32,
         };
 
-        let trigger = if manual_trigger {
-            Some(proto::payout_queue_config::Trigger::Manual(manual_trigger))
-        } else if immediate_trigger {
-            Some(proto::payout_queue_config::Trigger::Immediate(
-                immediate_trigger,
-            ))
-        } else {
-            interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs)
-        };
+        let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);
 
         let config = proto::PayoutQueueConfig {
             tx_priority,
@@ -378,8 +368,6 @@ impl ApiClient {
         description: Option<String>,
         tx_priority: Option<TxPriority>,
         consolidate_deprecated_keychains: Option<bool>,
-        manual_trigger: Option<bool>,
-        immediate_trigger: Option<bool>,
         interval_trigger: Option<u32>,
     ) -> anyhow::Result<()> {
         let tx_priority = tx_priority.map(|priority| match priority {
@@ -388,15 +376,7 @@ impl ApiClient {
             TxPriority::Economy => proto::TxPriority::Economy as i32,
         });
 
-        let trigger = if let Some(manual_trigger) = manual_trigger {
-            Some(proto::payout_queue_config::Trigger::Manual(manual_trigger))
-        } else if let Some(immediate_trigger) = immediate_trigger {
-            Some(proto::payout_queue_config::Trigger::Immediate(
-                immediate_trigger,
-            ))
-        } else {
-            interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs)
-        };
+        let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);
 
         let config = if let (Some(tx_priority), Some(consolidate_deprecated_keychains)) =
             (tx_priority, consolidate_deprecated_keychains)

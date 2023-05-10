@@ -38,8 +38,6 @@ impl PayoutQueue {
     pub fn spawn_in(&self) -> Option<Duration> {
         use PayoutQueueTrigger::*;
         match self.config.trigger {
-            Manual => None,
-            Immediate => Some(Duration::from_secs(1)),
             Interval { seconds } => Some(seconds),
         }
     }
