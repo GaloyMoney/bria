@@ -14,8 +14,6 @@ pub struct PayoutQueueConfig {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutQueueTrigger {
-    Manual,
-    Immediate,
     Interval {
         #[serde_as(as = "serde_with::DurationSeconds<u64>")]
         #[serde(default = "default_interval")]

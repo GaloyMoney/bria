@@ -34,7 +34,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
 
-@test "payout: Create batch group and have two queued payouts on it" {
+@test "payout: Create payout queue and have two queued payouts on it" {
   bria_cmd create-payout-queue --name high --interval-trigger 5
   bria_cmd submit-payout --wallet default --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
   bria_cmd submit-payout --wallet default --queue-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 75000000 --metadata '{"foo":{"bar":"baz"}}'

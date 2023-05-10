@@ -194,8 +194,6 @@ impl From<PayoutQueue> for proto::PayoutQueue {
         let name = payout_queue.name;
         let consolidate_deprecated_keychains = payout_queue.config.consolidate_deprecated_keychains;
         let trigger = match payout_queue.config.trigger {
-            PayoutQueueTrigger::Manual => proto::payout_queue_config::Trigger::Manual(true),
-            PayoutQueueTrigger::Immediate => proto::payout_queue_config::Trigger::Immediate(true),
             PayoutQueueTrigger::Interval { seconds } => {
                 proto::payout_queue_config::Trigger::IntervalSecs(seconds.as_secs() as u32)
             }
@@ -243,19 +241,14 @@ impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
             proto::TxPriority::from_i32(proto_config.tx_priority).map(TxPriority::from);
         let consolidate_deprecated_keychains = proto_config.consolidate_deprecated_keychains;
 
-        let trigger = match proto_config.trigger {
-            Some(proto::payout_queue_config::Trigger::Manual(_)) => {
-                Some(PayoutQueueTrigger::Manual)
-            }
-            Some(proto::payout_queue_config::Trigger::Immediate(_)) => {
-                Some(PayoutQueueTrigger::Immediate)
-            }
-            Some(proto::payout_queue_config::Trigger::IntervalSecs(interval)) => {
-                Some(PayoutQueueTrigger::Interval {
-                    seconds: Duration::from_secs(interval as u64),
-                })
-            }
-            None => None,
+        let trigger = if let Some(proto::payout_queue_config::Trigger::IntervalSecs(interval)) =
+            proto_config.trigger
+        {
+            Some(PayoutQueueTrigger::Interval {
+                seconds: Duration::from_secs(interval as u64),
+            })
+        } else {
+            None
         };
 
         let mut ret = Self {
