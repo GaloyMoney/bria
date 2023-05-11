@@ -49,6 +49,7 @@ impl XPubs {
             xpub.initial_events().new_serialized_events(id),
         )
         .await?;
+        // sqlx::query("INSERT INTO ")
         Ok(xpub_id)
     }
 
@@ -57,12 +58,16 @@ impl XPubs {
         tx: &mut Transaction<'_, Postgres>,
         xpub: AccountXPub,
     ) -> Result<(), BriaError> {
-        Ok(EntityEvents::<XPubEvent>::persist(
-            "bria_xpub_events",
-            tx,
-            xpub.events.new_serialized_events(xpub.db_uuid),
-        )
-        .await?)
+        if xpub.events.is_dirty() {
+            EntityEvents::<XPubEvent>::persist(
+                "bria_xpub_events",
+                tx,
+                xpub.events.new_serialized_events(xpub.db_uuid),
+            )
+            .await?;
+        }
+        // sqlx::QUERY("UPDATE")
+        Ok(())
     }
 
     pub async fn find_from_ref(

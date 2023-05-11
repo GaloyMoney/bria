@@ -50,8 +50,10 @@ enum Command {
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
-        #[clap(env = "SECRET", default_value = "")]
-        secret: String,
+        #[clap(env = "PG_CON", default_value = "")]
+        db_con: String,
+        #[clap(env = "SIGNER_ENTRYPTION_KEY", default_value = "")]
+        signer_encryption_key: EncryptionKey,
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
         #[clap(subcommand)]
@@ -754,6 +756,7 @@ pub async fn run() -> anyhow::Result<()> {
             client.watch_events(one_shot, after, augment).await?;
         }
         Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
+        // Command::GenSignerEncryptionKey {} => (),
     }
     Ok(())
 }

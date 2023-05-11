@@ -56,6 +56,14 @@ CREATE TABLE bria_xpub_events (
   UNIQUE(id, sequence)
 );
 
+CREATE TABLE bria_xpub_signer_configs (
+  id UUID REFERENCES bria_xpubs(id) NOT NULL,
+  cypher BYTEA NOT NULL,
+  nonce BYTEA NOT NULL,
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE bria_wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,

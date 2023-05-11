@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use super::{signer_config::*, signing_client::*, value::XPub as XPubValue};
-use crate::{entity::*, primitives::*};
+use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -39,10 +39,13 @@ impl AccountXPub {
         self.value.id()
     }
 
-    pub fn set_signer_config(&mut self, config: SignerConfig, secret: EncryptionKey) {
-        // let (encrypted_config, _nonce) = config.encrypt(secret).unwrap();
-        // self.events
-        //     .push(XPubEvent::SignerConfigUpdated { encrypted_config });
+    pub fn set_signer_config(
+        &mut self,
+        config: SignerConfig,
+        secret: EncryptionKey,
+    ) -> Result<(), BriaError> {
+        self.encrypted_signer_config = Some(config.encrypt(&secret)?);
+        Ok(())
     }
 
     pub fn signing_cfg(&self) -> Option<SignerConfig> {

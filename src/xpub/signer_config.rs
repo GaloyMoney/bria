@@ -7,6 +7,30 @@ use serde::{Deserialize, Serialize};
 use super::signing_client::*;
 use crate::error::*;
 
+#[derive(Debug, Clone)]
+pub struct SignerEncryptionConfig {
+    #[serde(skip)]
+    pub key: Option<EncryptionKey>,
+}
+
+mod key_serialization {
+    use super::EncryptionKey;
+
+    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<EncryptionKey, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        unimplemented!()
+    }
+
+    pub(super) fn serialize<S>(key: &EncryptionKey, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        unimplemented!()
+    }
+}
+
 pub type EncryptionKey = chacha20poly1305::Key;
 pub(super) struct ConfigCyper(Vec<u8>);
 pub(super) struct Nonce(Vec<u8>);
