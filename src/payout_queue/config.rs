@@ -25,7 +25,7 @@ impl Default for PayoutQueueConfig {
     fn default() -> Self {
         Self {
             tx_priority: TxPriority::NextBlock,
-            consolidate_deprecated_keychains: true,
+            consolidate_deprecated_keychains: false,
             trigger: PayoutQueueTrigger::Interval {
                 seconds: default_interval(),
             },

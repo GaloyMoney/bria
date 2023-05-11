@@ -63,3 +63,19 @@ pub fn insert_error_fields(level: tracing::Level, error: impl std::fmt::Display)
     Span::current().record("error.level", &tracing::field::display(level));
     Span::current().record("error.message", &tracing::field::display(error));
 }
+
+pub async fn record_error<
+    T,
+    E: std::fmt::Display,
+    F: FnOnce() -> R,
+    R: std::future::Future<Output = Result<T, E>>,
+>(
+    level: tracing::Level,
+    func: F,
+) -> Result<T, E> {
+    let result = func().await;
+    if let Err(ref e) = result {
+        insert_error_fields(level, e);
+    }
+    result
+}
