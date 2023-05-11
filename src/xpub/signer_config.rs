@@ -8,8 +8,8 @@ use super::signing_client::*;
 use crate::error::*;
 
 pub type EncryptionKey = chacha20poly1305::Key;
-pub(super) type ConfigCyper = Vec<u8>;
-pub(super) type Nonce = Vec<u8>;
+pub(super) struct ConfigCyper(Vec<u8>);
+pub(super) struct Nonce(Vec<u8>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -26,7 +26,7 @@ impl SignerConfig {
             .encrypt(&nonce, serde_json::to_vec(self)?.as_slice())
             .unwrap();
 
-        Ok((encrypted_config, nonce.to_vec()))
+        Ok((ConfigCyper(encrypted_config), Nonce(nonce.to_vec())))
     }
 
     pub(super) fn decrypt(
@@ -37,8 +37,8 @@ impl SignerConfig {
         let cipher = ChaCha20Poly1305::new(key);
         let decrypted_config = cipher
             .decrypt(
-                &chacha20poly1305::Nonce::from_slice(nonce.as_slice()),
-                encrypted_config.as_slice(),
+                &chacha20poly1305::Nonce::from_slice(nonce.0.as_slice()),
+                encrypted_config.0.as_slice(),
             )
             .unwrap();
         let config: SignerConfig = serde_json::from_slice(decrypted_config.as_slice())?;
@@ -63,7 +63,7 @@ mod tests {
         });
         let key = gen_encryption_key();
         let (encrypted, nonce) = signer.encrypt(&key).expect("Failed to encrypt");
-        let decrypted = SignerConfig::decrypt(&key, nonce, encrypted).expect("Failed to decrypt");
+        let decrypted = SignerConfig::decrypt(&key, encrypted, nonce).expect("Failed to decrypt");
 
         assert_eq!(signer, decrypted);
     }

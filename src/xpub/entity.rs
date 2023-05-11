@@ -28,6 +28,7 @@ pub struct AccountXPub {
     pub key_name: String,
     pub value: XPubValue,
     pub original: String,
+    #[builder(setter(skip))]
     encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
@@ -38,7 +39,7 @@ impl AccountXPub {
         self.value.id()
     }
 
-    pub fn set_signer_config(&mut self, config: SignerConfig, secret: String) {
+    pub fn set_signer_config(&mut self, config: SignerConfig, secret: EncryptionKey) {
         // let (encrypted_config, _nonce) = config.encrypt(secret).unwrap();
         // self.events
         //     .push(XPubEvent::SignerConfigUpdated { encrypted_config });

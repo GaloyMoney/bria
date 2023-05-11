@@ -190,7 +190,7 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
-        xpub.set_signer_config(config, self.secret.clone());
+        // xpub.set_signer_config(config, self.secret.clone());
         let mut tx = self.pool.begin().await?;
         self.xpubs.persist_updated(&mut tx, xpub).await?;
         let batch_ids = self
