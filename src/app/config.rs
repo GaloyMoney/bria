@@ -42,19 +42,10 @@ pub struct JobsConfig {
     pub respawn_all_outbox_handlers_delay: Duration,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     pub jobs: JobsConfig,
     pub signer_encryption: SignerEncryptionConfig,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            jobs: JobsConfig::default(),
-            signer_encryption: SignerEncryptionConfig::default(),
-        }
-    }
 }
 
 impl Default for JobsConfig {

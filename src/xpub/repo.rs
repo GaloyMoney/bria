@@ -66,7 +66,26 @@ impl XPubs {
             )
             .await?;
         }
-        // sqlx::QUERY("UPDATE")
+
+        if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
+            let cypher_bytes = &cypher.0;
+            let nonce_bytes = &nonce.0;
+
+            sqlx::query!(
+                r#"
+                INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)
+                VALUES ($1, $2, $3, NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE 
+                SET cypher = $2, nonce = $3, modified_at = NOW()
+                "#,
+                xpub.db_uuid,
+                cypher_bytes,
+                nonce_bytes,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
         Ok(())
     }
 

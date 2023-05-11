@@ -3,7 +3,9 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
-use crate::{admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfig};
+use crate::{
+    admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfig, xpub::EncryptionKey,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -37,9 +39,13 @@ impl Config {
         let config_file = std::fs::read_to_string(path).context("Couldn't read config file")?;
         let mut config: Config =
             serde_yaml::from_str(&config_file).context("Couldn't parse config file")?;
-
         config.db.pg_con = db_con;
-        // config.app.secret = secret;
+        let key_vec =
+            hex::decode(signer_encryption_key).context("Couldn't decode encryption key")?;
+        let key_bytes = key_vec.as_slice();
+        let key = EncryptionKey::from_slice(key_bytes);
+        config.app.signer_encryption.key = Some(*key);
+
         Ok(config)
     }
 }

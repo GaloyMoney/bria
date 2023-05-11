@@ -40,6 +40,7 @@ pub struct App {
     addresses: Addresses,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
+    signer_encryption: SignerEncryptionConfig,
 }
 
 impl App {
@@ -102,6 +103,7 @@ impl App {
             addresses,
             _runner: runner,
             blockchain_cfg,
+            signer_encryption: app_cfg.signer_encryption,
         })
     }
 
@@ -188,6 +190,9 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
+        if let Some(key) = self.signer_encryption.key {
+            xpub.set_signer_config(config, key)?;
+        }
         // xpub.set_signer_config(config, self.secret.clone());
         let mut tx = self.pool.begin().await?;
         self.xpubs.persist_updated(&mut tx, xpub).await?;

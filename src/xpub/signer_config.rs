@@ -7,10 +7,10 @@ use chacha20poly1305::{
 use serde::{Deserialize, Serialize};
 
 pub type EncryptionKey = chacha20poly1305::Key;
-pub(super) struct ConfigCyper(Vec<u8>);
-pub(super) struct Nonce(Vec<u8>);
+pub(super) struct ConfigCyper(pub(super) Vec<u8>);
+pub(super) struct Nonce(pub(super) Vec<u8>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct SignerEncryptionConfig {
     #[serde(with = "key_serialization")]
     pub key: Option<EncryptionKey>,
@@ -56,12 +56,6 @@ mod key_serialization {
     }
 }
 
-impl Default for SignerEncryptionConfig {
-    fn default() -> Self {
-        Self { key: None }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SignerConfig {
@@ -80,7 +74,7 @@ impl SignerConfig {
         Ok((ConfigCyper(encrypted_config), Nonce(nonce.to_vec())))
     }
 
-    pub(super) fn decrypt(
+    pub(super) fn _decrypt(
         key: &EncryptionKey,
         encrypted_config: ConfigCyper,
         nonce: Nonce,
@@ -88,7 +82,7 @@ impl SignerConfig {
         let cipher = ChaCha20Poly1305::new(key);
         let decrypted_config = cipher
             .decrypt(
-                &chacha20poly1305::Nonce::from_slice(nonce.0.as_slice()),
+                chacha20poly1305::Nonce::from_slice(nonce.0.as_slice()),
                 encrypted_config.0.as_slice(),
             )
             .unwrap();
@@ -114,7 +108,7 @@ mod tests {
         });
         let key = gen_encryption_key();
         let (encrypted, nonce) = signer.encrypt(&key).expect("Failed to encrypt");
-        let decrypted = SignerConfig::decrypt(&key, encrypted, nonce).expect("Failed to decrypt");
+        let decrypted = SignerConfig::_decrypt(&key, encrypted, nonce).expect("Failed to decrypt");
 
         assert_eq!(signer, decrypted);
     }

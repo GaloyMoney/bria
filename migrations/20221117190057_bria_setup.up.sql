@@ -57,7 +57,7 @@ CREATE TABLE bria_xpub_events (
 );
 
 CREATE TABLE bria_xpub_signer_configs (
-  id UUID REFERENCES bria_xpubs(id) NOT NULL,
+  id UUID PRIMARY KEY  REFERENCES bria_xpubs(id) NOT NULL,
   cypher BYTEA NOT NULL,
   nonce BYTEA NOT NULL,
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

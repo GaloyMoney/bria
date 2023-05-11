@@ -29,7 +29,7 @@ pub struct AccountXPub {
     pub value: XPubValue,
     pub original: String,
     #[builder(setter(skip))]
-    encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
+    pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
@@ -152,7 +152,6 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                 XPubEvent::NameUpdated { name } => {
                     builder = builder.key_name(name.clone());
                 }
-                _ => (),
             }
         }
         builder.events(events).build()

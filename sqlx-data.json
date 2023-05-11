@@ -608,6 +608,20 @@
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"
   },
+  "38ee995cafdc4c4cd1319682e059e9b3b96a10251e0c78656353757f6b965a8c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)\n                VALUES ($1, $2, $3, NOW(), NOW())\n                ON CONFLICT (id) DO UPDATE \n                SET cypher = $2, nonce = $3, modified_at = NOW()\n                "
+  },
   "3fca5e81c350c9848aa07300603886d2dbdbbf6c987e8cea695af04813c056f0": {
     "describe": {
       "columns": [
