@@ -50,10 +50,8 @@ enum Command {
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
-        #[clap(env = "PG_CON", default_value = "")]
-        db_con: String,
         #[clap(env = "SIGNER_ENTRYPTION_KEY", default_value = "")]
-        signer_encryption_key: EncryptionKey,
+        signer_encryption_key: String,
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
         #[clap(subcommand)]
@@ -511,9 +509,15 @@ pub async fn run() -> anyhow::Result<()> {
             crash_report_config,
             db_con,
             command,
-            secret,
+            signer_encryption_key,
         } => {
-            let config = Config::from_path(config, EnvOverride { db_con, secret })?;
+            let config = Config::from_path(
+                config,
+                EnvOverride {
+                    db_con,
+                    signer_encryption_key,
+                },
+            )?;
             let (dev, dev_xpub, dev_derivation) = match command {
                 DaemonCommand::Dev { xpub, derivation } => (true, xpub, derivation),
                 _ => (false, None, None),

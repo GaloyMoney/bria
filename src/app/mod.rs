@@ -40,7 +40,6 @@ pub struct App {
     addresses: Addresses,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
-    secret: String,
 }
 
 impl App {
@@ -71,21 +70,21 @@ impl App {
             ledger.clone(),
             utxos.clone(),
             addresses.clone(),
-            app_cfg.sync_all_wallets_delay,
-            app_cfg.process_all_payout_queues_delay,
-            app_cfg.respawn_all_outbox_handlers_delay,
+            app_cfg.jobs.sync_all_wallets_delay,
+            app_cfg.jobs.process_all_payout_queues_delay,
+            app_cfg.jobs.respawn_all_outbox_handlers_delay,
             blockchain_cfg.clone(),
         )
         .await?;
-        Self::spawn_sync_all_wallets(pool.clone(), app_cfg.sync_all_wallets_delay).await?;
+        Self::spawn_sync_all_wallets(pool.clone(), app_cfg.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
-            app_cfg.process_all_payout_queues_delay,
+            app_cfg.jobs.process_all_payout_queues_delay,
         )
         .await?;
         Self::spawn_respawn_all_outbox_handlers(
             pool.clone(),
-            app_cfg.respawn_all_outbox_handlers_delay,
+            app_cfg.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
         Ok(Self {
@@ -103,7 +102,6 @@ impl App {
             addresses,
             _runner: runner,
             blockchain_cfg,
-            secret: app_cfg.secret,
         })
     }
 

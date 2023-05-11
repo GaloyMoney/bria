@@ -23,20 +23,23 @@ pub struct Config {
 
 pub struct EnvOverride {
     pub db_con: String,
-    pub secret: String,
+    pub signer_encryption_key: String,
 }
 
 impl Config {
     pub fn from_path(
         path: impl AsRef<Path>,
-        EnvOverride { db_con, secret }: EnvOverride,
+        EnvOverride {
+            db_con,
+            signer_encryption_key,
+        }: EnvOverride,
     ) -> anyhow::Result<Self> {
         let config_file = std::fs::read_to_string(path).context("Couldn't read config file")?;
         let mut config: Config =
             serde_yaml::from_str(&config_file).context("Couldn't parse config file")?;
 
         config.db.pg_con = db_con;
-        config.app.secret = secret;
+        // config.app.secret = secret;
         Ok(config)
     }
 }

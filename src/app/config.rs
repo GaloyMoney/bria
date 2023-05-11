@@ -28,27 +28,6 @@ fn default_electrum_url() -> String {
     "127.0.0.1:50001".to_string()
 }
 
-#[serde_with::serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppConfig {
-    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
-    #[serde(default = "default_sync_all_wallets_delay")]
-    pub sync_all_wallets_delay: Duration,
-    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
-    #[serde(default = "default_process_all_payout_queues_delay")]
-    pub process_all_payout_queues_delay: Duration,
-    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
-    #[serde(default = "default_respawn_all_outbox_handlers_delay")]
-    pub respawn_all_outbox_handlers_delay: Duration,
-    pub secret: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NewAppConfig {
-    jobs: JobsConfig,
-    signer_encryption: SignerEncryptionConfig,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_with::serde_as]
 pub struct JobsConfig {
@@ -63,13 +42,27 @@ pub struct JobsConfig {
     pub respawn_all_outbox_handlers_delay: Duration,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppConfig {
+    pub jobs: JobsConfig,
+    pub signer_encryption: SignerEncryptionConfig,
+}
+
 impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            jobs: JobsConfig::default(),
+            signer_encryption: SignerEncryptionConfig::default(),
+        }
+    }
+}
+
+impl Default for JobsConfig {
     fn default() -> Self {
         Self {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),
             process_all_payout_queues_delay: default_process_all_payout_queues_delay(),
             respawn_all_outbox_handlers_delay: default_respawn_all_outbox_handlers_delay(),
-            secret: "".to_string(),
         }
     }
 }
