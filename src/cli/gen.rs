@@ -4,6 +4,11 @@ use bdk::{
     miniscript::Segwitv0,
 };
 
+use chacha20poly1305::{
+    aead::{KeyInit, OsRng},
+    ChaCha20Poly1305,
+};
+
 use std::str::FromStr;
 
 pub fn gen_descriptor_keys(network: Network) -> anyhow::Result<()> {
@@ -54,5 +59,13 @@ pub fn gen_descriptor_keys(network: Network) -> anyhow::Result<()> {
     println!("{}", wallet.get_address(bdk::wallet::AddressIndex::New)?);
     println!("{}", wallet.get_address(bdk::wallet::AddressIndex::New)?);
 
+    Ok(())
+}
+
+pub fn gen_signer_encryption_key() -> anyhow::Result<()> {
+    let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+    let key_bytes = key.as_slice();
+    let hex_string = hex::encode(key_bytes);
+    println!("{}", hex_string);
     Ok(())
 }

@@ -433,6 +433,8 @@ enum Command {
         #[clap(short, long, default_value = "bitcoin")]
         network: crate::primitives::bitcoin::Network,
     },
+    /// generate a hex encoded 32 byte random key
+    GenSignerEncryptionKey {},
 }
 
 #[derive(Subcommand)]
@@ -760,7 +762,7 @@ pub async fn run() -> anyhow::Result<()> {
             client.watch_events(one_shot, after, augment).await?;
         }
         Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
-        // Command::GenSignerEncryptionKey {} => (),
+        Command::GenSignerEncryptionKey {} => gen::gen_signer_encryption_key()?,
     }
     Ok(())
 }
