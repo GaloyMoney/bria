@@ -40,8 +40,7 @@ pub struct AppConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_respawn_all_outbox_handlers_delay")]
     pub respawn_all_outbox_handlers_delay: Duration,
-    pub key: Vec<u8>,
-    pub nonce: Vec<u8>,
+    pub secret: String,
 }
 
 impl Default for AppConfig {
@@ -50,8 +49,7 @@ impl Default for AppConfig {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),
             process_all_payout_queues_delay: default_process_all_payout_queues_delay(),
             respawn_all_outbox_handlers_delay: default_respawn_all_outbox_handlers_delay(),
-            key: vec![],
-            nonce: vec![],
+            secret: "".to_string(),
         }
     }
 }

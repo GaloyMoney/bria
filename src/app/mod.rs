@@ -40,8 +40,7 @@ pub struct App {
     addresses: Addresses,
     pool: sqlx::PgPool,
     blockchain_cfg: BlockchainConfig,
-    key: Vec<u8>,
-    nonce: Vec<u8>,
+    secret: String,
 }
 
 impl App {
@@ -104,8 +103,7 @@ impl App {
             addresses,
             _runner: runner,
             blockchain_cfg,
-            key: app_cfg.key,
-            nonce: app_cfg.nonce,
+            secret: app_cfg.secret,
         })
     }
 
@@ -192,7 +190,7 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
-        xpub.set_signer_config(config, self.key.clone(), self.nonce.clone());
+        xpub.set_signer_config(config, self.secret.clone());
         let mut tx = self.pool.begin().await?;
         self.xpubs.persist_updated(&mut tx, xpub).await?;
         let batch_ids = self
