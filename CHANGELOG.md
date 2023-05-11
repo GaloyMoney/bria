@@ -1,3 +1,12 @@
+# [bria release v0.0.24](https://github.com/GaloyMoney/bria/releases/tag/0.0.24)
+
+
+### Miscellaneous Tasks
+
+- Improve tracing
+- Bump serde from 1.0.162 to 1.0.163 (#178)
+- Bump tokio from 1.28.0 to 1.28.1 (#176)
+
 # [bria release v0.0.23](https://github.com/GaloyMoney/bria/releases/tag/0.0.23)
 
 
