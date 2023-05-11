@@ -9,7 +9,7 @@ use crate::{
     wallet::DEFAULT_SIGHASH_TYPE,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BitcoindSignerConfig {
     pub endpoint: String,
     pub rpc_user: String,

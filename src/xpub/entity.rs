@@ -19,9 +19,6 @@ pub enum XPubEvent {
     NameUpdated {
         name: String,
     },
-    SignerConfigUpdated {
-        encrypted_config: Vec<u8>,
-    },
 }
 
 #[derive(Builder)]
@@ -31,6 +28,7 @@ pub struct AccountXPub {
     pub key_name: String,
     pub value: XPubValue,
     pub original: String,
+    encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
@@ -41,9 +39,9 @@ impl AccountXPub {
     }
 
     pub fn set_signer_config(&mut self, config: SignerConfig, secret: String) {
-        let (encrypted_config, _nonce) = config.encrypt(secret).unwrap();
-        self.events
-            .push(XPubEvent::SignerConfigUpdated { encrypted_config });
+        // let (encrypted_config, _nonce) = config.encrypt(secret).unwrap();
+        // self.events
+        //     .push(XPubEvent::SignerConfigUpdated { encrypted_config });
     }
 
     pub fn signing_cfg(&self) -> Option<SignerConfig> {

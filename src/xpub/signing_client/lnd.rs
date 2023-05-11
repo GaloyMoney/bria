@@ -7,7 +7,7 @@ use std::fs;
 use super::{error::*, r#trait::*};
 use crate::primitives::bitcoin::{consensus, psbt};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LndSignerConfig {
     pub endpoint: String,
     pub cert_base64: String,
