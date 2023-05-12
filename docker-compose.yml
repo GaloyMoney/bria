@@ -41,7 +41,6 @@ services:
       - PG_HOST=postgres
       - BITCOIND_HOST=bitcoind
       - BITCOIND_SIGNER_ENDPOINT=https://bitcoind-signer:18443
-      - SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
       - LND_HOST=lnd
       - ELECTRUM_HOST=fulcrum
   integration-tests:
