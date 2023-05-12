@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::{
-    admin::AdminApiConfig, api::ApiConfig, app::*, dev_constants, primitives::bitcoin,
-    tracing::TracingConfig, xpub::EncryptionKey,
+    admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfig, xpub::EncryptionKey,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,21 +39,14 @@ impl Config {
             serde_yaml::from_str(&config_file).context("Couldn't parse config file")?;
         config.db.pg_con = db_con;
 
-        match (
-            hex::decode(signer_encryption_key),
-            config.app.blockchain.network,
-        ) {
-            (Ok(key_bytes), _) => {
-                config.app.signer_encryption.key =
-                    EncryptionKey::clone_from_slice(key_bytes.as_ref())
-            }
-            (_, network) if network != bitcoin::Network::Bitcoin => {
-                config.app.signer_encryption.key = dev_constants::dev_signer_encryption_key();
-            }
-            (Err(e), _) => {
-                return Err(e.into());
-            }
+        let key_bytes = hex::decode(signer_encryption_key)?;
+        if key_bytes.len() != 32 {
+            return Err(anyhow::anyhow!(
+                "Signer encryption key must be 32 bytes, got {}",
+                key_bytes.len()
+            ));
         }
+        config.app.signer_encryption.key = EncryptionKey::clone_from_slice(key_bytes.as_ref());
         Ok(config)
     }
 }

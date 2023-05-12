@@ -52,7 +52,7 @@ pub async fn start_job_runner(
     process_all_payout_queues_delay: std::time::Duration,
     respawn_all_outbox_handlers_delay: std::time::Duration,
     blockchain_cfg: BlockchainConfig,
-    key: EncryptionKey,
+    signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<OwnedHandle, BriaError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -82,7 +82,7 @@ pub async fn start_job_runner(
     registry.set_context(ledger);
     registry.set_context(utxos);
     registry.set_context(addresses);
-    registry.set_context(key);
+    registry.set_context(signer_encryption_config);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -317,7 +317,7 @@ async fn batch_signing(
     wallets: Wallets,
     xpubs: XPubs,
     signing_sessions: SigningSessions,
-    key: EncryptionKey,
+    signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -333,7 +333,7 @@ async fn batch_signing(
                 signing_sessions,
                 wallets,
                 xpubs,
-                key,
+                signer_encryption_config,
             )
             .await?;
 

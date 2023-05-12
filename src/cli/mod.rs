@@ -11,11 +11,12 @@ use db::*;
 use std::path::PathBuf;
 use url::Url;
 
-use crate::api::proto;
-use crate::primitives::TxPriority;
+use crate::{
+    api::proto,
+    dev_constants,
+    primitives::{bitcoin, TxPriority},
+};
 use config::*;
-
-const DEV_WALLET_NAME: &str = "dev";
 
 #[derive(Parser)]
 #[clap(version, long_about = None)]
@@ -50,8 +51,6 @@ enum Command {
         /// Connection string for the Postgres
         #[clap(env = "PG_CON", default_value = "")]
         db_con: String,
-        #[clap(env = "SIGNER_ENTRYPTION_KEY", default_value = "")]
-        signer_encryption_key: String,
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
         #[clap(subcommand)]
@@ -431,7 +430,7 @@ enum Command {
     },
     GenDescriptorKeys {
         #[clap(short, long, default_value = "bitcoin")]
-        network: crate::primitives::bitcoin::Network,
+        network: bitcoin::Network,
     },
     /// generate a hex encoded 32 byte random key
     GenSignerEncryptionKey {},
@@ -439,7 +438,10 @@ enum Command {
 
 #[derive(Subcommand)]
 enum DaemonCommand {
-    Run,
+    Run {
+        #[clap(env = "SIGNER_ENCRYPTION_KEY")]
+        signer_encryption_key: String,
+    },
     Dev {
         #[clap(short = 'x', long = "xpub")]
         /// The base58 encoded extended public key
@@ -511,8 +513,18 @@ pub async fn run() -> anyhow::Result<()> {
             crash_report_config,
             db_con,
             command,
-            signer_encryption_key,
         } => {
+            let (dev, dev_xpub, dev_derivation, signer_encryption_key) = match command {
+                DaemonCommand::Dev { xpub, derivation } => (
+                    true,
+                    xpub,
+                    derivation,
+                    dev_constants::DEV_SIGNER_ENCRYPTION_KEY.to_string(),
+                ),
+                DaemonCommand::Run {
+                    signer_encryption_key,
+                } => (false, None, None, signer_encryption_key),
+            };
             let config = Config::from_path(
                 config,
                 EnvOverride {
@@ -520,10 +532,9 @@ pub async fn run() -> anyhow::Result<()> {
                     signer_encryption_key,
                 },
             )?;
-            let (dev, dev_xpub, dev_derivation) = match command {
-                DaemonCommand::Dev { xpub, derivation } => (true, xpub, derivation),
-                _ => (false, None, None),
-            };
+            if dev && config.app.blockchain.network == bitcoin::Network::Bitcoin {
+                return Err(anyhow::anyhow!("Dev mode is not allowed for mainnet"));
+            }
             match (
                 run_cmd(
                     &cli.bria_home,
@@ -861,7 +872,7 @@ async fn run_cmd(
                 retries = 10;
                 while retries > 0 {
                     match client
-                        .create_wallet(DEV_WALLET_NAME.to_string(), command.clone())
+                        .create_wallet(dev_constants::DEV_WALLET_NAME.to_string(), command.clone())
                         .await
                     {
                         Ok(_) => {
