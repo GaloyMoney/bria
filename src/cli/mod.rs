@@ -49,7 +49,7 @@ enum Command {
         )]
         config: PathBuf,
         /// Connection string for the Postgres
-        #[clap(env = "PG_CON", default_value = "")]
+        #[clap(env = "PG_CON")]
         db_con: String,
         #[clap(env = "CRASH_REPORT_CONFIG")]
         crash_report_config: Option<bool>,
