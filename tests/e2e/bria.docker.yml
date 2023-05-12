@@ -1,3 +1,4 @@
-blockchain:
-  network: regtest
-  electrum_url: fulcrum:50001
+app:
+  blockchain:
+    network: regtest
+    electrum_url: fulcrum:50001
