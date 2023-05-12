@@ -126,6 +126,8 @@ impl NewAccountXPub {
     }
 }
 
+// impl TryFrom<(EntityEvents<XPubEvent>, Option<SignerConfig>)> for AccountXPub {
+// }
 impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
     type Error = EntityError;
     fn try_from(events: EntityEvents<XPubEvent>) -> Result<Self, Self::Error> {

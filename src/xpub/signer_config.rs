@@ -24,6 +24,10 @@ pub enum SignerConfig {
     Bitcoind(BitcoindSignerConfig),
 }
 
+// TODO don't leak creds
+// impl Debug for SignerConfig {
+// }
+
 impl SignerConfig {
     pub(super) fn encrypt(&self, key: &EncryptionKey) -> Result<(ConfigCyper, Nonce), BriaError> {
         let cipher = ChaCha20Poly1305::new(key);

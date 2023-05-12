@@ -131,6 +131,9 @@ impl XPubs {
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;
         }
+        // code to fetch the signing config
+        // TODO load xpub from events + signer_config
+        // Ok(AccountXPub::try_from((events, signer_config))?)
         Ok(AccountXPub::try_from(events)?)
     }
 
