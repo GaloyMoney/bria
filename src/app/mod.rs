@@ -464,7 +464,7 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
-        group_name: String,
+        queue_name: String,
         destination: PayoutDestination,
         sats: Satoshis,
         external_id: Option<String>,
@@ -476,7 +476,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, group_name)
+            .find_by_name(profile.account_id, queue_name)
             .await?;
         let mut builder = NewPayout::builder();
         builder
