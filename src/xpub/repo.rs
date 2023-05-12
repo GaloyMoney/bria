@@ -49,7 +49,6 @@ impl XPubs {
             xpub.initial_events().new_serialized_events(id),
         )
         .await?;
-        // sqlx::query("INSERT INTO ")
         Ok(xpub_id)
     }
 
@@ -172,7 +171,6 @@ impl XPubs {
 
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
-            // fetch the signer config
             let config_row = sqlx::query!(
                 r#"
                 SELECT cypher, nonce
