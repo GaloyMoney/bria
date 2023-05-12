@@ -9,7 +9,7 @@ use std::{
     marker::PhantomData,
 };
 
-use super::keychain::*;
+use super::{keychain::*, Wallet as WalletEntity};
 use crate::{
     error::*,
     primitives::{bitcoin::*, *},
@@ -18,7 +18,8 @@ use crate::{
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;
 
-type Payout = (uuid::Uuid, bitcoin::Address, Satoshis);
+pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
+
 pub struct WalletTotals {
     pub wallet_id: WalletId,
     pub change_keychain_id: KeychainId,
@@ -32,7 +33,7 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<Payout>>,
+    pub included_payouts: HashMap<WalletId, Vec<TxPayout>>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
@@ -46,7 +47,7 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     current_wallet: Option<WalletId>,
-    current_payouts: Vec<Payout>,
+    current_payouts: Vec<TxPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
@@ -102,6 +103,36 @@ impl Default for PsbtBuilder<InitialPsbtBuilderState> {
 }
 
 impl PsbtBuilder<InitialPsbtBuilderState> {
+    pub async fn construct_psbt(
+        pool: &sqlx::PgPool,
+        consolidate_deprecated_keychains: bool,
+        fee_rate: FeeRate,
+        reserved_utxos: HashMap<KeychainId, Vec<bitcoin::OutPoint>>,
+        unbatched_payouts: HashMap<WalletId, Vec<TxPayout>>,
+        mut wallets: HashMap<WalletId, WalletEntity>,
+    ) -> Result<FinishedPsbtBuild, BriaError> {
+        let mut outer_builder = PsbtBuilder::new()
+            .consolidate_deprecated_keychains(consolidate_deprecated_keychains)
+            .fee_rate(fee_rate)
+            .reserved_utxos(reserved_utxos)
+            .accept_wallets();
+
+        for (wallet_id, payouts) in unbatched_payouts {
+            let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
+
+            let mut builder = outer_builder.wallet_payouts(wallet.id, payouts);
+            for keychain in wallet.deprecated_keychain_wallets(pool.clone()) {
+                builder = keychain.dispatch_bdk_wallet(builder).await?;
+            }
+            outer_builder = wallet
+                .current_keychain_wallet(pool)
+                .dispatch_bdk_wallet(builder.accept_current_keychain())
+                .await?
+                .next_wallet();
+        }
+        Ok(outer_builder.finish())
+    }
+
     pub fn new() -> Self {
         Self {
             consolidate_deprecated_keychains: None,
@@ -163,7 +194,7 @@ impl PsbtBuilder<AcceptingWalletState> {
     pub fn wallet_payouts(
         self,
         wallet_id: WalletId,
-        payouts: Vec<Payout>,
+        payouts: Vec<TxPayout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
@@ -433,7 +464,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
     fn try_build_current_wallet_psbt<D: BatchDatabase>(
         &self,
         keychain_id: KeychainId,
-        payouts: &[Payout],
+        payouts: &[TxPayout],
         wallet: &Wallet<D>,
     ) -> Result<bool, BriaError> {
         let mut builder = wallet.build_tx();

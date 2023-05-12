@@ -45,7 +45,7 @@ pub async fn execute<'a>(
 > {
     let span = tracing::Span::current();
     let PayoutQueue {
-        config: bg_cfg,
+        config: queue_cfg,
         name,
         ..
     } = payout_queues
@@ -64,7 +64,7 @@ pub async fn execute<'a>(
     );
 
     let wallet_ids = unbatched_payouts.keys().copied().collect();
-    let mut wallets = wallets.find_by_ids(wallet_ids).await?;
+    let wallets = wallets.find_by_ids(wallet_ids).await?;
     let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
 
     let mut tx = pool.begin().await?;
@@ -75,43 +75,31 @@ pub async fn execute<'a>(
         "n_reserved_utxos",
         reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
     );
-    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(bg_cfg.tx_priority).await?;
-
-    let mut outer_builder = PsbtBuilder::new()
-        .consolidate_deprecated_keychains(bg_cfg.consolidate_deprecated_keychains)
-        .fee_rate(fee_rate)
-        .reserved_utxos(reserved_utxos)
-        .accept_wallets();
 
     let mut candidate_payouts = HashMap::new();
-    for (wallet_id, payouts) in unbatched_payouts {
-        let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
-
-        let mut builder = outer_builder.wallet_payouts(
-            wallet.id,
-            payouts
-                .into_iter()
-                .map(|p| {
-                    let id = uuid::Uuid::from(p.id);
-                    let ret = (
-                        id,
-                        p.destination.onchain_address().expect("onchain_address"),
-                        p.satoshis,
-                    );
-                    candidate_payouts.insert(id, p);
-                    ret
-                })
-                .collect(),
-        );
-        for keychain in wallet.deprecated_keychain_wallets(pool.clone()) {
-            builder = keychain.dispatch_bdk_wallet(builder).await?;
-        }
-        outer_builder = wallet
-            .current_keychain_wallet(&pool)
-            .dispatch_bdk_wallet(builder.accept_current_keychain())
-            .await?
-            .next_wallet();
-    }
+    let tx_payouts: HashMap<WalletId, Vec<TxPayout>> = unbatched_payouts
+        .into_iter()
+        .map(|(wallet_id, payouts)| {
+            (
+                wallet_id,
+                payouts
+                    .into_iter()
+                    .map(|p| {
+                        let id = uuid::Uuid::from(p.id);
+                        let ret = (
+                            id,
+                            p.destination.onchain_address().expect("onchain_address"),
+                            p.satoshis,
+                        );
+                        candidate_payouts.insert(id, p);
+                        ret
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+    let fee_rate =
+        crate::fee_estimation::MempoolSpaceClient::fee_rate(queue_cfg.tx_priority).await?;
 
     let FinishedPsbtBuild {
         psbt,
@@ -121,7 +109,15 @@ pub async fn execute<'a>(
         tx_id,
         fee_satoshis,
         ..
-    } = outer_builder.finish();
+    } = PsbtBuilder::construct_psbt(
+        &pool,
+        queue_cfg.consolidate_deprecated_keychains,
+        fee_rate,
+        reserved_utxos,
+        tx_payouts,
+        wallets,
+    )
+    .await?;
 
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
         span.record("txid", &tracing::field::display(tx_id));

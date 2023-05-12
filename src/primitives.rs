@@ -109,7 +109,7 @@ pub mod bitcoin {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, clap::ValueEnum, PartialEq, Eq, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum TxPriority {
     NextBlock,
