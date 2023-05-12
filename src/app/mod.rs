@@ -70,6 +70,7 @@ impl App {
             config.jobs.process_all_payout_queues_delay,
             config.jobs.respawn_all_outbox_handlers_delay,
             config.blockchain.clone(),
+            config.signer_encryption.key,
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;

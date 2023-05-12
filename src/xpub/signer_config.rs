@@ -7,8 +7,8 @@ use chacha20poly1305::{
 use serde::{Deserialize, Serialize};
 
 pub type EncryptionKey = chacha20poly1305::Key;
-pub(super) struct ConfigCyper(pub(super) Vec<u8>);
-pub(super) struct Nonce(pub(super) Vec<u8>);
+pub struct ConfigCyper(pub Vec<u8>);
+pub struct Nonce(pub Vec<u8>);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(into = "RawSignerEncryptionConfig")]
@@ -17,16 +17,12 @@ pub struct SignerEncryptionConfig {
     pub key: EncryptionKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SignerConfig {
     Lnd(LndSignerConfig),
     Bitcoind(BitcoindSignerConfig),
 }
-
-// TODO don't leak creds
-// impl Debug for SignerConfig {
-// }
 
 impl SignerConfig {
     pub(super) fn encrypt(&self, key: &EncryptionKey) -> Result<(ConfigCyper, Nonce), BriaError> {
@@ -39,10 +35,10 @@ impl SignerConfig {
         Ok((ConfigCyper(encrypted_config), Nonce(nonce.to_vec())))
     }
 
-    pub(super) fn _decrypt(
+    pub(super) fn decrypt(
         key: &EncryptionKey,
-        encrypted_config: ConfigCyper,
-        nonce: Nonce,
+        encrypted_config: &ConfigCyper,
+        nonce: &Nonce,
     ) -> Result<Self, BriaError> {
         let cipher = ChaCha20Poly1305::new(key);
         let decrypted_config = cipher
@@ -80,6 +76,19 @@ impl TryFrom<RawSignerEncryptionConfig> for SignerEncryptionConfig {
     }
 }
 
+impl std::fmt::Debug for SignerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SignerConfig::Lnd(config) => {
+                write!(f, "SignerConfig::Lnd(endpoint={})", config.endpoint)
+            }
+            SignerConfig::Bitcoind(config) => {
+                write!(f, "SignerConfig::Bitcoind(endpoint={})", config.endpoint)
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     pub use super::*;
@@ -97,7 +106,7 @@ mod tests {
         });
         let key = gen_encryption_key();
         let (encrypted, nonce) = signer.encrypt(&key).expect("Failed to encrypt");
-        let decrypted = SignerConfig::_decrypt(&key, encrypted, nonce).expect("Failed to decrypt");
+        let decrypted = SignerConfig::decrypt(&key, &encrypted, &nonce).expect("Failed to decrypt");
 
         assert_eq!(signer, decrypted);
     }

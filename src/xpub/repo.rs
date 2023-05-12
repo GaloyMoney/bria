@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::{entity::*, reference::*};
+use super::{entity::*, reference::*, signer_config::*};
 use crate::{entity::*, error::*, primitives::*};
 use std::collections::HashMap;
 
@@ -131,10 +131,24 @@ impl XPubs {
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;
         }
-        // code to fetch the signing config
-        // TODO load xpub from events + signer_config
-        // Ok(AccountXPub::try_from((events, signer_config))?)
-        Ok(AccountXPub::try_from(events)?)
+
+        let config_row = sqlx::query!(
+            r#"
+            SELECT cypher, nonce
+            FROM bria_xpub_signer_configs
+            WHERE id = $1
+            "#,
+            db_uuid
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let config = match config_row {
+            Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
+            None => None,
+        };
+
+        Ok(AccountXPub::try_from((events, config))?)
     }
 
     pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, BriaError> {
@@ -148,15 +162,37 @@ impl XPubs {
         )
         .fetch_all(&self.pool)
         .await?;
+
         let mut entity_events = HashMap::new();
         for row in rows {
             let id = row.id;
             let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
             events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(entity_events
-            .into_values()
-            .map(AccountXPub::try_from)
-            .collect::<Result<Vec<_>, _>>()?)
+
+        let mut xpubs = Vec::new();
+        for (id, events) in entity_events {
+            // fetch the signer config
+            let config_row = sqlx::query!(
+                r#"
+                SELECT cypher, nonce
+                FROM bria_xpub_signer_configs
+                WHERE id = $1
+                "#,
+                id
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+
+            let config = match config_row {
+                Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
+                None => None,
+            };
+
+            let xpub = AccountXPub::try_from((events, config))?;
+            xpubs.push(xpub);
+        }
+
+        Ok(xpubs)
     }
 }
