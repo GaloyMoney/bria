@@ -41,23 +41,6 @@ pub struct Payout {
     pub metadata: Option<serde_json::Value>,
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
-pub struct UnbatchedPayout {
-    pub id: PayoutId,
-    pub wallet_id: WalletId,
-    pub destination: PayoutDestination,
-    pub satoshis: Satoshis,
-
-    pub(super) events: EntityEvents<PayoutEvent>,
-}
-
-impl UnbatchedPayout {
-    pub(super) fn add_to_batch(&mut self, batch_id: BatchId) {
-        self.events.push(PayoutEvent::CommittedToBatch { batch_id });
-    }
-}
-
 #[derive(Debug, Builder, Clone)]
 pub struct NewPayout {
     #[builder(setter(into))]
@@ -103,31 +86,6 @@ impl NewPayout {
             events.push(PayoutEvent::MetadataUpdated { metadata });
         }
         events
-    }
-}
-
-impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<PayoutEvent>) -> Result<Self, Self::Error> {
-        let mut builder = UnbatchedPayoutBuilder::default();
-        for event in events.iter() {
-            if let PayoutEvent::Initialized {
-                id,
-                wallet_id,
-                destination,
-                satoshis,
-                ..
-            } = event
-            {
-                builder = builder
-                    .id(*id)
-                    .wallet_id(*wallet_id)
-                    .destination(destination.clone())
-                    .satoshis(*satoshis);
-            }
-        }
-        builder.events(events).build()
     }
 }
 

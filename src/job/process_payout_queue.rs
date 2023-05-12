@@ -43,63 +43,13 @@ pub async fn execute<'a>(
     ),
     BriaError,
 > {
-    let span = tracing::Span::current();
-    let PayoutQueue {
-        config: queue_cfg,
-        name,
-        ..
-    } = payout_queues
+    let payout_queue = payout_queues
         .find_by_id(data.account_id, data.payout_queue_id)
         .await?;
-    span.record("payout_queue_name", name);
-    span.record(
-        "payout_queue_id",
-        &tracing::field::display(data.payout_queue_id),
-    );
-
-    let unbatched_payouts = payouts.list_unbatched(data.payout_queue_id).await?;
-    span.record(
-        "n_unbatched_payouts",
-        unbatched_payouts.values().fold(0, |acc, v| acc + v.len()),
-    );
-
-    let wallet_ids = unbatched_payouts.keys().copied().collect();
-    let wallets = wallets.find_by_ids(wallet_ids).await?;
-    let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-
-    let mut tx = pool.begin().await?;
-    let reserved_utxos = utxos
-        .outpoints_bdk_should_not_select(&mut tx, keychain_ids)
+    let mut unbatched_payouts = payouts
+        .list_unbatched(data.account_id, data.payout_queue_id)
         .await?;
-    span.record(
-        "n_reserved_utxos",
-        reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
-    );
-
-    let mut candidate_payouts = HashMap::new();
-    let tx_payouts: HashMap<WalletId, Vec<TxPayout>> = unbatched_payouts
-        .into_iter()
-        .map(|(wallet_id, payouts)| {
-            (
-                wallet_id,
-                payouts
-                    .into_iter()
-                    .map(|p| {
-                        let id = uuid::Uuid::from(p.id);
-                        let ret = (
-                            id,
-                            p.destination.onchain_address().expect("onchain_address"),
-                            p.satoshis,
-                        );
-                        candidate_payouts.insert(id, p);
-                        ret
-                    })
-                    .collect(),
-            )
-        })
-        .collect();
-    let fee_rate =
-        crate::fee_estimation::MempoolSpaceClient::fee_rate(queue_cfg.tx_priority).await?;
+    let mut tx = pool.begin().await?;
 
     let FinishedPsbtBuild {
         psbt,
@@ -109,16 +59,17 @@ pub async fn execute<'a>(
         tx_id,
         fee_satoshis,
         ..
-    } = PsbtBuilder::construct_psbt(
-        &pool,
-        queue_cfg.consolidate_deprecated_keychains,
-        fee_rate,
-        reserved_utxos,
-        tx_payouts,
+    } = construct_psbt(
+        pool,
+        &mut tx,
+        &unbatched_payouts,
+        &utxos,
         wallets,
+        payout_queue,
     )
     .await?;
 
+    let span = tracing::Span::current();
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
         span.record("txid", &tracing::field::display(tx_id));
         span.record("psbt", &tracing::field::display(&psbt));
@@ -159,22 +110,65 @@ pub async fn execute<'a>(
         let batch_id = batch.id;
         batches.create_in_tx(&mut tx, batch).await?;
 
-        let mut used_payouts = Vec::new();
         for id in included_payouts
             .into_values()
             .flat_map(|payouts| payouts.into_iter().map(|(id, _, _)| id))
         {
-            let payout = candidate_payouts.remove(&id).expect("Payout not found");
-            used_payouts.push(payout);
+            unbatched_payouts.mark_used(batch_id, id);
         }
         payouts
-            .added_to_batch(&mut tx, batch_id, used_payouts.into_iter())
+            .update_unbatched(&mut tx, batch_id, unbatched_payouts)
             .await?;
 
         Ok((data, Some((tx, wallet_ids))))
     } else {
         Ok((data, None))
     }
+}
+
+pub async fn construct_psbt(
+    pool: sqlx::Pool<sqlx::Postgres>,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    unbatched_payouts: &UnbatchedPayouts,
+    utxos: &Utxos,
+    wallets: Wallets,
+    payout_queue: PayoutQueue,
+) -> Result<FinishedPsbtBuild, BriaError> {
+    let span = tracing::Span::current();
+    let PayoutQueue {
+        id: queue_id,
+        config: queue_cfg,
+        name: queue_name,
+        ..
+    } = payout_queue;
+    span.record("payout_queue_name", queue_name);
+    span.record("payout_queue_id", &tracing::field::display(queue_id));
+    span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
+
+    let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;
+    let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+
+    let reserved_utxos = utxos
+        .outpoints_bdk_should_not_select(tx, keychain_ids)
+        .await?;
+    span.record(
+        "n_reserved_utxos",
+        reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
+    );
+
+    let tx_payouts = unbatched_payouts.into_tx_payouts();
+    let fee_rate =
+        crate::fee_estimation::MempoolSpaceClient::fee_rate(queue_cfg.tx_priority).await?;
+
+    PsbtBuilder::construct_psbt(
+        &pool,
+        queue_cfg.consolidate_deprecated_keychains,
+        fee_rate,
+        reserved_utxos,
+        tx_payouts,
+        wallets,
+    )
+    .await
 }
 
 impl From<WalletTotals> for WalletSummary {

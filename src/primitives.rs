@@ -127,6 +127,8 @@ impl TxPriority {
     }
 }
 
+pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {

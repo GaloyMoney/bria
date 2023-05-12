@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::entity::*;
+use super::{entity::*, unbatched::*};
 use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
@@ -76,16 +76,18 @@ impl Payouts {
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
+        account_id: AccountId,
         payout_queue_id: PayoutQueueId,
-    ) -> Result<HashMap<WalletId, Vec<UnbatchedPayout>>, BriaError> {
+    ) -> Result<UnbatchedPayouts, BriaError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.batch_id IS NULL AND b.payout_queue_id = $1
+              WHERE b.batch_id IS NULL AND b.account_id = $1 AND b.payout_queue_id = $2
               ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            Uuid::from(payout_queue_id)
+            account_id as AccountId,
+            payout_queue_id as PayoutQueueId,
         )
         .fetch_all(&self.pool)
         .await?;
@@ -107,7 +109,7 @@ impl Payouts {
                     .push(UnbatchedPayout::try_from(events)?);
             }
         }
-        Ok(payouts)
+        Ok(UnbatchedPayouts::new(payouts))
     }
 
     #[instrument(name = "payouts.list_for_wallet", skip(self))]
@@ -182,18 +184,17 @@ impl Payouts {
         Ok(payouts)
     }
 
-    pub async fn added_to_batch(
+    pub async fn update_unbatched(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         batch_id: BatchId,
-        payouts: impl Iterator<Item = UnbatchedPayout>,
+        payouts: UnbatchedPayouts,
     ) -> Result<(), BriaError> {
         let mut ids = Vec::new();
         EntityEvents::<PayoutEvent>::persist(
             "bria_payout_events",
             tx,
-            payouts.flat_map(|mut p| {
-                p.add_to_batch(batch_id);
+            payouts.batched.into_iter().flat_map(|p| {
                 ids.push(uuid::Uuid::from(p.id));
                 p.events.into_new_serialized_events(p.id)
             }),

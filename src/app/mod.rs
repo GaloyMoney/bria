@@ -458,18 +458,6 @@ impl App {
         Ok(payout_queue_id)
     }
 
-    #[instrument(name = "app.estimate_payout_fee", skip(self), err)]
-    pub async fn estimate_payout_fee(
-        &self,
-        profile: Profile,
-        wallet_name: String,
-        queue_name: String,
-        destination: PayoutDestination,
-        sats: Satoshis,
-    ) -> Result<PayoutId, BriaError> {
-        unimplemented!()
-    }
-
     #[instrument(name = "app.submit_payout", skip(self), err)]
     #[allow(clippy::too_many_arguments)]
     pub async fn submit_payout(

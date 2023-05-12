@@ -18,8 +18,6 @@ use crate::{
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;
 
-pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
-
 pub struct WalletTotals {
     pub wallet_id: WalletId,
     pub change_keychain_id: KeychainId,
