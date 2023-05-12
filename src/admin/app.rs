@@ -1,10 +1,9 @@
 use tracing::instrument;
 
 use super::{error::*, keys::*};
-use crate::{account::*, ledger::Ledger, primitives::bitcoin, profile::*};
+use crate::{account::*, dev_constants, ledger::Ledger, primitives::bitcoin, profile::*};
 
 const BOOTSTRAP_KEY_NAME: &str = "admin_bootstrap_key";
-const DEV_ACCOUNT_NAME: &str = "dev";
 
 pub struct AdminApp {
     keys: AdminApiKeys,
@@ -39,7 +38,7 @@ impl AdminApp {
         let mut tx = self.pool.begin().await?;
         let account = self
             .accounts
-            .create_in_tx(&mut tx, DEV_ACCOUNT_NAME.to_owned())
+            .create_in_tx(&mut tx, dev_constants::DEV_ACCOUNT_NAME.to_owned())
             .await?;
         self.ledger
             .create_journal_for_account(&mut tx, account.id, account.name.clone())

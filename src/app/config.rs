@@ -44,7 +44,11 @@ pub struct JobsConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
+    #[serde(default)]
+    pub blockchain: BlockchainConfig,
+    #[serde(default)]
     pub jobs: JobsConfig,
+    #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
 }
 

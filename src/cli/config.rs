@@ -4,15 +4,14 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 use crate::{
-    admin::AdminApiConfig, api::ApiConfig, app::*, tracing::TracingConfig, xpub::EncryptionKey,
+    admin::AdminApiConfig, api::ApiConfig, app::*, dev_constants, primitives::bitcoin,
+    tracing::TracingConfig, xpub::EncryptionKey,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub db: DbConfig,
-    #[serde(default)]
-    pub blockchain: BlockchainConfig,
     #[serde(default)]
     pub app: AppConfig,
     #[serde(default)]
@@ -40,12 +39,22 @@ impl Config {
         let mut config: Config =
             serde_yaml::from_str(&config_file).context("Couldn't parse config file")?;
         config.db.pg_con = db_con;
-        let key_vec =
-            hex::decode(signer_encryption_key).context("Couldn't decode encryption key")?;
-        let key_bytes = key_vec.as_slice();
-        let key = EncryptionKey::from_slice(key_bytes);
-        config.app.signer_encryption.key = Some(*key);
 
+        match (
+            hex::decode(signer_encryption_key),
+            config.app.blockchain.network,
+        ) {
+            (Ok(key_bytes), _) => {
+                config.app.signer_encryption.key =
+                    EncryptionKey::clone_from_slice(key_bytes.as_ref())
+            }
+            (_, network) if network != bitcoin::Network::Bitcoin => {
+                config.app.signer_encryption.key = dev_constants::dev_signer_encryption_key();
+            }
+            (Err(e), _) => {
+                return Err(e.into());
+            }
+        }
         Ok(config)
     }
 }

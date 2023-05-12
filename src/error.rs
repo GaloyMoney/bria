@@ -8,6 +8,8 @@ use crate::{
 
 #[derive(Error, Debug)]
 pub enum BriaError {
+    #[error("BriaError - FromHex: {0}")]
+    FromHex(#[from] hex::FromHexError),
     #[error("BriaError - Tonic: {0}")]
     Tonic(#[from] tonic::transport::Error),
     #[error("BriaError - Sqlx: {0}")]

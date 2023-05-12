@@ -39,16 +39,11 @@ pub struct App {
     utxos: Utxos,
     addresses: Addresses,
     pool: sqlx::PgPool,
-    blockchain_cfg: BlockchainConfig,
-    signer_encryption: SignerEncryptionConfig,
+    config: AppConfig,
 }
 
 impl App {
-    pub async fn run(
-        pool: sqlx::PgPool,
-        blockchain_cfg: BlockchainConfig,
-        app_cfg: AppConfig,
-    ) -> Result<Self, BriaError> {
+    pub async fn run(pool: sqlx::PgPool, config: AppConfig) -> Result<Self, BriaError> {
         let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
         let payout_queues = PayoutQueues::new(&pool);
@@ -71,21 +66,21 @@ impl App {
             ledger.clone(),
             utxos.clone(),
             addresses.clone(),
-            app_cfg.jobs.sync_all_wallets_delay,
-            app_cfg.jobs.process_all_payout_queues_delay,
-            app_cfg.jobs.respawn_all_outbox_handlers_delay,
-            blockchain_cfg.clone(),
+            config.jobs.sync_all_wallets_delay,
+            config.jobs.process_all_payout_queues_delay,
+            config.jobs.respawn_all_outbox_handlers_delay,
+            config.blockchain.clone(),
         )
         .await?;
-        Self::spawn_sync_all_wallets(pool.clone(), app_cfg.jobs.sync_all_wallets_delay).await?;
+        Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
-            app_cfg.jobs.process_all_payout_queues_delay,
+            config.jobs.process_all_payout_queues_delay,
         )
         .await?;
         Self::spawn_respawn_all_outbox_handlers(
             pool.clone(),
-            app_cfg.jobs.respawn_all_outbox_handlers_delay,
+            config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
         Ok(Self {
@@ -101,9 +96,8 @@ impl App {
             ledger,
             utxos,
             addresses,
+            config,
             _runner: runner,
-            blockchain_cfg,
-            signer_encryption: app_cfg.signer_encryption,
         })
     }
 
@@ -190,9 +184,7 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
-        if let Some(key) = self.signer_encryption.key {
-            xpub.set_signer_config(config, key)?;
-        }
+        xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
         // xpub.set_signer_config(config, self.secret.clone());
         let mut tx = self.pool.begin().await?;
         self.xpubs.persist_updated(&mut tx, xpub).await?;
@@ -280,7 +272,7 @@ impl App {
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
-            .network(self.blockchain_cfg.network)
+            .network(self.config.blockchain.network)
             .account_id(profile.account_id)
             .journal_id(profile.account_id)
             .name(wallet_name)

@@ -42,9 +42,9 @@ impl AccountXPub {
     pub fn set_signer_config(
         &mut self,
         config: SignerConfig,
-        secret: EncryptionKey,
+        secret: &EncryptionKey,
     ) -> Result<(), BriaError> {
-        self.encrypted_signer_config = Some(config.encrypt(&secret)?);
+        self.encrypted_signer_config = Some(config.encrypt(secret)?);
         Ok(())
     }
 

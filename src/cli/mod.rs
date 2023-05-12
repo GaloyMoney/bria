@@ -782,7 +782,6 @@ async fn run_cmd(
         db,
         admin,
         api,
-        blockchain,
         app,
     }: Config,
     dev: bool,
@@ -798,7 +797,7 @@ async fn run_cmd(
 
     let admin_send = send.clone();
     let admin_pool = pool.clone();
-    let network = blockchain.network;
+    let network = app.blockchain.network;
     handles.push(tokio::spawn(async move {
         let _ = admin_send.try_send(
             super::admin::run(admin_pool, admin, network)
@@ -809,7 +808,7 @@ async fn run_cmd(
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
         let _ = api_send.try_send(
-            super::api::run(pool, api, blockchain, app)
+            super::api::run(pool, api, app)
                 .await
                 .context("Api server error"),
         );

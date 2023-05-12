@@ -11,49 +11,10 @@ pub(super) struct ConfigCyper(pub(super) Vec<u8>);
 pub(super) struct Nonce(pub(super) Vec<u8>);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(into = "RawSignerEncryptionConfig")]
+#[serde(try_from = "RawSignerEncryptionConfig")]
 pub struct SignerEncryptionConfig {
-    #[serde(with = "key_serialization")]
-    pub key: Option<EncryptionKey>,
-}
-
-mod key_serialization {
-    use super::EncryptionKey;
-    use serde::de::{Error, Unexpected};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<Option<EncryptionKey>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let hex_string = String::deserialize(deserializer)?;
-        let key_vec = hex::decode(&hex_string).map_err(|_err| {
-            D::Error::invalid_value(Unexpected::Str(&hex_string), &"valid hex string")
-        })?;
-
-        let key_bytes = key_vec.as_slice();
-        if key_bytes.len() == 32 {
-            Ok(Some(*chacha20poly1305::Key::from_slice(key_bytes)))
-        } else {
-            Err(D::Error::invalid_length(key_bytes.len(), &"32-byte array"))
-        }
-    }
-
-    pub(super) fn serialize<S>(
-        key: &Option<EncryptionKey>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match key {
-            Some(key) => {
-                let key_bytes = key.as_slice();
-                let hex_string = hex::encode(key_bytes);
-                serializer.serialize_str(&hex_string)
-            }
-            None => serializer.serialize_none(),
-        }
-    }
+    pub key: EncryptionKey,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,6 +52,30 @@ impl SignerConfig {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+struct RawSignerEncryptionConfig {
+    pub key: String,
+}
+impl From<SignerEncryptionConfig> for RawSignerEncryptionConfig {
+    fn from(config: SignerEncryptionConfig) -> Self {
+        Self {
+            key: hex::encode(config.key),
+        }
+    }
+}
+
+impl TryFrom<RawSignerEncryptionConfig> for SignerEncryptionConfig {
+    type Error = BriaError;
+
+    fn try_from(raw: RawSignerEncryptionConfig) -> Result<Self, Self::Error> {
+        let key_vec = hex::decode(raw.key)?;
+        let key_bytes = key_vec.as_slice();
+        Ok(Self {
+            key: EncryptionKey::clone_from_slice(key_bytes),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     pub use super::*;
@@ -116,11 +101,10 @@ mod tests {
     #[test]
     fn serialize_deserialize() {
         let key = gen_encryption_key();
-        let signer_encryption_config = SignerEncryptionConfig { key: Some(key) };
+        let signer_encryption_config = SignerEncryptionConfig { key };
         let serialized = serde_json::to_string(&signer_encryption_config).unwrap();
         let deserialized: SignerEncryptionConfig = serde_json::from_str(&serialized).unwrap();
-        assert!(deserialized.key.is_some());
-        assert_eq!(deserialized.key.unwrap(), key);
+        assert_eq!(deserialized.key, key);
         assert_eq!(signer_encryption_config, deserialized)
     }
 }
