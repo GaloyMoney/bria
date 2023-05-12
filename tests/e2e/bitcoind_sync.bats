@@ -187,7 +187,6 @@ teardown_file() {
 
   for i in {1..30}; do
     cache_default_wallet_balance
-    echo $balance
     [[ $(cached_pending_outgoing) == 60000000 ]] && break
     sleep 1
   done
