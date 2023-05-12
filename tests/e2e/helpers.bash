@@ -102,6 +102,7 @@ bitcoind_init() {
 }
 
 start_daemon() {
+  SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000" \
   background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml run > .e2e-logs
   sleep 5 # wait for daemon to be up and running
 }
