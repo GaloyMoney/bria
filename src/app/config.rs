@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::primitives::bitcoin::Network;
+use crate::{primitives::bitcoin::Network, xpub::SignerEncryptionConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainConfig {
@@ -28,9 +28,9 @@ fn default_electrum_url() -> String {
     "127.0.0.1:50001".to_string()
 }
 
-#[serde_with::serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppConfig {
+#[serde_with::serde_as]
+pub struct JobsConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_sync_all_wallets_delay")]
     pub sync_all_wallets_delay: Duration,
@@ -42,7 +42,17 @@ pub struct AppConfig {
     pub respawn_all_outbox_handlers_delay: Duration,
 }
 
-impl Default for AppConfig {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AppConfig {
+    #[serde(default)]
+    pub blockchain: BlockchainConfig,
+    #[serde(default)]
+    pub jobs: JobsConfig,
+    #[serde(default)]
+    pub signer_encryption: SignerEncryptionConfig,
+}
+
+impl Default for JobsConfig {
     fn default() -> Self {
         Self {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),

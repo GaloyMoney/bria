@@ -489,6 +489,32 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
   },
+  "2df08a4dda76a8b38c54ad2ffd0c508127ca527d1496421146d798ea360d81b7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "cypher",
+          "ordinal": 0,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT cypher, nonce\n            FROM bria_xpub_signer_configs\n            WHERE id = $1\n            "
+  },
   "2ef3dc26b44ca0f6fb5bd698f7eb963ca41a1c7fb9ca50bef007492dc62d6891": {
     "describe": {
       "columns": [
@@ -607,6 +633,20 @@
       }
     },
     "query": "SELECT keychain_kind as \"keychain_kind: BdkKeychainKind\", path FROM bdk_script_pubkeys\n            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"
+  },
+  "38ee995cafdc4c4cd1319682e059e9b3b96a10251e0c78656353757f6b965a8c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Bytea",
+          "Bytea"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)\n                VALUES ($1, $2, $3, NOW(), NOW())\n                ON CONFLICT (id) DO UPDATE \n                SET cypher = $2, nonce = $3, modified_at = NOW()\n                "
   },
   "3fca5e81c350c9848aa07300603886d2dbdbbf6c987e8cea695af04813c056f0": {
     "describe": {
@@ -1419,6 +1459,32 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
+  },
+  "8af4c489d117b05a443098ca6223fc5e6f4443ef5e9b34d9e5d973a625868240": {
+    "describe": {
+      "columns": [
+        {
+          "name": "cypher",
+          "ordinal": 0,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                SELECT cypher, nonce\n                FROM bria_xpub_signer_configs\n                WHERE id = $1\n                "
   },
   "8dba7efce7de6cbe27b17bae89eff8625492bbe3ce21e7aa12c1c4bbd43cc5e3": {
     "describe": {

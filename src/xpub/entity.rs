@@ -1,15 +1,8 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use super::{signing_client::*, value::XPub as XPubValue};
-use crate::{entity::*, primitives::*};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum SignerConfig {
-    Lnd(LndSignerConfig),
-    Bitcoind(BitcoindSignerConfig),
-}
+use super::{signer_config::*, signing_client::*, value::XPub as XPubValue};
+use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -26,9 +19,6 @@ pub enum XPubEvent {
     NameUpdated {
         name: String,
     },
-    SignerConfigUpdated {
-        config: SignerConfig,
-    },
 }
 
 #[derive(Builder)]
@@ -38,6 +28,7 @@ pub struct AccountXPub {
     pub key_name: String,
     pub value: XPubValue,
     pub original: String,
+    pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
@@ -47,22 +38,23 @@ impl AccountXPub {
         self.value.id()
     }
 
-    pub fn set_signer_config(&mut self, config: SignerConfig) {
-        self.events.push(XPubEvent::SignerConfigUpdated { config })
+    pub fn set_signer_config(
+        &mut self,
+        config: SignerConfig,
+        secret: &EncryptionKey,
+    ) -> Result<(), BriaError> {
+        self.encrypted_signer_config = Some(config.encrypt(secret)?);
+        Ok(())
     }
 
-    fn signing_cfg(&self) -> Option<&SignerConfig> {
-        let mut ret = None;
-        for event in self.events.iter() {
-            if let XPubEvent::SignerConfigUpdated { config } = event {
-                ret = Some(config)
-            }
-        }
-        ret
+    pub fn signing_cfg(&self, key: EncryptionKey) -> Option<SignerConfig> {
+        self.encrypted_signer_config
+            .as_ref()
+            .and_then(|(cfg, nonce)| SignerConfig::decrypt(&key, cfg, nonce).ok())
     }
 
     pub fn has_signer_config(&self) -> bool {
-        self.signing_cfg().is_some()
+        self.encrypted_signer_config.is_some()
     }
 
     pub fn derivation_path(&self) -> Option<bitcoin::DerivationPath> {
@@ -71,8 +63,9 @@ impl AccountXPub {
 
     pub async fn remote_signing_client(
         &self,
+        key: EncryptionKey,
     ) -> Result<Option<Box<dyn RemoteSigningClient + 'static>>, SigningClientError> {
-        let client = match self.signing_cfg() {
+        let client = match self.signing_cfg(key) {
             Some(SignerConfig::Lnd(ref cfg)) => {
                 let client = LndRemoteSigner::connect(cfg).await?;
                 Some(Box::new(client) as Box<dyn RemoteSigningClient + 'static>)
@@ -127,9 +120,12 @@ impl NewAccountXPub {
     }
 }
 
-impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
+impl TryFrom<(EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>)> for AccountXPub {
     type Error = EntityError;
-    fn try_from(events: EntityEvents<XPubEvent>) -> Result<Self, Self::Error> {
+
+    fn try_from(
+        (events, config): (EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>),
+    ) -> Result<Self, Self::Error> {
         let mut builder = AccountXPubBuilder::default();
         for event in events.iter() {
             match event {
@@ -153,8 +149,12 @@ impl TryFrom<EntityEvents<XPubEvent>> for AccountXPub {
                 XPubEvent::NameUpdated { name } => {
                     builder = builder.key_name(name.clone());
                 }
-                _ => (),
             }
+        }
+        if let Some((encrypted_config, nonce)) = config {
+            builder = builder.encrypted_signer_config(Some((encrypted_config, nonce)));
+        } else {
+            builder = builder.encrypted_signer_config(None);
         }
         builder.events(events).build()
     }

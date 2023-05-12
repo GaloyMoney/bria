@@ -22,6 +22,7 @@ pub struct BatchSigningData {
     fields(stalled),
     err
 )]
+#[allow(clippy::too_many_arguments)]
 pub async fn execute(
     pool: sqlx::PgPool,
     data: BatchSigningData,
@@ -30,6 +31,7 @@ pub async fn execute(
     signing_sessions: SigningSessions,
     wallets: Wallets,
     xpubs: XPubs,
+    signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(BatchSigningData, bool), BriaError> {
     let mut stalled = false;
     let mut last_err = None;
@@ -83,7 +85,10 @@ pub async fn execute(
         } else {
             xpubs.find_from_ref(data.account_id, xpub_id).await?
         };
-        let mut client = match account_xpub.remote_signing_client().await {
+        let mut client = match account_xpub
+            .remote_signing_client(signer_encryption_config.key)
+            .await
+        {
             Ok(Some(client)) => client,
             Ok(None) => {
                 session.attempt_failed(SigningFailureReason::SignerConfigMissing);

@@ -28,7 +28,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
         )
         .await?;
 
-    let app = App::run(pool, BlockchainConfig::default(), AppConfig::default()).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
     app.create_wpkh_wallet(profile.clone(), name.clone(), id.to_string(), None)
         .await?;
 
@@ -52,7 +52,7 @@ async fn create_descriptors_wallet() -> anyhow::Result<()> {
 
     let external = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/0/*)#q8r69l4d".to_owned();
     let internal = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/1/*)#3nxmc294".to_owned();
-    let app = App::run(pool, BlockchainConfig::default(), AppConfig::default()).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test_import_descriptor".to_owned();
     let (_, xpub_ids) = app
         .create_descriptors_wallet(profile, wallet_name, external, internal)

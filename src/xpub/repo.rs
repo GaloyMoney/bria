@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::{entity::*, reference::*};
+use super::{entity::*, reference::*, signer_config::*};
 use crate::{entity::*, error::*, primitives::*};
 use std::collections::HashMap;
 
@@ -57,12 +57,35 @@ impl XPubs {
         tx: &mut Transaction<'_, Postgres>,
         xpub: AccountXPub,
     ) -> Result<(), BriaError> {
-        Ok(EntityEvents::<XPubEvent>::persist(
-            "bria_xpub_events",
-            tx,
-            xpub.events.new_serialized_events(xpub.db_uuid),
-        )
-        .await?)
+        if xpub.events.is_dirty() {
+            EntityEvents::<XPubEvent>::persist(
+                "bria_xpub_events",
+                tx,
+                xpub.events.new_serialized_events(xpub.db_uuid),
+            )
+            .await?;
+        }
+
+        if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
+            let cypher_bytes = &cypher.0;
+            let nonce_bytes = &nonce.0;
+
+            sqlx::query!(
+                r#"
+                INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)
+                VALUES ($1, $2, $3, NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE 
+                SET cypher = $2, nonce = $3, modified_at = NOW()
+                "#,
+                xpub.db_uuid,
+                cypher_bytes,
+                nonce_bytes,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn find_from_ref(
@@ -107,7 +130,24 @@ impl XPubs {
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(AccountXPub::try_from(events)?)
+
+        let config_row = sqlx::query!(
+            r#"
+            SELECT cypher, nonce
+            FROM bria_xpub_signer_configs
+            WHERE id = $1
+            "#,
+            db_uuid
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let config = match config_row {
+            Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
+            None => None,
+        };
+
+        Ok(AccountXPub::try_from((events, config))?)
     }
 
     pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, BriaError> {
@@ -121,15 +161,36 @@ impl XPubs {
         )
         .fetch_all(&self.pool)
         .await?;
+
         let mut entity_events = HashMap::new();
         for row in rows {
             let id = row.id;
             let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
             events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(entity_events
-            .into_values()
-            .map(AccountXPub::try_from)
-            .collect::<Result<Vec<_>, _>>()?)
+
+        let mut xpubs = Vec::new();
+        for (id, events) in entity_events {
+            let config_row = sqlx::query!(
+                r#"
+                SELECT cypher, nonce
+                FROM bria_xpub_signer_configs
+                WHERE id = $1
+                "#,
+                id
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+
+            let config = match config_row {
+                Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
+                None => None,
+            };
+
+            let xpub = AccountXPub::try_from((events, config))?;
+            xpubs.push(xpub);
+        }
+
+        Ok(xpubs)
     }
 }
