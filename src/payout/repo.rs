@@ -187,9 +187,11 @@ impl Payouts {
     pub async fn update_unbatched(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        batch_id: BatchId,
         payouts: UnbatchedPayouts,
     ) -> Result<(), BriaError> {
+        if payouts.batch_id.is_none() || payouts.batched.is_empty() {
+            return Ok(());
+        }
         let mut ids = Vec::new();
         EntityEvents::<PayoutEvent>::persist(
             "bria_payout_events",
@@ -202,7 +204,7 @@ impl Payouts {
         .await?;
         sqlx::query!(
             r#"UPDATE bria_payouts SET batch_id = $1 WHERE id = ANY($2)"#,
-            Uuid::from(batch_id),
+            payouts.batch_id.unwrap() as BatchId,
             &ids[..],
         )
         .execute(&mut *tx)

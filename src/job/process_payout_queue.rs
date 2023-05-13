@@ -110,15 +110,13 @@ pub async fn execute<'a>(
         let batch_id = batch.id;
         batches.create_in_tx(&mut tx, batch).await?;
 
-        for id in included_payouts
-            .into_values()
-            .flat_map(|payouts| payouts.into_iter().map(|(id, _, _)| id))
-        {
-            unbatched_payouts.mark_used(batch_id, id);
-        }
-        payouts
-            .update_unbatched(&mut tx, batch_id, unbatched_payouts)
-            .await?;
+        unbatched_payouts.commit_to_batch(
+            batch_id,
+            included_payouts
+                .into_values()
+                .flat_map(|payouts| payouts.into_iter().map(|(id, _, _)| id)),
+        );
+        payouts.update_unbatched(&mut tx, unbatched_payouts).await?;
 
         Ok((data, Some((tx, wallet_ids))))
     } else {

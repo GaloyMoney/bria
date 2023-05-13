@@ -8,6 +8,7 @@ use crate::{entity::*, primitives::*};
 pub struct UnbatchedPayouts {
     inner: HashMap<WalletId, Vec<UnbatchedPayout>>,
     shifted: HashMap<PayoutId, UnbatchedPayout>,
+    pub(super) batch_id: Option<BatchId>,
     pub(super) batched: Vec<UnbatchedPayout>,
 }
 
@@ -15,6 +16,7 @@ impl UnbatchedPayouts {
     pub(super) fn new(inner: HashMap<WalletId, Vec<UnbatchedPayout>>) -> Self {
         Self {
             inner,
+            batch_id: None,
             shifted: HashMap::new(),
             batched: Vec::new(),
         }
@@ -28,7 +30,11 @@ impl UnbatchedPayouts {
         self.inner.values().fold(0, |acc, v| acc + v.len())
     }
 
-    pub fn mark_used(&mut self, batch_id: impl Into<BatchId>, payout_id: impl Into<PayoutId>) {
+    pub fn commit_to_batch(
+        &mut self,
+        batch_id: impl Into<BatchId>,
+        payout_ids: impl Iterator<Item = impl Into<PayoutId>>,
+    ) {
         if self.shifted.is_empty() {
             self.shifted.extend(
                 self.inner
@@ -37,12 +43,15 @@ impl UnbatchedPayouts {
             );
         }
         let batch_id = batch_id.into();
-        let mut payout = self
-            .shifted
-            .remove(&payout_id.into())
-            .expect("unbatched payout not found");
-        payout.add_to_batch(batch_id);
-        self.batched.push(payout);
+        self.batch_id = Some(batch_id);
+        for id in payout_ids {
+            let mut payout = self
+                .shifted
+                .remove(&id.into())
+                .expect("unbatched payout not found");
+            payout.commit_to_batch(batch_id);
+            self.batched.push(payout);
+        }
     }
 
     pub fn into_tx_payouts(&self) -> HashMap<WalletId, Vec<TxPayout>> {
@@ -65,7 +74,7 @@ pub struct UnbatchedPayout {
 }
 
 impl UnbatchedPayout {
-    pub(super) fn add_to_batch(&mut self, batch_id: BatchId) {
+    pub(super) fn commit_to_batch(&mut self, batch_id: BatchId) {
         self.events.push(PayoutEvent::CommittedToBatch { batch_id });
     }
 }
