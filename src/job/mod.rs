@@ -1,10 +1,13 @@
 mod batch_broadcasting;
 mod batch_signing;
 mod batch_wallet_accounting;
+mod config;
 mod executor;
 mod populate_outbox;
 mod process_payout_queue;
 mod sync_wallet;
+
+pub use config::*;
 
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
 use tracing::instrument;
@@ -28,13 +31,6 @@ const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 const PROCESS_ALL_PAYOUT_QUEUES_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 const RESPAWN_ALL_OUTBOX_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 
-#[derive(Debug, Clone)]
-struct SyncAllWalletsDelay(std::time::Duration);
-#[derive(Debug, Clone)]
-struct ProcessAllQueuesDelay(std::time::Duration);
-#[derive(Debug, Clone)]
-struct RespawnAllOutboxHandlersDelay(std::time::Duration);
-
 #[allow(clippy::too_many_arguments)]
 pub async fn start_job_runner(
     pool: &sqlx::PgPool,
@@ -48,9 +44,7 @@ pub async fn start_job_runner(
     ledger: Ledger,
     utxos: Utxos,
     addresses: Addresses,
-    sync_all_wallets_delay: std::time::Duration,
-    process_all_payout_queues_delay: std::time::Duration,
-    respawn_all_outbox_handlers_delay: std::time::Duration,
+    config: JobsConfig,
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<OwnedHandle, BriaError> {
@@ -66,11 +60,7 @@ pub async fn start_job_runner(
         respawn_all_outbox_handlers,
         populate_outbox,
     ]);
-    registry.set_context(SyncAllWalletsDelay(sync_all_wallets_delay));
-    registry.set_context(ProcessAllQueuesDelay(process_all_payout_queues_delay));
-    registry.set_context(RespawnAllOutboxHandlersDelay(
-        respawn_all_outbox_handlers_delay,
-    ));
+    registry.set_context(config);
     registry.set_context(blockchain_cfg);
     registry.set_context(outbox);
     registry.set_context(wallets);
@@ -91,7 +81,10 @@ pub async fn start_job_runner(
 async fn sync_all_wallets(
     mut current_job: CurrentJob,
     wallets: Wallets,
-    SyncAllWalletsDelay(delay): SyncAllWalletsDelay,
+    JobsConfig {
+        sync_all_wallets_delay: delay,
+        ..
+    }: JobsConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -112,7 +105,10 @@ async fn sync_all_wallets(
 async fn process_all_payout_queues(
     mut current_job: CurrentJob,
     payout_queues: PayoutQueues,
-    ProcessAllQueuesDelay(delay): ProcessAllQueuesDelay,
+    JobsConfig {
+        process_all_payout_queues_delay: delay,
+        ..
+    }: JobsConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -160,7 +156,10 @@ async fn populate_outbox(
 #[job(name = "respawn_all_outbox_handlers")]
 async fn respawn_all_outbox_handlers(
     mut current_job: CurrentJob,
-    RespawnAllOutboxHandlersDelay(delay): RespawnAllOutboxHandlersDelay,
+    JobsConfig {
+        respawn_all_outbox_handlers_delay: delay,
+        ..
+    }: JobsConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     let accounts = Accounts::new(&pool);

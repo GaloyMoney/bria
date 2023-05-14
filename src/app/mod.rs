@@ -66,9 +66,7 @@ impl App {
             ledger.clone(),
             utxos.clone(),
             addresses.clone(),
-            config.jobs.sync_all_wallets_delay,
-            config.jobs.process_all_payout_queues_delay,
-            config.jobs.respawn_all_outbox_handlers_delay,
+            config.jobs.clone(),
             config.blockchain.clone(),
             config.signer_encryption.clone(),
         )
