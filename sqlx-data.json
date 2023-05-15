@@ -1548,32 +1548,6 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
-  "8af4c489d117b05a443098ca6223fc5e6f4443ef5e9b34d9e5d973a625868240": {
-    "describe": {
-      "columns": [
-        {
-          "name": "cypher",
-          "ordinal": 0,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "nonce",
-          "ordinal": 1,
-          "type_info": "Bytea"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n                SELECT cypher, nonce\n                FROM bria_xpub_signer_configs\n                WHERE id = $1\n                "
-  },
   "8dba7efce7de6cbe27b17bae89eff8625492bbe3ce21e7aa12c1c4bbd43cc5e3": {
     "describe": {
       "columns": [
@@ -2214,6 +2188,38 @@
       }
     },
     "query": "SELECT p.id, p.account_id, p.name\n               FROM bria_profiles p\n               JOIN bria_profile_api_keys k ON k.profile_id = p.id\n               WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"
+  },
+  "eaffb64f1a72a99a5057d0b0bdb083c49c1abb909e19e6cd0bc898017f516170": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "cypher",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n            SELECT id, cypher, nonce\n            FROM bria_xpub_signer_configs\n            WHERE id = ANY($1)\n            "
   },
   "eb52716de47fe5a66c500d1bcd11bbb76b1d897bce46674bf97fc5e11c1133d9": {
     "describe": {
