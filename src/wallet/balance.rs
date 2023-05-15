@@ -1,7 +1,63 @@
 use rust_decimal::Decimal;
 use sqlx_ledger::balance::AccountBalance;
+use uuid::Uuid;
 
-use crate::primitives::{LedgerAccountId, Satoshis};
+use crate::primitives::{LedgerAccountId, Satoshis, WalletId};
+
+const CURRENCY_CODE: &str = "00000000";
+#[allow(dead_code)]
+enum Element {
+    Asset,
+    Liability,
+    Revenue,
+    Expense,
+}
+
+impl Element {
+    fn code(&self) -> &'static str {
+        match self {
+            Self::Asset => "1",
+            Self::Liability => "2",
+            Self::Revenue => "4",
+            Self::Expense => "6",
+        }
+    }
+}
+
+const HOT_WALLET_CODE: &str = "9";
+
+enum SubGroup {
+    AtRest,
+    Incoming,
+    Outgoing,
+}
+
+impl SubGroup {
+    fn code(&self) -> &'static str {
+        match *self {
+            SubGroup::AtRest => "00",
+            SubGroup::Incoming => "10",
+            SubGroup::Outgoing => "20",
+        }
+    }
+}
+
+const RESERVED: &str = "0000";
+
+const OTHER: &str = "0000";
+
+fn derive_complete_code(element: Element, sub_group: SubGroup, wallet_id_suffix: String) -> String {
+    format!(
+        "{}-{}{}{}-{}-{}-{}",
+        CURRENCY_CODE,
+        element.code(),
+        HOT_WALLET_CODE,
+        sub_group.code(),
+        RESERVED,
+        OTHER,
+        wallet_id_suffix
+    )
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {
@@ -13,6 +69,94 @@ pub struct WalletLedgerAccountIds {
     pub effective_outgoing_id: LedgerAccountId,
     pub fee_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
+}
+
+impl From<WalletId> for WalletLedgerAccountIds {
+    fn from(wallet_id: WalletId) -> Self {
+        let wallet_id_suffix = wallet_id.to_string()[24..].to_owned();
+        let onchain_incoming_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::Incoming,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet Id");
+
+        let onchain_at_rest_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::AtRest,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let onchain_outgoing_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::Outgoing,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let effective_incoming_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::Incoming,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let effective_at_rest_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::AtRest,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let effective_outgoing_id = Uuid::parse_str(
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::Outgoing,
+                wallet_id_suffix.clone(),
+            )
+            .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let fee_id = Uuid::parse_str(
+            derive_complete_code(Element::Revenue, SubGroup::AtRest, wallet_id_suffix.clone())
+                .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        let dust_id = Uuid::parse_str(
+            derive_complete_code(Element::Revenue, SubGroup::AtRest, wallet_id_suffix.clone())
+                .as_str(),
+        )
+        .expect("Invalid Wallet_Id");
+
+        Self {
+            onchain_incoming_id: LedgerAccountId::from(onchain_incoming_id),
+            onchain_at_rest_id: LedgerAccountId::from(onchain_at_rest_id),
+            onchain_outgoing_id: LedgerAccountId::from(onchain_outgoing_id),
+            effective_incoming_id: LedgerAccountId::from(effective_incoming_id),
+            effective_at_rest_id: LedgerAccountId::from(effective_at_rest_id),
+            effective_outgoing_id: LedgerAccountId::from(effective_outgoing_id),
+            fee_id: LedgerAccountId::from(fee_id),
+            dust_id: LedgerAccountId::from(dust_id),
+        }
+    }
 }
 
 #[derive(Debug)]
