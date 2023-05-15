@@ -1,6 +1,31 @@
-use crate::primitives::{LedgerAccountId, WalletId};
-use crate::wallet::WalletLedgerAccountIds;
+use sqlx_ledger::balance::AccountBalance;
 use uuid::Uuid;
+
+use crate::primitives::{LedgerAccountId, WalletId};
+
+#[derive(Debug, Clone, Copy)]
+pub struct WalletLedgerAccountIds {
+    pub onchain_incoming_id: LedgerAccountId,
+    pub onchain_at_rest_id: LedgerAccountId,
+    pub onchain_outgoing_id: LedgerAccountId,
+    pub effective_incoming_id: LedgerAccountId,
+    pub effective_at_rest_id: LedgerAccountId,
+    pub effective_outgoing_id: LedgerAccountId,
+    pub fee_id: LedgerAccountId,
+    pub dust_id: LedgerAccountId,
+}
+
+#[derive(Debug)]
+pub struct WalletLedgerAccountBalances {
+    pub onchain_incoming: Option<AccountBalance>,
+    pub onchain_at_rest: Option<AccountBalance>,
+    pub onchain_outgoing: Option<AccountBalance>,
+    pub effective_incoming: Option<AccountBalance>,
+    pub effective_at_rest: Option<AccountBalance>,
+    pub effective_outgoing: Option<AccountBalance>,
+    pub fee: Option<AccountBalance>,
+    pub dust: Option<AccountBalance>,
+}
 
 const CURRENCY_CODE: &str = "00000000";
 #[allow(dead_code)]

@@ -4,8 +4,8 @@ use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
 use std::collections::HashMap;
 
-use super::{balance::WalletLedgerAccountIds, config::*, keychain::*};
-use crate::{entity::*, primitives::*, xpub::XPub};
+use super::{config::*, keychain::*};
+use crate::{entity::*, ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub};
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]

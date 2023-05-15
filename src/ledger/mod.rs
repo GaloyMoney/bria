@@ -1,7 +1,7 @@
 mod constants;
 mod event;
 mod templates;
-mod wallet_conversion;
+mod wallet_accounts;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
@@ -13,11 +13,11 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use crate::{account::balance::*, error::*, primitives::*, wallet::balance::*};
+use crate::{account::balance::*, error::*, primitives::*};
 use constants::*;
 pub use event::*;
 pub use templates::*;
-pub use wallet_conversion::*;
+pub use wallet_accounts::*;
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
