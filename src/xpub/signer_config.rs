@@ -7,8 +7,10 @@ use chacha20poly1305::{
 use serde::{Deserialize, Serialize};
 
 pub type EncryptionKey = chacha20poly1305::Key;
-pub struct ConfigCyper(pub Vec<u8>);
-pub struct Nonce(pub Vec<u8>);
+#[derive(Clone)]
+pub struct ConfigCyper(pub(super) Vec<u8>);
+#[derive(Clone)]
+pub struct Nonce(pub(super) Vec<u8>);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(into = "RawSignerEncryptionConfig")]

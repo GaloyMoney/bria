@@ -162,6 +162,24 @@ impl XPubs {
         .fetch_all(&self.pool)
         .await?;
 
+        let ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
+
+        let config_rows = sqlx::query!(
+            r#"
+            SELECT id, cypher, nonce
+            FROM bria_xpub_signer_configs
+            WHERE id = ANY($1)
+            "#,
+            &ids
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+            .into_iter()
+            .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
+            .collect();
+
         let mut entity_events = HashMap::new();
         for row in rows {
             let id = row.id;
@@ -171,21 +189,7 @@ impl XPubs {
 
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
-            let config_row = sqlx::query!(
-                r#"
-                SELECT cypher, nonce
-                FROM bria_xpub_signer_configs
-                WHERE id = $1
-                "#,
-                id
-            )
-            .fetch_optional(&self.pool)
-            .await?;
-
-            let config = match config_row {
-                Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
-                None => None,
-            };
+            let config = config_map.get(&id).cloned();
 
             let xpub = AccountXPub::try_from((events, config))?;
             xpubs.push(xpub);
