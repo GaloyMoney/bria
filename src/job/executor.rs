@@ -152,7 +152,21 @@ impl<'a> JobExecutor<'a> {
         }
 
         checkpoint.set_json(&data).expect("Couldn't update tracker");
-        self.job.checkpoint(&checkpoint).await?;
+        let mut tx = self.job.pool().begin().await?;
+        if let Ok(interval) =
+            sqlx::postgres::types::PgInterval::try_from(data.job_meta.wait_till_next_attempt)
+        {
+            sqlx::query!(
+                "UPDATE mq_msgs SET retry_backoff = $1 WHERE id = $2",
+                interval,
+                self.job.id()
+            )
+            .execute(&mut tx)
+            .await?;
+        }
+        self.job
+            .checkpoint_with_transaction(tx, &checkpoint)
+            .await?;
 
         if data.job_meta.attempts >= self.max_attempts {
             span.record("last_attempt", &tracing::field::display(true));

@@ -308,18 +308,23 @@ async fn batch_wallet_accounting(
     Ok(())
 }
 
-#[job(name = "batch_signing", channel_name = "batch_signing", retries = 20)]
+#[job(name = "batch_signing", channel_name = "batch_signing")]
+#[allow(clippy::too_many_arguments)]
 async fn batch_signing(
     mut current_job: CurrentJob,
+    JobsConfig { signing, .. }: JobsConfig,
     blockchain_cfg: BlockchainConfig,
+    signer_encryption_config: SignerEncryptionConfig,
     batches: Batches,
     wallets: Wallets,
     xpubs: XPubs,
     signing_sessions: SigningSessions,
-    signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
+        .warn_retries(signing.warn_retries)
+        .max_attempts(signing.max_attempts)
+        .max_retry_delay(signing.max_retry_delay)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {

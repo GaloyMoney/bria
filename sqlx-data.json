@@ -1401,6 +1401,19 @@
     },
     "query": "UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2"
   },
+  "7bc0ab72b1fe05b1f06d1df8af1b4a2db342927ea97f19a44c145f24a44012a3": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Interval",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE mq_msgs SET retry_backoff = $1 WHERE id = $2"
+  },
   "7d36b5cd24ecbc930a45b73876bf356abb1a773c37ebb161c3a2c14fe63f9a15": {
     "describe": {
       "columns": [],
