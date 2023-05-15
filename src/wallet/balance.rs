@@ -1,8 +1,9 @@
 use rust_decimal::Decimal;
 use sqlx_ledger::balance::AccountBalance;
 
-use crate::primitives::{LedgerAccountId, Satoshis};
+use crate::primitives::{LedgerAccountId, Satoshis, WalletId};
 
+const
 #[derive(Debug, Clone, Copy)]
 pub struct WalletLedgerAccountIds {
     pub onchain_incoming_id: LedgerAccountId,
@@ -13,6 +14,37 @@ pub struct WalletLedgerAccountIds {
     pub effective_outgoing_id: LedgerAccountId,
     pub fee_id: LedgerAccountId,
     pub dust_id: LedgerAccountId,
+}
+
+impl From<WalletId> for WalletLedgerAccountIds {
+    fn from(wallet_id: WalletId) -> Self {
+        // get first n bytes of wallet id
+        // encode in hex
+        // insert in format! statement
+        Self {
+            onchain_incoming_id: format!("00000000-{IN_OUT_NUMBER}{FEE_NON_FEE}-0000-0000-{wallet_id_prefix}")
+                .parse()
+                .expect("invalid account id"),
+            onchain_at_rest_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+            onchain_outgoing_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+            effective_at_rest_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+            effective_outgoing_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+            fee_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+            dust_id: format!("00000000-2010-0000-0000-000000000000")
+                .parse()
+                .expect("invalid account id"),
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -441,17 +441,18 @@ impl Ledger {
         wallet_id: WalletId,
         wallet_name: &str,
     ) -> Result<WalletLedgerAccountIds, BriaError> {
-        let account_ids = WalletLedgerAccountIds {
-            onchain_incoming_id: self
+        let account_ids = WalletLedgerAccountIds::from(wallet_id);
+            self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
+                    ledger_account_ids.onchain_incoming_id,
                     format!("WALLET_{wallet_id}_UTXO_INCOMING"),
                     format!("{wallet_id}-utxo-incoming"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            onchain_at_rest_id: self
+                .await?;
+            self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -459,8 +460,8 @@ impl Ledger {
                     format!("{wallet_id}-utxo-at-rest"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            onchain_outgoing_id: self
+                .await?;
+            self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -468,8 +469,8 @@ impl Ledger {
                     format!("{wallet_id}-utxo-outgoing"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            effective_incoming_id: self
+                .await?;
+             self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -477,8 +478,8 @@ impl Ledger {
                     format!("{wallet_id}-effective-incoming"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            effective_at_rest_id: self
+                .await?
+             self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -486,8 +487,8 @@ impl Ledger {
                     format!("{wallet_id}-effective-at-rest"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            effective_outgoing_id: self
+                .await?;
+             self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -495,8 +496,8 @@ impl Ledger {
                     format!("{wallet_id}-effective-outgoing"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-            fee_id: self
+                .await?;
+             self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -504,8 +505,8 @@ impl Ledger {
                     format!("{wallet_id}-onchain-fee"),
                     DebitOrCredit::Debit,
                 )
-                .await?,
-            dust_id: self
+                .await?;
+             self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
@@ -513,8 +514,7 @@ impl Ledger {
                     format!("{wallet_id}-dust"),
                     DebitOrCredit::Credit,
                 )
-                .await?,
-        };
+                .await?;
         Ok(account_ids)
     }
 
@@ -523,12 +523,13 @@ impl Ledger {
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         wallet_id: WalletId,
+        account_id: LedgerAccountId,
         wallet_code: String,
         wallet_name: String,
         balance_type: DebitOrCredit,
     ) -> Result<LedgerAccountId, BriaError> {
         let account = NewLedgerAccount::builder()
-            .id(Uuid::new_v4())
+            .id(account_id)
             .name(&wallet_name)
             .code(wallet_code)
             .description(format!("Account for wallet '{}'", &wallet_id))
