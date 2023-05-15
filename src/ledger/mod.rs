@@ -1,6 +1,7 @@
 mod constants;
 mod event;
 mod templates;
+mod wallet_conversion;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
@@ -16,6 +17,7 @@ use crate::{account::balance::*, error::*, primitives::*, wallet::balance::*};
 use constants::*;
 pub use event::*;
 pub use templates::*;
+pub use wallet_conversion::*;
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
