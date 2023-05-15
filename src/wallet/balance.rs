@@ -24,7 +24,7 @@ impl Element {
     }
 }
 
-const HOT_WALLET_CODE: &str = "9";
+const HOT_WALLET_CODE: &str = "0";
 
 enum SubGroup {
     AtRest,
