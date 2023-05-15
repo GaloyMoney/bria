@@ -34,7 +34,7 @@ enum SubGroup {
 
 impl SubGroup {
     fn code(&self) -> &'static str {
-        match *self {
+        match self {
             SubGroup::AtRest => "00",
             SubGroup::Incoming => "10",
             SubGroup::Outgoing => "20",
@@ -44,9 +44,30 @@ impl SubGroup {
 
 const RESERVED: &str = "0000";
 
-const OTHER: &str = "0000";
+enum Other {
+    Onchain,
+    Effective,
+    Fee,
+    Dust,
+}
 
-fn derive_complete_code(element: Element, sub_group: SubGroup, wallet_id_suffix: String) -> String {
+impl Other {
+    fn code(&self) -> &'static str {
+        match self {
+            Other::Onchain => "0000",
+            Other::Effective => "0001",
+            Other::Fee => "0002",
+            Other::Dust => "0003",
+        }
+    }
+}
+
+fn derive_complete_code(
+    element: Element,
+    sub_group: SubGroup,
+    other: Other,
+    wallet_id_suffix: &str,
+) -> String {
     format!(
         "{}-{}{}{}-{}-{}-{}",
         CURRENCY_CODE,
@@ -54,7 +75,7 @@ fn derive_complete_code(element: Element, sub_group: SubGroup, wallet_id_suffix:
         HOT_WALLET_CODE,
         sub_group.code(),
         RESERVED,
-        OTHER,
+        other.code(),
         wallet_id_suffix
     )
 }
@@ -73,12 +94,14 @@ pub struct WalletLedgerAccountIds {
 
 impl From<WalletId> for WalletLedgerAccountIds {
     fn from(wallet_id: WalletId) -> Self {
-        let wallet_id_suffix = wallet_id.to_string()[24..].to_owned();
+        let wallet_id_str = wallet_id.to_string();
+        let wallet_id_suffix = &wallet_id_str[24..];
         let onchain_incoming_id = Uuid::parse_str(
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Incoming,
-                wallet_id_suffix.clone(),
+                Other::Onchain,
+                wallet_id_suffix,
             )
             .as_str(),
         )
@@ -88,7 +111,8 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::AtRest,
-                wallet_id_suffix.clone(),
+                Other::Onchain,
+                wallet_id_suffix,
             )
             .as_str(),
         )
@@ -98,7 +122,8 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Outgoing,
-                wallet_id_suffix.clone(),
+                Other::Onchain,
+                wallet_id_suffix,
             )
             .as_str(),
         )
@@ -108,7 +133,8 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Incoming,
-                wallet_id_suffix.clone(),
+                Other::Effective,
+                wallet_id_suffix,
             )
             .as_str(),
         )
@@ -118,7 +144,8 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::AtRest,
-                wallet_id_suffix.clone(),
+                Other::Effective,
+                wallet_id_suffix,
             )
             .as_str(),
         )
@@ -128,21 +155,32 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Outgoing,
-                wallet_id_suffix.clone(),
+                Other::Effective,
+                wallet_id_suffix,
             )
             .as_str(),
         )
         .expect("Invalid Wallet_Id");
 
         let fee_id = Uuid::parse_str(
-            derive_complete_code(Element::Revenue, SubGroup::AtRest, wallet_id_suffix.clone())
-                .as_str(),
+            derive_complete_code(
+                Element::Revenue,
+                SubGroup::AtRest,
+                Other::Fee,
+                wallet_id_suffix,
+            )
+            .as_str(),
         )
         .expect("Invalid Wallet_Id");
 
         let dust_id = Uuid::parse_str(
-            derive_complete_code(Element::Revenue, SubGroup::AtRest, wallet_id_suffix.clone())
-                .as_str(),
+            derive_complete_code(
+                Element::Revenue,
+                SubGroup::AtRest,
+                Other::Dust,
+                wallet_id_suffix,
+            )
+            .as_str(),
         )
         .expect("Invalid Wallet_Id");
 
