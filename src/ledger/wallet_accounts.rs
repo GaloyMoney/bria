@@ -71,16 +71,16 @@ enum Other {
     Onchain,
     Effective,
     Fee,
-    Dust,
+    Unused,
 }
 
 impl Other {
     fn code(&self) -> &'static str {
         match self {
-            Other::Onchain => "0000",
-            Other::Effective => "0001",
-            Other::Fee => "0002",
-            Other::Dust => "0003",
+            Other::Onchain => "1000",
+            Other::Effective => "2000",
+            Other::Fee => "3000",
+            Other::Unused => "0000",
         }
     }
 }
@@ -176,7 +176,8 @@ impl From<WalletId> for WalletLedgerAccountIds {
         .expect("Invalid Wallet_Id");
 
         let dust_id = Uuid::parse_str(
-            derive_complete_code(Element::Revenue, SubGroup::AtRest, Other::Dust, suffix).as_str(),
+            derive_complete_code(Element::Revenue, SubGroup::AtRest, Other::Unused, suffix)
+                .as_str(),
         )
         .expect("Invalid Wallet_Id");
 

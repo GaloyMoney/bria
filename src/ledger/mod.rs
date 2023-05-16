@@ -11,7 +11,10 @@ use sqlx_ledger::{
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
 
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Display},
+};
 
 use crate::{account::balance::*, error::*, primitives::*};
 use constants::*;
@@ -439,17 +442,17 @@ impl Ledger {
     pub async fn create_ledger_accounts_for_wallet(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        wallet_id: WalletId,
+        wallet_id: impl Into<WalletLedgerAccountIds> + Display + Debug + Clone + Copy,
         wallet_name: &str,
     ) -> Result<WalletLedgerAccountIds, BriaError> {
-        let wallet_ledger_account_id = WalletLedgerAccountIds::from(wallet_id);
+        let wallet_ledger_account_ids = wallet_id.into();
 
         let account_ids = WalletLedgerAccountIds {
             onchain_incoming_id: self
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.onchain_incoming_id,
+                    wallet_ledger_account_ids.onchain_incoming_id,
                     format!("WALLET_{wallet_id}_UTXO_INCOMING"),
                     format!("{wallet_id}-utxo-incoming"),
                     DebitOrCredit::Credit,
@@ -459,7 +462,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.onchain_at_rest_id,
+                    wallet_ledger_account_ids.onchain_at_rest_id,
                     format!("WALLET_{wallet_id}_UTXO_AT_REST"),
                     format!("{wallet_id}-utxo-at-rest"),
                     DebitOrCredit::Credit,
@@ -469,7 +472,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.onchain_outgoing_id,
+                    wallet_ledger_account_ids.onchain_outgoing_id,
                     format!("WALLET_{wallet_id}_UTXO_OUTGOING"),
                     format!("{wallet_id}-utxo-outgoing"),
                     DebitOrCredit::Credit,
@@ -479,7 +482,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.effective_incoming_id,
+                    wallet_ledger_account_ids.effective_incoming_id,
                     format!("WALLET_{wallet_id}_EFFECTIVE_INCOMING"),
                     format!("{wallet_id}-effective-incoming"),
                     DebitOrCredit::Credit,
@@ -489,7 +492,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.effective_at_rest_id,
+                    wallet_ledger_account_ids.effective_at_rest_id,
                     format!("WALLET_{wallet_id}_EFFECTIVE_AT_REST"),
                     format!("{wallet_id}-effective-at-rest"),
                     DebitOrCredit::Credit,
@@ -499,7 +502,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.effective_outgoing_id,
+                    wallet_ledger_account_ids.effective_outgoing_id,
                     format!("WALLET_{wallet_id}_EFFECTIVE_OUTGOING"),
                     format!("{wallet_id}-effective-outgoing"),
                     DebitOrCredit::Credit,
@@ -509,7 +512,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.fee_id,
+                    wallet_ledger_account_ids.fee_id,
                     format!("WALLET_{wallet_id}_ONCHAIN_FEE"),
                     format!("{wallet_id}-onchain-fee"),
                     DebitOrCredit::Debit,
@@ -519,7 +522,7 @@ impl Ledger {
                 .create_account_for_wallet(
                     tx,
                     wallet_id,
-                    wallet_ledger_account_id.dust_id,
+                    wallet_ledger_account_ids.dust_id,
                     format!("WALLET_{wallet_id}_DUST"),
                     format!("{wallet_id}-dust"),
                     DebitOrCredit::Credit,
@@ -533,7 +536,7 @@ impl Ledger {
     async fn create_account_for_wallet(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        wallet_id: WalletId,
+        wallet_id: impl Display + Debug,
         account_id: LedgerAccountId,
         wallet_code: String,
         wallet_name: String,
