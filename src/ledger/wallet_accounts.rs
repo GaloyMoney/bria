@@ -67,20 +67,20 @@ impl SubGroup {
 
 const RESERVED: &str = "0000";
 
-enum Other {
+enum Category {
     Onchain,
     Effective,
     Fee,
-    Unused,
+    Dust,
 }
 
-impl Other {
+impl Category {
     fn code(&self) -> &'static str {
         match self {
-            Other::Onchain => "1000",
-            Other::Effective => "2000",
-            Other::Fee => "3000",
-            Other::Unused => "0000",
+            Category::Onchain => "1000",
+            Category::Effective => "2000",
+            Category::Fee => "3000",
+            Category::Dust => "0000",
         }
     }
 }
@@ -88,7 +88,7 @@ impl Other {
 fn derive_complete_code(
     element: Element,
     sub_group: SubGroup,
-    other: Other,
+    category: Category,
     suffix: &str,
 ) -> String {
     format!(
@@ -98,9 +98,17 @@ fn derive_complete_code(
         HOT_WALLET_CODE,
         sub_group.code(),
         RESERVED,
-        other.code(),
+        category.code(),
         suffix
     )
+}
+
+impl WalletLedgerAccountIds {
+    pub fn get_wallet_id_prefix(&self) -> String {
+        let uuid_string = self.onchain_incoming_id.to_string();
+        let (_, suffix) = uuid_string.split_at(24);
+        suffix.to_owned()
+    }
 }
 
 impl From<WalletId> for WalletLedgerAccountIds {
@@ -113,7 +121,7 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Incoming,
-                Other::Onchain,
+                Category::Onchain,
                 suffix,
             )
             .as_str(),
@@ -121,8 +129,13 @@ impl From<WalletId> for WalletLedgerAccountIds {
         .expect("Invalid Wallet Id");
 
         let onchain_at_rest_id = Uuid::parse_str(
-            derive_complete_code(Element::Liability, SubGroup::AtRest, Other::Onchain, suffix)
-                .as_str(),
+            derive_complete_code(
+                Element::Liability,
+                SubGroup::AtRest,
+                Category::Onchain,
+                suffix,
+            )
+            .as_str(),
         )
         .expect("Invalid Wallet_Id");
 
@@ -130,7 +143,7 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Outgoing,
-                Other::Onchain,
+                Category::Onchain,
                 suffix,
             )
             .as_str(),
@@ -141,7 +154,7 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Incoming,
-                Other::Effective,
+                Category::Effective,
                 suffix,
             )
             .as_str(),
@@ -152,7 +165,7 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::AtRest,
-                Other::Effective,
+                Category::Effective,
                 suffix,
             )
             .as_str(),
@@ -163,7 +176,7 @@ impl From<WalletId> for WalletLedgerAccountIds {
             derive_complete_code(
                 Element::Liability,
                 SubGroup::Outgoing,
-                Other::Effective,
+                Category::Effective,
                 suffix,
             )
             .as_str(),
@@ -171,12 +184,13 @@ impl From<WalletId> for WalletLedgerAccountIds {
         .expect("Invalid Wallet_Id");
 
         let fee_id = Uuid::parse_str(
-            derive_complete_code(Element::Revenue, SubGroup::AtRest, Other::Fee, suffix).as_str(),
+            derive_complete_code(Element::Revenue, SubGroup::AtRest, Category::Fee, suffix)
+                .as_str(),
         )
         .expect("Invalid Wallet_Id");
 
         let dust_id = Uuid::parse_str(
-            derive_complete_code(Element::Revenue, SubGroup::AtRest, Other::Unused, suffix)
+            derive_complete_code(Element::Revenue, SubGroup::AtRest, Category::Dust, suffix)
                 .as_str(),
         )
         .expect("Invalid Wallet_Id");
