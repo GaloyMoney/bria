@@ -11,10 +11,7 @@ use sqlx_ledger::{
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
 
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-};
+use std::collections::HashMap;
 
 use crate::{account::balance::*, error::*, primitives::*};
 use constants::*;
@@ -442,8 +439,7 @@ impl Ledger {
     pub async fn create_ledger_accounts_for_wallet(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        ids: impl Into<WalletLedgerAccountIds> + Display + Debug + Clone + Copy,
-        wallet_name: &str,
+        ids: impl Into<WalletLedgerAccountIds> + std::fmt::Debug,
     ) -> Result<WalletLedgerAccountIds, BriaError> {
         let wallet_ledger_account_ids = ids.into();
         let prefix = wallet_ledger_account_ids.get_wallet_id_prefix();

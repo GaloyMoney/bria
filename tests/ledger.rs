@@ -25,7 +25,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
@@ -152,7 +152,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
@@ -271,7 +271,7 @@ async fn queue_payout() -> anyhow::Result<()> {
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     tx.commit().await?;
@@ -335,7 +335,7 @@ async fn create_batch() -> anyhow::Result<()> {
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     tx.commit().await?;
@@ -441,7 +441,7 @@ async fn spend_detected() -> anyhow::Result<()> {
     let wallet_id = WalletId::new();
     let keychain_id = KeychainId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     tx.commit().await?;
@@ -588,7 +588,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
     let wallet_id = WalletId::new();
     let keychain_id = KeychainId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &name)
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
         .await?;
 
     tx.commit().await?;

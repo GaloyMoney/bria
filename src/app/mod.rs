@@ -266,7 +266,7 @@ impl App {
         let wallet_id = WalletId::new();
         let wallet_ledger_accounts = self
             .ledger
-            .create_ledger_accounts_for_wallet(&mut tx, wallet_id, &wallet_name)
+            .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)

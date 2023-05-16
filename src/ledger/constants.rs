@@ -46,3 +46,62 @@ pub(super) const EFFECTIVE_AT_REST_ID: Uuid = uuid!("00000000-1900-0000-2000-000
 
 pub(super) const EFFECTIVE_OUTGOING_CODE: &str = "EFFECTIVE_OUTGOING";
 pub(super) const EFFECTIVE_OUTGOING_ID: Uuid = uuid!("00000000-1920-0000-2000-000000000000");
+
+pub const CURRENCY_CODE: &str = "00000000";
+pub enum Element {
+    #[allow(dead_code)] // Used in omnibus accounts
+    Asset,
+    Liability,
+    Revenue,
+    #[allow(dead_code)] // Used in omnibus accounts
+    Expense,
+}
+
+impl Element {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::Asset => "1",
+            Self::Liability => "2",
+            Self::Revenue => "4",
+            Self::Expense => "6",
+        }
+    }
+}
+
+pub const HOT_WALLET_CODE: &str = "0";
+
+pub enum SubGroup {
+    AtRest,
+    Incoming,
+    Outgoing,
+}
+
+impl SubGroup {
+    pub fn code(&self) -> &'static str {
+        match self {
+            SubGroup::AtRest => "00",
+            SubGroup::Incoming => "10",
+            SubGroup::Outgoing => "20",
+        }
+    }
+}
+
+pub const RESERVED: &str = "0000";
+
+pub enum Category {
+    Onchain,
+    Effective,
+    Fee,
+    Dust,
+}
+
+impl Category {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Category::Onchain => "1000",
+            Category::Effective => "2000",
+            Category::Fee => "3000",
+            Category::Dust => "0000",
+        }
+    }
+}
