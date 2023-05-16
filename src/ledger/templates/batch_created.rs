@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use super::shared_meta::*;
 use crate::{
-    error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
+    error::*,
+    ledger::{constants::*, WalletLedgerAccountIds},
+    primitives::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

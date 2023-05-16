@@ -5,6 +5,7 @@ mod keychain;
 mod psbt_builder;
 mod repo;
 
+pub use balance::*;
 pub use config::*;
 pub use entity::*;
 pub use keychain::*;

@@ -5,7 +5,9 @@ use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
 use crate::{
-    error::*, ledger::constants::*, primitives::*, wallet::balance::WalletLedgerAccountIds,
+    error::*,
+    ledger::{constants::*, WalletLedgerAccountIds},
+    primitives::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

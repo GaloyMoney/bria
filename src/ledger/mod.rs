@@ -1,6 +1,7 @@
 mod constants;
 mod event;
 mod templates;
+mod wallet_accounts;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
@@ -9,14 +10,14 @@ use sqlx_ledger::{
 };
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
-use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use crate::{account::balance::*, error::*, primitives::*, wallet::balance::*};
+use crate::{account::balance::*, error::*, primitives::*};
 use constants::*;
 pub use event::*;
 pub use templates::*;
+pub use wallet_accounts::*;
 
 #[derive(Debug, Clone)]
 pub struct Ledger {
@@ -438,79 +439,88 @@ impl Ledger {
     pub async fn create_ledger_accounts_for_wallet(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        wallet_id: WalletId,
-        wallet_name: &str,
+        ids: impl Into<WalletLedgerAccountIds> + std::fmt::Debug,
     ) -> Result<WalletLedgerAccountIds, BriaError> {
+        let wallet_ledger_account_ids = ids.into();
+        let prefix = wallet_ledger_account_ids.get_wallet_id_prefix();
         let account_ids = WalletLedgerAccountIds {
             onchain_incoming_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_UTXO_INCOMING"),
-                    format!("{wallet_id}-utxo-incoming"),
+                    &prefix,
+                    wallet_ledger_account_ids.onchain_incoming_id,
+                    format!("WALLET_{prefix}_UTXO_INCOMING"),
+                    format!("{prefix}-utxo-incoming"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             onchain_at_rest_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_UTXO_AT_REST"),
-                    format!("{wallet_id}-utxo-at-rest"),
+                    &prefix,
+                    wallet_ledger_account_ids.onchain_at_rest_id,
+                    format!("WALLET_{prefix}_UTXO_AT_REST"),
+                    format!("{prefix}-utxo-at-rest"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             onchain_outgoing_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_UTXO_OUTGOING"),
-                    format!("{wallet_id}-utxo-outgoing"),
+                    &prefix,
+                    wallet_ledger_account_ids.onchain_outgoing_id,
+                    format!("WALLET_{prefix}_UTXO_OUTGOING"),
+                    format!("{prefix}-utxo-outgoing"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             effective_incoming_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_EFFECTIVE_INCOMING"),
-                    format!("{wallet_id}-effective-incoming"),
+                    &prefix,
+                    wallet_ledger_account_ids.effective_incoming_id,
+                    format!("WALLET_{prefix}_EFFECTIVE_INCOMING"),
+                    format!("{prefix}-effective-incoming"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             effective_at_rest_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_EFFECTIVE_AT_REST"),
-                    format!("{wallet_id}-effective-at-rest"),
+                    &prefix,
+                    wallet_ledger_account_ids.effective_at_rest_id,
+                    format!("WALLET_{prefix}_EFFECTIVE_AT_REST"),
+                    format!("{prefix}-effective-at-rest"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             effective_outgoing_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_EFFECTIVE_OUTGOING"),
-                    format!("{wallet_id}-effective-outgoing"),
+                    &prefix,
+                    wallet_ledger_account_ids.effective_outgoing_id,
+                    format!("WALLET_{prefix}_EFFECTIVE_OUTGOING"),
+                    format!("{prefix}-effective-outgoing"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
             fee_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_ONCHAIN_FEE"),
-                    format!("{wallet_id}-onchain-fee"),
+                    &prefix,
+                    wallet_ledger_account_ids.fee_id,
+                    format!("WALLET_{prefix}_ONCHAIN_FEE"),
+                    format!("{prefix}-onchain-fee"),
                     DebitOrCredit::Debit,
                 )
                 .await?,
             dust_id: self
                 .create_account_for_wallet(
                     tx,
-                    wallet_id,
-                    format!("WALLET_{wallet_id}_DUST"),
-                    format!("{wallet_id}-dust"),
+                    &prefix,
+                    wallet_ledger_account_ids.dust_id,
+                    format!("WALLET_{prefix}_DUST"),
+                    format!("{prefix}-dust"),
                     DebitOrCredit::Credit,
                 )
                 .await?,
@@ -522,16 +532,17 @@ impl Ledger {
     async fn create_account_for_wallet(
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-        wallet_id: WalletId,
+        wallet_id_prefix: &str,
+        account_id: LedgerAccountId,
         wallet_code: String,
         wallet_name: String,
         balance_type: DebitOrCredit,
     ) -> Result<LedgerAccountId, BriaError> {
         let account = NewLedgerAccount::builder()
-            .id(Uuid::new_v4())
+            .id(account_id)
             .name(&wallet_name)
             .code(wallet_code)
-            .description(format!("Account for wallet '{}'", &wallet_id))
+            .description(format!("Account for wallet '{}'", wallet_id_prefix))
             .normal_balance_type(balance_type)
             .build()
             .expect("Couldn't build NewLedgerAccount");
