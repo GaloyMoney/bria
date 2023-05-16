@@ -1,3 +1,36 @@
+# [bria release v0.1.0](https://github.com/GaloyMoney/bria/releases/tag/0.1.0)
+
+
+### Bug Fixes
+
+- Cleanup to the encrypt signer config pr (#184)
+- No default for PG_CON
+
+### Features
+
+- [**breaking**] Use meaningful id's for accounts (#181)
+- Encrypt and persist signer config (#177)
+
+### Miscellaneous Tasks
+
+- Bump uuid from 1.3.2 to 1.3.3 (#183)
+- Handle max_retry_backof and extend signing job
+- Remove comment (#179)
+
+### Refactor
+
+- Pass JobsConfig to jobs runner
+- UnbatchedPayout.commit_to_batch
+- UnbatchedPayouts container
+- Extract construct_psbt to PsbtBuilder
+- Group_name -> payout_queue
+
+### Testing
+
+- Remove redundant debug output
+- Attempt retries in bria_init
+- Fix bria.yml for e2e tests
+
 # [bria release v0.0.24](https://github.com/GaloyMoney/bria/releases/tag/0.0.24)
 
 
