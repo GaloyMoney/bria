@@ -1,3 +1,10 @@
+# [bria release v0.1.4](https://github.com/GaloyMoney/bria/releases/tag/0.1.4)
+
+
+### Refactor
+
+- Use better batching for bdk persistance (#188)
+
 # [bria release v0.1.3](https://github.com/GaloyMoney/bria/releases/tag/0.1.3)
 
 
