@@ -191,6 +191,7 @@ async fn sync_wallet(
     let mut has_more = false;
     let more_ref = &mut has_more;
     let data = JobExecutor::builder(&mut current_job)
+        .max_retry_delay(std::time::Duration::from_secs(60))
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
