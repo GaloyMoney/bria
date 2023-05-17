@@ -188,12 +188,14 @@ async fn sync_wallet(
     batches: Batches,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
-    JobExecutor::builder(&mut current_job)
+    let mut has_more = false;
+    let more_ref = &mut has_more;
+    let data = JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: SyncWalletData = data.expect("no SyncWalletData available");
-            sync_wallet::execute(
+            let (more, data) = sync_wallet::execute(
                 pool,
                 wallets,
                 blockchain_cfg,
@@ -203,9 +205,14 @@ async fn sync_wallet(
                 batches,
                 data,
             )
-            .await
+            .await?;
+            *more_ref = more;
+            Ok::<_, BriaError>(data)
         })
         .await?;
+    if has_more {
+        spawn_sync_wallet(current_job.pool(), data).await?;
+    }
     Ok(())
 }
 

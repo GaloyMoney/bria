@@ -53,6 +53,8 @@ struct Deps {
     ledger: Ledger,
 }
 
+const MAX_TXS_PER_SYNC: usize = 100;
+
 #[instrument(
     name = "job.sync_wallet",
     skip(pool, wallets, batches, bria_utxos, bria_addresses, ledger),
@@ -69,7 +71,7 @@ pub async fn execute(
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
-) -> Result<SyncWalletData, BriaError> {
+) -> Result<(bool, SyncWalletData), BriaError> {
     let span = tracing::Span::current();
     let wallet = wallets.find_by_id(data.wallet_id).await?;
     let mut trackers = InstrumentationTrackers::new();
@@ -373,6 +375,9 @@ pub async fn execute(
                         .await?;
                 }
             }
+            if trackers.n_found_txs >= MAX_TXS_PER_SYNC {
+                break;
+            }
         }
 
         loop {
@@ -470,7 +475,7 @@ pub async fn execute(
     span.record("n_confirmed_utxos", trackers.n_confirmed_utxos);
     span.record("n_found_txs", trackers.n_found_txs);
 
-    Ok(data)
+    Ok((trackers.n_found_txs >= MAX_TXS_PER_SYNC, data))
 }
 
 async fn fees_for_keychain(keychain: &KeychainWallet) -> Result<Satoshis, BriaError> {
