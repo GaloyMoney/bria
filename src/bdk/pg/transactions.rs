@@ -1,5 +1,5 @@
 use bdk::{bitcoin::Txid, LocalUtxo, TransactionDetails};
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -33,21 +33,34 @@ impl Transactions {
         Self { keychain_id, pool }
     }
 
-    pub async fn persist(&self, tx: &TransactionDetails) -> Result<(), bdk::Error> {
-        sqlx::query!(
-            r#"
-        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json, sent, height)
-        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id)
-        DO UPDATE SET details_json = EXCLUDED.details_json, height = $5, modified_at = NOW()"#,
-            Uuid::from(self.keychain_id),
-            tx.txid.to_string(),
-            serde_json::to_value(&tx)?,
-            tx.sent as i64,
-            tx.confirmation_time.as_ref().map(|t| t.height as i32),
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+    pub async fn persist_all(&self, txs: Vec<TransactionDetails>) -> Result<(), bdk::Error> {
+        const BATCH_SIZE: usize = 5000;
+        let batches = txs.chunks(BATCH_SIZE);
+
+        for batch in batches {
+            let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+                r#"
+            INSERT INTO bdk_transactions
+            (keychain_id, tx_id, details_json, sent, height)"#,
+            );
+
+            query_builder.push_values(batch, |mut builder, tx| {
+                builder.push_bind(Uuid::from(self.keychain_id));
+                builder.push_bind(tx.txid.to_string());
+                builder.push_bind(serde_json::to_value(tx).unwrap());
+                builder.push_bind(tx.sent as i64);
+                builder.push_bind(tx.confirmation_time.as_ref().map(|t| t.height as i32));
+            });
+
+            query_builder.push("ON CONFLICT (keychain_id, tx_id) DO UPDATE SET details_json = EXCLUDED.details_json, height = EXCLUDED.height, modified_at = NOW()");
+
+            let query = query_builder.build();
+            query
+                .execute(&self.pool)
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        }
+
         Ok(())
     }
 

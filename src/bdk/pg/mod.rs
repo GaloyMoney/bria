@@ -15,6 +15,7 @@ use sqlx::PgPool;
 use tokio::runtime::Handle;
 
 use crate::primitives::*;
+use convert::BdkKeychainKind;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
@@ -26,6 +27,9 @@ pub struct SqlxWalletDb {
     rt: Handle,
     pool: PgPool,
     keychain_id: KeychainId,
+    addresses: Option<Vec<(BdkKeychainKind, u32, Script)>>,
+    utxos: Option<Vec<LocalUtxo>>,
+    txs: Option<Vec<TransactionDetails>>,
 }
 
 impl SqlxWalletDb {
@@ -34,6 +38,9 @@ impl SqlxWalletDb {
             rt: Handle::current(),
             keychain_id,
             pool,
+            addresses: None,
+            utxos: None,
+            txs: None,
         }
     }
 }
@@ -45,42 +52,51 @@ impl BatchOperations for SqlxWalletDb {
         keychain: KeychainKind,
         path: u32,
     ) -> Result<(), bdk::Error> {
-        self.rt.block_on(async {
-            let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
-            script_pubkeys.persist(keychain, path, script).await?;
-            Ok(())
-        })
+        if self.addresses.is_none() {
+            self.addresses = Some(Vec::new());
+        }
+        self.addresses.as_mut().unwrap().push((
+            BdkKeychainKind::from(keychain),
+            path,
+            script.clone(),
+        ));
+        Ok(())
     }
 
     fn set_utxo(&mut self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
-        self.rt.block_on(async {
-            Utxos::new(self.keychain_id, self.pool.clone())
-                .persist(utxo)
-                .await
-        })
+        if self.utxos.is_none() {
+            self.utxos = Some(Vec::new());
+        }
+        self.utxos.as_mut().unwrap().push(utxo.clone());
+        Ok(())
     }
 
     fn set_raw_tx(&mut self, _: &Transaction) -> Result<(), bdk::Error> {
         unimplemented!()
     }
+
     fn set_tx(&mut self, tx: &TransactionDetails) -> Result<(), bdk::Error> {
-        self.rt.block_on(async {
-            let txs = Transactions::new(self.keychain_id, self.pool.clone());
-            txs.persist(tx).await
-        })
+        if self.txs.is_none() {
+            self.txs = Some(Vec::new());
+        }
+        self.txs.as_mut().unwrap().push(tx.clone());
+        Ok(())
     }
+
     fn set_last_index(&mut self, kind: KeychainKind, idx: u32) -> Result<(), bdk::Error> {
         self.rt.block_on(async {
             let indexes = Indexes::new(self.keychain_id, self.pool.clone());
             indexes.persist_last_index(kind, idx).await
         })
     }
+
     fn set_sync_time(&mut self, time: SyncTime) -> Result<(), bdk::Error> {
         self.rt.block_on(async {
             let sync_times = SyncTimes::new(self.keychain_id, self.pool.clone());
             sync_times.persist(time).await
         })
     }
+
     fn del_script_pubkey_from_path(
         &mut self,
         _: KeychainKind,
@@ -224,7 +240,25 @@ impl BatchDatabase for SqlxWalletDb {
     fn begin_batch(&self) -> <Self as BatchDatabase>::Batch {
         SqlxWalletDb::new(self.pool.clone(), self.keychain_id)
     }
-    fn commit_batch(&mut self, _: <Self as BatchDatabase>::Batch) -> Result<(), bdk::Error> {
-        Ok(())
+
+    fn commit_batch(
+        &mut self,
+        mut batch: <Self as BatchDatabase>::Batch,
+    ) -> Result<(), bdk::Error> {
+        self.rt.block_on(async move {
+            if let Some(addresses) = batch.addresses.take() {
+                let repo = ScriptPubkeys::new(batch.keychain_id, batch.pool.clone());
+                repo.persist_all(addresses).await?;
+            }
+            if let Some(utxos) = batch.utxos.take() {
+                let repo = Utxos::new(batch.keychain_id, batch.pool.clone());
+                repo.persist_all(utxos).await?;
+            }
+            if let Some(txs) = batch.txs.take() {
+                let repo = Transactions::new(batch.keychain_id, batch.pool.clone());
+                repo.persist_all(txs).await?;
+            }
+            Ok::<_, bdk::Error>(())
+        })
     }
 }

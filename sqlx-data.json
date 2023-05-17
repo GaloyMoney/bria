@@ -1414,22 +1414,6 @@
     },
     "query": "UPDATE mq_msgs SET retry_backoff = $1 WHERE id = $2"
   },
-  "7d36b5cd24ecbc930a45b73876bf356abb1a773c37ebb161c3a2c14fe63f9a15": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Jsonb",
-          "Int4",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO bdk_transactions (keychain_id, tx_id, details_json, sent, height)\n        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id)\n        DO UPDATE SET details_json = EXCLUDED.details_json, height = $5, modified_at = NOW()"
-  },
   "80ea413a3e70ea8046dc38bfa249dc526b98329d189ba02abfcc2d00ade20c77": {
     "describe": {
       "columns": [
@@ -1694,22 +1678,6 @@
       }
     },
     "query": "SELECT id FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"
-  },
-  "a74a4e9764b8eb817645da55cb067b01c71e8c13e4e251f00857a3b1b0d8b8e4": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Int4",
-          "Jsonb",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json, is_spent)\n            VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id, vout)\n            DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = $5, modified_at = NOW()"
   },
   "a911966fef9a58ef416c1ff0fe08ce385060b2c2e41843bf3d1959e8b33bfbb3": {
     "describe": {
@@ -2515,32 +2483,6 @@
       }
     },
     "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
-  },
-  "f98408969915608cf7f432f25df49b78644ce36eabdfe2a23f1fc6c14763c774": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          },
-          "Int4",
-          "Bytea",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "INSERT INTO bdk_script_pubkeys\n            (keychain_id, keychain_kind, path, script, script_hex, script_fmt)\n            VALUES ($1, $2, $3, $4, ENCODE($4, 'hex'), $5) ON CONFLICT DO NOTHING"
   },
   "fa20681958de2a9b7764665edde5dbc0f5f839a0ea33b48dfdc2214966dd8efa": {
     "describe": {
