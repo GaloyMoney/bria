@@ -58,7 +58,7 @@ const MAX_TXS_PER_SYNC: usize = 100;
 #[instrument(
     name = "job.sync_wallet",
     skip(pool, wallets, batches, bria_utxos, bria_addresses, ledger),
-    fields(n_pending_utxos, n_confirmed_utxos, n_found_txs),
+    fields(n_pending_utxos, n_confirmed_utxos, n_found_txs, has_more),
     err
 )]
 #[allow(clippy::too_many_arguments)]
@@ -471,11 +471,13 @@ pub async fn execute(
         }
     }
 
+    let has_more = trackers.n_found_txs >= MAX_TXS_PER_SYNC;
     span.record("n_pending_utxos", trackers.n_pending_utxos);
     span.record("n_confirmed_utxos", trackers.n_confirmed_utxos);
     span.record("n_found_txs", trackers.n_found_txs);
+    span.record("has_more", has_more);
 
-    Ok((trackers.n_found_txs >= MAX_TXS_PER_SYNC, data))
+    Ok((has_more, data))
 }
 
 async fn fees_for_keychain(keychain: &KeychainWallet) -> Result<Satoshis, BriaError> {
