@@ -1,3 +1,15 @@
+# [bria release v0.1.1](https://github.com/GaloyMoney/bria/releases/tag/0.1.1)
+
+
+### Bug Fixes
+
+- Change bitcoin to mainnet for BlockchainConfig (#185)
+- Better encumbered fees estimation
+
+### Miscellaneous Tasks
+
+- Sync 100 txs at a time
+
 # [bria release v0.1.0](https://github.com/GaloyMoney/bria/releases/tag/0.1.0)
 
 
