@@ -48,6 +48,7 @@ where
         "testnet" => Ok(Network::Testnet),
         "signet" => Ok(Network::Signet),
         "regtest" => Ok(Network::Regtest),
+        "bitcoin" => Ok(Network::Bitcoin),
         _ => Err(serde::de::Error::unknown_variant(
             &s,
             &["mainnet", "testnet", "signet", "regtest"],
