@@ -32,7 +32,7 @@ async fn init_electrum(electrum_url: &str) -> Result<ElectrumBlockchain, BriaErr
         electrum_url,
         ConfigBuilder::new()
             .retry(10)
-            .timeout(Some(4))
+            .timeout(Some(60))
             .expect("couldn't set electrum timeout")
             .build(),
     )?);
