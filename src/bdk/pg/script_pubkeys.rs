@@ -1,4 +1,4 @@
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
@@ -14,26 +14,34 @@ impl ScriptPubkeys {
         Self { keychain_id, pool }
     }
 
-    pub async fn persist(
+    pub async fn persist_all(
         &self,
-        keychain: impl Into<BdkKeychainKind>,
-        path: u32,
-        script: &Script,
+        keys: Vec<(BdkKeychainKind, u32, Script)>,
     ) -> Result<(), bdk::Error> {
-        let kind = keychain.into();
-        sqlx::query!(
-            r#"INSERT INTO bdk_script_pubkeys
-            (keychain_id, keychain_kind, path, script, script_hex, script_fmt)
-            VALUES ($1, $2, $3, $4, ENCODE($4, 'hex'), $5) ON CONFLICT DO NOTHING"#,
-            Uuid::from(self.keychain_id),
-            kind as BdkKeychainKind,
-            path as i32,
-            script.as_ref(),
-            format!("{:?}", script)
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        const BATCH_SIZE: usize = 5000;
+        let chunks = keys.chunks(BATCH_SIZE);
+        for chunk in chunks {
+            let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+                r#"INSERT INTO bdk_script_pubkeys
+        (keychain_id, keychain_kind, path, script, script_hex, script_fmt)"#,
+            );
+
+            query_builder.push_values(chunk, |mut builder, (keychain, path, script)| {
+                builder.push_bind(self.keychain_id);
+                builder.push_bind(keychain);
+                builder.push_bind(*path as i32);
+                builder.push_bind(script.as_ref().to_vec());
+                builder.push_bind(format!("{:02x}", script));
+                builder.push_bind(format!("{:?}", script));
+            });
+            query_builder.push("ON CONFLICT DO NOTHING");
+
+            let query = query_builder.build();
+            query
+                .execute(&self.pool)
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        }
         Ok(())
     }
 

@@ -1,5 +1,5 @@
 use bdk::{LocalUtxo, TransactionDetails};
-use sqlx::{PgPool, Postgres, Transaction};
+use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -21,20 +21,33 @@ impl Utxos {
         Self { keychain_id, pool }
     }
 
-    pub async fn persist(&self, utxo: &LocalUtxo) -> Result<(), bdk::Error> {
-        sqlx::query!(
-            r#"INSERT INTO bdk_utxos (keychain_id, tx_id, vout, utxo_json, is_spent)
-            VALUES ($1, $2, $3, $4, $5) ON CONFLICT (keychain_id, tx_id, vout)
-            DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = $5, modified_at = NOW()"#,
-            Uuid::from(self.keychain_id),
-            utxo.outpoint.txid.to_string(),
-            utxo.outpoint.vout as i32,
-            serde_json::to_value(utxo)?,
-            utxo.is_spent,
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+    pub async fn persist_all(&self, utxos: Vec<LocalUtxo>) -> Result<(), bdk::Error> {
+        const BATCH_SIZE: usize = 5000;
+        let batches = utxos.chunks(BATCH_SIZE);
+
+        for batch in batches {
+            let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+                r#"INSERT INTO bdk_utxos
+            (keychain_id, tx_id, vout, utxo_json, is_spent)"#,
+            );
+
+            query_builder.push_values(batch, |mut builder, utxo| {
+                builder.push_bind(Uuid::from(self.keychain_id));
+                builder.push_bind(utxo.outpoint.txid.to_string());
+                builder.push_bind(utxo.outpoint.vout as i32);
+                builder.push_bind(serde_json::to_value(utxo).unwrap());
+                builder.push_bind(utxo.is_spent);
+            });
+
+            query_builder.push("ON CONFLICT (keychain_id, tx_id, vout) DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = EXCLUDED.is_spent, modified_at = NOW()");
+
+            let query = query_builder.build();
+            query
+                .execute(&self.pool)
+                .await
+                .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        }
+
         Ok(())
     }
 
