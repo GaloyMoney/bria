@@ -1,7 +1,7 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
     database::BatchDatabase,
-    wallet::{signer::SignOptions, AddressIndex, SyncOptions},
+    wallet::{signer::SignOptions, AddressIndex},
     Wallet,
 };
 use sqlx::PgPool;
@@ -96,7 +96,6 @@ impl KeychainWallet {
         &self,
         blockchain: B,
     ) -> Result<(), BriaError> {
-        let keychain_id = self.keychain_id;
         self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
             .await??;
         Ok(())
