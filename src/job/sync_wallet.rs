@@ -478,7 +478,7 @@ async fn fees_for_keychain(keychain: &KeychainWallet) -> Result<Satoshis, BriaEr
         .await?
         .as_sat_per_vb();
     let weight = keychain.max_satisfaction_weight().await?;
-    Ok(Satoshis::from((fee_rate as u64) * (weight as u64)))
+    Ok(Satoshis::from((fee_rate as u64) * (weight as u64 / 4)))
 }
 
 async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BriaError> {
