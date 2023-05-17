@@ -14,9 +14,20 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, error::*, ledger::Ledger,
-    outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*, utxo::Utxos,
-    wallet::*, xpub::*,
+    account::*,
+    address::Addresses,
+    app::{BlockchainConfig, Fees},
+    batch::*,
+    error::*,
+    ledger::Ledger,
+    outbox::*,
+    payout::*,
+    payout_queue::*,
+    primitives::*,
+    signing_session::*,
+    utxo::Utxos,
+    wallet::*,
+    xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
@@ -47,6 +58,7 @@ pub async fn start_job_runner(
     config: JobsConfig,
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
+    fees: Fees,
 ) -> Result<OwnedHandle, BriaError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -73,6 +85,7 @@ pub async fn start_job_runner(
     registry.set_context(utxos);
     registry.set_context(addresses);
     registry.set_context(signer_encryption_config);
+    registry.set_context(fees);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -178,6 +191,7 @@ async fn respawn_all_outbox_handlers(
 }
 
 #[job(name = "sync_wallet")]
+#[allow(clippy::too_many_arguments)]
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
@@ -186,6 +200,7 @@ async fn sync_wallet(
     utxos: Utxos,
     ledger: Ledger,
     batches: Batches,
+    fees: Fees,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     let mut has_more = false;
@@ -205,6 +220,7 @@ async fn sync_wallet(
                 ledger,
                 batches,
                 data,
+                fees,
             )
             .await?;
             *more_ref = more;
@@ -247,6 +263,7 @@ async fn process_payout_queue(
     utxos: Utxos,
     payout_queues: PayoutQueues,
     batches: Batches,
+    fees: Fees,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -262,6 +279,7 @@ async fn process_payout_queue(
                 batches,
                 utxos,
                 data,
+                fees,
             )
             .await?;
             if let Some((mut tx, wallet_ids)) = res {

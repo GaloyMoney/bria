@@ -69,6 +69,7 @@ impl App {
             config.jobs.clone(),
             config.blockchain.clone(),
             config.signer_encryption.clone(),
+            config.fees.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;

@@ -27,7 +27,7 @@ pub struct ProcessPayoutQueueData {
     ),
     err
 )]
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
 pub async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
@@ -36,6 +36,7 @@ pub async fn execute<'a>(
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,
+    fees: crate::app::Fees,
 ) -> Result<
     (
         ProcessPayoutQueueData,
@@ -66,6 +67,7 @@ pub async fn execute<'a>(
         &utxos,
         wallets,
         payout_queue,
+        fees,
     )
     .await?;
 
@@ -131,6 +133,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: Wallets,
     payout_queue: PayoutQueue,
+    fees: crate::app::Fees,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -155,8 +158,11 @@ pub async fn construct_psbt(
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
-    let fee_rate =
-        crate::fee_estimation::MempoolSpaceClient::fee_rate(queue_cfg.tx_priority).await?;
+    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(
+        fees.mempool_space.url,
+        queue_cfg.tx_priority,
+    )
+    .await?;
 
     PsbtBuilder::construct_psbt(
         &pool,
