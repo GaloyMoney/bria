@@ -1,3 +1,13 @@
+# [bria release v0.1.3](https://github.com/GaloyMoney/bria/releases/tag/0.1.3)
+
+
+### Miscellaneous Tasks
+
+- Pass progress tracker to bdk sync
+- Set max_retry_delay to 60s for sync_wallet
+- Dedup payout_queue scheduling
+- Bump reqwest from 0.11.17 to 0.11.18 (#187)
+
 # [bria release v0.1.2](https://github.com/GaloyMoney/bria/releases/tag/0.1.2)
 
 
