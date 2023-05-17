@@ -118,8 +118,8 @@ services:
       MEMPOOL_BACKEND: "none"
       CORE_RPC_HOST: bitcoind
       CORE_RPC_PORT: "8332"
-      CORE_RPC_USERNAME: "rpc_user"
-      CORE_RPC_PASSWORD: "rpc_password"
+      CORE_RPC_USERNAME: "rpcuser"
+      CORE_RPC_PASSWORD: "rpcpassword"
       DATABASE_ENABLED: "false"
 volumes:
   cargo-cache:
