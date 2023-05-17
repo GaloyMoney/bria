@@ -20,3 +20,8 @@ services:
     ports:
       - "50001:50001"
       - "50002:50002"
+  mempool-backend: 
+    ports:
+      - "8999:8999"
+      
+  
