@@ -1,3 +1,10 @@
+# [bria release v0.1.2](https://github.com/GaloyMoney/bria/releases/tag/0.1.2)
+
+
+### Miscellaneous Tasks
+
+- Output has_more in span
+
 # [bria release v0.1.1](https://github.com/GaloyMoney/bria/releases/tag/0.1.1)
 
 
