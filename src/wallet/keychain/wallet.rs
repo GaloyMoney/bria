@@ -1,7 +1,7 @@
 use bdk::{
     blockchain::{GetHeight, WalletSync},
     database::BatchDatabase,
-    wallet::{signer::SignOptions, AddressIndex},
+    wallet::{signer::SignOptions, AddressIndex, SyncOptions},
     Wallet,
 };
 use sqlx::PgPool;
@@ -96,8 +96,16 @@ impl KeychainWallet {
         &self,
         blockchain: B,
     ) -> Result<(), BriaError> {
-        self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
-            .await??;
+        let keychain_id = self.keychain_id;
+        self.with_wallet(move |wallet| {
+            wallet.sync(
+                &blockchain,
+                SyncOptions {
+                    progress: Some(Box::new(SyncProgress { keychain_id })),
+                },
+            )
+        })
+        .await??;
         Ok(())
     }
 
@@ -149,5 +157,21 @@ impl KeychainWallet {
             Ok(Err(e)) => Err(e),
             Err(e) => Err(e.into()),
         }
+    }
+}
+
+#[derive(Debug)]
+struct SyncProgress {
+    keychain_id: KeychainId,
+}
+impl bdk::blockchain::Progress for SyncProgress {
+    fn update(&self, progress: f32, message: Option<String>) -> Result<(), bdk::Error> {
+        tracing::info!(
+            "Sync progress for keychain {}: {} - message: {}",
+            self.keychain_id,
+            progress,
+            message.unwrap_or_default()
+        );
+        Ok(())
     }
 }

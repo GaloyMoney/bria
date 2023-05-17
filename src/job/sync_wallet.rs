@@ -1,7 +1,7 @@
 use bdk::blockchain::{ElectrumBlockchain, GetHeight};
 use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
-use tracing::instrument;
+use tracing::{info, instrument};
 
 use crate::{
     address::*,
@@ -72,6 +72,7 @@ pub async fn execute(
     batches: Batches,
     data: SyncWalletData,
 ) -> Result<(bool, SyncWalletData), BriaError> {
+    info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
     let wallet = wallets.find_by_id(data.wallet_id).await?;
     let mut trackers = InstrumentationTrackers::new();
@@ -84,6 +85,7 @@ pub async fn execute(
     let mut utxos_to_fetch = HashMap::new();
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
+        info!("Syncing keychain '{}'", keychain_wallet.keychain_id);
         let fees_to_encumber = fees_for_keychain(&keychain_wallet).await?;
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
@@ -94,6 +96,10 @@ pub async fn execute(
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         let mut txs_to_skip = Vec::new();
+        info!(
+            "Sync via bdk for keychain '{}'",
+            keychain_wallet.keychain_id
+        );
         while let Ok(Some(mut unsynced_tx)) = bdk_txs.find_unsynced_tx(&txs_to_skip).await {
             tracing::info!(?unsynced_tx);
             income_bria_utxos.clear();
