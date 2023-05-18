@@ -31,7 +31,7 @@ fn default_electrum_url() -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Fees {
+pub struct FeesConfig {
     #[serde(default)]
     pub mempool_space: MempoolSpaceConfig,
 }
@@ -45,7 +45,7 @@ pub struct AppConfig {
     #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
     #[serde(default)]
-    pub fees: Fees,
+    pub fees: FeesConfig,
 }
 
 fn deserialize_network<'de, D>(deserializer: D) -> Result<Network, D::Error>

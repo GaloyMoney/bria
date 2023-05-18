@@ -71,7 +71,7 @@ pub async fn execute(
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
-    fees: crate::app::Fees,
+    fees: crate::app::FeesConfig,
 ) -> Result<(bool, SyncWalletData), BriaError> {
     info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
@@ -489,7 +489,7 @@ pub async fn execute(
 
 async fn fees_for_keychain(
     keychain: &KeychainWallet,
-    fees: &crate::app::Fees,
+    fees: &crate::app::FeesConfig,
 ) -> Result<Satoshis, BriaError> {
     let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(
         fees.mempool_space.url.clone(),

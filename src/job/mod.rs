@@ -16,7 +16,7 @@ use uuid::{uuid, Uuid};
 use crate::{
     account::*,
     address::Addresses,
-    app::{BlockchainConfig, Fees},
+    app::{BlockchainConfig, FeesConfig},
     batch::*,
     error::*,
     ledger::Ledger,
@@ -58,7 +58,7 @@ pub async fn start_job_runner(
     config: JobsConfig,
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
-    fees: Fees,
+    fees: FeesConfig,
 ) -> Result<OwnedHandle, BriaError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -200,7 +200,7 @@ async fn sync_wallet(
     utxos: Utxos,
     ledger: Ledger,
     batches: Batches,
-    fees: Fees,
+    fees: FeesConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     let mut has_more = false;
@@ -263,7 +263,7 @@ async fn process_payout_queue(
     utxos: Utxos,
     payout_queues: PayoutQueues,
     batches: Batches,
-    fees: Fees,
+    fees: FeesConfig,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)

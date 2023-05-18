@@ -36,7 +36,7 @@ pub async fn execute<'a>(
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,
-    fees: crate::app::Fees,
+    fees: crate::app::FeesConfig,
 ) -> Result<
     (
         ProcessPayoutQueueData,
@@ -133,7 +133,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: Wallets,
     payout_queue: PayoutQueue,
-    fees: crate::app::Fees,
+    fees: crate::app::FeesConfig,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
