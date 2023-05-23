@@ -1,6 +1,9 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::{job::JobsConfig, primitives::bitcoin::Network, xpub::SignerEncryptionConfig};
+use crate::{
+    fee_estimation::MempoolSpaceConfig, job::JobsConfig, primitives::bitcoin::Network,
+    xpub::SignerEncryptionConfig,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainConfig {
@@ -28,6 +31,12 @@ fn default_electrum_url() -> String {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FeesConfig {
+    #[serde(default)]
+    pub mempool_space: MempoolSpaceConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
     pub blockchain: BlockchainConfig,
@@ -35,6 +44,8 @@ pub struct AppConfig {
     pub jobs: JobsConfig,
     #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
+    #[serde(default)]
+    pub fees: FeesConfig,
 }
 
 fn deserialize_network<'de, D>(deserializer: D) -> Result<Network, D::Error>

@@ -9,6 +9,7 @@ services:
       - lnd
       - otel-agent
       - fulcrum
+      - mempool-backend
   postgres:
     image: postgres:14.1
     environment:
@@ -110,5 +111,15 @@ services:
       - SSL_CERTFILE=/tls.cert
       - SSL_KEYFILE=/tls.key
     command: [ "Fulcrum", "/fulcrum.conf" ]
+  mempool-backend: 
+    image: mempool/backend
+    depends_on: [ bitcoind ]
+    environment:
+      MEMPOOL_BACKEND: "none"
+      CORE_RPC_HOST: bitcoind
+      CORE_RPC_PORT: "18443"
+      CORE_RPC_USERNAME: "rpcuser"
+      CORE_RPC_PASSWORD: "rpcpassword"
+      DATABASE_ENABLED: "false"
 volumes:
   cargo-cache:

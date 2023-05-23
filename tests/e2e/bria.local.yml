@@ -2,3 +2,6 @@ app:
   blockchain:
     network: regtest
     electrum_url: localhost:50001
+  fees:
+    mempool_space:
+      url: http://localhost:8999/api/v1/fees/recommended

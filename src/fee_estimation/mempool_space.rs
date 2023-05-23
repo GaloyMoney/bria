@@ -15,8 +15,7 @@ struct RecommendedFeesResponse {
 pub struct MempoolSpaceClient {}
 
 impl MempoolSpaceClient {
-    pub async fn fee_rate(priority: TxPriority) -> Result<FeeRate, BriaError> {
-        let url = "https://mempool.space/api/v1/fees/recommended";
+    pub async fn fee_rate(url: String, priority: TxPriority) -> Result<FeeRate, BriaError> {
         let resp = reqwest::get(url).await.map_err(BriaError::FeeEstimation)?;
         let fee_estimations: RecommendedFeesResponse =
             resp.json().await.map_err(BriaError::FeeEstimation)?;
