@@ -9,6 +9,7 @@ use crate::{
     batch::*,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
+    fee_estimation::MempoolSpaceClient,
     ledger::*,
     primitives::*,
     utxo::{Utxos, WalletUtxo},
@@ -71,7 +72,7 @@ pub async fn execute(
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
-    fees: crate::app::FeesConfig,
+    mempool_space: MempoolSpaceClient,
 ) -> Result<(bool, SyncWalletData), BriaError> {
     info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
@@ -87,7 +88,7 @@ pub async fn execute(
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         info!("Syncing keychain '{}'", keychain_wallet.keychain_id);
-        let fees_to_encumber = fees_for_keychain(&keychain_wallet, &fees).await?;
+        let fees_to_encumber = fees_for_keychain(&keychain_wallet, &mempool_space).await?;
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
@@ -489,14 +490,12 @@ pub async fn execute(
 
 async fn fees_for_keychain(
     keychain: &KeychainWallet,
-    fees: &crate::app::FeesConfig,
+    mempool_space: &MempoolSpaceClient,
 ) -> Result<Satoshis, BriaError> {
-    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(
-        fees.mempool_space.url.clone(),
-        TxPriority::NextBlock,
-    )
-    .await?
-    .as_sat_per_vb();
+    let fee_rate = mempool_space
+        .fee_rate(TxPriority::NextBlock)
+        .await?
+        .as_sat_per_vb();
     let weight = keychain.max_satisfaction_weight().await?;
     Ok(Satoshis::from((fee_rate as u64) * (weight as u64 / 4)))
 }
