@@ -9,6 +9,7 @@ use crate::{
     batch::*,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
+    fee_estimation::MempoolSpaceClient,
     ledger::*,
     primitives::*,
     utxo::{Utxos, WalletUtxo},
@@ -71,7 +72,7 @@ pub async fn execute(
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
-    mempool_space: crate::fee_estimation::MempoolSpaceClient,
+    mempool_space: MempoolSpaceClient,
 ) -> Result<(bool, SyncWalletData), BriaError> {
     info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
@@ -489,7 +490,7 @@ pub async fn execute(
 
 async fn fees_for_keychain(
     keychain: &KeychainWallet,
-    mempool_space: &crate::fee_estimation::MempoolSpaceClient,
+    mempool_space: &MempoolSpaceClient,
 ) -> Result<Satoshis, BriaError> {
     let fee_rate = mempool_space
         .fee_rate(TxPriority::NextBlock)

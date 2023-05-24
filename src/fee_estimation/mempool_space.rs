@@ -19,8 +19,8 @@ pub struct MempoolSpaceClient {
 }
 
 impl MempoolSpaceClient {
-    pub fn new(url: String) -> Self {
-        Self { url }
+    pub fn new(config: MempoolSpaceConfig) -> Self {
+        Self { url: config.url }
     }
 
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, BriaError> {

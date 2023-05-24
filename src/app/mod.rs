@@ -55,7 +55,7 @@ impl App {
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
         let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
-        let mempool_space = MempoolSpaceClient::new(config.fees.mempool_space.url.clone());
+        let mempool_space = MempoolSpaceClient::new(config.fees.mempool_space.clone());
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),

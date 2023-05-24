@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
 
-use crate::{batch::*, error::*, payout::*, payout_queue::*, primitives::*, utxo::*, wallet::*};
+use crate::{
+    batch::*, error::*, fee_estimation::MempoolSpaceClient, payout::*, payout_queue::*,
+    primitives::*, utxo::*, wallet::*,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessPayoutQueueData {
@@ -36,7 +39,7 @@ pub async fn execute<'a>(
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,
-    mempool_space: crate::fee_estimation::MempoolSpaceClient,
+    mempool_space: MempoolSpaceClient,
 ) -> Result<
     (
         ProcessPayoutQueueData,
@@ -133,7 +136,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: Wallets,
     payout_queue: PayoutQueue,
-    mempool_space: crate::fee_estimation::MempoolSpaceClient,
+    mempool_space: MempoolSpaceClient,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
