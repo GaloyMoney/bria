@@ -250,8 +250,8 @@ impl ApiClient {
     ) -> anyhow::Result<()> {
         let tx_priority = match tx_priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
+            TxPriority::HalfHour => proto::TxPriority::HalfHour as i32,
             TxPriority::OneHour => proto::TxPriority::OneHour as i32,
-            TxPriority::Economy => proto::TxPriority::Economy as i32,
         };
 
         let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);
@@ -395,8 +395,8 @@ impl ApiClient {
     ) -> anyhow::Result<()> {
         let tx_priority = tx_priority.map(|priority| match priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
+            TxPriority::HalfHour => proto::TxPriority::HalfHour as i32,
             TxPriority::OneHour => proto::TxPriority::OneHour as i32,
-            TxPriority::Economy => proto::TxPriority::Economy as i32,
         });
 
         let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);

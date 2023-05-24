@@ -242,8 +242,8 @@ impl From<TxPriority> for proto::TxPriority {
     fn from(priority: TxPriority) -> Self {
         match priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock,
+            TxPriority::HalfHour => proto::TxPriority::HalfHour,
             TxPriority::OneHour => proto::TxPriority::OneHour,
-            TxPriority::Economy => proto::TxPriority::Economy,
         }
     }
 }
@@ -295,8 +295,8 @@ impl From<proto::TxPriority> for TxPriority {
     fn from(proto_tx_priority: proto::TxPriority) -> Self {
         match proto_tx_priority {
             proto::TxPriority::NextBlock => TxPriority::NextBlock,
+            proto::TxPriority::HalfHour => TxPriority::HalfHour,
             proto::TxPriority::OneHour => TxPriority::OneHour,
-            proto::TxPriority::Economy => TxPriority::Economy,
         }
     }
 }

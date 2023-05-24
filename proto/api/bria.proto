@@ -244,8 +244,8 @@ message PayoutQueueConfig {
 
 enum TxPriority {
   NEXT_BLOCK = 0;
-  ONE_HOUR = 1;
-  ECONOMY = 2;
+  HALF_HOUR = 1;
+  ONE_HOUR = 2;
 }
 
 message CreatePayoutQueueResponse {

@@ -113,16 +113,16 @@ pub mod bitcoin {
 #[serde(rename_all = "snake_case")]
 pub enum TxPriority {
     NextBlock,
+    HalfHour,
     OneHour,
-    Economy,
 }
 
 impl TxPriority {
     pub fn n_blocks(&self) -> usize {
         match self {
             Self::NextBlock => 1,
+            Self::HalfHour => 3,
             Self::OneHour => 6,
-            Self::Economy => 12 * 6,
         }
     }
 }
