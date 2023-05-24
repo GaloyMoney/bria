@@ -2228,8 +2228,9 @@ dependencies = [
 
 [[package]]
 name = "prost-wkt"
-version = "0.4.1"
-source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "562788060bcf2bfabe055194bd991ed2442457661744c88e0a0828ff9a08c08b"
 dependencies = [
  "chrono",
  "inventory",
@@ -2242,8 +2243,9 @@ dependencies = [
 
 [[package]]
 name = "prost-wkt-build"
-version = "0.4.1"
-source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4dca8bcead3b728a6a7da017cc95e7f4cb2320ec4f6896bc593a1c4700f7328"
 dependencies = [
  "heck 0.4.1",
  "prost 0.11.9",
@@ -2254,8 +2256,9 @@ dependencies = [
 
 [[package]]
 name = "prost-wkt-types"
-version = "0.4.1"
-source = "git+https://github.com/bodymindarts/prost-wkt?branch=vendored-protoc-feature#9edf7f5e8ba669d9459ee0372d3036c3a122c31b"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2377c5680f2342871823045052e791b4487f7c90aae17e0feaee24cf59578a34"
 dependencies = [
  "chrono",
  "prost 0.11.9",

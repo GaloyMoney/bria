@@ -29,7 +29,7 @@ tracing = "0.1.37"
 tracing-opentelemetry = "0.18.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 prost = "0.11"
-prost-wkt-types = { git = "https://github.com/bodymindarts/prost-wkt", branch = "vendored-protoc-feature", package = "prost-wkt-types", features = ["vendored-protoc"]}
+prost-wkt-types = { version = "0.4.2", features = ["vendored-protoc"]}
 rust_decimal_macros = "1.29.1"
 rusty-money = "0.4.1"
 thiserror = "1.0.37"
