@@ -115,31 +115,6 @@ CREATE TABLE bria_address_events (
   UNIQUE(id, sequence)
 );
 
-CREATE TABLE bria_utxos (
-    account_id UUID REFERENCES bria_accounts(id) NOT NULL,
-    wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
-    keychain_id UUID NOT NULL,
-    tx_id VARCHAR NOT NULL,
-    vout INTEGER NOT NULL,
-    sats_per_vbyte_when_created REAL NOT NULL,
-    self_pay BOOLEAN NOT NULL,
-    kind KeychainKind NOT NULL,
-    address_idx INTEGER NOT NULL,
-    value NUMERIC NOT NULL,
-    address VARCHAR NOT NULL,
-    script_hex VARCHAR NOT NULL,
-    bdk_spent BOOLEAN NOT NULL DEFAULT FALSE,
-    spending_batch_id UUID DEFAULT NULL,
-    block_height INTEGER DEFAULT NULL,
-    income_detected_ledger_tx_id UUID NOT NULL,
-    income_settled_ledger_tx_id UUID DEFAULT NULL,
-    spend_detected_ledger_tx_id UUID DEFAULT NULL,
-    spend_settled_ledger_tx_id UUID DEFAULT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(keychain_id, tx_id, vout)
-);
-
 CREATE TABLE bria_payout_queues (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id UUID REFERENCES bria_accounts(id) NOT NULL,
@@ -207,6 +182,32 @@ CREATE TABLE bria_payout_events (
   event JSONB NOT NULL,
   recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(id, sequence)
+);
+
+CREATE TABLE bria_utxos (
+    account_id UUID REFERENCES bria_accounts(id) NOT NULL,
+    wallet_id UUID REFERENCES bria_wallets(id) NOT NULL,
+    keychain_id UUID NOT NULL,
+    tx_id VARCHAR NOT NULL,
+    vout INTEGER NOT NULL,
+    sats_per_vbyte_when_created REAL NOT NULL,
+    self_pay BOOLEAN NOT NULL,
+    kind KeychainKind NOT NULL,
+    address_idx INTEGER NOT NULL,
+    value NUMERIC NOT NULL,
+    address VARCHAR NOT NULL,
+    script_hex VARCHAR NOT NULL,
+    bdk_spent BOOLEAN NOT NULL DEFAULT FALSE,
+    spending_batch_id UUID REFERENCES bria_batches(id) DEFAULT NULL,
+    spending_payout_queue_id UUID REFERENCES bria_payout_queues(id) DEFAULT NULL,
+    block_height INTEGER DEFAULT NULL,
+    income_detected_ledger_tx_id UUID NOT NULL,
+    income_settled_ledger_tx_id UUID DEFAULT NULL,
+    spend_detected_ledger_tx_id UUID DEFAULT NULL,
+    spend_settled_ledger_tx_id UUID DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(keychain_id, tx_id, vout)
 );
 
 CREATE TABLE bria_signing_sessions (

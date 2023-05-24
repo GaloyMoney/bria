@@ -206,10 +206,11 @@ impl Utxos {
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         batch_id: BatchId,
+        payout_queue_id: PayoutQueueId,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         self.utxos
-            .reserve_utxos_in_batch(tx, account_id, batch_id, utxos)
+            .reserve_utxos_in_batch(tx, account_id, batch_id, payout_queue_id, utxos)
             .await
     }
 

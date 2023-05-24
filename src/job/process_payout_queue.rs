@@ -108,12 +108,18 @@ pub(super) async fn execute<'a>(
                             .map(move |outpoint| (keychain_id, outpoint))
                     })
             }));
-        utxos
-            .reserve_utxos_in_batch(&mut tx, data.account_id, batch.id, included_utxos)
-            .await?;
 
         let batch_id = batch.id;
         batches.create_in_tx(&mut tx, batch).await?;
+        utxos
+            .reserve_utxos_in_batch(
+                &mut tx,
+                data.account_id,
+                batch_id,
+                data.payout_queue_id,
+                included_utxos,
+            )
+            .await?;
 
         unbatched_payouts.commit_to_batch(
             batch_id,
@@ -164,7 +170,7 @@ pub async fn construct_psbt(
     let fee_rate = mempool_space.fee_rate(queue_cfg.tx_priority).await?;
 
     PsbtBuilder::construct_psbt(
-        &pool,
+        pool,
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
         reserved_utxos,

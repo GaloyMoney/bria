@@ -289,6 +289,7 @@ impl UtxoRepo {
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         batch_id: BatchId,
+        payout_queue_id: PayoutQueueId,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -296,6 +297,8 @@ impl UtxoRepo {
             SET spending_batch_id = "#,
         );
         query_builder.push_bind(batch_id);
+        query_builder.push(", payout_queue_id = ");
+        query_builder.push_bind(payout_queue_id);
         query_builder.push("WHERE account_id = ");
         query_builder.push_bind(account_id);
         query_builder.push(" AND (keychain_id, tx_id, vout) IN");
