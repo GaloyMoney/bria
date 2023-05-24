@@ -428,7 +428,6 @@ impl UtxoRepo {
         .fetch_one(&self.pool)
         .await?;
 
-        use rust_decimal::prelude::ToPrimitive;
-        Ok(res.average.to_usize().expect("Could convert to usize"))
+        Ok(usize::try_from(res.average).expect("Could convert to usize"))
     }
 }

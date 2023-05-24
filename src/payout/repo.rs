@@ -239,10 +239,8 @@ impl Payouts {
         .fetch_one(&self.pool)
         .await?;
 
-        use rust_decimal::prelude::ToPrimitive;
         Ok((
-            res.average_payouts_per_batch
-                .to_usize()
+            usize::try_from(res.average_payouts_per_batch)
                 .expect("Couldn't unwrap avg_payouts_per_batch"),
             Satoshis::from(res.average_payout_value),
         ))
