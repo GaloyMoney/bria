@@ -438,6 +438,27 @@
     },
     "query": "UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"
   },
+  "2a2a466dcd777aee7313718c83ddd2dfbbf1af9320d4eb002816a63a093c0c55": {
+    "describe": {
+      "columns": [
+        {
+          "name": "average!",
+          "ordinal": 0,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT COALESCE(ROUND(AVG(counts)), 1) AS \"average!\"\n            FROM (\n                SELECT COUNT(*) AS counts\n                FROM bria_utxos\n                WHERE wallet_id = $1 AND spending_payout_queue_id = $2 AND spending_batch_id IS NOT NULL\n                GROUP BY wallet_id, spending_batch_id\n            ) as subquery\n        "
+  },
   "2c5e7765d15a8b3893f40a98898cca618f69ae9b16abeeb1dfe37fd8e3408f13": {
     "describe": {
       "columns": [
@@ -1176,6 +1197,33 @@
       }
     },
     "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                income_settled_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, income_detected_ledger_tx_id, spend_detected_ledger_tx_id"
+  },
+  "685fc5567c7787a765db331506310c85560d9bd07edab7abb95738adcd45e369": {
+    "describe": {
+      "columns": [
+        {
+          "name": "average_payouts_per_batch!",
+          "ordinal": 0,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "average_payout_value!",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT \n                COALESCE(ROUND(AVG(counts)), 0) AS \"average_payouts_per_batch!\",\n                COALESCE(ROUND(AVG(satoshis)), 0) AS \"average_payout_value!\"\n            FROM (\n                SELECT \n                    bria_payouts.batch_id,\n                    COUNT(*) AS counts,\n                    AVG((event->>'satoshis')::NUMERIC) AS satoshis\n                FROM bria_payouts\n                JOIN bria_payout_events ON bria_payouts.id = bria_payout_events.id\n                WHERE bria_payouts.wallet_id = $1 AND bria_payouts.payout_queue_id = $2 AND bria_payout_events.event_type = 'initialized'\n                GROUP BY bria_payouts.batch_id\n            ) as subquery\n            "
   },
   "6c752d8fc85a3062ed39cbbed6e7d9729de1727487bd8e71e0e00ffcf1f4db1b": {
     "describe": {

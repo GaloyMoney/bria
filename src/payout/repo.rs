@@ -211,4 +211,38 @@ impl Payouts {
         .await?;
         Ok(())
     }
+
+    pub async fn average_payout_per_batch(
+        &self,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+    ) -> Result<(usize, Satoshis), BriaError> {
+        let res = sqlx::query!(
+            r#"
+            SELECT 
+                COALESCE(ROUND(AVG(counts)), 0) AS "average_payouts_per_batch!",
+                COALESCE(ROUND(AVG(satoshis)), 0) AS "average_payout_value!"
+            FROM (
+                SELECT 
+                    bria_payouts.batch_id,
+                    COUNT(*) AS counts,
+                    AVG((event->>'satoshis')::NUMERIC) AS satoshis
+                FROM bria_payouts
+                JOIN bria_payout_events ON bria_payouts.id = bria_payout_events.id
+                WHERE bria_payouts.wallet_id = $1 AND bria_payouts.payout_queue_id = $2 AND bria_payout_events.event_type = 'initialized'
+                GROUP BY bria_payouts.batch_id
+            ) as subquery
+            "#,
+            wallet_id as WalletId,
+            payout_queue_id as PayoutQueueId
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok((
+            usize::try_from(res.average_payouts_per_batch)
+                .expect("Couldn't unwrap avg_payouts_per_batch"),
+            Satoshis::from(res.average_payout_value),
+        ))
+    }
 }

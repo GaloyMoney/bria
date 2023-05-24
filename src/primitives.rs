@@ -81,7 +81,7 @@ pub mod bitcoin {
             Address, Network,
         },
         descriptor::ExtendedDescriptor,
-        BlockTime, KeychainKind,
+        BlockTime, FeeRate, KeychainKind,
     };
     pub mod pg {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]

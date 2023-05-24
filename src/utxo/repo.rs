@@ -289,6 +289,8 @@ impl UtxoRepo {
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         batch_id: BatchId,
+        payout_queue_id: PayoutQueueId,
+        fee_rate: bitcoin::FeeRate,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -296,6 +298,10 @@ impl UtxoRepo {
             SET spending_batch_id = "#,
         );
         query_builder.push_bind(batch_id);
+        query_builder.push(", spending_payout_queue_id = ");
+        query_builder.push_bind(payout_queue_id);
+        query_builder.push(", spending_sats_per_vbyte = ");
+        query_builder.push_bind(fee_rate.as_sat_per_vb());
         query_builder.push("WHERE account_id = ");
         query_builder.push_bind(account_id);
         query_builder.push(" AND (keychain_id, tx_id, vout) IN");
@@ -399,5 +405,29 @@ impl UtxoRepo {
                 block_height: row.get::<Option<i32>, _>("block_height").map(|h| h as u32),
             })
             .collect())
+    }
+
+    pub async fn average_utxos_per_batch(
+        &self,
+        wallet_id: WalletId,
+        queue_id: PayoutQueueId,
+    ) -> Result<usize, BriaError> {
+        let res = sqlx::query!(
+            r#"
+            SELECT COALESCE(ROUND(AVG(counts)), 1) AS "average!"
+            FROM (
+                SELECT COUNT(*) AS counts
+                FROM bria_utxos
+                WHERE wallet_id = $1 AND spending_payout_queue_id = $2 AND spending_batch_id IS NOT NULL
+                GROUP BY wallet_id, spending_batch_id
+            ) as subquery
+        "#,
+            wallet_id as WalletId,
+            queue_id as PayoutQueueId
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(usize::try_from(res.average).expect("Could convert to usize"))
     }
 }

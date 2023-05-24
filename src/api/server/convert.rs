@@ -69,6 +69,31 @@ impl TryFrom<Option<proto::set_signer_config_request::Config>> for SignerConfig 
     }
 }
 
+impl TryFrom<Option<proto::estimate_payout_fee_request::Destination>> for PayoutDestination {
+    type Error = tonic::Status;
+
+    fn try_from(
+        destination: Option<proto::estimate_payout_fee_request::Destination>,
+    ) -> Result<Self, Self::Error> {
+        match destination {
+            Some(proto::estimate_payout_fee_request::Destination::OnchainAddress(destination)) => {
+                Ok(PayoutDestination::OnchainAddress {
+                    value: destination.parse().map_err(|_| {
+                        tonic::Status::new(
+                            tonic::Code::InvalidArgument,
+                            "on chain address couldn't be parsed",
+                        )
+                    })?,
+                })
+            }
+            None => Err(tonic::Status::new(
+                tonic::Code::InvalidArgument,
+                "missing destination",
+            )),
+        }
+    }
+}
+
 impl TryFrom<Option<proto::submit_payout_request::Destination>> for PayoutDestination {
     type Error = tonic::Status;
 

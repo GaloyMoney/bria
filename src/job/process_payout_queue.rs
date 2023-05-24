@@ -31,7 +31,7 @@ pub struct ProcessPayoutQueueData {
     err
 )]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
-pub async fn execute<'a>(
+pub(super) async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
@@ -53,8 +53,10 @@ pub async fn execute<'a>(
     let mut unbatched_payouts = payouts
         .list_unbatched(data.account_id, data.payout_queue_id)
         .await?;
+    let fee_rate = mempool_space
+        .fee_rate(payout_queue.config.tx_priority)
+        .await?;
     let mut tx = pool.begin().await?;
-
     let FinishedPsbtBuild {
         psbt,
         included_payouts,
@@ -64,13 +66,13 @@ pub async fn execute<'a>(
         fee_satoshis,
         ..
     } = construct_psbt(
-        pool,
+        &pool,
         &mut tx,
         &unbatched_payouts,
         &utxos,
-        wallets,
+        &wallets,
         payout_queue,
-        mempool_space,
+        fee_rate,
     )
     .await?;
 
@@ -108,12 +110,19 @@ pub async fn execute<'a>(
                             .map(move |outpoint| (keychain_id, outpoint))
                     })
             }));
-        utxos
-            .reserve_utxos_in_batch(&mut tx, data.account_id, batch.id, included_utxos)
-            .await?;
 
         let batch_id = batch.id;
         batches.create_in_tx(&mut tx, batch).await?;
+        utxos
+            .reserve_utxos_in_batch(
+                &mut tx,
+                data.account_id,
+                batch_id,
+                data.payout_queue_id,
+                fee_rate,
+                included_utxos,
+            )
+            .await?;
 
         unbatched_payouts.commit_to_batch(
             batch_id,
@@ -130,13 +139,13 @@ pub async fn execute<'a>(
 }
 
 pub async fn construct_psbt(
-    pool: sqlx::Pool<sqlx::Postgres>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     unbatched_payouts: &UnbatchedPayouts,
     utxos: &Utxos,
-    wallets: Wallets,
+    wallets: &Wallets,
     payout_queue: PayoutQueue,
-    mempool_space: MempoolSpaceClient,
+    fee_rate: bitcoin::FeeRate,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -161,10 +170,9 @@ pub async fn construct_psbt(
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
-    let fee_rate = mempool_space.fee_rate(queue_cfg.tx_priority).await?;
 
     PsbtBuilder::construct_psbt(
-        &pool,
+        pool,
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
         reserved_utxos,

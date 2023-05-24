@@ -4,8 +4,9 @@ mod batch_wallet_accounting;
 mod config;
 mod executor;
 mod populate_outbox;
-mod process_payout_queue;
 mod sync_wallet;
+
+pub mod process_payout_queue;
 
 pub use config::*;
 

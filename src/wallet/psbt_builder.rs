@@ -40,6 +40,23 @@ pub struct FinishedPsbtBuild {
     pub psbt: Option<psbt::PartiallySignedTransaction>,
 }
 
+impl FinishedPsbtBuild {
+    pub fn proportional_fee(
+        &self,
+        wallet_id: &WalletId,
+        payout_amount: Satoshis,
+    ) -> Option<Satoshis> {
+        self.wallet_totals.get(wallet_id).map(|total| {
+            let proportion = payout_amount.into_inner() / total.output_satoshis.into_inner();
+            let proportional_fee = total.fee_satoshis.into_inner() * proportion;
+            Satoshis::from(
+                proportional_fee
+                    .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero),
+            )
+        })
+    }
+}
+
 pub struct PsbtBuilder<T> {
     consolidate_deprecated_keychains: Option<bool>,
     fee_rate: Option<FeeRate>,
