@@ -200,6 +200,7 @@ CREATE TABLE bria_utxos (
     bdk_spent BOOLEAN NOT NULL DEFAULT FALSE,
     spending_batch_id UUID REFERENCES bria_batches(id) DEFAULT NULL,
     spending_payout_queue_id UUID REFERENCES bria_payout_queues(id) DEFAULT NULL,
+    spending_sats_per_vbyte REAL,
     block_height INTEGER DEFAULT NULL,
     income_detected_ledger_tx_id UUID NOT NULL,
     income_settled_ledger_tx_id UUID DEFAULT NULL,

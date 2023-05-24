@@ -207,10 +207,11 @@ impl Utxos {
         account_id: AccountId,
         batch_id: BatchId,
         payout_queue_id: PayoutQueueId,
+        fee_rate: bitcoin::FeeRate,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         self.utxos
-            .reserve_utxos_in_batch(tx, account_id, batch_id, payout_queue_id, utxos)
+            .reserve_utxos_in_batch(tx, account_id, batch_id, payout_queue_id, fee_rate, utxos)
             .await
     }
 

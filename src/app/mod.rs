@@ -488,19 +488,25 @@ impl App {
             .expect("Destination is not onchain");
         unbatched_payouts
             .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
-        let mut tx = self.pool.begin().await?;
+
         let queue_id = payout_queue.id;
         let tx_priority = payout_queue.config.tx_priority;
-        let psbt = job::process_payout_queue::construct_psbt(
-            &self.pool,
-            &mut tx,
-            &unbatched_payouts,
-            &self.utxos,
-            &self.wallets,
-            payout_queue,
-            &self.mempool_space_client,
-        )
-        .await?;
+        let fee_rate = self.mempool_space_client.fee_rate(tx_priority).await?;
+
+        let psbt = {
+            let mut tx = self.pool.begin().await?;
+            job::process_payout_queue::construct_psbt(
+                &self.pool,
+                &mut tx,
+                &unbatched_payouts,
+                &self.utxos,
+                &self.wallets,
+                payout_queue,
+                fee_rate,
+            )
+            .await?
+        };
+
         if let Some(fee) = psbt.proportional_fee(&wallet.id, sats) {
             return Ok(fee);
         }
@@ -514,7 +520,6 @@ impl App {
             .payouts
             .average_payout_per_batch(wallet.id, queue_id)
             .await?;
-        let fee_rate = self.mempool_space_client.fee_rate(tx_priority).await?;
         Ok(crate::fee_estimation::estimate_proporional_fee(
             simulated_utxos,
             wallet

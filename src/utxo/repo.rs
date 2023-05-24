@@ -290,6 +290,7 @@ impl UtxoRepo {
         account_id: AccountId,
         batch_id: BatchId,
         payout_queue_id: PayoutQueueId,
+        fee_rate: bitcoin::FeeRate,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
     ) -> Result<(), BriaError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -297,8 +298,10 @@ impl UtxoRepo {
             SET spending_batch_id = "#,
         );
         query_builder.push_bind(batch_id);
-        query_builder.push(", payout_queue_id = ");
+        query_builder.push(", spending_payout_queue_id = ");
         query_builder.push_bind(payout_queue_id);
+        query_builder.push(", spending_sats_per_vbyte = ");
+        query_builder.push_bind(fee_rate.as_sat_per_vb());
         query_builder.push("WHERE account_id = ");
         query_builder.push_bind(account_id);
         query_builder.push(" AND (keychain_id, tx_id, vout) IN");

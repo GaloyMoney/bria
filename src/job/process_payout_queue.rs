@@ -53,8 +53,10 @@ pub(super) async fn execute<'a>(
     let mut unbatched_payouts = payouts
         .list_unbatched(data.account_id, data.payout_queue_id)
         .await?;
+    let fee_rate = mempool_space
+        .fee_rate(payout_queue.config.tx_priority)
+        .await?;
     let mut tx = pool.begin().await?;
-
     let FinishedPsbtBuild {
         psbt,
         included_payouts,
@@ -70,7 +72,7 @@ pub(super) async fn execute<'a>(
         &utxos,
         &wallets,
         payout_queue,
-        &mempool_space,
+        fee_rate,
     )
     .await?;
 
@@ -117,6 +119,7 @@ pub(super) async fn execute<'a>(
                 data.account_id,
                 batch_id,
                 data.payout_queue_id,
+                fee_rate,
                 included_utxos,
             )
             .await?;
@@ -142,7 +145,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: &Wallets,
     payout_queue: PayoutQueue,
-    mempool_space: &MempoolSpaceClient,
+    fee_rate: bitcoin::FeeRate,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -167,7 +170,6 @@ pub async fn construct_psbt(
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
-    let fee_rate = mempool_space.fee_rate(queue_cfg.tx_priority).await?;
 
     PsbtBuilder::construct_psbt(
         pool,
