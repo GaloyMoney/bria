@@ -4,4 +4,4 @@ app:
     electrum_url: fulcrum:50001
   fees:
     mempool_space:
-      url: http://mempool-backend:8999/api/v1/fees/recommended
+      url: http://mempool:8999/api/v1/fees/recommended

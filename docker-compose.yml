@@ -9,7 +9,7 @@ services:
       - lnd
       - otel-agent
       - fulcrum
-      - mempool-backend
+      - mempool
   postgres:
     image: postgres:14.1
     environment:
@@ -111,7 +111,7 @@ services:
       - SSL_CERTFILE=/tls.cert
       - SSL_KEYFILE=/tls.key
     command: [ "Fulcrum", "/fulcrum.conf" ]
-  mempool-backend: 
+  mempool:
     image: mempool/backend
     depends_on: [ bitcoind ]
     environment:
