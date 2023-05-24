@@ -11,6 +11,7 @@ use crate::{
     batch::*,
     descriptor::*,
     error::*,
+    fee_estimation::*,
     job,
     ledger::*,
     outbox::*,
@@ -54,6 +55,7 @@ impl App {
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
         let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
+        let mempool_space = MempoolSpaceClient::new(config.fees.mempool_space.url.clone());
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),
@@ -69,7 +71,7 @@ impl App {
             config.jobs.clone(),
             config.blockchain.clone(),
             config.signer_encryption.clone(),
-            config.fees.clone(),
+            mempool_space,
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;

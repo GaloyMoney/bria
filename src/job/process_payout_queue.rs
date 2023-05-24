@@ -36,7 +36,7 @@ pub async fn execute<'a>(
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,
-    fees: crate::app::FeesConfig,
+    mempool_space: crate::fee_estimation::MempoolSpaceClient,
 ) -> Result<
     (
         ProcessPayoutQueueData,
@@ -67,7 +67,7 @@ pub async fn execute<'a>(
         &utxos,
         wallets,
         payout_queue,
-        fees,
+        mempool_space,
     )
     .await?;
 
@@ -133,7 +133,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: Wallets,
     payout_queue: PayoutQueue,
-    fees: crate::app::FeesConfig,
+    mempool_space: crate::fee_estimation::MempoolSpaceClient,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -158,11 +158,7 @@ pub async fn construct_psbt(
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
-    let fee_rate = crate::fee_estimation::MempoolSpaceClient::fee_rate(
-        fees.mempool_space.url,
-        queue_cfg.tx_priority,
-    )
-    .await?;
+    let fee_rate = mempool_space.fee_rate(queue_cfg.tx_priority).await?;
 
     PsbtBuilder::construct_psbt(
         &pool,
