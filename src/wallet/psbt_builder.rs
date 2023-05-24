@@ -49,7 +49,10 @@ impl FinishedPsbtBuild {
         self.wallet_totals.get(wallet_id).map(|total| {
             let proportion = payout_amount.into_inner() / total.output_satoshis.into_inner();
             let proportional_fee = total.fee_satoshis.into_inner() * proportion;
-            Satoshis::from(proportional_fee.round())
+            Satoshis::from(
+                proportional_fee
+                    .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero),
+            )
         })
     }
 }

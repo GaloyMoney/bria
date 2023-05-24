@@ -39,6 +39,7 @@ pub struct App {
     ledger: Ledger,
     utxos: Utxos,
     addresses: Addresses,
+    mempool_space_client: MempoolSpaceClient,
     pool: sqlx::PgPool,
     config: AppConfig,
 }
@@ -55,7 +56,7 @@ impl App {
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
         let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
-        let mempool_space = MempoolSpaceClient::new(config.fees.mempool_space.clone());
+        let mempool_space_client = MempoolSpaceClient::new(config.fees.mempool_space.clone());
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),
@@ -71,7 +72,7 @@ impl App {
             config.jobs.clone(),
             config.blockchain.clone(),
             config.signer_encryption.clone(),
-            mempool_space,
+            mempool_space_client.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
@@ -98,6 +99,7 @@ impl App {
             ledger,
             utxos,
             addresses,
+            mempool_space_client,
             config,
             _runner: runner,
         })
@@ -481,17 +483,14 @@ impl App {
             .list_unbatched(profile.account_id, payout_queue.id)
             .await?;
         let payout_id = uuid::Uuid::new_v4();
-        unbatched_payouts.include_simulated_payout(
-            wallet.id,
-            (
-                payout_id,
-                destination
-                    .onchain_address()
-                    .expect("Destination is not onchain"),
-                sats,
-            ),
-        );
+        let destination = destination
+            .onchain_address()
+            .expect("Destination is not onchain");
+        unbatched_payouts
+            .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
         let mut tx = self.pool.begin().await?;
+        let queue_id = payout_queue.id;
+        let tx_priority = payout_queue.config.tx_priority;
         let psbt = job::process_payout_queue::construct_psbt(
             &self.pool,
             &mut tx,
@@ -499,13 +498,34 @@ impl App {
             &self.utxos,
             &self.wallets,
             payout_queue,
-            self.config.fees.clone(),
+            &self.mempool_space_client,
         )
         .await?;
         if let Some(fee) = psbt.proportional_fee(&wallet.id, sats) {
             return Ok(fee);
         }
-        unimplemented!()
+
+        // No utxos were available to simulate the batch
+        let simulated_utxos = self
+            .utxos
+            .average_utxos_per_batch(wallet.id, queue_id)
+            .await?;
+        let (n_payouts, payout_size) = self
+            .payouts
+            .average_payout_per_batch(wallet.id, queue_id)
+            .await?;
+        let fee_rate = self.mempool_space_client.fee_rate(tx_priority).await?;
+        Ok(crate::fee_estimation::estimate_proporional_fee(
+            simulated_utxos,
+            wallet
+                .current_keychain_wallet(&self.pool)
+                .max_satisfaction_weight(),
+            fee_rate,
+            n_payouts,
+            payout_size,
+            destination,
+            sats,
+        ))
     }
 
     #[instrument(name = "app.submit_payout", skip(self), err)]

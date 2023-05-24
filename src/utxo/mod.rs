@@ -214,6 +214,16 @@ impl Utxos {
             .await
     }
 
+    pub async fn average_utxos_per_batch(
+        &self,
+        wallet_id: WalletId,
+        queue_id: PayoutQueueId,
+    ) -> Result<usize, BriaError> {
+        self.utxos
+            .average_utxos_per_batch(wallet_id, queue_id)
+            .await
+    }
+
     #[instrument(name = "utxos.income_detected_ledger_ids", skip_all, err)]
     pub async fn income_detected_ids_for_utxos_in(
         &self,

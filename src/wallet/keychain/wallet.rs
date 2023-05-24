@@ -108,11 +108,11 @@ impl KeychainWallet {
     }
 
     #[instrument(name = "keychain_wallet.max_satisfaction_weight", skip_all)]
-    pub async fn max_satisfaction_weight(&self) -> Result<usize, BriaError> {
-        Ok(self
-            .config
+    pub fn max_satisfaction_weight(&self) -> usize {
+        self.config
             .external_descriptor()
-            .max_satisfaction_weight()?)
+            .max_satisfaction_weight()
+            .expect("max_satisfaction_weight")
     }
 
     async fn with_wallet<F, R>(&self, f: F) -> Result<R, tokio::task::JoinError>

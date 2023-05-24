@@ -70,7 +70,7 @@ pub(super) async fn execute<'a>(
         &utxos,
         &wallets,
         payout_queue,
-        mempool_space,
+        &mempool_space,
     )
     .await?;
 
@@ -142,7 +142,7 @@ pub async fn construct_psbt(
     utxos: &Utxos,
     wallets: &Wallets,
     payout_queue: PayoutQueue,
-    mempool_space: MempoolSpaceClient,
+    mempool_space: &MempoolSpaceClient,
 ) -> Result<FinishedPsbtBuild, BriaError> {
     let span = tracing::Span::current();
     let PayoutQueue {
