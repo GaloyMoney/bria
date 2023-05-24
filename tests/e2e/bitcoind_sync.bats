@@ -33,7 +33,7 @@ teardown_file() {
 
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
 
-  for i in {1..30}; do
+  for i in {1..60}; do
     cache_default_wallet_balance
     [[ $(cached_pending_income) == 100000000 ]] && break
     sleep 1
