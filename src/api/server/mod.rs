@@ -398,6 +398,41 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.estimate_payout_fee", skip_all, fields(error, error.level, error.message), err)]
+    async fn estimate_payout_fee(
+        &self,
+        request: Request<EstimatePayoutFeeRequest>,
+    ) -> Result<Response<EstimatePayoutFeeResponse>, Status> {
+        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+            extract_tracing(&request);
+
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let EstimatePayoutFeeRequest {
+                wallet_name,
+                payout_queue_name,
+                destination,
+                satoshis,
+            } = request;
+
+            let sats = self
+                .app
+                .estimate_payout_fee(
+                    profile,
+                    wallet_name,
+                    payout_queue_name,
+                    destination.try_into()?,
+                    Satoshis::from(satoshis),
+                )
+                .await?;
+            Ok(Response::new(EstimatePayoutFeeResponse {
+                satoshis: u64::from(sats),
+            }))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.submit_payout", skip_all, fields(error, error.level, error.message), err)]
     async fn submit_payout(
         &self,

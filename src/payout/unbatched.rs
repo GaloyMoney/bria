@@ -8,6 +8,7 @@ use crate::{entity::*, primitives::*};
 pub struct UnbatchedPayouts {
     inner: HashMap<WalletId, Vec<UnbatchedPayout>>,
     shifted: HashMap<PayoutId, UnbatchedPayout>,
+    simulated_payout: Option<(WalletId, TxPayout)>,
     pub(super) batch_id: Option<BatchId>,
     pub(super) batched: Vec<UnbatchedPayout>,
 }
@@ -17,17 +18,26 @@ impl UnbatchedPayouts {
         Self {
             inner,
             batch_id: None,
+            simulated_payout: None,
             shifted: HashMap::new(),
             batched: Vec::new(),
         }
     }
 
     pub fn wallet_ids(&self) -> HashSet<WalletId> {
-        self.inner.keys().copied().collect()
+        std::iter::once(self.simulated_payout.as_ref())
+            .filter_map(|p| p.map(|(id, _)| id))
+            .chain(self.inner.keys())
+            .copied()
+            .collect()
     }
 
     pub fn n_payouts(&self) -> usize {
         self.inner.values().fold(0, |acc, v| acc + v.len())
+    }
+
+    pub fn include_simulated_payout(&mut self, wallet_id: WalletId, payout: TxPayout) {
+        self.simulated_payout = Some((wallet_id, payout));
     }
 
     pub fn commit_to_batch(
@@ -55,10 +65,16 @@ impl UnbatchedPayouts {
     }
 
     pub fn into_tx_payouts(&self) -> HashMap<WalletId, Vec<TxPayout>> {
-        self.inner
+        let mut ret: HashMap<WalletId, Vec<TxPayout>> = self
+            .inner
             .iter()
             .map(|(wallet_id, payouts)| (*wallet_id, payouts.iter().map(TxPayout::from).collect()))
-            .collect()
+            .collect();
+        if let Some((wallet_id, payout)) = &self.simulated_payout {
+            let entry = ret.entry(*wallet_id).or_default();
+            entry.insert(0, payout.clone());
+        }
+        ret
     }
 }
 

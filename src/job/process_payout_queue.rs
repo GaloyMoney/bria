@@ -31,7 +31,7 @@ pub struct ProcessPayoutQueueData {
     err
 )]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
-pub async fn execute<'a>(
+pub(super) async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
@@ -64,11 +64,11 @@ pub async fn execute<'a>(
         fee_satoshis,
         ..
     } = construct_psbt(
-        pool,
+        &pool,
         &mut tx,
         &unbatched_payouts,
         &utxos,
-        wallets,
+        &wallets,
         payout_queue,
         mempool_space,
     )
@@ -130,11 +130,11 @@ pub async fn execute<'a>(
 }
 
 pub async fn construct_psbt(
-    pool: sqlx::Pool<sqlx::Postgres>,
+    pool: &sqlx::Pool<sqlx::Postgres>,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     unbatched_payouts: &UnbatchedPayouts,
     utxos: &Utxos,
-    wallets: Wallets,
+    wallets: &Wallets,
     payout_queue: PayoutQueue,
     mempool_space: MempoolSpaceClient,
 ) -> Result<FinishedPsbtBuild, BriaError> {

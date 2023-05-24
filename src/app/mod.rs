@@ -459,6 +459,55 @@ impl App {
         Ok(payout_queue_id)
     }
 
+    #[instrument(name = "app.estimate_payout_fee", skip(self), err)]
+    pub async fn estimate_payout_fee(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        destination: PayoutDestination,
+        sats: Satoshis,
+    ) -> Result<Satoshis, BriaError> {
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
+        let payout_queue = self
+            .payout_queues
+            .find_by_name(profile.account_id, queue_name)
+            .await?;
+        let mut unbatched_payouts = self
+            .payouts
+            .list_unbatched(profile.account_id, payout_queue.id)
+            .await?;
+        let payout_id = uuid::Uuid::new_v4();
+        unbatched_payouts.include_simulated_payout(
+            wallet.id,
+            (
+                payout_id,
+                destination
+                    .onchain_address()
+                    .expect("Destination is not onchain"),
+                sats,
+            ),
+        );
+        let mut tx = self.pool.begin().await?;
+        let psbt = job::process_payout_queue::construct_psbt(
+            &self.pool,
+            &mut tx,
+            &unbatched_payouts,
+            &self.utxos,
+            &self.wallets,
+            payout_queue,
+            self.config.fees.clone(),
+        )
+        .await?;
+        if let Some(fee) = psbt.proportional_fee(&wallet.id, sats) {
+            return Ok(fee);
+        }
+        unimplemented!()
+    }
+
     #[instrument(name = "app.submit_payout", skip(self), err)]
     #[allow(clippy::too_many_arguments)]
     pub async fn submit_payout(

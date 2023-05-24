@@ -277,6 +277,29 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn estimate_payout_fee(
+        &self,
+        wallet_name: String,
+        payout_queue_name: String,
+        on_chain_address: String,
+        satoshis: u64,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::EstimatePayoutFeeRequest {
+            wallet_name,
+            payout_queue_name,
+            destination: Some(
+                proto::estimate_payout_fee_request::Destination::OnchainAddress(on_chain_address),
+            ),
+            satoshis,
+        });
+        let response = self
+            .connect()
+            .await?
+            .estimate_payout_fee(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn submit_payout(
         &self,
         wallet_name: String,
