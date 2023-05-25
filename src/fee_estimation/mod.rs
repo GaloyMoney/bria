@@ -11,7 +11,7 @@ use bdk::bitcoin::{LockTime, Transaction, TxOut};
 /// `scriptSigLen` or `scriptSig`.
 const TXIN_BASE_WEIGHT: usize = (32 + 4 + 4) * 4;
 
-pub fn estimate_proporional_fee(
+pub fn estimate_proportional_fee(
     n_inputs: usize,
     input_satisfaction_weight: usize,
     fee_rate: bitcoin::FeeRate,
@@ -79,7 +79,7 @@ mod tests {
             .parse()
             .unwrap();
 
-        let estimate = estimate_proporional_fee(
+        let estimate = estimate_proportional_fee(
             1,
             descriptor.max_satisfaction_weight().unwrap(),
             fee_rate,
