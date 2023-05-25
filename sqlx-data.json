@@ -526,6 +526,37 @@
     },
     "query": "SELECT id FROM bria_xpubs WHERE account_id = $1 AND name = $2"
   },
+  "2f33cf38b3fa8b9f49c372599ddb2dc1e5b972610a39990c86b9b906ce0159ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "index",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          }
+        ]
+      }
+    },
+    "query": "\n              INSERT INTO bdk_indexes (keychain_id, keychain_kind)\n              VALUES ($1, $2)\n              ON CONFLICT (keychain_id, keychain_kind)\n              DO UPDATE SET index = bdk_indexes.index + 1, modified_at = NOW()\n              WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2\n              RETURNING index;\n              "
+  },
   "323bf243d28db3a7f6810a2e640a8339e41793a7982e9ed6dc7175570f1d921d": {
     "describe": {
       "columns": [
@@ -1815,37 +1846,6 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.batch_id = $2 AND b.wallet_id = $3\n              ORDER BY b.created_at, b.id, e.sequence"
-  },
-  "ac18236daf3d043df81978f9629e32c8587c5f2d8c61c853792e735d77df466c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "index",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          }
-        ]
-      }
-    },
-    "query": "\n              INSERT INTO bdk_indexes (keychain_id, keychain_kind)\n              VALUES ($1, $2)\n              ON CONFLICT (keychain_id, keychain_kind) \n              DO UPDATE SET index = bdk_indexes.index + 1, modified_at = NOW()\n              WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2\n              RETURNING index;\n              "
   },
   "b4ff1533cd12d644b6959e11e7594e2d04a10913c7b49eae397ad41b3f918b5c": {
     "describe": {
