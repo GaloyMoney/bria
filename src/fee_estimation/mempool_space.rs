@@ -24,9 +24,8 @@ impl MempoolSpaceClient {
     }
 
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, BriaError> {
-        let resp = reqwest::get(self.url.clone())
-            .await
-            .map_err(BriaError::FeeEstimation)?;
+        let url = format!("{}{}", self.url, "/api/v1/fees/recommended");
+        let resp = reqwest::get(url).await.map_err(BriaError::FeeEstimation)?;
         let fee_estimations: RecommendedFeesResponse =
             resp.json().await.map_err(BriaError::FeeEstimation)?;
         match priority {
@@ -54,5 +53,5 @@ impl Default for MempoolSpaceConfig {
 }
 
 fn default_url() -> String {
-    "https://mempool.space/api/v1/fees/recommended".to_string()
+    "https://mempool.space".to_string()
 }
