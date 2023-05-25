@@ -1,3 +1,34 @@
+# [bria release v0.1.5](https://github.com/GaloyMoney/bria/releases/tag/0.1.5)
+
+
+### Bug Fixes
+
+- Typo proporional -> proportional (#193)
+- Clippy
+
+### Features
+
+- Estimate_fee (#192)
+- Add mempool-space to docker-compose (#186)
+
+### Miscellaneous Tasks
+
+- Rename mempool in docker compose
+- Half hour priority
+- Bump prost-wkt-types to released version
+- Bump base64 from 0.21.0 to 0.21.1 (#189)
+- Bump electrum timeout to 60s
+- Remove SyncProgress (not supported for electrum)
+
+### Refactor
+
+- Add url field to MempoolSpaceClient (#191)
+
+### Testing
+
+- Restart mempool in e2e tests
+- Increase timeout for bitcoind_sync
+
 # [bria release v0.1.4](https://github.com/GaloyMoney/bria/releases/tag/0.1.4)
 
 
