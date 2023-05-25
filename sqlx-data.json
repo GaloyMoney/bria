@@ -164,37 +164,6 @@
     },
     "query": "WITH updated_utxo AS (\n            UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()\n            WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                SELECT u.tx_id, vout\n                FROM bdk_utxos u\n                JOIN bdk_transactions t\n                ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id\n                WHERE u.keychain_id = $1\n                AND utxo_json->>'keychain' = 'External'\n                AND u.synced_to_bria = true\n                AND u.confirmation_synced_to_bria = false\n                AND (details_json->'confirmation_time'->'height')::INTEGER <= $2\n                ORDER BY t.height ASC NULLS LAST\n                LIMIT 1\n            )\n            RETURNING tx_id, utxo_json\n            )\n            SELECT u.tx_id, utxo_json, details_json\n            FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"
   },
-  "115999f874d3397311d1ebc501e47eef0a01993a7f573873b6d0a5d87cbb0866": {
-    "describe": {
-      "columns": [
-        {
-          "name": "index",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          }
-        ]
-      }
-    },
-    "query": "SELECT index FROM bdk_indexes\n          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"
-  },
   "1be0a2be7e693ad095d6d3593686022d1a4d3823bacbc38c845f7898f3adb76b": {
     "describe": {
       "columns": [],
@@ -1580,6 +1549,37 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
+  "8b1d87e9c8410e2effb5a49472f7c60d188a00edd5afdc4e679962b85f25465a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "index",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          }
+        ]
+      }
+    },
+    "query": "SELECT index FROM bdk_indexes WHERE keychain_id = $1 AND keychain_kind = $2"
+  },
   "8dba7efce7de6cbe27b17bae89eff8625492bbe3ce21e7aa12c1c4bbd43cc5e3": {
     "describe": {
       "columns": [
@@ -1816,10 +1816,18 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.batch_id = $2 AND b.wallet_id = $3\n              ORDER BY b.created_at, b.id, e.sequence"
   },
-  "ad78368dbc971b6a7b2862931c078c73eaf6b8859399a7f12cad771621eac290": {
+  "ac18236daf3d043df81978f9629e32c8587c5f2d8c61c853792e735d77df466c": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "index",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
       "parameters": {
         "Left": [
           "Uuid",
@@ -1833,12 +1841,11 @@
               },
               "name": "bdkkeychainkind"
             }
-          },
-          "Int4"
+          }
         ]
       }
     },
-    "query": "INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)\n                VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
+    "query": "\n              INSERT INTO bdk_indexes (keychain_id, keychain_kind)\n              VALUES ($1, $2)\n              ON CONFLICT (keychain_id, keychain_kind) \n              DO UPDATE SET index = bdk_indexes.index + 1, modified_at = NOW()\n              WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2\n              RETURNING index;\n              "
   },
   "b4ff1533cd12d644b6959e11e7594e2d04a10913c7b49eae397ad41b3f918b5c": {
     "describe": {
@@ -2076,30 +2083,6 @@
       }
     },
     "query": "SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"
-  },
-  "e2362a826e4a08190faa2f6529c3f255e4b81cd65c741318a33fbb49ddc27e38": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          },
-          "Int4"
-        ]
-      }
-    },
-    "query": "INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)\n                VALUES ($1, $2, $3)"
   },
   "e31e3eb7bcecededcab9a4ffb65bc901ba008955620597daf9e952a091ad20c3": {
     "describe": {
@@ -2531,6 +2514,30 @@
       }
     },
     "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
+  },
+  "f8ce611f316792087c728f03cc594b15581797fb5d33e71c277f05525d489010": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          }
+        ]
+      }
+    },
+    "query": "UPDATE bdk_indexes\n                 SET index = $1, modified_at = NOW()\n                 WHERE index < $1 AND keychain_id = $2 AND keychain_kind = $3"
   },
   "fa20681958de2a9b7764665edde5dbc0f5f839a0ea33b48dfdc2214966dd8efa": {
     "describe": {

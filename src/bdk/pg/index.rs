@@ -16,34 +16,23 @@ impl Indexes {
 
     pub async fn increment(&self, keychain: impl Into<BdkKeychainKind>) -> Result<u32, bdk::Error> {
         let kind = keychain.into();
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        let rows = sqlx::query!(
-            r#"SELECT index FROM bdk_indexes
-          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"#,
+        let result = sqlx::query!(
+            r#"
+              INSERT INTO bdk_indexes (keychain_id, keychain_kind)
+              VALUES ($1, $2)
+              ON CONFLICT (keychain_id, keychain_kind)
+              DO UPDATE SET index = bdk_indexes.index + 1, modified_at = NOW()
+              WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2
+              RETURNING index;
+              "#,
             Uuid::from(self.keychain_id),
             kind as BdkKeychainKind
         )
-        .fetch_all(&mut tx)
+        .fetch_one(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        let new_idx = rows.get(0).map(|row| row.index + 1).unwrap_or(0);
-        sqlx::query!(
-            r#"INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)
-                VALUES ($1, $2, $3)"#,
-            Uuid::from(self.keychain_id),
-            kind as BdkKeychainKind,
-            new_idx
-        )
-        .execute(&mut tx)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        tx.commit()
-            .await
-            .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+
+        let new_idx = result.index;
         Ok(new_idx as u32)
     }
 
@@ -53,11 +42,12 @@ impl Indexes {
         idx: u32,
     ) -> Result<(), bdk::Error> {
         sqlx::query!(
-            r#"INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)
-                VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"#,
-            Uuid::from(self.keychain_id),
+            r#"UPDATE bdk_indexes
+                 SET index = $1, modified_at = NOW()
+                 WHERE index < $1 AND keychain_id = $2 AND keychain_kind = $3"#,
+            idx as i32,
+            self.keychain_id as KeychainId,
             keychain.into() as BdkKeychainKind,
-            idx as i32
         )
         .execute(&self.pool)
         .await
@@ -71,8 +61,7 @@ impl Indexes {
     ) -> Result<Option<u32>, bdk::Error> {
         let kind = keychain.into();
         let rows = sqlx::query!(
-            r#"SELECT index FROM bdk_indexes
-          WHERE keychain_id = $1 AND keychain_kind = $2 ORDER BY index DESC LIMIT 1"#,
+            r#"SELECT index FROM bdk_indexes WHERE keychain_id = $1 AND keychain_kind = $2"#,
             Uuid::from(self.keychain_id),
             kind as BdkKeychainKind
         )

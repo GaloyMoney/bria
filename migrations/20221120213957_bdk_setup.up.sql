@@ -28,7 +28,7 @@ CREATE TABLE bdk_indexes (
   index INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(keychain_id, keychain_kind, index)
+  UNIQUE(keychain_id, keychain_kind)
 );
 
 CREATE TABLE bdk_utxos (
