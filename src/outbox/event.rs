@@ -2,6 +2,7 @@ use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    fees,
     ledger::{BatchBroadcastMeta, BatchCreatedMeta, JournalEventMetadata, SpendSettledMeta},
     primitives::*,
 };
@@ -83,6 +84,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         satoshis: Satoshis,
         destination: PayoutDestination,
+        proportional_fee: Satoshis,
     },
     PayoutBroadcast {
         id: PayoutId,
@@ -93,6 +95,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         satoshis: Satoshis,
         destination: PayoutDestination,
+        proportional_fee: Satoshis,
     },
     PayoutSettled {
         id: PayoutId,
@@ -103,6 +106,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         satoshis: Satoshis,
         destination: PayoutDestination,
+        proportional_fee: Satoshis,
     },
 }
 
@@ -140,6 +144,13 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 batch_info,
                 tx_summary,
             }) => {
+                let mut proportional_fees = fees::allocate_proportional_fees(
+                    tx_summary.fee_sats,
+                    batch_info
+                        .included_payouts
+                        .iter()
+                        .map(|p| (p.id, p.satoshis)),
+                );
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutCommitted {
                         id: payout.id,
@@ -150,6 +161,9 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                         tx_id: tx_summary.bitcoin_tx_id,
                         satoshis: payout.satoshis,
                         destination: payout.destination,
+                        proportional_fee: proportional_fees
+                            .remove(&payout.id)
+                            .expect("couldn't find proportional fee"),
                     })
                 }
             }
@@ -158,6 +172,13 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 tx_summary,
                 ..
             }) => {
+                let mut proportional_fees = fees::allocate_proportional_fees(
+                    tx_summary.fee_sats,
+                    batch_info
+                        .included_payouts
+                        .iter()
+                        .map(|p| (p.id, p.satoshis)),
+                );
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutBroadcast {
                         id: payout.id,
@@ -168,6 +189,9 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                         tx_id: tx_summary.bitcoin_tx_id,
                         satoshis: payout.satoshis,
                         destination: payout.destination,
+                        proportional_fee: proportional_fees
+                            .remove(&payout.id)
+                            .expect("couldn't find proportional fee"),
                     })
                 }
             }
@@ -176,6 +200,13 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 tx_summary,
                 ..
             }) => {
+                let mut proportional_fees = fees::allocate_proportional_fees(
+                    tx_summary.fee_sats,
+                    batch_info
+                        .included_payouts
+                        .iter()
+                        .map(|p| (p.id, p.satoshis)),
+                );
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutSettled {
                         id: payout.id,
@@ -186,6 +217,9 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                         tx_id: tx_summary.bitcoin_tx_id,
                         satoshis: payout.satoshis,
                         destination: payout.destination,
+                        proportional_fee: proportional_fees
+                            .remove(&payout.id)
+                            .expect("couldn't find proportional fee"),
                     })
                 }
             }

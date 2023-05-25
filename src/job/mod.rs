@@ -16,8 +16,8 @@ use uuid::{uuid, Uuid};
 
 use crate::{
     account::*, address::Addresses, app::BlockchainConfig, batch::*, error::*,
-    fee_estimation::MempoolSpaceClient, ledger::Ledger, outbox::*, payout::*, payout_queue::*,
-    primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*,
+    fees::MempoolSpaceClient, ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*,
+    signing_session::*, utxo::Utxos, wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;

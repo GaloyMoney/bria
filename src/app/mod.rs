@@ -11,7 +11,7 @@ use crate::{
     batch::*,
     descriptor::*,
     error::*,
-    fee_estimation::*,
+    fees::{self, *},
     job,
     ledger::*,
     outbox::*,
@@ -520,7 +520,7 @@ impl App {
             .payouts
             .average_payout_per_batch(wallet.id, queue_id)
             .await?;
-        Ok(crate::fee_estimation::estimate_proportional_fee(
+        Ok(fees::estimate_proportional_fee(
             simulated_utxos,
             wallet
                 .current_keychain_wallet(&self.pool)

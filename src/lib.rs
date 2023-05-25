@@ -13,7 +13,7 @@ pub mod descriptor;
 mod dev_constants;
 mod entity;
 mod error;
-pub mod fee_estimation;
+pub mod fees;
 mod job;
 pub mod ledger;
 mod outbox;
