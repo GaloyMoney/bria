@@ -1,3 +1,12 @@
+# [bria release v0.1.6](https://github.com/GaloyMoney/bria/releases/tag/0.1.6)
+
+
+### Miscellaneous Tasks
+
+- Pass only hostname for mempool_space (#194)
+- Update sqlx-data
+- Make index incrementation atomic
+
 # [bria release v0.1.5](https://github.com/GaloyMoney/bria/releases/tag/0.1.5)
 
 
