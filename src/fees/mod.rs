@@ -1,15 +1,26 @@
 mod electrum;
 mod mempool_space;
 
+use bdk::bitcoin::{LockTime, Transaction, TxOut};
+use std::collections::HashMap;
+
+use crate::{error::*, primitives::*};
 pub use electrum::ElectrumFeeEstimator;
 pub use mempool_space::*;
-
-use crate::primitives::*;
-use bdk::bitcoin::{LockTime, Transaction, TxOut};
 
 /// Txin "base" fields include `outpoint` (32+4) and `nSequence` (4). This does not include
 /// `scriptSigLen` or `scriptSig`.
 const TXIN_BASE_WEIGHT: usize = (32 + 4 + 4) * 4;
+
+pub async fn fees_to_encumber(
+    mempool_space: &MempoolSpaceClient,
+    satisfaction_weight: usize,
+) -> Result<Satoshis, BriaError> {
+    let fee_rate = mempool_space.fee_rate(TxPriority::NextBlock).await?;
+    Ok(Satoshis::from(
+        fee_rate.fee_wu(TXIN_BASE_WEIGHT + satisfaction_weight),
+    ))
+}
 
 pub fn estimate_proportional_fee(
     n_inputs: usize,
@@ -58,6 +69,37 @@ pub fn estimate_proportional_fee(
     )
 }
 
+pub fn allocate_proportional_fees(
+    fees: Satoshis,
+    amounts: impl Iterator<Item = (PayoutId, Satoshis)>,
+) -> HashMap<PayoutId, Satoshis> {
+    let total_fees = u64::from(fees);
+
+    let mut payouts: Vec<(PayoutId, Satoshis)> = amounts.collect();
+    let total_payouts: u64 = payouts
+        .iter()
+        .map(|(_, satoshis)| u64::from(*satoshis))
+        .sum();
+
+    let mut remainder = total_fees;
+    payouts.sort_by(|a, b| a.1.cmp(&b.1));
+
+    let n_payouts = payouts.len();
+    let mut proportional_fees = HashMap::new();
+    for (idx, (id, satoshis)) in payouts.into_iter().enumerate() {
+        let proportional_fee = total_fees * u64::from(satoshis) / total_payouts;
+        if idx < n_payouts - 1 {
+            remainder -= proportional_fee;
+            proportional_fees.insert(id, Satoshis::from(proportional_fee));
+        } else {
+            proportional_fees.insert(id, Satoshis::from(remainder));
+            remainder = 0;
+        }
+    }
+
+    proportional_fees
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,5 +132,39 @@ mod tests {
         );
 
         assert_eq!(estimate, total_fee);
+    }
+
+    #[test]
+    fn test_allocate_proportional_fees() {
+        let fees = Satoshis::from(1000);
+        let lower_payout_id = PayoutId::new();
+        let amounts = vec![
+            (lower_payout_id, Satoshis::from(2000)),
+            (PayoutId::new(), Satoshis::from(8000)),
+        ];
+
+        let payout_infos = allocate_proportional_fees(fees, amounts.into_iter());
+
+        assert_eq!(payout_infos.values().sum::<Satoshis>(), fees);
+        assert_eq!(
+            payout_infos.get(&lower_payout_id).unwrap(),
+            &Satoshis::from(200)
+        );
+    }
+
+    #[test]
+    fn test_allocate_proportional_fees_remainder() {
+        let fees = Satoshis::from(10);
+        let highest_payout_id = PayoutId::new();
+        let amounts = vec![
+            (PayoutId::new(), Satoshis::from(10)),
+            (highest_payout_id, Satoshis::from(11)),
+            (PayoutId::new(), Satoshis::from(10)),
+        ];
+
+        let payout_infos = allocate_proportional_fees(fees, amounts.into_iter());
+
+        assert_eq!(payout_infos.values().sum::<Satoshis>(), fees);
+        assert_eq!(payout_infos[&highest_payout_id], Satoshis::from(4));
     }
 }

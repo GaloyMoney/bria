@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use tracing::instrument;
 
 use crate::{
-    batch::*, error::*, fee_estimation::MempoolSpaceClient, payout::*, payout_queue::*,
-    primitives::*, utxo::*, wallet::*,
+    batch::*, error::*, fees::MempoolSpaceClient, payout::*, payout_queue::*, primitives::*,
+    utxo::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

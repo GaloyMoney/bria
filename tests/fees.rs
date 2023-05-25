@@ -1,4 +1,4 @@
-use bria::{fee_estimation::*, primitives::TxPriority};
+use bria::{fees::*, primitives::TxPriority};
 
 #[tokio::test]
 async fn mempool_space() -> anyhow::Result<()> {

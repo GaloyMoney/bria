@@ -9,7 +9,7 @@ use crate::{
     batch::*,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
-    fee_estimation::MempoolSpaceClient,
+    fees::{self, MempoolSpaceClient},
     ledger::*,
     primitives::*,
     utxo::{Utxos, WalletUtxo},
@@ -88,7 +88,11 @@ pub async fn execute(
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         info!("Syncing keychain '{}'", keychain_wallet.keychain_id);
-        let fees_to_encumber = fees_for_keychain(&keychain_wallet, &mempool_space_client).await?;
+        let fees_to_encumber = fees::fees_to_encumber(
+            &mempool_space_client,
+            keychain_wallet.max_satisfaction_weight(),
+        )
+        .await?;
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
@@ -486,15 +490,6 @@ pub async fn execute(
     span.record("has_more", has_more);
 
     Ok((has_more, data))
-}
-
-async fn fees_for_keychain(
-    keychain: &KeychainWallet,
-    mempool_space_client: &MempoolSpaceClient,
-) -> Result<Satoshis, BriaError> {
-    let fee_rate = mempool_space_client.fee_rate(TxPriority::NextBlock).await?;
-    let weight = keychain.max_satisfaction_weight();
-    Ok(Satoshis::from(fee_rate.fee_wu(weight)))
 }
 
 async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BriaError> {

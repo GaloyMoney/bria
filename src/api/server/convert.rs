@@ -408,6 +408,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 payout_queue_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
+                proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
                 id: id.to_string(),
@@ -418,6 +419,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 destination: Some(proto::payout_committed::Destination::OnchainAddress(
                     destination.to_string(),
                 )),
+                proportional_fee_sats: u64::from(proportional_fee),
             }),
             OutboxEventPayload::PayoutBroadcast {
                 id,
@@ -426,6 +428,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 payout_queue_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
+                proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutBroadcast(proto::PayoutBroadcast {
                 id: id.to_string(),
@@ -436,6 +439,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 destination: Some(proto::payout_broadcast::Destination::OnchainAddress(
                     destination.to_string(),
                 )),
+                proportional_fee_sats: u64::from(proportional_fee),
             }),
             OutboxEventPayload::PayoutSettled {
                 id,
@@ -444,6 +448,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 payout_queue_id,
                 satoshis,
                 destination: PayoutDestination::OnchainAddress { value: destination },
+                proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutSettled(proto::PayoutSettled {
                 id: id.to_string(),
@@ -454,6 +459,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 destination: Some(proto::payout_settled::Destination::OnchainAddress(
                     destination.to_string(),
                 )),
+                proportional_fee_sats: u64::from(proportional_fee),
             }),
         };
 

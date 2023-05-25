@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
-    fee_estimation::MempoolSpaceConfig, job::JobsConfig, primitives::bitcoin::Network,
+    fees::MempoolSpaceConfig, job::JobsConfig, primitives::bitcoin::Network,
     xpub::SignerEncryptionConfig,
 };
 
