@@ -72,7 +72,7 @@ pub async fn execute(
     ledger: Ledger,
     batches: Batches,
     data: SyncWalletData,
-    mempool_space: MempoolSpaceClient,
+    mempool_space_client: MempoolSpaceClient,
 ) -> Result<(bool, SyncWalletData), BriaError> {
     info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
@@ -88,7 +88,7 @@ pub async fn execute(
     let mut income_bria_utxos = Vec::new();
     for keychain_wallet in wallet.keychain_wallets(pool.clone()) {
         info!("Syncing keychain '{}'", keychain_wallet.keychain_id);
-        let fees_to_encumber = fees_for_keychain(&keychain_wallet, &mempool_space).await?;
+        let fees_to_encumber = fees_for_keychain(&keychain_wallet, &mempool_space_client).await?;
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
@@ -490,9 +490,9 @@ pub async fn execute(
 
 async fn fees_for_keychain(
     keychain: &KeychainWallet,
-    mempool_space: &MempoolSpaceClient,
+    mempool_space_client: &MempoolSpaceClient,
 ) -> Result<Satoshis, BriaError> {
-    let fee_rate = mempool_space.fee_rate(TxPriority::NextBlock).await?;
+    let fee_rate = mempool_space_client.fee_rate(TxPriority::NextBlock).await?;
     let weight = keychain.max_satisfaction_weight();
     Ok(Satoshis::from(fee_rate.fee_wu(weight)))
 }

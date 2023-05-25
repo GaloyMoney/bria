@@ -48,7 +48,7 @@ pub async fn start_job_runner(
     config: JobsConfig,
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
-    mempool_space: MempoolSpaceClient,
+    mempool_space_client: MempoolSpaceClient,
 ) -> Result<OwnedHandle, BriaError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -75,7 +75,7 @@ pub async fn start_job_runner(
     registry.set_context(utxos);
     registry.set_context(addresses);
     registry.set_context(signer_encryption_config);
-    registry.set_context(mempool_space);
+    registry.set_context(mempool_space_client);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -190,7 +190,7 @@ async fn sync_wallet(
     utxos: Utxos,
     ledger: Ledger,
     batches: Batches,
-    mempool_space: MempoolSpaceClient,
+    mempool_space_client: MempoolSpaceClient,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     let mut has_more = false;
@@ -210,7 +210,7 @@ async fn sync_wallet(
                 ledger,
                 batches,
                 data,
-                mempool_space,
+                mempool_space_client,
             )
             .await?;
             *more_ref = more;
@@ -253,7 +253,7 @@ async fn process_payout_queue(
     utxos: Utxos,
     payout_queues: PayoutQueues,
     batches: Batches,
-    mempool_space: MempoolSpaceClient,
+    mempool_space_client: MempoolSpaceClient,
 ) -> Result<(), BriaError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -269,7 +269,7 @@ async fn process_payout_queue(
                 batches,
                 utxos,
                 data,
-                mempool_space,
+                mempool_space_client,
             )
             .await?;
             if let Some((mut tx, wallet_ids)) = res {
