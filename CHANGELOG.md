@@ -1,3 +1,11 @@
+# [bria release v0.1.7](https://github.com/GaloyMoney/bria/releases/tag/0.1.7)
+
+
+### Miscellaneous Tasks
+
+- Include proportional fees in outbox (#196)
+- Replace mempool_space with mempool_space_client (#195)
+
 # [bria release v0.1.6](https://github.com/GaloyMoney/bria/releases/tag/0.1.6)
 
 
