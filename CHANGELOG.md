@@ -1,3 +1,10 @@
+# [bria release v0.1.8](https://github.com/GaloyMoney/bria/releases/tag/0.1.8)
+
+
+### Miscellaneous Tasks
+
+- Create dev queue in dev-bootstrap
+
 # [bria release v0.1.7](https://github.com/GaloyMoney/bria/releases/tag/0.1.7)
 
 
