@@ -891,36 +891,59 @@ async fn run_cmd(
                 }
             }
 
-            if let (Some(xpub), Some(key)) = (dev_xub, profile_key) {
-                let client = api_client(
-                    bria_home_string.clone(),
-                    Some(api_client::ApiClientConfig::default().url),
-                    key.key.clone(),
-                );
+            if let Some(key) = profile_key {
+                if let Some(xpub) = dev_xub {
+                    let client = api_client(
+                        bria_home_string.clone(),
+                        Some(api_client::ApiClientConfig::default().url),
+                        key.key.clone(),
+                    );
 
-                let command = proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
-                    xpub,
-                    derivation_path: dev_derivation,
-                });
-                retries = 10;
-                while retries > 0 {
+                    let command =
+                        proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
+                            xpub,
+                            derivation_path: dev_derivation,
+                        });
+                    retries = 10;
+                    while retries > 0 {
+                        match client
+                            .create_wallet(
+                                dev_constants::DEV_WALLET_NAME.to_string(),
+                                command.clone(),
+                            )
+                            .await
+                        {
+                            Ok(_) => {
+                                println!("Successfully created wallet");
+                                break;
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to create wallet: {:?}", e);
+                                retries -= 1;
+                                if retries > 0 {
+                                    tokio::time::sleep(delay).await;
+                                } else {
+                                    eprintln!("Failed to create wallet after retries: {:?}", e);
+                                    return;
+                                }
+                            }
+                        }
+                    }
                     match client
-                        .create_wallet(dev_constants::DEV_WALLET_NAME.to_string(), command.clone())
+                        .create_payout_queue(
+                            dev_constants::DEV_QUEUE_NAME.to_string(),
+                            None,
+                            TxPriority::NextBlock,
+                            true,
+                            Some(5),
+                        )
                         .await
                     {
                         Ok(_) => {
-                            println!("Successfully cerated wallet");
-                            break;
+                            println!("Successfully created dev payout queue");
                         }
                         Err(e) => {
-                            eprintln!("Failed to create wallet: {:?}", e);
-                            retries -= 1;
-                            if retries > 0 {
-                                tokio::time::sleep(delay).await;
-                            } else {
-                                eprintln!("Failed to create wallet after retries: {:?}", e);
-                                return;
-                            }
+                            eprintln!("Failed to create dev payout queue: {:?}", e);
                         }
                     }
                 }
