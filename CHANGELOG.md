@@ -1,3 +1,10 @@
+# [bria release v0.1.9](https://github.com/GaloyMoney/bria/releases/tag/0.1.9)
+
+
+### Miscellaneous Tasks
+
+- Bump dependencies (#197)
+
 # [bria release v0.1.8](https://github.com/GaloyMoney/bria/releases/tag/0.1.8)
 
 
