@@ -18,24 +18,24 @@ impl PayoutQueues {
     }
 
     #[instrument(name = "payout_queues.create", skip(self))]
-    pub async fn create(&self, group: NewPayoutQueue) -> Result<PayoutQueueId, BriaError> {
+    pub async fn create(&self, queue: NewPayoutQueue) -> Result<PayoutQueueId, BriaError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"
             INSERT INTO bria_payout_queues (id, account_id, name)
             VALUES ($1, $2, $3)
             "#,
-            Uuid::from(group.id),
-            Uuid::from(group.account_id),
-            group.name,
+            queue.id as PayoutQueueId,
+            queue.account_id as AccountId,
+            queue.name,
         )
         .execute(&mut tx)
         .await?;
-        let id = group.id;
+        let id = queue.id;
         EntityEvents::<PayoutQueueEvent>::persist(
             "bria_payout_queue_events",
             &mut tx,
-            group.initial_events().new_serialized_events(id),
+            queue.initial_events().new_serialized_events(id),
         )
         .await?;
         tx.commit().await?;
@@ -60,7 +60,7 @@ impl PayoutQueues {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(BriaError::PayoutQueueNotFound);
+            return Err(BriaError::PayoutQueueNotFound(name));
         }
         let mut events = EntityEvents::new();
         for row in rows {
@@ -87,7 +87,7 @@ impl PayoutQueues {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(BriaError::PayoutQueueNotFound);
+            return Err(BriaError::PayoutQueueNotFound(id.to_string()));
         }
         let mut events = EntityEvents::new();
         for row in rows {

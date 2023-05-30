@@ -52,8 +52,8 @@ pub enum BriaError {
     BatchSigningSessionNotFound,
     #[error("BriaError - CouldNotRetrieveWalletBalance")]
     CouldNotRetrieveWalletBalance,
-    #[error("BriaError - PayoutQueueNotFound")]
-    PayoutQueueNotFound,
+    #[error("BriaError - PayoutQueueNotFound({0})")]
+    PayoutQueueNotFound(String),
     #[error("BriaError - BatchNotFound")]
     BatchNotFound,
     #[error("BriaError - PsbtMissingInSigningSessions")]
