@@ -943,8 +943,8 @@ async fn run_cmd(
                             xpub,
                             SetSignerConfigCommand::Bitcoind {
                                 endpoint: signer_endpoint,
-                                rpc_user: dev_constants::DEFAULT_BITOIND_RPC_USER.to_string(),
-                                rpc_password: dev_constants::DEFAULT_BITOIND_RPC_PASSWORD
+                                rpc_user: dev_constants::DEFAULT_BITCOIND_RPC_USER.to_string(),
+                                rpc_password: dev_constants::DEFAULT_BITCOIND_RPC_PASSWORD
                                     .to_string(),
                             },
                         )
