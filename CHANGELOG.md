@@ -1,3 +1,12 @@
+# [bria release v0.1.12](https://github.com/GaloyMoney/bria/releases/tag/0.1.12)
+
+
+### Miscellaneous Tasks
+
+- Include tonic-health (#201)
+- Bump tokio from 1.28.1 to 1.28.2 (#198)
+- Bump chrono from 0.4.24 to 0.4.25 (#199)
+
 # [bria release v0.1.11](https://github.com/GaloyMoney/bria/releases/tag/0.1.11)
 
 
