@@ -469,6 +469,11 @@ enum DaemonCommand {
         /// The derivation from the parent key (eg. m/84'/0'/0')
         #[clap(short = 'd', long = "derivation")]
         derivation: Option<String>,
+        #[clap(
+            env = "BITCOIND_SIGNER_ENDPOINT",
+            default_value = "https://localhost:18543"
+        )]
+        bitcoind_signer_endpoint: String,
     },
 }
 
@@ -535,9 +540,13 @@ pub async fn run() -> anyhow::Result<()> {
             command,
         } => {
             let (dev, dev_xpub, dev_derivation, signer_encryption_key) = match command {
-                DaemonCommand::Dev { xpub, derivation } => (
-                    true,
+                DaemonCommand::Dev {
                     xpub,
+                    derivation,
+                    bitcoind_signer_endpoint,
+                } => (
+                    true,
+                    xpub.map(|xpub| (xpub, bitcoind_signer_endpoint)),
                     derivation,
                     dev_constants::DEV_SIGNER_ENCRYPTION_KEY.to_string(),
                 ),
@@ -829,7 +838,7 @@ async fn run_cmd(
         app,
     }: Config,
     dev: bool,
-    dev_xub: Option<String>,
+    dev_xub: Option<(String, String)>,
     dev_derivation: Option<String>,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
@@ -892,7 +901,7 @@ async fn run_cmd(
             }
 
             if let Some(key) = profile_key {
-                if let Some(xpub) = dev_xub {
+                if let Some((xpub, signer_endpoint)) = dev_xub {
                     let client = api_client(
                         bria_home_string.clone(),
                         Some(api_client::ApiClientConfig::default().url),
@@ -901,7 +910,7 @@ async fn run_cmd(
 
                     let command =
                         proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
-                            xpub,
+                            xpub: xpub.clone(),
                             derivation_path: dev_derivation,
                         });
                     retries = 10;
@@ -927,6 +936,25 @@ async fn run_cmd(
                                     return;
                                 }
                             }
+                        }
+                    }
+                    match client
+                        .set_signer_config(
+                            xpub,
+                            SetSignerConfigCommand::Bitcoind {
+                                endpoint: signer_endpoint,
+                                rpc_user: dev_constants::DEFAULT_BITOIND_RPC_USER.to_string(),
+                                rpc_password: dev_constants::DEFAULT_BITOIND_RPC_PASSWORD
+                                    .to_string(),
+                            },
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            println!("Successfully set signer config");
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to set signer config: {:?}", e);
                         }
                     }
                     match client
