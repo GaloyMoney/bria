@@ -1,3 +1,10 @@
+# [bria release v0.1.11](https://github.com/GaloyMoney/bria/releases/tag/0.1.11)
+
+
+### Miscellaneous Tasks
+
+- Change rpc defaults (#200)
+
 # [bria release v0.1.10](https://github.com/GaloyMoney/bria/releases/tag/0.1.10)
 
 
