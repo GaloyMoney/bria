@@ -636,10 +636,17 @@ impl BriaService for Bria {
 }
 
 pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
+    use proto::bria_service_server::BriaServiceServer;
+
     let bria = Bria { app };
     println!("Starting main server on port {}", server_config.listen_port);
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<BriaServiceServer<Bria>>()
+        .await;
     Server::builder()
-        .add_service(proto::bria_service_server::BriaServiceServer::new(bria))
+        .add_service(health_service)
+        .add_service(BriaServiceServer::new(bria))
         .serve(([0, 0, 0, 0], server_config.listen_port).into())
         .await?;
     Ok(())
