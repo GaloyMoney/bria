@@ -1,3 +1,11 @@
+# [bria release v0.1.10](https://github.com/GaloyMoney/bria/releases/tag/0.1.10)
+
+
+### Miscellaneous Tasks
+
+- Add BITCOIND_SIGNER_ENDPOINT to dev daemon
+- Add name to PayoutQueueNotFound
+
 # [bria release v0.1.9](https://github.com/GaloyMoney/bria/releases/tag/0.1.9)
 
 
