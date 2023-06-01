@@ -25,7 +25,7 @@ impl Indexes {
               WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2
               RETURNING index;
               "#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             kind as BdkKeychainKind
         )
         .fetch_one(&self.pool)
@@ -41,13 +41,16 @@ impl Indexes {
         keychain: impl Into<BdkKeychainKind>,
         idx: u32,
     ) -> Result<(), bdk::Error> {
+        let kind = keychain.into();
         sqlx::query!(
-            r#"UPDATE bdk_indexes
-                 SET index = $1, modified_at = NOW()
-                 WHERE index < $1 AND keychain_id = $2 AND keychain_kind = $3"#,
-            idx as i32,
+            r#"INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (keychain_id, keychain_kind)
+               DO UPDATE SET index = $3, modified_at = NOW()
+               WHERE bdk_indexes.index < $3 AND bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2"#,
             self.keychain_id as KeychainId,
-            keychain.into() as BdkKeychainKind,
+            kind as BdkKeychainKind,
+            idx as i32
         )
         .execute(&self.pool)
         .await

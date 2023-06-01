@@ -2010,6 +2010,30 @@
     },
     "query": "UPDATE bria_batch_wallet_summaries\n               SET batch_created_ledger_tx_id = $1\n               WHERE wallet_id = $2 AND batch_id = $3 AND batch_created_ledger_tx_id IS NULL"
   },
+  "d1049af6349b0b47e85d0d5ae79292f7d1c4678b585365d7427a6820b6b61708": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "external",
+                  "internal"
+                ]
+              },
+              "name": "bdkkeychainkind"
+            }
+          },
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO bdk_indexes (keychain_id, keychain_kind, index)\n               VALUES ($1, $2, $3)\n               ON CONFLICT (keychain_id, keychain_kind)\n               DO UPDATE SET index = $3, modified_at = NOW()\n               WHERE bdk_indexes.index < $3 AND bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2"
+  },
   "d3fac1b5ed276a99fdd626ccefb4e6b23af393503545c1654e150b0e23bb6c70": {
     "describe": {
       "columns": [
@@ -2514,30 +2538,6 @@
       }
     },
     "query": "INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)\n               VALUES ($1, $2, $3, $4, $5, $6)"
-  },
-  "f8ce611f316792087c728f03cc594b15581797fb5d33e71c277f05525d489010": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Uuid",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "external",
-                  "internal"
-                ]
-              },
-              "name": "bdkkeychainkind"
-            }
-          }
-        ]
-      }
-    },
-    "query": "UPDATE bdk_indexes\n                 SET index = $1, modified_at = NOW()\n                 WHERE index < $1 AND keychain_id = $2 AND keychain_kind = $3"
   },
   "fa20681958de2a9b7764665edde5dbc0f5f839a0ea33b48dfdc2214966dd8efa": {
     "describe": {
