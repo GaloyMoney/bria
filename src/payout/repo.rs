@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::{entity::*, unbatched::*};
+use super::{entity::*, error::*, unbatched::*};
 use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
@@ -117,7 +117,7 @@ impl Payouts {
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
-    ) -> Result<Vec<Payout>, BriaError> {
+    ) -> Result<Vec<Payout>, PayoutError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event

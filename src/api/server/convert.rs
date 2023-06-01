@@ -4,6 +4,7 @@ use super::proto;
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
+    app::error::*,
     error::BriaError,
     outbox::*,
     payout::*,
@@ -11,6 +12,7 @@ use crate::{
     primitives::{bitcoin::*, *},
     profile::*,
     signing_session::*,
+    tracing::ToTraceLevel,
     utxo::*,
     wallet::balance::WalletBalanceSummary,
     wallet::*,
@@ -484,6 +486,32 @@ impl From<AddressAugmentation> for proto::WalletAddress {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
             }),
             external_id: addr.external_id,
+        }
+    }
+}
+
+impl From<ApplicationError> for tonic::Status {
+    fn from(err: ApplicationError) -> Self {
+        use crate::{address::error::*, wallet::error::*};
+
+        match err {
+            ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
+                tonic::Status::already_exists(err.to_string())
+            }
+            _ => tonic::Status::internal(err.to_string()),
+        }
+    }
+}
+
+impl ToTraceLevel for tonic::Status {
+    fn to_trace_level(&self) -> tracing::Level {
+        match self.code() {
+            tonic::Code::NotFound => tracing::Level::WARN,
+            tonic::Code::AlreadyExists => tracing::Level::WARN,
+            _ => tracing::Level::ERROR,
         }
     }
 }

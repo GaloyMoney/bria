@@ -32,7 +32,7 @@ impl BriaService for Bria {
         &self,
         request: Request<CreateProfileRequest>,
     ) -> Result<Response<CreateProfileResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -51,7 +51,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListProfilesRequest>,
     ) -> Result<Response<ListProfilesResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -72,7 +72,7 @@ impl BriaService for Bria {
         &self,
         request: Request<CreateProfileApiKeyRequest>,
     ) -> Result<Response<CreateProfileApiKeyResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -95,7 +95,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ImportXpubRequest>,
     ) -> Result<Response<ImportXpubResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -124,7 +124,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListXpubsRequest>,
     ) -> Result<Response<ListXpubsResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -145,7 +145,7 @@ impl BriaService for Bria {
         &self,
         request: Request<SetSignerConfigRequest>,
     ) -> Result<Response<SetSignerConfigResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -164,7 +164,7 @@ impl BriaService for Bria {
         &self,
         request: Request<CreateWalletRequest>,
     ) -> Result<Response<CreateWalletResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -213,7 +213,7 @@ impl BriaService for Bria {
         &self,
         request: Request<GetWalletBalanceSummaryRequest>,
     ) -> Result<Response<GetWalletBalanceSummaryResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -236,7 +236,7 @@ impl BriaService for Bria {
         &self,
         request: Request<GetAccountBalanceSummaryRequest>,
     ) -> Result<Response<GetAccountBalanceSummaryResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -254,7 +254,7 @@ impl BriaService for Bria {
         &self,
         request: Request<NewAddressRequest>,
     ) -> Result<Response<NewAddressResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -288,7 +288,7 @@ impl BriaService for Bria {
         &self,
         request: Request<UpdateAddressRequest>,
     ) -> Result<Response<UpdateAddressResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -321,7 +321,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListAddressesRequest>,
     ) -> Result<Response<ListAddressesResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -349,7 +349,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListUtxosRequest>,
     ) -> Result<Response<ListUtxosResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -376,7 +376,7 @@ impl BriaService for Bria {
         &self,
         request: Request<CreatePayoutQueueRequest>,
     ) -> Result<Response<CreatePayoutQueueResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -403,7 +403,7 @@ impl BriaService for Bria {
         &self,
         request: Request<EstimatePayoutFeeRequest>,
     ) -> Result<Response<EstimatePayoutFeeResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -438,7 +438,7 @@ impl BriaService for Bria {
         &self,
         request: Request<SubmitPayoutRequest>,
     ) -> Result<Response<SubmitPayoutResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -478,7 +478,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListPayoutsRequest>,
     ) -> Result<Response<ListPayoutsResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -503,7 +503,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListWalletsRequest>,
     ) -> Result<Response<ListWalletsResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -524,7 +524,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListPayoutQueuesRequest>,
     ) -> Result<Response<ListPayoutQueuesResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -547,7 +547,7 @@ impl BriaService for Bria {
         &self,
         request: Request<UpdatePayoutQueueRequest>,
     ) -> Result<Response<UpdatePayoutQueueResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
@@ -577,7 +577,7 @@ impl BriaService for Bria {
         &self,
         request: Request<ListSigningSessionsRequest>,
     ) -> Result<Response<ListSigningSessionsResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;

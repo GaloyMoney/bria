@@ -5,6 +5,10 @@ use tracing::Span;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{filter::EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
+pub trait ToTraceLevel {
+    fn to_trace_level(&self) -> tracing::Level;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TracingConfig {
     host: String,
@@ -66,16 +70,15 @@ pub fn insert_error_fields(level: tracing::Level, error: impl std::fmt::Display)
 
 pub async fn record_error<
     T,
-    E: std::fmt::Display,
+    E: std::fmt::Display + ToTraceLevel,
     F: FnOnce() -> R,
     R: std::future::Future<Output = Result<T, E>>,
 >(
-    level: tracing::Level,
     func: F,
 ) -> Result<T, E> {
     let result = func().await;
     if let Err(ref e) = result {
-        insert_error_fields(level, e);
+        insert_error_fields(e.to_trace_level(), e);
     }
     result
 }

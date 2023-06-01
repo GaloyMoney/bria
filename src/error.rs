@@ -1,13 +1,26 @@
 use thiserror::Error;
 
 use crate::{
+    address::error::AddressError,
+    bdk::error::BdkError,
     job::JobExecutionError,
-    primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+    payout::error::PayoutError,
+    primitives::bitcoin::{bip32, consensus, psbt, AddressError as BitcoinAddressError},
+    wallet::error::WalletError,
     xpub::SigningClientError,
 };
 
 #[derive(Error, Debug)]
 pub enum BriaError {
+    #[error("BriaError - BdkError: {0}")]
+    BdkError(#[from] BdkError),
+    #[error("BriaError - WalletError: {0}")]
+    WalletError(#[from] WalletError),
+    #[error("BriaError - PayoutError: {0}")]
+    PayoutError(#[from] PayoutError),
+    #[error("BriaError - AddressError: {0}")]
+    AddressError(#[from] AddressError),
+
     #[error("BriaError - FromHex: {0}")]
     FromHex(#[from] hex::FromHexError),
     #[error("BriaError - Tonic: {0}")]
@@ -24,12 +37,6 @@ pub enum BriaError {
     SerdeJson(#[from] serde_json::Error),
     #[error("BriaError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
-    #[error("BriaError - ElectrumClient: {0}")]
-    ElectrumClient(#[from] electrum_client::Error),
-    #[error("BriaError - JoinError: {0}")]
-    JoinError(#[from] tokio::task::JoinError),
-    #[error("BriaError - BdkError: {0}")]
-    BdkError(#[from] bdk::Error),
     #[error("BriaError - EventStreamError: {0}")]
     EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
     #[error("BriaError - SendEventError")]
@@ -65,7 +72,7 @@ pub enum BriaError {
     #[error("BriaError - TryFromIntError")]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("BriaError - BitcoinAddressParseError")]
-    BitcoinAddressParseError(#[from] AddressError),
+    BitcoinAddressParseError(#[from] BitcoinAddressError),
     #[error("BriaError - XPubDepthMismatch: expected depth {0}, got {1}")]
     XPubDepthMismatch(u8, usize),
     #[error("BriaError - XPubParseError: {0}")]

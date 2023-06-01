@@ -1,4 +1,5 @@
 mod entity;
+pub mod error;
 mod repo;
 mod unbatched;
 

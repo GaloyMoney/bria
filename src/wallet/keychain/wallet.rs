@@ -9,8 +9,7 @@ use tracing::instrument;
 
 use super::config::*;
 use crate::{
-    bdk::pg::SqlxWalletDb,
-    error::*,
+    bdk::{error::BdkError, pg::SqlxWalletDb},
     primitives::{bitcoin::*, *},
 };
 
@@ -19,7 +18,7 @@ pub trait BdkWalletVisitor: Sized + Send + 'static {
         self,
         keychain_id: KeychainId,
         wallet: &Wallet<D>,
-    ) -> Result<Self, BriaError>;
+    ) -> Result<Self, BdkError>;
 }
 
 pub struct KeychainWallet {
@@ -47,11 +46,11 @@ impl KeychainWallet {
     pub async fn finalize_psbt(
         &self,
         mut psbt: psbt::PartiallySignedTransaction,
-    ) -> Result<psbt::PartiallySignedTransaction, BriaError> {
+    ) -> Result<psbt::PartiallySignedTransaction, BdkError> {
         match self
             .with_wallet(move |wallet| {
                 wallet.finalize_psbt(&mut psbt, SignOptions::default())?;
-                Ok::<_, BriaError>(psbt)
+                Ok::<_, BdkError>(psbt)
             })
             .await
         {
@@ -62,7 +61,7 @@ impl KeychainWallet {
     }
 
     #[instrument(name = "keychain_wallet.new_external_address", skip_all)]
-    pub async fn new_external_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
+    pub async fn new_external_address(&self) -> Result<bdk::wallet::AddressInfo, BdkError> {
         let addr = self
             .with_wallet(|wallet| wallet.get_address(AddressIndex::New))
             .await??;
@@ -70,7 +69,7 @@ impl KeychainWallet {
     }
 
     #[instrument(name = "keychain_wallet.new_internal_address", skip_all)]
-    pub async fn new_internal_address(&self) -> Result<bdk::wallet::AddressInfo, BriaError> {
+    pub async fn new_internal_address(&self) -> Result<bdk::wallet::AddressInfo, BdkError> {
         let addr = self
             .with_wallet(|wallet| wallet.get_internal_address(AddressIndex::New))
             .await??;
@@ -81,7 +80,7 @@ impl KeychainWallet {
         &self,
         path: u32,
         kind: KeychainKind,
-    ) -> Result<bdk::wallet::AddressInfo, BriaError> {
+    ) -> Result<bdk::wallet::AddressInfo, BdkError> {
         let addr = self
             .with_wallet(move |wallet| match kind {
                 KeychainKind::External => wallet.get_address(AddressIndex::Peek(path)),
@@ -95,14 +94,14 @@ impl KeychainWallet {
     pub async fn sync<B: WalletSync + GetHeight + Send + Sync + 'static>(
         &self,
         blockchain: B,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), BdkError> {
         self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
             .await??;
         Ok(())
     }
 
     #[instrument(name = "keychain_wallet.balance", skip_all)]
-    pub async fn balance(&self) -> Result<bdk::Balance, BriaError> {
+    pub async fn balance(&self) -> Result<bdk::Balance, BdkError> {
         let balance = self.with_wallet(|wallet| wallet.get_balance()).await??;
         Ok(balance)
     }
@@ -139,7 +138,7 @@ impl KeychainWallet {
         Ok(res)
     }
 
-    pub async fn dispatch_bdk_wallet<V: BdkWalletVisitor>(&self, v: V) -> Result<V, BriaError> {
+    pub async fn dispatch_bdk_wallet<V: BdkWalletVisitor>(&self, v: V) -> Result<V, BdkError> {
         let keychain_id = self.keychain_id;
         match self
             .with_wallet(move |wallet| v.visit_bdk_wallet(keychain_id, &wallet))

@@ -1,11 +1,9 @@
-mod electrum;
 mod mempool_space;
 
 use bdk::bitcoin::{LockTime, Transaction, TxOut};
 use std::collections::HashMap;
 
 use crate::{error::*, primitives::*};
-pub use electrum::ElectrumFeeEstimator;
 pub use mempool_space::*;
 
 /// Txin "base" fields include `outpoint` (32+4) and `nSequence` (4). This does not include
