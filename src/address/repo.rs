@@ -1,5 +1,4 @@
 use sqlx::{Pool, Postgres, Transaction};
-use uuid::Uuid;
 
 use std::collections::HashMap;
 
@@ -122,8 +121,8 @@ impl Addresses {
               JOIN bria_address_events e ON b.id = e.id
               WHERE account_id = $1 AND wallet_id = $2 AND kind = 'external'
               ORDER BY b.created_at, b.id, sequence"#,
-            Uuid::from(account_id),
-            Uuid::from(wallet_id)
+            account_id as AccountId,
+            wallet_id as WalletId
         )
         .fetch_all(&self.pool)
         .await?;
@@ -158,7 +157,7 @@ impl Addresses {
               JOIN bria_address_events e ON b.id = e.id
               WHERE account_id = $1 AND address = $2
               ORDER BY b.created_at, b.id, sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
             address
         )
         .fetch_all(&self.pool)
@@ -182,7 +181,7 @@ impl Addresses {
               JOIN bria_address_events e ON b.id = e.id
               WHERE account_id = $1 AND external_id = $2
               ORDER BY b.created_at, b.id, sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
             external_id
         )
         .fetch_all(&self.pool)
