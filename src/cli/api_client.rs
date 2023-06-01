@@ -227,6 +227,16 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn find_address_by_external_id(&self, external_id: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::FindAddressByExternalIdRequest { external_id });
+        let response = self
+            .connect()
+            .await?
+            .find_address_by_external_id(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn list_utxos(&self, wallet: String) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListUtxosRequest {
             wallet_name: wallet,

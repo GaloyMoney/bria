@@ -169,4 +169,27 @@ impl Addresses {
         }
         Ok(WalletAddress::try_from(events)?)
     }
+
+    pub async fn find_by_external_id(
+        &self,
+        account_id: AccountId,
+        external_id: String,
+    ) -> Result<WalletAddress, BriaError> {
+        let row = sqlx::query!(
+            r#"
+              SELECT b.id, e.sequence, e.event
+              FROM bria_addresses b
+              JOIN bria_address_events e ON b.id = e.id
+              WHERE account_id = $1 AND external_id = $2
+              ORDER BY b.created_at, b.id, sequence"#,
+            Uuid::from(account_id),
+            external_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        let mut events = EntityEvents::new();
+        events.load_event(row.sequence as usize, row.event)?;
+        Ok(WalletAddress::try_from(events)?)
+    }
 }

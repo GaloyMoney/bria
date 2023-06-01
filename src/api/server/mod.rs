@@ -344,6 +344,31 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.find_addresses_by_external_id", skip_all, fields(error, error.level, error.message), err)]
+    async fn find_address_by_external_id(
+        &self,
+        request: Request<FindAddressByExternalIdRequest>,
+    ) -> Result<Response<FindAddressByExternalIdResponse>, Status> {
+        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let FindAddressByExternalIdRequest { external_id } = request;
+
+            let (wallet_id, address) = self
+                .app
+                .find_address_by_external_id(profile, external_id)
+                .await?;
+            let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
+            Ok(Response::new(FindAddressByExternalIdResponse {
+                wallet_id: wallet_id.to_string(),
+                address: Some(proto_address),
+            }))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.list_utxos", skip_all, fields(error, error.level, error.message), err)]
     async fn list_utxos(
         &self,

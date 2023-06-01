@@ -1462,6 +1462,39 @@
     },
     "query": "UPDATE mq_msgs SET retry_backoff = $1 WHERE id = $2"
   },
+  "7c0ecd129f976df38b788e7e89b54d10632d96210d4dd59e4eeba1fd71117348": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 2,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n              SELECT b.id, e.sequence, e.event\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND external_id = $2\n              ORDER BY b.created_at, b.id, sequence"
+  },
   "80ea413a3e70ea8046dc38bfa249dc526b98329d189ba02abfcc2d00ade20c77": {
     "describe": {
       "columns": [
