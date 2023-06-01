@@ -175,7 +175,7 @@ impl Addresses {
         account_id: AccountId,
         external_id: String,
     ) -> Result<WalletAddress, BriaError> {
-        let row = sqlx::query!(
+        let rows = sqlx::query!(
             r#"
               SELECT b.id, e.sequence, e.event
               FROM bria_addresses b
@@ -185,11 +185,12 @@ impl Addresses {
             Uuid::from(account_id),
             external_id
         )
-        .fetch_one(&self.pool)
+        .fetch_all(&self.pool)
         .await?;
-
         let mut events = EntityEvents::new();
-        events.load_event(row.sequence as usize, row.event)?;
+        for row in rows {
+            events.load_event(row.sequence as usize, row.event)?;
+        }
         Ok(WalletAddress::try_from(events)?)
     }
 }
