@@ -12,6 +12,7 @@ use crate::{
     primitives::{bitcoin::*, *},
     profile::*,
     signing_session::*,
+    tracing::ToTraceLevel,
     utxo::*,
     wallet::balance::WalletBalanceSummary,
     wallet::*,
@@ -500,7 +501,17 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
             }
-            _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
+            _ => tonic::Status::internal(err.to_string()),
+        }
+    }
+}
+
+impl ToTraceLevel for tonic::Status {
+    fn to_trace_level(&self) -> tracing::Level {
+        match self.code() {
+            tonic::Code::NotFound => tracing::Level::WARN,
+            tonic::Code::AlreadyExists => tracing::Level::WARN,
+            _ => tracing::Level::ERROR,
         }
     }
 }
