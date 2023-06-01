@@ -10,10 +10,7 @@ use std::{
 };
 
 use super::{keychain::*, Wallet as WalletEntity};
-use crate::{
-    error::*,
-    primitives::{bitcoin::*, *},
-};
+use crate::primitives::{bitcoin::*, *};
 
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;

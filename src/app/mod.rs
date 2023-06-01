@@ -1,9 +1,11 @@
 mod config;
+pub mod error;
 
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
 pub use config::*;
+use error::*;
 
 use crate::{
     account::balance::AccountBalanceSummary,
@@ -601,14 +603,15 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
-    ) -> Result<Vec<Payout>, BriaError> {
+    ) -> Result<Vec<Payout>, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        self.payouts
+        Ok(self
+            .payouts
             .list_for_wallet(profile.account_id, wallet.id)
-            .await
+            .await?)
     }
 
     #[instrument(name = "app.list_payout_queues", skip_all, err)]

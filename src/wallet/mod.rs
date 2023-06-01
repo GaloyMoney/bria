@@ -1,6 +1,7 @@
 pub mod balance;
 mod config;
 mod entity;
+pub mod error;
 mod keychain;
 mod psbt_builder;
 mod repo;

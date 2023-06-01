@@ -10,7 +10,6 @@ use tracing::instrument;
 use super::config::*;
 use crate::{
     bdk::pg::SqlxWalletDb,
-    error::InternalError,
     primitives::{bitcoin::*, *},
 };
 

@@ -4,6 +4,7 @@ use super::proto;
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
+    app::error::*,
     error::BriaError,
     outbox::*,
     payout::*,
@@ -484,6 +485,19 @@ impl From<AddressAugmentation> for proto::WalletAddress {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
             }),
             external_id: addr.external_id,
+        }
+    }
+}
+
+impl From<ApplicationError> for tonic::Status {
+    fn from(err: ApplicationError) -> Self {
+        use crate::wallet::error::*;
+
+        match err {
+            ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
+            }
+            _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
         }
     }
 }

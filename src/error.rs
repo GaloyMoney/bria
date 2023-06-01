@@ -2,24 +2,23 @@ use thiserror::Error;
 
 use crate::{
     job::JobExecutionError,
-    primitives::bitcoin::{bip32, consensus, psbt, AddressError},
+    payout::error::PayoutError,
+    primitives::{
+        bitcoin::{bip32, consensus, psbt, AddressError},
+        InternalError,
+    },
+    wallet::error::WalletError,
     xpub::SigningClientError,
 };
-
-#[derive(Error, Debug)]
-pub enum InternalError {
-    #[error("InternalError - JoinError: {0}")]
-    JoinError(#[from] tokio::task::JoinError),
-    #[error("InternalError - BdkError: {0}")]
-    BdkError(#[from] bdk::Error),
-    #[error("InternalError - ElectrumClient: {0}")]
-    ElectrumClient(#[from] electrum_client::Error),
-}
 
 #[derive(Error, Debug)]
 pub enum BriaError {
     #[error("BriaError - Internal: {0}")]
     Internal(#[from] InternalError),
+    #[error("BriaError - WalletError: {0}")]
+    WalletError(#[from] WalletError),
+    #[error("BriaError - PayoutError: {0}")]
+    PayoutError(#[from] PayoutError),
 
     #[error("BriaError - FromHex: {0}")]
     FromHex(#[from] hex::FromHexError),

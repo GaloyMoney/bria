@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use super::entity::*;
+use super::{entity::*, error::*};
 use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ impl Wallets {
         &self,
         account_id: AccountId,
         name: String,
-    ) -> Result<Wallet, BriaError> {
+    ) -> Result<Wallet, WalletError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
@@ -49,13 +49,13 @@ impl Wallets {
               JOIN bria_wallet_events e ON b.id = e.id
               WHERE account_id = $1 AND name = $2
               ORDER BY e.sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
             name
         )
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(BriaError::WalletNotFound);
+            return Err(WalletError::WalletNameNotFound(name));
         }
         let mut events = EntityEvents::new();
         for row in rows {
@@ -85,6 +85,7 @@ impl Wallets {
             Err(BriaError::WalletNotFound)
         }
     }
+
     pub async fn list_by_account_id(
         &self,
         account_id: AccountId,

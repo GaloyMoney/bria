@@ -1,3 +1,5 @@
+mod error;
+
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -7,6 +9,8 @@ pub use sqlx_ledger::{
 };
 
 use std::fmt;
+
+pub use error::*;
 
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
