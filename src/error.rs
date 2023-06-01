@@ -7,7 +7,20 @@ use crate::{
 };
 
 #[derive(Error, Debug)]
+pub enum InternalError {
+    #[error("InternalError - JoinError: {0}")]
+    JoinError(#[from] tokio::task::JoinError),
+    #[error("InternalError - BdkError: {0}")]
+    BdkError(#[from] bdk::Error),
+    #[error("InternalError - ElectrumClient: {0}")]
+    ElectrumClient(#[from] electrum_client::Error),
+}
+
+#[derive(Error, Debug)]
 pub enum BriaError {
+    #[error("BriaError - Internal: {0}")]
+    Internal(#[from] InternalError),
+
     #[error("BriaError - FromHex: {0}")]
     FromHex(#[from] hex::FromHexError),
     #[error("BriaError - Tonic: {0}")]
@@ -24,12 +37,6 @@ pub enum BriaError {
     SerdeJson(#[from] serde_json::Error),
     #[error("BriaError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
-    #[error("BriaError - ElectrumClient: {0}")]
-    ElectrumClient(#[from] electrum_client::Error),
-    #[error("BriaError - JoinError: {0}")]
-    JoinError(#[from] tokio::task::JoinError),
-    #[error("BriaError - BdkError: {0}")]
-    BdkError(#[from] bdk::Error),
     #[error("BriaError - EventStreamError: {0}")]
     EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
     #[error("BriaError - SendEventError")]

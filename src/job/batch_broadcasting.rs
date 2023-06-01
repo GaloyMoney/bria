@@ -21,13 +21,13 @@ pub async fn execute(
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
     if batch.accounting_complete() {
         if let Some(tx) = batch.signed_tx {
-            blockchain.broadcast(&tx)?;
+            blockchain.broadcast(&tx).map_err(InternalError::BdkError)?;
         }
     }
     Ok(data)
 }
 
-async fn init_electrum(electrum_url: &str) -> Result<ElectrumBlockchain, BriaError> {
+async fn init_electrum(electrum_url: &str) -> Result<ElectrumBlockchain, InternalError> {
     let blockchain = ElectrumBlockchain::from(Client::from_config(
         electrum_url,
         ConfigBuilder::new()

@@ -171,7 +171,7 @@ pub async fn construct_psbt(
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
 
-    PsbtBuilder::construct_psbt(
+    Ok(PsbtBuilder::construct_psbt(
         pool,
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
@@ -179,7 +179,7 @@ pub async fn construct_psbt(
         tx_payouts,
         wallets,
     )
-    .await
+    .await?)
 }
 
 impl From<WalletTotals> for WalletSummary {

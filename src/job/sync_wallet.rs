@@ -492,7 +492,7 @@ pub async fn execute(
     Ok((has_more, data))
 }
 
-async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BriaError> {
+async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), InternalError> {
     let blockchain = ElectrumBlockchain::from(Client::from_config(
         electrum_url,
         ConfigBuilder::new()
