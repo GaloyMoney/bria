@@ -1,13 +1,18 @@
 use thiserror::Error;
 
-use crate::{payout::error::PayoutError, primitives::InternalError, wallet::error::WalletError};
+use crate::{
+    address::error::AddressError, payout::error::PayoutError, primitives::InternalError,
+    wallet::error::WalletError,
+};
 
 #[derive(Error, Debug)]
 pub enum ApplicationError {
-    #[error("BriaError - Internal: {0}")]
+    #[error("{0}")]
     Internal(#[from] InternalError),
-    #[error("BriaError - WalletError: {0}")]
+    #[error("{0}")]
     WalletError(#[from] WalletError),
-    #[error("BriaError - PayoutError: {0}")]
+    #[error("{0}")]
     PayoutError(#[from] PayoutError),
+    #[error("{0}")]
+    AddressError(#[from] AddressError),
 }

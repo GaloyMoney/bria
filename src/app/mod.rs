@@ -348,7 +348,7 @@ impl App {
         wallet_name: String,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<String, BriaError> {
+    ) -> Result<String, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)

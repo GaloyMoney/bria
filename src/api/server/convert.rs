@@ -491,11 +491,14 @@ impl From<AddressAugmentation> for proto::WalletAddress {
 
 impl From<ApplicationError> for tonic::Status {
     fn from(err: ApplicationError) -> Self {
-        use crate::wallet::error::*;
+        use crate::{address::error::*, wallet::error::*};
 
         match err {
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
+                tonic::Status::already_exists(err.to_string())
             }
             _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
         }

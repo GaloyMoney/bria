@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::entity::*;
+use super::{entity::*, error::AddressError};
 use crate::{
     entity::*,
     error::*,
@@ -20,7 +20,7 @@ impl Addresses {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_new_address(&self, address: NewAddress) -> Result<(), BriaError> {
+    pub async fn persist_new_address(&self, address: NewAddress) -> Result<(), AddressError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"INSERT INTO bria_addresses
@@ -67,7 +67,7 @@ impl Addresses {
         if res.rows_affected() == 0 {
             return Ok(());
         }
-        Self::persist_events(tx, address).await
+        Ok(Self::persist_events(tx, address).await?)
     }
 
     pub async fn update(&self, address: WalletAddress) -> Result<(), BriaError> {
@@ -99,7 +99,7 @@ impl Addresses {
     async fn persist_events(
         tx: &mut Transaction<'_, Postgres>,
         address: NewAddress,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), AddressError> {
         let id = address.db_uuid;
         EntityEvents::<AddressEvent>::persist(
             "bria_address_events",

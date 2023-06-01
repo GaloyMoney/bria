@@ -1,10 +1,11 @@
 use thiserror::Error;
 
 use crate::{
+    address::error::AddressError,
     job::JobExecutionError,
     payout::error::PayoutError,
     primitives::{
-        bitcoin::{bip32, consensus, psbt, AddressError},
+        bitcoin::{bip32, consensus, psbt, AddressError as BitcoinAddressError},
         InternalError,
     },
     wallet::error::WalletError,
@@ -19,6 +20,8 @@ pub enum BriaError {
     WalletError(#[from] WalletError),
     #[error("BriaError - PayoutError: {0}")]
     PayoutError(#[from] PayoutError),
+    #[error("BriaError - AddressError: {0}")]
+    AddressError(#[from] AddressError),
 
     #[error("BriaError - FromHex: {0}")]
     FromHex(#[from] hex::FromHexError),
@@ -71,7 +74,7 @@ pub enum BriaError {
     #[error("BriaError - TryFromIntError")]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("BriaError - BitcoinAddressParseError")]
-    BitcoinAddressParseError(#[from] AddressError),
+    BitcoinAddressParseError(#[from] BitcoinAddressError),
     #[error("BriaError - XPubDepthMismatch: expected depth {0}, got {1}")]
     XPubDepthMismatch(u8, usize),
     #[error("BriaError - XPubParseError: {0}")]
