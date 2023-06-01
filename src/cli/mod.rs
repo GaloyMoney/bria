@@ -261,7 +261,7 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
-    /// List address by external id
+    /// Find address by external id
     FindAddressByExternalId {
         #[clap(
             short,
