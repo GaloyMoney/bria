@@ -356,13 +356,14 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let FindAddressByExternalIdRequest { external_id } = request;
 
-            let (wallet_id, address) = self
+            let address = self
                 .app
                 .find_address_by_external_id(profile, external_id)
                 .await?;
+            let wallet_id = address.wallet_id.clone().to_string();
             let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
             Ok(Response::new(FindAddressByExternalIdResponse {
-                wallet_id: wallet_id.to_string(),
+                wallet_id,
                 address: Some(proto_address),
             }))
         })

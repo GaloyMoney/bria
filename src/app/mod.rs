@@ -420,12 +420,12 @@ impl App {
         &self,
         profile: Profile,
         external_id: String,
-    ) -> Result<(WalletId, WalletAddress), BriaError> {
+    ) -> Result<WalletAddress, BriaError> {
         let address = self
             .addresses
             .find_by_external_id(profile.account_id, external_id)
             .await?;
-        Ok((address.wallet_id, address))
+        Ok(address)
     }
 
     #[instrument(name = "app.list_xpubs", skip(self), err)]
