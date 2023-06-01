@@ -1,3 +1,10 @@
+# [bria release v0.1.13](https://github.com/GaloyMoney/bria/releases/tag/0.1.13)
+
+
+### Bug Fixes
+
+- New-address after sync (#204)
+
 # [bria release v0.1.12](https://github.com/GaloyMoney/bria/releases/tag/0.1.12)
 
 
