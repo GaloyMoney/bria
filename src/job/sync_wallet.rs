@@ -7,6 +7,7 @@ use crate::{
     address::*,
     app::BlockchainConfig,
     batch::*,
+    bdk::error::BdkError,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     error::*,
     fees::{self, MempoolSpaceClient},
@@ -492,7 +493,7 @@ pub async fn execute(
     Ok((has_more, data))
 }
 
-async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), InternalError> {
+async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BdkError> {
     let blockchain = ElectrumBlockchain::from(Client::from_config(
         electrum_url,
         ConfigBuilder::new()

@@ -1,14 +1,14 @@
 use thiserror::Error;
 
 use crate::{
-    address::error::AddressError, payout::error::PayoutError, primitives::InternalError,
+    address::error::AddressError, bdk::error::BdkError, payout::error::PayoutError,
     wallet::error::WalletError,
 };
 
 #[derive(Error, Debug)]
 pub enum ApplicationError {
     #[error("{0}")]
-    Internal(#[from] InternalError),
+    BdkError(#[from] BdkError),
     #[error("{0}")]
     WalletError(#[from] WalletError),
     #[error("{0}")]

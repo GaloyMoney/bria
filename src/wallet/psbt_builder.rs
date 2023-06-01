@@ -10,7 +10,10 @@ use std::{
 };
 
 use super::{keychain::*, Wallet as WalletEntity};
-use crate::primitives::{bitcoin::*, *};
+use crate::{
+    bdk::error::BdkError,
+    primitives::{bitcoin::*, *},
+};
 
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;
@@ -122,7 +125,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         reserved_utxos: HashMap<KeychainId, Vec<bitcoin::OutPoint>>,
         unbatched_payouts: HashMap<WalletId, Vec<TxPayout>>,
         mut wallets: HashMap<WalletId, WalletEntity>,
-    ) -> Result<FinishedPsbtBuild, InternalError> {
+    ) -> Result<FinishedPsbtBuild, BdkError> {
         let mut outer_builder = PsbtBuilder::new()
             .consolidate_deprecated_keychains(consolidate_deprecated_keychains)
             .fee_rate(fee_rate)
@@ -233,7 +236,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
         mut self,
         keychain_id: KeychainId,
         wallet: &Wallet<D>,
-    ) -> Result<Self, InternalError> {
+    ) -> Result<Self, BdkError> {
         if !self.consolidate_deprecated_keychains.unwrap_or(false) {
             return Ok(self);
         }
@@ -299,7 +302,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         mut self,
         current_keychain_id: KeychainId,
         wallet: &Wallet<D>,
-    ) -> Result<Self, InternalError> {
+    ) -> Result<Self, BdkError> {
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
             .max_satisfaction_weight()
@@ -478,7 +481,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         keychain_id: KeychainId,
         payouts: &[TxPayout],
         wallet: &Wallet<D>,
-    ) -> Result<bool, InternalError> {
+    ) -> Result<bool, BdkError> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
 

@@ -2,20 +2,18 @@ use thiserror::Error;
 
 use crate::{
     address::error::AddressError,
+    bdk::error::BdkError,
     job::JobExecutionError,
     payout::error::PayoutError,
-    primitives::{
-        bitcoin::{bip32, consensus, psbt, AddressError as BitcoinAddressError},
-        InternalError,
-    },
+    primitives::bitcoin::{bip32, consensus, psbt, AddressError as BitcoinAddressError},
     wallet::error::WalletError,
     xpub::SigningClientError,
 };
 
 #[derive(Error, Debug)]
 pub enum BriaError {
-    #[error("BriaError - Internal: {0}")]
-    Internal(#[from] InternalError),
+    #[error("BriaError - BdkError: {0}")]
+    BdkError(#[from] BdkError),
     #[error("BriaError - WalletError: {0}")]
     WalletError(#[from] WalletError),
     #[error("BriaError - PayoutError: {0}")]
