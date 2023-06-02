@@ -420,7 +420,7 @@ impl App {
         &self,
         profile: Profile,
         external_id: String,
-    ) -> Result<WalletAddress, BriaError> {
+    ) -> Result<WalletAddress, ApplicationError> {
         let address = self
             .addresses
             .find_by_external_id(profile.account_id, external_id)

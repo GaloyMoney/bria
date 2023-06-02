@@ -349,7 +349,7 @@ impl BriaService for Bria {
         &self,
         request: Request<FindAddressByExternalIdRequest>,
     ) -> Result<Response<FindAddressByExternalIdResponse>, Status> {
-        crate::tracing::record_error(tracing::Level::ERROR, || async move {
+        crate::tracing::record_error(|| async move {
             extract_tracing(&request);
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
