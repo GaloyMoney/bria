@@ -1,3 +1,14 @@
+# [bria release v0.1.16](https://github.com/GaloyMoney/bria/releases/tag/0.1.16)
+
+
+### Bug Fixes
+
+- Checking correct constraint
+
+### Miscellaneous Tasks
+
+- Add errors for profile (#205)
+
 # [bria release v0.1.15](https://github.com/GaloyMoney/bria/releases/tag/0.1.15)
 
 
