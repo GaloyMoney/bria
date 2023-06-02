@@ -16,7 +16,7 @@ impl From<sqlx::Error> for AddressError {
     fn from(error: sqlx::Error) -> Self {
         if let Some(err) = error.as_database_error() {
             if let Some(constraint) = err.constraint() {
-                if constraint.contains("external_id_already_exists") {
+                if constraint.contains("external_id") {
                     return Self::ExternalIdAlreadyExists;
                 }
             }
