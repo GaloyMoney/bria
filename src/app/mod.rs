@@ -415,6 +415,19 @@ impl App {
         Ok((wallet.id, addresses))
     }
 
+    #[instrument(name = "app.get_address_by_external_id", skip(self), err)]
+    pub async fn find_address_by_external_id(
+        &self,
+        profile: Profile,
+        external_id: String,
+    ) -> Result<Option<WalletAddress>, ApplicationError> {
+        let address = self
+            .addresses
+            .find_by_external_id(profile.account_id, external_id)
+            .await?;
+        Ok(address)
+    }
+
     #[instrument(name = "app.list_xpubs", skip(self), err)]
     pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, BriaError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;

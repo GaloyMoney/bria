@@ -261,6 +261,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
+    /// Find address by external id
+    FindAddressByExternalId {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        external_id: String,
+    },
     /// List Unspent Transaction Outputs of a wallet
     ListUtxos {
         #[clap(
@@ -692,6 +707,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_addresses(wallet).await?;
+        }
+        Command::FindAddressByExternalId {
+            url,
+            api_key,
+            external_id,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.find_address_by_external_id(external_id).await?;
         }
         Command::ListUtxos {
             url,
