@@ -60,7 +60,7 @@ impl PayoutQueues {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(PayoutQueueError::PayoutQueueNotFound(name));
+            return Err(PayoutQueueError::PayoutQueueNameNotFound(name));
         }
         let mut events = EntityEvents::new();
         for row in rows {
