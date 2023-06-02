@@ -631,7 +631,7 @@ impl App {
     pub async fn list_payout_queues(
         &self,
         profile: Profile,
-    ) -> Result<Vec<PayoutQueue>, BriaError> {
+    ) -> Result<Vec<PayoutQueue>, ApplicationError> {
         let payout_queues = self
             .payout_queues
             .list_by_account_id(profile.account_id)
