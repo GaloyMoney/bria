@@ -48,6 +48,7 @@ impl Profiles {
         )
         .fetch_all(&self.pool)
         .await?;
+
         let profiles = records
             .into_iter()
             .map(|record| Profile {
