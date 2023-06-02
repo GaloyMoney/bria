@@ -1,3 +1,14 @@
+# [bria release v0.1.14](https://github.com/GaloyMoney/bria/releases/tag/0.1.14)
+
+
+### Features
+
+- Add find-address-by-external-id (#203)
+
+### Refactor
+
+- Rename FindAddress cli cmd
+
 # [bria release v0.1.13](https://github.com/GaloyMoney/bria/releases/tag/0.1.13)
 
 
