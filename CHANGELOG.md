@@ -1,3 +1,14 @@
+# [bria release v0.1.15](https://github.com/GaloyMoney/bria/releases/tag/0.1.15)
+
+
+### Bug Fixes
+
+- Clippy
+
+### Miscellaneous Tasks
+
+- Return NOT_FOUND when external-id does not exist
+
 # [bria release v0.1.14](https://github.com/GaloyMoney/bria/releases/tag/0.1.14)
 
 
