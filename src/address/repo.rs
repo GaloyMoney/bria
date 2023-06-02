@@ -173,7 +173,7 @@ impl Addresses {
         &self,
         account_id: AccountId,
         external_id: String,
-    ) -> Result<WalletAddress, AddressError> {
+    ) -> Result<Option<WalletAddress>, AddressError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.id, e.sequence, e.event
@@ -187,12 +187,12 @@ impl Addresses {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(AddressError::ExternalIdDoesNotExist);
+            return Ok(None);
         }
         let mut events = EntityEvents::new();
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;
         }
-        Ok(WalletAddress::try_from(events)?)
+        Ok(Some(WalletAddress::try_from(events)?))
     }
 }

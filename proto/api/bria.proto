@@ -173,8 +173,8 @@ message FindAddressByExternalIdRequest {
 }
 
 message FindAddressByExternalIdResponse {
-  string wallet_id = 1;
-  WalletAddress address = 2;
+  optional string wallet_id = 1;
+  optional WalletAddress address = 2;
 }
 
 message ListUtxosRequest {

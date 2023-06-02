@@ -4,8 +4,6 @@ use thiserror::Error;
 pub enum AddressError {
     #[error("AddressError: external_id already exists")]
     ExternalIdAlreadyExists,
-    #[error("AddressError: external_id does not exist")]
-    ExternalIdDoesNotExist,
     #[error("AddressError - Sqlx: {0}")]
     Sqlx(sqlx::Error),
     #[error("AddressError - EntityError: {0}")]
@@ -18,8 +16,6 @@ impl From<sqlx::Error> for AddressError {
             if let Some(constraint) = err.constraint() {
                 if constraint.contains("external_id_already_exists") {
                     return Self::ExternalIdAlreadyExists;
-                } else if constraint.contains("external_id_does_not_exist") {
-                    return Self::ExternalIdDoesNotExist;
                 }
             }
         }

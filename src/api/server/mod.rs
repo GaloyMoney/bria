@@ -360,12 +360,19 @@ impl BriaService for Bria {
                 .app
                 .find_address_by_external_id(profile, external_id)
                 .await?;
-            let wallet_id = address.wallet_id.clone().to_string();
-            let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
-            Ok(Response::new(FindAddressByExternalIdResponse {
-                wallet_id,
-                address: Some(proto_address),
-            }))
+            if let Some(address) = address {
+                let wallet_id = address.wallet_id.clone().to_string();
+                let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
+                Ok(Response::new(FindAddressByExternalIdResponse {
+                    wallet_id: Some(wallet_id),
+                    address: Some(proto_address),
+                }))
+            } else {
+                Ok(Response::new(FindAddressByExternalIdResponse {
+                    wallet_id: None,
+                    address: None,
+                }))
+            }
         })
         .await
     }
