@@ -262,7 +262,7 @@ enum Command {
         wallet: String,
     },
     /// Find address by external id
-    FindAddressByExternalId {
+    FindAddress {
         #[clap(
             short,
             long,
@@ -708,7 +708,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_addresses(wallet).await?;
         }
-        Command::FindAddressByExternalId {
+        Command::FindAddress {
             url,
             api_key,
             external_id,
