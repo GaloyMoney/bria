@@ -8,7 +8,7 @@ use bria::{
 };
 
 #[tokio::test]
-async fn address_not_found() -> anyhow::Result<()> {
+async fn external_id_does_not_exist() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
 
