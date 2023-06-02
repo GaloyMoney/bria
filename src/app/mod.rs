@@ -129,7 +129,7 @@ impl App {
     }
 
     #[instrument(name = "app.list_profiles", skip(self), err)]
-    pub async fn list_profiles(&self, profile: Profile) -> Result<Vec<Profile>, BriaError> {
+    pub async fn list_profiles(&self, profile: Profile) -> Result<Vec<Profile>, ApplicationError> {
         let profiles = self.profiles.list_for_account(profile.account_id).await?;
         Ok(profiles)
     }
