@@ -2,7 +2,7 @@ use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use super::entity::*;
+use super::{entity::*, error::ProfileError};
 use crate::{dev_constants, error::*, primitives::*};
 
 pub struct Profiles {
@@ -38,14 +38,16 @@ impl Profiles {
         })
     }
 
-    pub async fn list_for_account(&self, account_id: AccountId) -> Result<Vec<Profile>, BriaError> {
+    pub async fn list_for_account(
+        &self,
+        account_id: AccountId,
+    ) -> Result<Vec<Profile>, ProfileError> {
         let records = sqlx::query!(
             r#"SELECT id, name FROM bria_profiles WHERE account_id = $1"#,
-            Uuid::from(account_id)
+            account_id as AccountId
         )
         .fetch_all(&self.pool)
         .await?;
-
         let profiles = records
             .into_iter()
             .map(|record| Profile {
