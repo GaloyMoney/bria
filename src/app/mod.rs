@@ -108,7 +108,7 @@ impl App {
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
-    pub async fn authenticate(&self, key: &str) -> Result<Profile, BriaError> {
+    pub async fn authenticate(&self, key: &str) -> Result<Profile, ApplicationError> {
         let profile = self.profiles.find_by_key(key).await?;
         Ok(profile)
     }
@@ -402,7 +402,7 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
-    ) -> Result<(WalletId, Vec<WalletAddress>), BriaError> {
+    ) -> Result<(WalletId, Vec<WalletAddress>), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -607,8 +607,10 @@ impl App {
     }
 
     #[instrument(name = "app.list_wallets", skip_all, err)]
-    pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, BriaError> {
-        self.wallets.list_by_account_id(profile.account_id).await
+    pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, ApplicationError> {
+        println!("{:?}", profile.account_id);
+        let wallets = self.wallets.list_by_account_id(profile.account_id).await?;
+        Ok(wallets)
     }
 
     #[instrument(name = "app.list_payouts", skip_all, err)]

@@ -113,7 +113,7 @@ impl Addresses {
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
-    ) -> Result<Vec<WalletAddress>, BriaError> {
+    ) -> Result<Vec<WalletAddress>, AddressError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.id, e.sequence, e.event
