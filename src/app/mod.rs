@@ -409,7 +409,7 @@ impl App {
             .await?;
         let addresses = self
             .addresses
-            .find_external_by_wallet_id(profile.account_id, wallet.id)
+            .list_external_by_wallet_id(profile.account_id, wallet.id)
             .await?;
 
         Ok((wallet.id, addresses))

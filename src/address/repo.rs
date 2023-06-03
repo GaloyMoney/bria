@@ -109,7 +109,7 @@ impl Addresses {
         Ok(())
     }
 
-    pub async fn find_external_by_wallet_id(
+    pub async fn list_external_by_wallet_id(
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
