@@ -503,7 +503,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::AddressError(AddressError::ExternalIdDoesNotExist) => {
+            ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {

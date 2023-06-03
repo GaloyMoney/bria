@@ -20,7 +20,7 @@ async fn external_id_does_not_exist() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::AddressError(
-            AddressError::ExternalIdDoesNotExist
+            AddressError::ExternalIdNotFound
         ))
     ));
 

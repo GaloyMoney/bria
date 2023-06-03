@@ -187,7 +187,7 @@ impl Addresses {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(AddressError::ExternalIdDoesNotExist);
+            return Err(AddressError::ExternalIdNotFound);
         }
         let mut events = EntityEvents::new();
         for row in rows {
