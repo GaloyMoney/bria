@@ -129,7 +129,7 @@ impl Profiles {
                 name: record.name,
             })
         } else {
-            Err(ProfileError::ProfileNotFoundError)
+            Err(ProfileError::ProfileKeyNotFound)
         }
     }
 }

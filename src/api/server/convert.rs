@@ -497,6 +497,9 @@ impl From<ApplicationError> for tonic::Status {
         };
 
         match err {
+            ApplicationError::ProfileError(ProfileError::ProfileKeyNotFound) => {
+                tonic::Status::unauthenticated(err.to_string())
+            }
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
@@ -507,9 +510,6 @@ impl From<ApplicationError> for tonic::Status {
                 tonic::Status::already_exists(err.to_string())
             }
             ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueNameNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
-            ApplicationError::ProfileError(ProfileError::ProfileNotFoundError) => {
                 tonic::Status::not_found(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),
