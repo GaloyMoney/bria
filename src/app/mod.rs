@@ -608,9 +608,7 @@ impl App {
 
     #[instrument(name = "app.list_wallets", skip_all, err)]
     pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, ApplicationError> {
-        println!("{:?}", profile.account_id);
-        let wallets = self.wallets.list_by_account_id(profile.account_id).await?;
-        Ok(wallets)
+        Ok(self.wallets.list_by_account_id(profile.account_id).await?)
     }
 
     #[instrument(name = "app.list_payouts", skip_all, err)]
