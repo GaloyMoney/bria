@@ -89,7 +89,7 @@ impl Wallets {
     pub async fn list_by_account_id(
         &self,
         account_id: AccountId,
-    ) -> Result<Vec<Wallet>, BriaError> {
+    ) -> Result<Vec<Wallet>, WalletError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event

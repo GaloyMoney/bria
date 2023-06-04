@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::entity::*;
+use super::{entity::*, error::PayoutQueueError};
 use crate::{entity::*, error::*, primitives::*};
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ impl PayoutQueues {
         &self,
         account_id: AccountId,
         name: String,
-    ) -> Result<PayoutQueue, BriaError> {
+    ) -> Result<PayoutQueue, PayoutQueueError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
@@ -54,13 +54,13 @@ impl PayoutQueues {
               JOIN bria_payout_queue_events e ON b.id = e.id
               WHERE account_id = $1 AND name = $2
               ORDER BY e.sequence"#,
-            Uuid::from(account_id),
+            account_id as AccountId,
             name
         )
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(BriaError::PayoutQueueNotFound(name));
+            return Err(PayoutQueueError::PayoutQueueNameNotFound(name));
         }
         let mut events = EntityEvents::new();
         for row in rows {
@@ -98,7 +98,7 @@ impl PayoutQueues {
     pub async fn list_by_account_id(
         &self,
         account_id: AccountId,
-    ) -> Result<Vec<PayoutQueue>, BriaError> {
+    ) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event

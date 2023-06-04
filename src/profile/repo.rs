@@ -111,7 +111,7 @@ impl Profiles {
         })
     }
 
-    pub async fn find_by_key(&self, key: &str) -> Result<Profile, BriaError> {
+    pub async fn find_by_key(&self, key: &str) -> Result<Profile, ProfileError> {
         let record = sqlx::query!(
             r#"SELECT p.id, p.account_id, p.name
                FROM bria_profiles p
@@ -119,12 +119,17 @@ impl Profiles {
                WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"#,
             key
         )
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
-        Ok(Profile {
-            id: ProfileId::from(record.id),
-            account_id: AccountId::from(record.account_id),
-            name: record.name,
-        })
+
+        if let Some(record) = record {
+            Ok(Profile {
+                id: ProfileId::from(record.id),
+                account_id: AccountId::from(record.account_id),
+                name: record.name,
+            })
+        } else {
+            Err(ProfileError::ProfileKeyNotFound)
+        }
     }
 }

@@ -5,6 +5,7 @@ use crate::{
     bdk::error::BdkError,
     job::JobExecutionError,
     payout::error::PayoutError,
+    payout_queue::error::PayoutQueueError,
     primitives::bitcoin::{bip32, consensus, psbt, AddressError as BitcoinAddressError},
     wallet::error::WalletError,
     xpub::SigningClientError,
@@ -20,6 +21,8 @@ pub enum BriaError {
     PayoutError(#[from] PayoutError),
     #[error("BriaError - AddressError: {0}")]
     AddressError(#[from] AddressError),
+    #[error("BriaError - PayoutQueueError: {0}")]
+    PayoutQueueError(#[from] PayoutQueueError),
 
     #[error("BriaError - FromHex: {0}")]
     FromHex(#[from] hex::FromHexError),

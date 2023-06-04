@@ -492,17 +492,25 @@ impl From<AddressAugmentation> for proto::WalletAddress {
 
 impl From<ApplicationError> for tonic::Status {
     fn from(err: ApplicationError) -> Self {
-        use crate::{address::error::*, wallet::error::*};
+        use crate::{
+            address::error::*, payout_queue::error::*, profile::error::*, wallet::error::*,
+        };
 
         match err {
+            ApplicationError::ProfileError(ProfileError::ProfileKeyNotFound) => {
+                tonic::Status::unauthenticated(err.to_string())
+            }
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::AddressError(AddressError::ExternalIdDoesNotExist) => {
+            ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
+            }
+            ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueNameNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),
         }

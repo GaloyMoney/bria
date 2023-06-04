@@ -5,6 +5,7 @@ use rand::distributions::{Alphanumeric, DistString};
 use bria::{
     address::error::AddressError,
     app::{error::ApplicationError, *},
+    profile::error::ProfileError,
 };
 
 #[tokio::test]
@@ -20,7 +21,7 @@ async fn external_id_does_not_exist() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::AddressError(
-            AddressError::ExternalIdDoesNotExist
+            AddressError::ExternalIdNotFound
         ))
     ));
 
@@ -57,6 +58,21 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
         addr,
         Err(ApplicationError::AddressError(
             AddressError::ExternalIdAlreadyExists
+        ))
+    ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn profile_key_not_found() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let key = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let app = App::run(pool, AppConfig::default()).await?;
+    let profile_err = app.authenticate(&key).await;
+    assert!(matches!(
+        profile_err,
+        Err(ApplicationError::ProfileError(
+            ProfileError::ProfileKeyNotFound
         ))
     ));
     Ok(())

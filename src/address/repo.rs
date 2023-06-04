@@ -113,7 +113,7 @@ impl Addresses {
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
-    ) -> Result<Vec<WalletAddress>, BriaError> {
+    ) -> Result<Vec<WalletAddress>, AddressError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.id, e.sequence, e.event
@@ -187,7 +187,7 @@ impl Addresses {
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(AddressError::ExternalIdDoesNotExist);
+            return Err(AddressError::ExternalIdNotFound);
         }
         let mut events = EntityEvents::new();
         for row in rows {
