@@ -6,7 +6,7 @@ mod wallet_accounts;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, balance::AccountBalance, event::*, journal::*,
+    account::NewAccount as NewLedgerAccount, event::*, journal::*,
     Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
@@ -405,19 +405,6 @@ impl Ledger {
                 .get_mut(&sqlx_ledger::AccountId::from(ONCHAIN_FEE_ID))
                 .and_then(|b| b.remove(&self.btc)),
         })
-    }
-
-    #[instrument(name = "ledger.get_ledger_account_balance")]
-    pub async fn get_ledger_account_balance(
-        &self,
-        journal_id: JournalId,
-        account_id: LedgerAccountId,
-    ) -> Result<Option<AccountBalance>, BriaError> {
-        Ok(self
-            .inner
-            .balances()
-            .find(journal_id, account_id, self.btc)
-            .await?)
     }
 
     #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
