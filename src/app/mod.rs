@@ -314,7 +314,7 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
-    ) -> Result<WalletBalanceSummary, BriaError> {
+    ) -> Result<WalletBalanceSummary, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -332,7 +332,7 @@ impl App {
     pub async fn get_account_balance_summary(
         &self,
         profile: Profile,
-    ) -> Result<AccountBalanceSummary, BriaError> {
+    ) -> Result<AccountBalanceSummary, ApplicationError> {
         let account_ledger_account_balances = self
             .ledger
             .get_account_ledger_account_balances(profile.account_id.into())
