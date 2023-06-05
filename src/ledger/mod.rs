@@ -6,8 +6,8 @@ mod wallet_accounts;
 
 use sqlx::{PgPool, Postgres, Transaction};
 use sqlx_ledger::{
-    account::NewAccount as NewLedgerAccount, event::*, journal::*,
-    Currency, DebitOrCredit, JournalId, SqlxLedger, SqlxLedgerError,
+    account::NewAccount as NewLedgerAccount, event::*, journal::*, Currency, DebitOrCredit,
+    JournalId, SqlxLedger, SqlxLedgerError,
 };
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
