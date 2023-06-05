@@ -382,7 +382,7 @@ impl App {
         address: String,
         new_external_id: Option<String>,
         new_metadata: Option<serde_json::Value>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         let mut address = self
             .addresses
             .find_by_address(profile.account_id, address)
@@ -429,7 +429,7 @@ impl App {
     }
 
     #[instrument(name = "app.list_xpubs", skip(self), err)]
-    pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, BriaError> {
+    pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, ApplicationError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
         Ok(xpubs)
     }

@@ -69,7 +69,7 @@ impl Addresses {
         Ok(Self::persist_events(tx, address).await?)
     }
 
-    pub async fn update(&self, address: WalletAddress) -> Result<(), BriaError> {
+    pub async fn update(&self, address: WalletAddress) -> Result<(), AddressError> {
         if !address.events.is_dirty() {
             return Ok(());
         }
@@ -149,7 +149,7 @@ impl Addresses {
         &self,
         account_id: AccountId,
         address: String,
-    ) -> Result<WalletAddress, BriaError> {
+    ) -> Result<WalletAddress, AddressError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.id, e.sequence, e.event

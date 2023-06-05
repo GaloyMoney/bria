@@ -1,4 +1,5 @@
 mod entity;
+pub mod error;
 mod reference;
 mod repo;
 mod signer_config;

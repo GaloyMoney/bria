@@ -2,7 +2,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::{entity::*, reference::*, signer_config::*};
+use super::{entity::*, error::XPubError, reference::*, signer_config::*};
 use crate::{entity::*, error::*, primitives::*};
 use std::collections::HashMap;
 
@@ -150,7 +150,7 @@ impl XPubs {
         Ok(AccountXPub::try_from((events, config))?)
     }
 
-    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, BriaError> {
+    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, XPubError> {
         let rows = sqlx::query!(
             r#"SELECT b.*, e.sequence, e.event
             FROM bria_xpubs b
