@@ -611,21 +611,32 @@ async fn onto_account_main_channel<D: serde::Serialize>(
     name: &str,
     data: D,
 ) -> Result<D, BriaError> {
-    match JobBuilder::new_with_id(uuid.into(), name)
-        .set_ordered(true)
-        .set_channel_name("account_main")
-        .set_channel_args(&account_main_channel_arg(account_id))
-        .set_json(&data)
-        .expect("Couldn't set json")
-        .spawn(pool)
-        .await
-    {
-        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(data),
-        Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-            Err(BriaError::from(e))
+    let uuid = uuid.into();
+    loop {
+        match JobBuilder::new_with_id(uuid, name)
+            .set_ordered(true)
+            .set_channel_name("account_main")
+            .set_channel_args(&account_main_channel_arg(account_id))
+            .set_json(&data)
+            .expect("Couldn't set json")
+            .spawn(pool)
+            .await
+        {
+            Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => {
+                return Ok(data)
+            }
+            Err(sqlx::Error::Database(err))
+                if err.message().contains("mq_msgs_after_message_id_fkey") =>
+            {
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                continue;
+            }
+            Err(e) => {
+                crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+                return Err(BriaError::from(e));
+            }
+            Ok(_) => return Ok(data),
         }
-        Ok(_) => Ok(data),
     }
 }
 
