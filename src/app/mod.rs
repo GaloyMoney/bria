@@ -5,7 +5,7 @@ use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
 pub use config::*;
-use error::*;
+pub use error::*;
 
 use crate::{
     account::balance::AccountBalanceSummary,

@@ -661,7 +661,7 @@ impl BriaService for Bria {
     }
 }
 
-pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
+pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), ApplicationError> {
     use proto::bria_service_server::BriaServiceServer;
 
     let bria = Bria { app };

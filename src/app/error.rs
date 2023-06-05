@@ -31,4 +31,6 @@ pub enum ApplicationError {
     Sqlx(#[from] sqlx::Error),
     #[error("{0}")]
     OutboxError(#[from] OutboxError),
+    #[error("{0}")]
+    ServerError(#[from] tonic::transport::Error),
 }
