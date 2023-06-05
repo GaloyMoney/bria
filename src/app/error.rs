@@ -2,8 +2,9 @@ use thiserror::Error;
 
 use crate::{
     address::error::AddressError, bdk::error::BdkError, job::error::JobError,
-    ledger::error::LedgerError, payout::error::PayoutError, payout_queue::error::PayoutQueueError,
-    profile::error::ProfileError, wallet::error::WalletError, xpub::error::XPubError,
+    ledger::error::LedgerError, outbox::error::OutboxError, payout::error::PayoutError,
+    payout_queue::error::PayoutQueueError, profile::error::ProfileError,
+    wallet::error::WalletError, xpub::error::XPubError,
 };
 
 #[derive(Error, Debug)]
@@ -26,4 +27,8 @@ pub enum ApplicationError {
     XPubError(#[from] XPubError),
     #[error("{0}")]
     JobError(#[from] JobError),
+    #[error("{0}")]
+    Sqlx(#[from] sqlx::Error),
+    #[error("{0}")]
+    OutboxError(#[from] OutboxError),
 }

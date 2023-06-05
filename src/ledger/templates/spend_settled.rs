@@ -6,8 +6,7 @@ use tracing::instrument;
 
 use super::shared_meta::*;
 use crate::{
-    error::*,
-    ledger::{constants::*, WalletLedgerAccountIds},
+    ledger::{constants::*, error::LedgerError, WalletLedgerAccountIds},
     primitives::*,
 };
 
@@ -165,7 +164,7 @@ pub struct SpendSettled {}
 
 impl SpendSettled {
     #[instrument(name = "ledger.spend_settled.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")

@@ -22,7 +22,7 @@ impl Payouts {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         new_payout: NewPayout,
-    ) -> Result<PayoutId, BriaError> {
+    ) -> Result<PayoutId, PayoutError> {
         sqlx::query!(
             r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
                VALUES ($1, $2, $3, $4, $5, $6)"#,

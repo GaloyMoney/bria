@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
-use crate::{error::*, ledger::constants::*, primitives::*};
+use crate::{
+    ledger::{constants::*, error::LedgerError},
+    primitives::*,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PayoutSubmittedMeta {
@@ -91,7 +94,7 @@ pub struct PayoutSubmitted {}
 
 impl PayoutSubmitted {
     #[instrument(name = "ledger.payout_submitted.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")

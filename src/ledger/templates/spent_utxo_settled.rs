@@ -2,13 +2,13 @@ use sqlx_ledger::{tx_template::*, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
 use super::utxo_settled::UtxoSettledParams;
-use crate::{error::*, ledger::constants::*};
+use crate::ledger::{constants::*, error::LedgerError};
 
 pub struct SpentUtxoSettled {}
 
 impl SpentUtxoSettled {
     #[instrument(name = "ledger.spent_utxo_settled.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")

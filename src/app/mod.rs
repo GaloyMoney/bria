@@ -559,7 +559,7 @@ impl App {
         sats: Satoshis,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<PayoutId, BriaError> {
+    ) -> Result<PayoutId, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)

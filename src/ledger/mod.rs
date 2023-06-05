@@ -155,7 +155,7 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         params: PayoutSubmittedParams,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, PAYOUT_SUBMITTED_CODE, Some(params))
             .await?;
@@ -632,7 +632,9 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.effective_at_rest_account", skip_all)]
-    async fn effective_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
+    async fn effective_at_rest_account(
+        ledger: &SqlxLedger,
+    ) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(EFFECTIVE_AT_REST_CODE)
             .id(EFFECTIVE_AT_REST_ID)
@@ -651,7 +653,9 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.effective_outgoing_account", skip_all)]
-    async fn effective_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerErrorr> {
+    async fn effective_outgoing_account(
+        ledger: &SqlxLedger,
+    ) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(EFFECTIVE_OUTGOING_CODE)
             .id(EFFECTIVE_OUTGOING_ID)

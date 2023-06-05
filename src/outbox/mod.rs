@@ -139,7 +139,7 @@ impl Outbox {
         sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
         repo: OutboxRepo,
         sequences: Arc<RwLock<SequenceMap>>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), OutboxError> {
         let mut listener = PgListener::connect_with(pool).await?;
         listener.listen("bria_outbox_events").await?;
         tokio::spawn(async move {

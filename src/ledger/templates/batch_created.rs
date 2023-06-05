@@ -6,8 +6,7 @@ use uuid::Uuid;
 
 use super::shared_meta::*;
 use crate::{
-    error::*,
-    ledger::{constants::*, WalletLedgerAccountIds},
+    ledger::{constants::*, error::LedgerError, WalletLedgerAccountIds},
     primitives::*,
 };
 
@@ -170,7 +169,7 @@ pub struct BatchCreated {}
 
 impl BatchCreated {
     #[instrument(name = "ledger.batch_created.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")

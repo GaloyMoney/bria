@@ -5,7 +5,10 @@ use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
 use super::shared_meta::*;
-use crate::{error::*, ledger::constants::*, primitives::*};
+use crate::{
+    ledger::{constants::*, error::LedgerError},
+    primitives::*,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UtxoDetectedMeta {
@@ -121,7 +124,7 @@ pub struct UtxoDetected {}
 
 impl UtxoDetected {
     #[instrument(name = "ledger.utxo_detected.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
