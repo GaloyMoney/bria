@@ -1,4 +1,5 @@
 mod constants;
+pub mod error;
 mod event;
 mod templates;
 mod wallet_accounts;
@@ -15,6 +16,7 @@ use std::collections::HashMap;
 
 use crate::{account::balance::*, error::*, primitives::*};
 use constants::*;
+use error::LedgerError;
 pub use event::*;
 pub use templates::*;
 pub use wallet_accounts::*;
@@ -317,7 +319,7 @@ impl Ledger {
             fee_id,
             dust_id,
         }: WalletLedgerAccountIds,
-    ) -> Result<WalletLedgerAccountBalances, BriaError> {
+    ) -> Result<WalletLedgerAccountBalances, LedgerError> {
         let mut balances = self
             .inner
             .balances()
@@ -363,7 +365,7 @@ impl Ledger {
     pub async fn get_account_ledger_account_balances(
         &self,
         journal_id: JournalId,
-    ) -> Result<AccountLedgerAccountBalances, BriaError> {
+    ) -> Result<AccountLedgerAccountBalances, LedgerError> {
         let mut balances = self
             .inner
             .balances()

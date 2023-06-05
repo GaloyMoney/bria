@@ -1,9 +1,9 @@
 use thiserror::Error;
 
 use crate::{
-    address::error::AddressError, bdk::error::BdkError, payout::error::PayoutError,
-    payout_queue::error::PayoutQueueError, profile::error::ProfileError,
-    wallet::error::WalletError,
+    address::error::AddressError, bdk::error::BdkError, ledger::error::LedgerError,
+    payout::error::PayoutError, payout_queue::error::PayoutQueueError,
+    profile::error::ProfileError, wallet::error::WalletError,
 };
 
 #[derive(Error, Debug)]
@@ -20,4 +20,6 @@ pub enum ApplicationError {
     ProfileError(#[from] ProfileError),
     #[error("{0}")]
     PayoutQueueError(#[from] PayoutQueueError),
+    #[error("{0}")]
+    LedgerError(#[from] LedgerError),
 }
