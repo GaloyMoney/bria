@@ -64,7 +64,9 @@ impl Wallets {
         Ok(Wallet::try_from(events)?)
     }
 
-    pub async fn all_ids(&self) -> Result<impl Iterator<Item = (AccountId, WalletId)>, BriaError> {
+    pub async fn all_ids(
+        &self,
+    ) -> Result<impl Iterator<Item = (AccountId, WalletId)>, WalletError> {
         let rows =
             sqlx::query!(r#"SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"#,)
                 .fetch_all(&self.pool)

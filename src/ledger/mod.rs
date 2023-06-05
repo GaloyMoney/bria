@@ -35,7 +35,7 @@ impl Ledger {
         }
     }
 
-    pub async fn init(pool: &PgPool) -> Result<Self, BriaError> {
+    pub async fn init(pool: &PgPool) -> Result<Self, LedgerError> {
         let inner = SqlxLedger::new(pool);
 
         Self::onchain_income_account(&inner).await?;
@@ -540,7 +540,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.onchain_income_account", skip_all)]
-    async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn onchain_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(ONCHAIN_UTXO_INCOMING_CODE)
             .id(ONCHAIN_UTXO_INCOMING_ID)
@@ -559,7 +559,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.onchain_at_rest_account", skip_all)]
-    async fn onchain_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn onchain_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(ONCHAIN_UTXO_AT_REST_CODE)
             .id(ONCHAIN_UTXO_AT_REST_ID)
@@ -578,7 +578,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.onchain_outgoing_account", skip_all)]
-    async fn onchain_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn onchain_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(ONCHAIN_UTXO_OUTGOING_CODE)
             .id(ONCHAIN_UTXO_OUTGOING_ID)
@@ -597,7 +597,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.onchain_fee_account", skip_all)]
-    async fn onchain_fee_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn onchain_fee_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(ONCHAIN_FEE_CODE)
             .id(ONCHAIN_FEE_ID)
@@ -613,7 +613,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.effective_income_account", skip_all)]
-    async fn effective_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn effective_income_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(EFFECTIVE_INCOMING_CODE)
             .id(EFFECTIVE_INCOMING_ID)
@@ -632,7 +632,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.effective_at_rest_account", skip_all)]
-    async fn effective_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn effective_at_rest_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerError> {
         let new_account = NewLedgerAccount::builder()
             .code(EFFECTIVE_AT_REST_CODE)
             .id(EFFECTIVE_AT_REST_ID)
@@ -651,7 +651,7 @@ impl Ledger {
     }
 
     #[instrument(name = "ledger.effective_outgoing_account", skip_all)]
-    async fn effective_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, BriaError> {
+    async fn effective_outgoing_account(ledger: &SqlxLedger) -> Result<LedgerAccountId, LedgerErrorr> {
         let new_account = NewLedgerAccount::builder()
             .code(EFFECTIVE_OUTGOING_CODE)
             .id(EFFECTIVE_OUTGOING_ID)

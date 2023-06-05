@@ -6,6 +6,7 @@ mod executor;
 mod populate_outbox;
 mod sync_wallet;
 
+pub mod error;
 pub mod process_payout_queue;
 
 pub use config::*;
@@ -22,6 +23,7 @@ use crate::{
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
 use batch_wallet_accounting::BatchWalletAccountingData;
+use error::JobError;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
 use populate_outbox::PopulateOutboxData;
@@ -49,7 +51,7 @@ pub async fn start_job_runner(
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
     mempool_space_client: MempoolSpaceClient,
-) -> Result<OwnedHandle, BriaError> {
+) -> Result<OwnedHandle, JobError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
         sync_wallet,
@@ -88,7 +90,7 @@ async fn sync_all_wallets(
         sync_all_wallets_delay: delay,
         ..
     }: JobsConfig,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
@@ -97,7 +99,7 @@ async fn sync_all_wallets(
             for (account_id, wallet_id) in wallets.all_ids().await? {
                 let _ = spawn_sync_wallet(&pool, SyncWalletData::new(account_id, wallet_id)).await;
             }
-            Ok::<(), BriaError>(())
+            Ok::<(), JobError>(())
         })
         .await?;
     spawn_sync_all_wallets(current_job.pool(), delay).await?;
@@ -112,7 +114,7 @@ async fn process_all_payout_queues(
         process_all_payout_queues_delay: delay,
         ..
     }: JobsConfig,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
@@ -130,7 +132,7 @@ async fn process_all_payout_queues(
                     .await;
                 }
             }
-            Ok::<(), BriaError>(())
+            Ok::<(), JobError>(())
         })
         .await?;
     spawn_process_all_payout_queues(current_job.pool(), delay).await?;
@@ -163,7 +165,7 @@ async fn respawn_all_outbox_handlers(
         respawn_all_outbox_handlers_delay: delay,
         ..
     }: JobsConfig,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     let accounts = Accounts::new(&pool);
     JobExecutor::builder(&mut current_job)
@@ -173,7 +175,7 @@ async fn respawn_all_outbox_handlers(
             for account in accounts.list().await? {
                 let _ = spawn_outbox_handler(&pool, account).await;
             }
-            Ok::<(), BriaError>(())
+            Ok::<(), JobError>(())
         })
         .await?;
     spawn_respawn_all_outbox_handlers(current_job.pool(), delay).await?;
@@ -393,7 +395,7 @@ async fn batch_broadcasting(
 pub async fn spawn_sync_all_wallets(
     pool: &sqlx::PgPool,
     duration: std::time::Duration,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     match JobBuilder::new_with_id(SYNC_ALL_WALLETS_ID, "sync_all_wallets")
         .set_channel_name("sync_all_wallets")
         .set_delay(duration)
@@ -419,7 +421,7 @@ async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<
 pub async fn spawn_process_all_payout_queues(
     pool: &sqlx::PgPool,
     delay: std::time::Duration,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     match JobBuilder::new_with_id(PROCESS_ALL_PAYOUT_QUEUES_ID, "process_all_payout_queues")
         .set_channel_name("process_all_payout_queues")
         .set_delay(delay)
@@ -558,7 +560,7 @@ async fn spawn_batch_broadcasting(
 }
 
 #[instrument(name = "job.spawn_outbox_handler", skip_all)]
-pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Result<(), BriaError> {
+pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Result<(), JobError> {
     let data = PopulateOutboxData {
         account_id: account.id,
         journal_id: account.journal_id(),
@@ -584,7 +586,7 @@ pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Resu
 pub async fn spawn_respawn_all_outbox_handlers(
     pool: &sqlx::PgPool,
     duration: std::time::Duration,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     match JobBuilder::new_with_id(RESPAWN_ALL_OUTBOX_ID, "respawn_all_outbox_handlers")
         .set_channel_name("respawn_all_outbox_handlers")
         .set_delay(duration)

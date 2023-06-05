@@ -1,13 +1,14 @@
 use thiserror::Error;
 
+use super::JobExecutionError;
 use crate::{
-    address::error::AddressError, bdk::error::BdkError, job::error::JobError,
+    account::error::AccountError, address::error::AddressError, bdk::error::BdkError,
     ledger::error::LedgerError, payout::error::PayoutError, payout_queue::error::PayoutQueueError,
     profile::error::ProfileError, wallet::error::WalletError, xpub::error::XPubError,
 };
 
 #[derive(Error, Debug)]
-pub enum ApplicationError {
+pub enum JobError {
     #[error("{0}")]
     BdkError(#[from] BdkError),
     #[error("{0}")]
@@ -24,6 +25,10 @@ pub enum ApplicationError {
     LedgerError(#[from] LedgerError),
     #[error("{0}")]
     XPubError(#[from] XPubError),
+    #[error("JobError - Sqlx: {0}")]
+    Sqlx(#[from] sqlx::Error),
     #[error("{0}")]
-    JobError(#[from] JobError),
+    AccountError(#[from] AccountError),
 }
+
+impl JobExecutionError for JobError {}

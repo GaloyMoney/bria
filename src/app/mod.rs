@@ -47,7 +47,7 @@ pub struct App {
 }
 
 impl App {
-    pub async fn run(pool: sqlx::PgPool, config: AppConfig) -> Result<Self, BriaError> {
+    pub async fn run(pool: sqlx::PgPool, config: AppConfig) -> Result<Self, ApplicationError> {
         let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
         let payout_queues = PayoutQueues::new(&pool);
@@ -695,7 +695,7 @@ impl App {
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         tokio::spawn(async move {
             loop {
                 let _ = job::spawn_sync_all_wallets(&pool, std::time::Duration::from_secs(1)).await;
@@ -709,7 +709,7 @@ impl App {
     async fn spawn_process_all_payout_queues(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         tokio::spawn(async move {
             loop {
                 let _ =
@@ -725,7 +725,7 @@ impl App {
     async fn spawn_respawn_all_outbox_handlers(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         tokio::spawn(async move {
             loop {
                 let _ = job::spawn_respawn_all_outbox_handlers(
