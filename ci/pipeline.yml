@@ -5,7 +5,8 @@
 #@   "public_docker_registry",
 #@   "nodejs_task_image_config",
 #@   "rust_check_code",
-#@   "rust_integration_test",
+#@   "docker_host_pool",
+#@   "test_on_docker_host",
 #@   "repo_resource",
 #@   "edge_image_resource",
 #@   "version_resource",
@@ -24,8 +25,8 @@ groups:
 - name: bria
   jobs:
   - check-code
-  - test-integration
-  - test-e2e
+  - integration-tests
+  - e2e-tests
   - release
   - release-docker
   - set-dev-version
@@ -34,31 +35,8 @@ groups:
 
 jobs:
 - #@ rust_check_code()
-- #@ rust_integration_test()
-- name: test-e2e
-  serial: true
-  plan:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-  - task: test-e2e
-    tags: ["galoy-staging"]
-    timeout: 15m
-    config:
-      platform: linux
-      image_resource: #@ rust_task_image_config()
-      inputs:
-      - name: pipeline-tasks
-      - name: repo
-        path: #@ data.values.gh_repository + "-e2e"
-      params:
-        REPO_PATH: #@ data.values.gh_repository + "-e2e"
-        DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
-        GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
-        SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
-        SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
-      run:
-        path: pipeline-tasks/ci/tasks/test-e2e.sh
-  on_failure: #@ slack_failure_notification()
+- #@ test_on_docker_host("integration-tests")
+- #@ test_on_docker_host("e2e-tests")
 
 - #@ build_edge_image()
 
@@ -68,8 +46,8 @@ jobs:
   - in_parallel:
     - get: repo
       passed:
-      - test-integration
-      - test-e2e
+      - integration-tests
+      - e2e-tests
       - check-code
     - get: pipeline-tasks
     - get: version
@@ -321,6 +299,7 @@ resources:
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository
 - #@ charts_repo_resource()
 - #@ charts_repo_bot_branch()
+- #@ docker_host_pool()
 
 resource_types:
 - #@ slack_resource_type()
