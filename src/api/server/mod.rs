@@ -17,7 +17,12 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*, payout_queue, primitives::*};
+use crate::{
+    app::{error::ApplicationError, *},
+    error::*,
+    payout_queue,
+    primitives::*,
+};
 
 pub const PROFILE_API_KEY_HEADER: &str = "x-bria-api-key";
 
