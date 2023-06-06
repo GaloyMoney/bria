@@ -122,7 +122,7 @@ impl PayoutQueues {
             .collect::<Result<Vec<_>, _>>()?)
     }
 
-    pub async fn all(&self) -> Result<Vec<PayoutQueue>, BriaError> {
+    pub async fn all(&self) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event

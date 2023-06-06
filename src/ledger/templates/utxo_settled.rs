@@ -5,8 +5,7 @@ use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
 
 use crate::{
-    error::*,
-    ledger::{constants::*, WalletLedgerAccountIds},
+    ledger::{constants::*, error::LedgerError, WalletLedgerAccountIds},
     primitives::*,
 };
 
@@ -126,7 +125,7 @@ pub struct UtxoSettled {}
 
 impl UtxoSettled {
     #[instrument(name = "ledger.utxo_settled.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), BriaError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")

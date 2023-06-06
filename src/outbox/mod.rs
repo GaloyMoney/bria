@@ -1,4 +1,5 @@
 mod augmentation;
+pub mod error;
 mod event;
 mod listener;
 mod repo;
@@ -14,6 +15,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{error::*, ledger::*, primitives::*};
 
 pub use augmentation::*;
+use error::OutboxError;
 pub use event::*;
 pub use listener::*;
 use repo::*;
@@ -35,7 +37,7 @@ pub struct Outbox {
 }
 
 impl Outbox {
-    pub async fn init(pool: &Pool<Postgres>, augmenter: Augmenter) -> Result<Self, BriaError> {
+    pub async fn init(pool: &Pool<Postgres>, augmenter: Augmenter) -> Result<Self, OutboxError> {
         let buffer_size = DEFAULT_BUFFER_SIZE;
         let (sender, recv) = broadcast::channel(buffer_size);
         let sequences = Arc::new(RwLock::new(HashMap::new()));
@@ -137,7 +139,7 @@ impl Outbox {
         sender: broadcast::Sender<OutboxEvent<WithoutAugmentation>>,
         repo: OutboxRepo,
         sequences: Arc<RwLock<SequenceMap>>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), OutboxError> {
         let mut listener = PgListener::connect_with(pool).await?;
         listener.listen("bria_outbox_events").await?;
         tokio::spawn(async move {

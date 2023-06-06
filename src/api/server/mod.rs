@@ -17,7 +17,12 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 use proto::{bria_service_server::BriaService, *};
 
 use super::config::*;
-use crate::{app::*, error::*, payout_queue, primitives::*};
+use crate::{
+    app::{error::ApplicationError, *},
+    error::*,
+    payout_queue,
+    primitives::*,
+};
 
 pub const PROFILE_API_KEY_HEADER: &str = "x-bria-api-key";
 
@@ -661,7 +666,7 @@ impl BriaService for Bria {
     }
 }
 
-pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), BriaError> {
+pub(crate) async fn start(server_config: ApiConfig, app: App) -> Result<(), ApplicationError> {
     use proto::bria_service_server::BriaServiceServer;
 
     let bria = Bria { app };

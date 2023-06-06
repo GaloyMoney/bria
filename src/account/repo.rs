@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
-use super::entity::*;
+use super::{entity::*, error::AccountError};
 use crate::{admin::error::*, primitives::*};
 
 pub struct Accounts {
@@ -34,7 +34,7 @@ impl Accounts {
         })
     }
 
-    pub async fn list(&self) -> Result<Vec<Account>, sqlx::Error> {
+    pub async fn list(&self) -> Result<Vec<Account>, AccountError> {
         let records = sqlx::query!(r#"SELECT id, name FROM bria_accounts"#)
             .fetch_all(&self.pool)
             .await?;
