@@ -1,11 +1,10 @@
 use sqlx::{Pool, Postgres};
 use tracing::instrument;
-use uuid::Uuid;
 
 use std::collections::HashMap;
 
 use super::{entity::*, error::PayoutQueueError};
-use crate::{entity::*, error::*, primitives::*};
+use crate::{entity::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct PayoutQueues {
@@ -18,7 +17,7 @@ impl PayoutQueues {
     }
 
     #[instrument(name = "payout_queues.create", skip(self))]
-    pub async fn create(&self, queue: NewPayoutQueue) -> Result<PayoutQueueId, BriaError> {
+    pub async fn create(&self, queue: NewPayoutQueue) -> Result<PayoutQueueId, PayoutQueueError> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
             r#"
@@ -73,7 +72,7 @@ impl PayoutQueues {
         &self,
         account_id: AccountId,
         id: PayoutQueueId,
-    ) -> Result<PayoutQueue, BriaError> {
+    ) -> Result<PayoutQueue, PayoutQueueError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
@@ -81,13 +80,13 @@ impl PayoutQueues {
               JOIN bria_payout_queue_events e ON b.id = e.id
               WHERE account_id = $1 AND b.id = $2
               ORDER BY e.sequence"#,
-            Uuid::from(account_id),
-            Uuid::from(id)
+            account_id as AccountId,
+            id as PayoutQueueId,
         )
         .fetch_all(&self.pool)
         .await?;
         if rows.is_empty() {
-            return Err(BriaError::PayoutQueueNotFound(id.to_string()));
+            return Err(PayoutQueueError::PayoutQueueIdNotFound(id.to_string()));
         }
         let mut events = EntityEvents::new();
         for row in rows {
@@ -144,7 +143,7 @@ impl PayoutQueues {
             .collect::<Result<Vec<_>, _>>()?)
     }
 
-    pub async fn update(&self, payout_queue: PayoutQueue) -> Result<(), BriaError> {
+    pub async fn update(&self, payout_queue: PayoutQueue) -> Result<(), PayoutQueueError> {
         if !payout_queue.events.is_dirty() {
             return Ok(());
         }

@@ -1,7 +1,8 @@
 use bdk::FeeRate;
 use serde::{Deserialize, Serialize};
 
-use crate::{error::*, primitives::TxPriority};
+use super::error::FeeEstimationError;
+use crate::primitives::TxPriority;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,11 +24,15 @@ impl MempoolSpaceClient {
         Self { url: config.url }
     }
 
-    pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, BriaError> {
+    pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, FeeEstimationError> {
         let url = format!("{}{}", self.url, "/api/v1/fees/recommended");
-        let resp = reqwest::get(url).await.map_err(BriaError::FeeEstimation)?;
-        let fee_estimations: RecommendedFeesResponse =
-            resp.json().await.map_err(BriaError::FeeEstimation)?;
+        let resp = reqwest::get(url)
+            .await
+            .map_err(FeeEstimationError::FeeEstimation)?;
+        let fee_estimations: RecommendedFeesResponse = resp
+            .json()
+            .await
+            .map_err(FeeEstimationError::FeeEstimation)?;
         match priority {
             TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(
                 fee_estimations.half_hour_fee as f32,

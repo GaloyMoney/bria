@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use super::{entity::*, error::*};
-use crate::{entity::*, error::*, primitives::*};
+use crate::{entity::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Wallets {
@@ -19,7 +19,7 @@ impl Wallets {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         new_wallet: NewWallet,
-    ) -> Result<WalletId, BriaError> {
+    ) -> Result<WalletId, WalletError> {
         let record = sqlx::query!(
             r#"INSERT INTO bria_wallets (id, account_id, name) VALUES ($1, $2, $3) RETURNING (id)"#,
             Uuid::from(new_wallet.id),
@@ -79,12 +79,12 @@ impl Wallets {
         }))
     }
 
-    pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, BriaError> {
+    pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, WalletError> {
         let ids: HashSet<WalletId> = std::iter::once(id).collect();
         if let Some(wallet) = self.find_by_ids(ids).await?.remove(&id) {
             Ok(wallet)
         } else {
-            Err(BriaError::WalletNotFound)
+            Err(WalletError::WalletIdNotFound(id.to_string()))
         }
     }
 
@@ -119,7 +119,7 @@ impl Wallets {
     pub async fn find_by_ids(
         &self,
         ids: HashSet<WalletId>,
-    ) -> Result<HashMap<WalletId, Wallet>, BriaError> {
+    ) -> Result<HashMap<WalletId, Wallet>, WalletError> {
         let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
         let rows = sqlx::query!(
             r#"

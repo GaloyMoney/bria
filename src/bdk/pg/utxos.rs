@@ -3,7 +3,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::*, primitives::*};
+use crate::{bdk::error::BdkError, error::*, primitives::*};
 
 pub struct ConfirmedIncomeUtxo {
     pub outpoint: bitcoin::OutPoint,
@@ -70,7 +70,7 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         utxo: &LocalUtxo,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
@@ -88,7 +88,7 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         utxo: &LocalUtxo,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,

@@ -2,9 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
 
+use super::error::JobError;
 use crate::{
-    app::BlockchainConfig, batch::*, error::*, ledger::*, payout::*, primitives::*, utxo::*,
-    wallet::*,
+    app::BlockchainConfig, batch::*, ledger::*, payout::*, primitives::*, utxo::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub async fn execute(
     bria_utxos: Utxos,
     batches: Batches,
     payouts: Payouts,
-) -> Result<BatchWalletAccountingData, BriaError> {
+) -> Result<BatchWalletAccountingData, JobError> {
     let Batch {
         id,
         bitcoin_tx_id,

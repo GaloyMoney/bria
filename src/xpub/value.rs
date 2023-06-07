@@ -2,6 +2,7 @@ use bdk::descriptor::DescriptorPublicKey;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use super::error::XPubError;
 use crate::{
     error::*,
     primitives::{
@@ -56,22 +57,22 @@ impl TryFrom<&DescriptorPublicKey> for XPub {
 }
 
 impl<O: AsRef<str>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
-    type Error = BriaError;
+    type Error = XPubError;
 
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
         let derivation: Option<DerivationPath> =
             derivation.map(|d| d.as_ref().parse()).transpose()?;
         use bdk::bitcoin::util::base58;
         let mut xpub_data =
-            base58::from_check(original.as_ref()).map_err(BriaError::XPubParseError)?;
+            base58::from_check(original.as_ref()).map_err(XPubError::XPubParseError)?;
         fix_version_bits_for_rust_bitcoin(&mut xpub_data);
         let inner = ExtendedPubKey::decode(&xpub_data)?;
         if let Some(ref d) = derivation {
             if d.len() != inner.depth as usize {
-                return Err(BriaError::XPubDepthMismatch(inner.depth, d.len()));
+                return Err(XPubError::XPubDepthMismatch(inner.depth, d.len()));
             }
         } else if inner.depth > 0 {
-            return Err(BriaError::XPubDepthMismatch(inner.depth, 0));
+            return Err(XPubError::XPubDepthMismatch(inner.depth, 0));
         }
 
         Ok(Self { derivation, inner })

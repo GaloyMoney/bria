@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::entity::*;
-use crate::{entity::EntityEvents, error::*, primitives::*};
+use super::{entity::*, error::SigningSessionError};
+use crate::{entity::EntityEvents, primitives::*};
 
 #[derive(Clone)]
 pub struct SigningSessions {
@@ -19,7 +19,7 @@ impl SigningSessions {
     pub async fn persist_sessions(
         &self,
         sessions: HashMap<XPubId, NewSigningSession>,
-    ) -> Result<BatchSigningSession, BriaError> {
+    ) -> Result<BatchSigningSession, SigningSessionError> {
         let mut tx = self.pool.begin().await?;
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_signing_sessions
@@ -63,7 +63,7 @@ impl SigningSessions {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         sessions: &HashMap<XPubId, SigningSession>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), SigningSessionError> {
         EntityEvents::<SigningSessionEvent>::persist(
             "bria_signing_session_events",
             tx,
@@ -79,7 +79,7 @@ impl SigningSessions {
         &self,
         account_id: AccountId,
         batch_id: BatchId,
-    ) -> Result<Option<BatchSigningSession>, BriaError> {
+    ) -> Result<Option<BatchSigningSession>, SigningSessionError> {
         let entity_events = {
             let rows = sqlx::query!(
                 r#"
@@ -118,7 +118,7 @@ impl SigningSessions {
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         xpub_id: XPubId,
-    ) -> Result<Vec<BatchId>, BriaError> {
+    ) -> Result<Vec<BatchId>, SigningSessionError> {
         let rows = sqlx::query!(
             r#"
           SELECT batch_id

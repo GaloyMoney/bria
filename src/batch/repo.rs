@@ -4,11 +4,8 @@ use tracing::instrument;
 
 use std::{collections::HashMap, str::FromStr};
 
-use super::entity::*;
-use crate::{
-    error::*,
-    primitives::{bitcoin::*, *},
-};
+use super::{entity::*, error::BatchError};
+use crate::primitives::{bitcoin::*, *};
 
 #[derive(Debug, Clone)]
 pub struct Batches {
@@ -25,7 +22,7 @@ impl Batches {
         &self,
         tx: &mut Transaction<'a, Postgres>,
         batch: NewBatch,
-    ) -> Result<BatchId, BriaError> {
+    ) -> Result<BatchId, BatchError> {
         sqlx::query!(
             r#"INSERT INTO bria_batches (id, account_id, payout_queue_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)
             VALUES ($1, $2, $3, $4, $5, $6)"#,
@@ -71,7 +68,11 @@ impl Batches {
     }
 
     #[instrument(name = "batches.find_by_id", skip_all)]
-    pub async fn find_by_id(&self, account_id: AccountId, id: BatchId) -> Result<Batch, BriaError> {
+    pub async fn find_by_id(
+        &self,
+        account_id: AccountId,
+        id: BatchId,
+    ) -> Result<Batch, BatchError> {
         let rows = sqlx::query!(
             r#"SELECT payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
             FROM bria_batch_wallet_summaries s
@@ -82,7 +83,7 @@ impl Batches {
         ).fetch_all(&self.pool).await?;
 
         if rows.is_empty() {
-            return Err(BriaError::BatchNotFound);
+            return Err(BatchError::BatchIdNotFound(id.to_string()));
         }
 
         let mut wallet_summaries = HashMap::new();
@@ -143,7 +144,7 @@ impl Batches {
         &self,
         batch_id: BatchId,
         bitcoin_tx: bitcoin::Transaction,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), BatchError> {
         sqlx::query!(
             r#"UPDATE bria_batches SET signed_tx = $1 WHERE id = $2"#,
             bitcoin::consensus::encode::serialize(&bitcoin_tx),
@@ -160,7 +161,7 @@ impl Batches {
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId)>, BriaError> {
+    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId)>, BatchError> {
         let mut tx = self.pool.begin().await?;
         let ledger_transaction_id = LedgerTxId::new();
         let rows_affected = sqlx::query!(
@@ -187,7 +188,7 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId, LedgerTxId)>, BriaError> {
+    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId, LedgerTxId)>, BatchError> {
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (

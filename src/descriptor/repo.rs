@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres, Transaction};
 
-use super::entity::*;
-use crate::{error::*, primitives::*};
+use super::{entity::*, error::DescriptorError};
+use crate::primitives::*;
 
 #[derive(Clone)]
 pub struct Descriptors {
@@ -19,7 +19,7 @@ impl Descriptors {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         descriptors: Vec<NewDescriptor>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), DescriptorError> {
         for descriptor in descriptors {
             self.persist_in_tx(tx, descriptor).await?;
         }
@@ -30,7 +30,7 @@ impl Descriptors {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         descriptor: NewDescriptor,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), DescriptorError> {
         let (descriptor_str, checksum) = descriptor.descriptor_and_checksum();
         let res = sqlx::query!(
             r#"WITH ins AS (
@@ -57,7 +57,7 @@ impl Descriptors {
         .await?;
 
         if res.wallet_id != Some(descriptor.wallet_id) {
-            return Err(BriaError::DescriptorAlreadyInUse);
+            return Err(DescriptorError::DescriptorAlreadyInUse);
         }
         Ok(())
     }

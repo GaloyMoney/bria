@@ -61,7 +61,7 @@ impl KeychainConfig {
 }
 
 impl TryFrom<(&str, &str)> for KeychainConfig {
-    type Error = crate::error::BriaError;
+    type Error = crate::wallet::error::WalletError;
 
     fn try_from((external, internal): (&str, &str)) -> Result<Self, Self::Error> {
         let external = ExtendedDescriptor::from_str(external)?;
@@ -71,7 +71,7 @@ impl TryFrom<(&str, &str)> for KeychainConfig {
         if external.for_any_key(|key| matches!(key, DescriptorPublicKey::Single(_)))
             || internal.for_any_key(|key| matches!(key, DescriptorPublicKey::Single(_)))
         {
-            return Err(crate::error::BriaError::UnsupportedPubKeyType);
+            return Err(crate::wallet::error::WalletError::UnsupportedPubKeyType);
         }
         Ok(Self::Descriptors { internal, external })
     }

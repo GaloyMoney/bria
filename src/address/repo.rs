@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use super::{entity::*, error::AddressError};
 use crate::{
     entity::*,
-    error::*,
     primitives::{bitcoin::*, *},
 };
 
@@ -46,7 +45,7 @@ impl Addresses {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         address: NewAddress,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), AddressError> {
         let res = sqlx::query!(
             r#"INSERT INTO bria_addresses
                (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
@@ -66,7 +65,7 @@ impl Addresses {
         if res.rows_affected() == 0 {
             return Ok(());
         }
-        Ok(Self::persist_events(tx, address).await?)
+        Self::persist_events(tx, address).await
     }
 
     pub async fn update(&self, address: WalletAddress) -> Result<(), AddressError> {

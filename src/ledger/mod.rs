@@ -96,7 +96,7 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         params: UtxoDetectedParams,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, UTXO_DETECTED_CODE, Some(params))
             .await?;
@@ -109,7 +109,7 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         params: UtxoSettledParams,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         let (code, params) = if let Some(spent_tx) = params.meta.already_spent_tx_id {
             #[derive(serde::Deserialize)]
             struct ExtractAllocations {
@@ -168,7 +168,7 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         params: BatchCreatedParams,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, BATCH_CREATED_CODE, Some(params))
             .await?;
@@ -183,7 +183,7 @@ impl Ledger {
         submit_tx_id: LedgerTransactionId,
         fees_to_encumber: Satoshis,
         ledger_account_ids: WalletLedgerAccountIds,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         let txs = self
             .inner
             .transactions()
@@ -221,7 +221,7 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         params: SpendDetectedParams,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         self.inner
             .post_transaction_in_tx(tx, tx_id, SPEND_DETECTED_CODE, Some(params))
             .await?;
@@ -239,7 +239,7 @@ impl Ledger {
         spend_detected_tx_id: LedgerTransactionId,
         confirmation_time: bitcoin::BlockTime,
         change_spent: bool,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), LedgerError> {
         #[derive(serde::Deserialize)]
         struct ExtractTxSummary {
             batch_info: Option<BatchWalletInfo>,
@@ -281,7 +281,7 @@ impl Ledger {
     pub async fn sum_reserved_fees_in_txs(
         &self,
         tx_ids: HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>,
-    ) -> Result<Satoshis, BriaError> {
+    ) -> Result<Satoshis, LedgerError> {
         let mut reserved_fees = Satoshis::from(0);
         #[derive(serde::Deserialize)]
         struct ExtractSpendingFees {
@@ -429,7 +429,7 @@ impl Ledger {
         &self,
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         ids: impl Into<WalletLedgerAccountIds> + std::fmt::Debug,
-    ) -> Result<WalletLedgerAccountIds, BriaError> {
+    ) -> Result<WalletLedgerAccountIds, LedgerError> {
         let wallet_ledger_account_ids = ids.into();
         let prefix = wallet_ledger_account_ids.get_wallet_id_prefix();
         let account_ids = WalletLedgerAccountIds {
@@ -526,7 +526,7 @@ impl Ledger {
         wallet_code: String,
         wallet_name: String,
         balance_type: DebitOrCredit,
-    ) -> Result<LedgerAccountId, BriaError> {
+    ) -> Result<LedgerAccountId, LedgerError> {
         let account = NewLedgerAccount::builder()
             .id(account_id)
             .name(&wallet_name)

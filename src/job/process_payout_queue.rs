@@ -2,9 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::instrument;
 
+use super::error::JobError;
 use crate::{
-    batch::*, error::*, fees::MempoolSpaceClient, payout::*, payout_queue::*, primitives::*,
-    utxo::*, wallet::*,
+    batch::*, fees::MempoolSpaceClient, payout::*, payout_queue::*, primitives::*, utxo::*,
+    wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,7 +46,7 @@ pub(super) async fn execute<'a>(
         ProcessPayoutQueueData,
         Option<(sqlx::Transaction<'a, sqlx::Postgres>, Vec<WalletId>)>,
     ),
-    BriaError,
+    JobError,
 > {
     let payout_queue = payout_queues
         .find_by_id(data.account_id, data.payout_queue_id)
@@ -146,7 +147,7 @@ pub async fn construct_psbt(
     wallets: &Wallets,
     payout_queue: PayoutQueue,
     fee_rate: bitcoin::FeeRate,
-) -> Result<FinishedPsbtBuild, BriaError> {
+) -> Result<FinishedPsbtBuild, JobError> {
     let span = tracing::Span::current();
     let PayoutQueue {
         id: queue_id,

@@ -6,4 +6,14 @@ pub enum XPubError {
     Sqlx(#[from] sqlx::Error),
     #[error("XPubError - EntityError: {0}")]
     EntityError(#[from] crate::entity::EntityError),
+    #[error("XPubError - CouldNotParseIncomingMetadata: {0}")]
+    CouldNotParseIncomingMetadata(#[from] serde_json::Error),
+    #[error("XPubError - FromHex: {0}")]
+    FromHex(#[from] hex::FromHexError),
+    #[error("XPubError - XPubDepthMismatch: expected depth {0}, got {1}")]
+    XPubDepthMismatch(u8, usize),
+    #[error("XPubError - XPubParseError: {0}")]
+    XPubParseError(bdk::bitcoin::util::base58::Error),
+    #[error("XPubError - Bip32: {0}")]
+    Bip32(#[from] crate::primitives::bitcoin::bip32::Error),
 }

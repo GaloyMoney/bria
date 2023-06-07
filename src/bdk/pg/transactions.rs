@@ -3,7 +3,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{error::*, primitives::*};
+use crate::{bdk::error::BdkError, error::*, primitives::*};
 
 #[derive(Debug)]
 pub struct UnsyncedTransaction {
@@ -233,7 +233,7 @@ impl Transactions {
     }
 
     #[instrument(name = "bdk_transactions.mark_as_synced", skip(self))]
-    pub async fn mark_as_synced(&self, tx_id: bitcoin::Txid) -> Result<(), BriaError> {
+    pub async fn mark_as_synced(&self, tx_id: bitcoin::Txid) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2"#,
@@ -250,7 +250,7 @@ impl Transactions {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         tx_id: bitcoin::Txid,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2"#,
