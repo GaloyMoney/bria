@@ -15,7 +15,7 @@ gcloud_ssh() {
     --project=${gcp_project} \
     --ssh-key-file=${CI_ROOT}/login.ssh \
     --tunnel-through-iap \
-    --command "$@"
+    --command "$@" 2> /dev/null
 }
 
 cat <<EOF > ${CI_ROOT}/gcloud-creds.json
@@ -28,7 +28,7 @@ chmod 600 ${CI_ROOT}/login.ssh
 cat <<EOF > ${CI_ROOT}/login.ssh.pub
 ${SSH_PUB_KEY}
 EOF
-gcloud auth activate-service-account --key-file ${CI_ROOT}/gcloud-creds.json
+gcloud auth activate-service-account --key-file ${CI_ROOT}/gcloud-creds.json 2> /dev/null
 
 gcloud_ssh "docker ps -qa | xargs docker rm -fv || true; sudo rm -rf ${REPO_PATH}"
 
