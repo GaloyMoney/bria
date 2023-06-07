@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: path to test-on-docker-host'
-      sha: 8fb6b0ddf2640a2278a1a85693191f347a473c2e
+      commitTitle: 'chore: pipe warn output to /dev/null'
+      sha: 24428c2d759d2e02562348387604254c70ba13de
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: path to test-on-docker-host'
-      sha: 8fb6b0ddf2640a2278a1a85693191f347a473c2e
+      commitTitle: 'chore: pipe warn output to /dev/null'
+      sha: 24428c2d759d2e02562348387604254c70ba13de
     path: .
   path: ./vendor
 kind: LockConfig
