@@ -5,7 +5,10 @@ use rand::distributions::{Alphanumeric, DistString};
 use bria::{
     address::error::AddressError,
     app::{error::ApplicationError, *},
+    payout_queue::error::PayoutQueueError,
+    primitives::*,
     profile::error::ProfileError,
+    wallet::error::WalletError,
 };
 
 #[tokio::test]
@@ -75,5 +78,70 @@ async fn profile_key_not_found() -> anyhow::Result<()> {
             ProfileError::ProfileKeyNotFound
         ))
     ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn payout_queue_id_not_found() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
+    let payout_queue_id = PayoutQueueId::new();
+    let err = app
+        .update_payout_queue(profile, payout_queue_id, None, None)
+        .await;
+    assert!(matches!(
+        err,
+        Err(ApplicationError::PayoutQueueError(
+            PayoutQueueError::PayoutQueueIdNotFound(_)
+        ))
+    ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn wallet_name_not_found() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
+    let wallet_name = "test".to_string();
+    let err = app.new_address(profile, wallet_name, None, None).await;
+    assert!(matches!(
+        err,
+        Err(ApplicationError::WalletError(
+            WalletError::WalletNameNotFound(_)
+        ))
+    ));
+    Ok(())
+}
+
+#[tokio::test]
+async fn payout_queue_name_not_found() -> anyhow::Result<()> {
+    use bdk::bitcoin::Address;
+    use std::str::FromStr;
+
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let external = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/0/*)#q8r69l4d".to_owned();
+    let internal = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/1/*)#3nxmc294".to_owned();
+    let app = App::run(pool, AppConfig::default()).await?;
+    let wallet_name = "test_wallet".to_owned();
+    let _ = app
+        .create_descriptors_wallet(profile.clone(), wallet_name.clone(), external, internal)
+        .await?;
+    let address = Address::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string()).unwrap();
+    let queue_name = "test".to_string();
+    let destination = PayoutDestination::OnchainAddress { value: address };
+    let sats = Satoshis::from(10000);
+    let err = app
+        .estimate_payout_fee(profile, wallet_name, queue_name, destination, sats)
+        .await;
+    assert!(matches!(
+        err,
+        Err(ApplicationError::PayoutQueueError(
+            PayoutQueueError::PayoutQueueNameNotFound(_)
+        ))
+    ));
+
     Ok(())
 }
