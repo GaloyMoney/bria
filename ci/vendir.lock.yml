@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'chore: have version for prepping docker build'
-      sha: ffb5caaacf1331b1e74f7c7f4893bfb7b3656eef
+      commitTitle: 'fix: path to test-on-docker-host'
+      sha: 8fb6b0ddf2640a2278a1a85693191f347a473c2e
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'chore: have version for prepping docker build'
-      sha: ffb5caaacf1331b1e74f7c7f4893bfb7b3656eef
+      commitTitle: 'fix: path to test-on-docker-host'
+      sha: 8fb6b0ddf2640a2278a1a85693191f347a473c2e
     path: .
   path: ./vendor
 kind: LockConfig
