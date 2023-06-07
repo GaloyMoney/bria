@@ -3,13 +3,13 @@ use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
+use super::error::JobError;
 use crate::{
     address::*,
     app::BlockchainConfig,
     batch::*,
     bdk::error::BdkError,
     bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
-    error::*,
     fees::{self, MempoolSpaceClient},
     ledger::*,
     primitives::*,
@@ -74,7 +74,7 @@ pub async fn execute(
     batches: Batches,
     data: SyncWalletData,
     mempool_space_client: MempoolSpaceClient,
-) -> Result<(bool, SyncWalletData), BriaError> {
+) -> Result<(bool, SyncWalletData), JobError> {
     info!("Starting sync_wallet job: {:?}", data);
     let span = tracing::Span::current();
     let wallet = wallets.find_by_id(data.wallet_id).await?;

@@ -78,7 +78,7 @@ impl Payouts {
         &self,
         account_id: AccountId,
         payout_queue_id: PayoutQueueId,
-    ) -> Result<UnbatchedPayouts, BriaError> {
+    ) -> Result<UnbatchedPayouts, PayoutError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
@@ -153,7 +153,7 @@ impl Payouts {
         account_id: AccountId,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<Vec<Payout>, BriaError> {
+    ) -> Result<Vec<Payout>, PayoutError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
@@ -188,7 +188,7 @@ impl Payouts {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         payouts: UnbatchedPayouts,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), PayoutError> {
         if payouts.batch_id.is_none() || payouts.batched.is_empty() {
             return Ok(());
         }
@@ -216,7 +216,7 @@ impl Payouts {
         &self,
         wallet_id: WalletId,
         payout_queue_id: PayoutQueueId,
-    ) -> Result<(usize, Satoshis), BriaError> {
+    ) -> Result<(usize, Satoshis), PayoutError> {
         let res = sqlx::query!(
             r#"
             SELECT 

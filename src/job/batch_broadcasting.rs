@@ -3,7 +3,8 @@ use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
-use crate::{app::BlockchainConfig, batch::*, bdk::error::BdkError, error::*, primitives::*};
+use super::error::JobError;
+use crate::{app::BlockchainConfig, batch::*, bdk::error::BdkError, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchBroadcastingData {
@@ -16,7 +17,7 @@ pub async fn execute(
     data: BatchBroadcastingData,
     blockchain_cfg: BlockchainConfig,
     batches: Batches,
-) -> Result<BatchBroadcastingData, BriaError> {
+) -> Result<BatchBroadcastingData, JobError> {
     let blockchain = init_electrum(&blockchain_cfg.electrum_url).await?;
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
     if batch.accounting_complete() {

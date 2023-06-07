@@ -193,7 +193,7 @@ async fn sync_wallet(
     ledger: Ledger,
     batches: Batches,
     mempool_space_client: MempoolSpaceClient,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     let mut has_more = false;
     let more_ref = &mut has_more;
@@ -216,7 +216,7 @@ async fn sync_wallet(
             )
             .await?;
             *more_ref = more;
-            Ok::<_, BriaError>(data)
+            Ok::<_, JobError>(data)
         })
         .await?;
     if has_more {
@@ -226,7 +226,7 @@ async fn sync_wallet(
 }
 
 #[job(name = "schedule_process_payout_queue")]
-async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), BriaError> {
+async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
@@ -256,7 +256,7 @@ async fn process_payout_queue(
     payout_queues: PayoutQueues,
     batches: Batches,
     mempool_space_client: MempoolSpaceClient,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
@@ -281,7 +281,7 @@ async fn process_payout_queue(
                 spawn_batch_signing(tx, &data).await?;
             }
 
-            Ok::<_, BriaError>(data)
+            Ok::<_, JobError>(data)
         })
         .await?;
     Ok(())
@@ -301,7 +301,7 @@ async fn batch_wallet_accounting(
     utxos: Utxos,
     batches: Batches,
     payouts: Payouts,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .build()
@@ -337,7 +337,7 @@ async fn batch_signing(
     wallets: Wallets,
     xpubs: XPubs,
     signing_sessions: SigningSessions,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
         .warn_retries(signing.warn_retries)
@@ -363,7 +363,7 @@ async fn batch_signing(
                 spawn_batch_broadcasting(pool.begin().await?, data.clone()).await?;
             }
 
-            Ok::<_, BriaError>(data)
+            Ok::<_, JobError>(data)
         })
         .await?;
     Ok(())
@@ -379,7 +379,7 @@ async fn batch_broadcasting(
     mut current_job: CurrentJob,
     blockchain_cfg: BlockchainConfig,
     batches: Batches,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     JobExecutor::builder(&mut current_job)
         .build()
         .expect("couldn't build JobExecutor")
@@ -412,7 +412,7 @@ pub async fn spawn_sync_all_wallets(
 }
 
 #[instrument(name = "job.spawn_sync_wallet", skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), BriaError> {
+async fn spawn_sync_wallet(pool: &sqlx::PgPool, data: SyncWalletData) -> Result<(), JobError> {
     onto_account_main_channel(pool, data.account_id, data.wallet_id, "sync_wallet", data).await?;
     Ok(())
 }
@@ -470,7 +470,7 @@ async fn spawn_schedule_process_payout_queue(
 async fn spawn_batch_wallet_accounting(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     data: impl Into<BatchWalletAccountingData>,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let data = data.into();
     match batch_wallet_accounting
         .builder()
@@ -492,7 +492,7 @@ async fn spawn_batch_wallet_accounting(
 async fn spawn_batch_signing(
     mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
     data: impl Into<BatchSigningData>,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let data = data.into();
     match batch_signing
         .builder()
@@ -518,7 +518,7 @@ async fn spawn_batch_signing(
 pub async fn spawn_all_batch_signings(
     mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
     jobs: impl Iterator<Item = impl Into<BatchSigningData>>,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     for job in jobs {
         let data = job.into();
         batch_signing
@@ -538,7 +538,7 @@ pub async fn spawn_all_batch_signings(
 async fn spawn_batch_broadcasting(
     mut tx: sqlx::Transaction<'_, sqlx::Postgres>,
     data: impl Into<BatchBroadcastingData>,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let data = data.into();
     match batch_broadcasting
         .builder()
@@ -612,7 +612,7 @@ async fn onto_account_main_channel<D: serde::Serialize>(
     uuid: impl Into<Uuid>,
     name: &str,
     data: D,
-) -> Result<D, BriaError> {
+) -> Result<D, JobError> {
     let uuid = uuid.into();
     loop {
         match JobBuilder::new_with_id(uuid, name)
@@ -635,7 +635,7 @@ async fn onto_account_main_channel<D: serde::Serialize>(
             }
             Err(e) => {
                 crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-                return Err(BriaError::from(e));
+                return Err(JobError::from(e));
             }
             Ok(_) => return Ok(data),
         }

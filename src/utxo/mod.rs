@@ -1,5 +1,6 @@
 mod effective_allocation;
 mod entity;
+pub mod error;
 mod repo;
 
 use bdk::{wallet::AddressInfo, LocalUtxo};
@@ -8,11 +9,9 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use crate::{
-    error::*,
-    primitives::{bitcoin::OutPoint, *},
-};
+use crate::primitives::{bitcoin::OutPoint, *};
 pub use entity::*;
+use error::UtxoError;
 use repo::*;
 
 #[derive(Clone)]
@@ -40,7 +39,7 @@ impl Utxos {
         utxo: &LocalUtxo,
         sats_per_vbyte_when_created: f32,
         self_pay: bool,
-    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, BriaError> {
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
             .account_id(account_id)
             .wallet_id(wallet_id)
@@ -69,7 +68,7 @@ impl Utxos {
         outpoint: OutPoint,
         bdk_spent: bool,
         block_height: u32,
-    ) -> Result<SettledUtxo, BriaError> {
+    ) -> Result<SettledUtxo, UtxoError> {
         self.utxos
             .mark_utxo_settled(tx, keychain_id, outpoint, bdk_spent, block_height)
             .await
@@ -88,7 +87,7 @@ impl Utxos {
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
         sats_per_vbyte: f32,
-    ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, BriaError> {
+    ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
         for (utxo, address) in change_utxos.iter() {
             let new_utxo = NewUtxo::builder()
                 .account_id(account_id)
@@ -136,7 +135,7 @@ impl Utxos {
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxo: Option<LocalUtxo>,
         block_height: u32,
-    ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId, bool)>, BriaError> {
+    ) -> Result<Option<(LedgerTransactionId, LedgerTransactionId, bool)>, UtxoError> {
         let (spend_tx_id, change_spent) = if let Some(utxo) = change_utxo {
             let settled_utxo = self
                 .utxos
@@ -160,7 +159,7 @@ impl Utxos {
     pub async fn find_keychain_utxos(
         &self,
         keychain_ids: impl Iterator<Item = KeychainId>,
-    ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
+    ) -> Result<HashMap<KeychainId, KeychainUtxos>, UtxoError> {
         self.utxos.find_keychain_utxos(keychain_ids).await
     }
 
@@ -169,7 +168,7 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
-    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, BriaError> {
+    ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, UtxoError> {
         // Here we list all Utxos that bdk might want to use and lock them (FOR UPDATE)
         // This ensures that we don't have 2 concurrent psbt constructions get in the way
         // of each other
@@ -209,7 +208,7 @@ impl Utxos {
         payout_queue_id: PayoutQueueId,
         fee_rate: bitcoin::FeeRate,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), UtxoError> {
         self.utxos
             .reserve_utxos_in_batch(tx, account_id, batch_id, payout_queue_id, fee_rate, utxos)
             .await
@@ -219,7 +218,7 @@ impl Utxos {
         &self,
         wallet_id: WalletId,
         queue_id: PayoutQueueId,
-    ) -> Result<usize, BriaError> {
+    ) -> Result<usize, UtxoError> {
         self.utxos
             .average_utxos_per_batch(wallet_id, queue_id)
             .await
@@ -230,7 +229,7 @@ impl Utxos {
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, BriaError> {
+    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, UtxoError> {
         self.utxos
             .income_detected_ids_for_utxos_in(batch_id, wallet_id)
             .await
@@ -240,7 +239,7 @@ impl Utxos {
     pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
-    ) -> Result<Vec<WalletUtxo>, BriaError> {
+    ) -> Result<Vec<WalletUtxo>, UtxoError> {
         self.utxos.list_utxos_by_outpoint(utxos).await
     }
 }

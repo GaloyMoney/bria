@@ -160,7 +160,7 @@ impl App {
         key_name: String,
         xpub: String,
         derivation: Option<String>,
-    ) -> Result<XPubId, BriaError> {
+    ) -> Result<XPubId, ApplicationError> {
         let value = XPub::try_from((&xpub, derivation))?;
         let xpub = NewAccountXPub::builder()
             .account_id(profile.account_id)
@@ -179,7 +179,7 @@ impl App {
         profile: Profile,
         xpub_ref: String,
         config: SignerConfig,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         let mut xpub = self
             .xpubs
             .find_from_ref(
@@ -209,7 +209,7 @@ impl App {
         wallet_name: String,
         xpub: String,
         derivation: Option<String>,
-    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
+    ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let keychain = if let Ok(xpub) = XPub::try_from((&xpub, derivation)) {
             KeychainConfig::wpkh(xpub)
         } else {
@@ -234,7 +234,7 @@ impl App {
         wallet_name: String,
         external: String,
         internal: String,
-    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
+    ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let keychain = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
         self.create_wallet(profile, wallet_name, keychain).await
     }
@@ -244,7 +244,7 @@ impl App {
         profile: Profile,
         wallet_name: String,
         keychain: KeychainConfig,
-    ) -> Result<(WalletId, Vec<XPubId>), BriaError> {
+    ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let mut tx = self.pool.begin().await?;
         let xpubs = keychain.xpubs();
         let mut xpub_ids = Vec::new();
@@ -439,7 +439,7 @@ impl App {
         &self,
         profile: Profile,
         wallet_name: String,
-    ) -> Result<(WalletId, Vec<KeychainUtxos>), BriaError> {
+    ) -> Result<(WalletId, Vec<KeychainUtxos>), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -462,7 +462,7 @@ impl App {
         payout_queue_name: String,
         description: Option<String>,
         config: Option<PayoutQueueConfig>,
-    ) -> Result<PayoutQueueId, BriaError> {
+    ) -> Result<PayoutQueueId, ApplicationError> {
         let mut builder = NewPayoutQueue::builder();
         builder
             .account_id(profile.account_id)
@@ -484,7 +484,7 @@ impl App {
         queue_name: String,
         destination: PayoutDestination,
         sats: Satoshis,
-    ) -> Result<Satoshis, BriaError> {
+    ) -> Result<Satoshis, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -646,7 +646,7 @@ impl App {
         id: PayoutQueueId,
         new_description: Option<String>,
         new_config: Option<PayoutQueueConfig>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), ApplicationError> {
         let mut payout_queue = self
             .payout_queues
             .find_by_id(profile.account_id, id)
@@ -666,7 +666,7 @@ impl App {
         &self,
         profile: Profile,
         batch_id: BatchId,
-    ) -> Result<Vec<SigningSession>, BriaError> {
+    ) -> Result<Vec<SigningSession>, ApplicationError> {
         Ok(self
             .signing_sessions
             .find_for_batch(profile.account_id, batch_id)

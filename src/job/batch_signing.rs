@@ -3,9 +3,9 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
+use super::error::JobError;
 use crate::{
-    app::BlockchainConfig, batch::*, error::*, primitives::*, signing_session::*, wallet::*,
-    xpub::*,
+    app::BlockchainConfig, batch::*, primitives::*, signing_session::*, wallet::*, xpub::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,7 +32,7 @@ pub async fn execute(
     wallets: Wallets,
     xpubs: XPubs,
     signer_encryption_config: SignerEncryptionConfig,
-) -> Result<(BatchSigningData, bool), BriaError> {
+) -> Result<(BatchSigningData, bool), JobError> {
     let mut stalled = false;
     let mut last_err = None;
     let mut current_keychain = None;
@@ -133,11 +133,11 @@ pub async fn execute(
     let mut first_psbt = sessions
         .next()
         .and_then(|s| s.signed_psbt().cloned())
-        .ok_or(BriaError::PsbtMissingInSigningSessions)?;
+        .ok_or(JobError::PsbtMissingInSigningSessions)?;
     for s in sessions {
         first_psbt.combine(
             s.signed_psbt()
-                .ok_or(BriaError::PsbtMissingInSigningSessions)?
+                .ok_or(JobError::PsbtMissingInSigningSessions)?
                 .clone(),
         )?;
     }

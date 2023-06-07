@@ -503,6 +503,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
+            ApplicationError::WalletError(WalletError::WalletIdNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
+            }
             ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
@@ -510,6 +513,9 @@ impl From<ApplicationError> for tonic::Status {
                 tonic::Status::already_exists(err.to_string())
             }
             ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueNameNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),

@@ -1,8 +1,8 @@
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use super::{signer_config::*, signing_client::*, value::XPub as XPubValue};
-use crate::{entity::*, error::*, primitives::*};
+use super::{error::XPubError, signer_config::*, signing_client::*, value::XPub as XPubValue};
+use crate::{entity::*, primitives::*};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -42,7 +42,7 @@ impl AccountXPub {
         &mut self,
         config: SignerConfig,
         secret: &EncryptionKey,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), XPubError> {
         self.encrypted_signer_config = Some(config.encrypt(secret)?);
         Ok(())
     }

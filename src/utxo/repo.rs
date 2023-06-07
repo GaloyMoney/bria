@@ -3,11 +3,8 @@ use uuid::Uuid;
 
 use std::collections::HashMap;
 
-use super::entity::*;
-use crate::{
-    error::*,
-    primitives::{bitcoin::*, *},
-};
+use super::{entity::*, error::UtxoError};
+use crate::primitives::{bitcoin::*, *};
 
 pub struct ReservableUtxo {
     pub keychain_id: KeychainId,
@@ -31,7 +28,7 @@ impl UtxoRepo {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         utxo: NewUtxo,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+    ) -> Result<Option<LedgerTransactionId>, UtxoError> {
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
                (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent)
@@ -69,7 +66,7 @@ impl UtxoRepo {
         outpoint: OutPoint,
         bdk_spent: bool,
         block_height: u32,
-    ) -> Result<SettledUtxo, BriaError> {
+    ) -> Result<SettledUtxo, UtxoError> {
         let new_confirmed_ledger_tx_id = LedgerTransactionId::new();
 
         let row = sqlx::query!(
@@ -110,7 +107,7 @@ impl UtxoRepo {
         keychain_id: KeychainId,
         utxos: impl Iterator<Item = &OutPoint>,
         tx_id: LedgerTransactionId,
-    ) -> Result<Vec<SpentUtxo>, BriaError> {
+    ) -> Result<Vec<SpentUtxo>, UtxoError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"WITH updated AS ( UPDATE bria_utxos
             SET bdk_spent = true, modified_at = NOW(), spend_detected_ledger_tx_id = "#,
@@ -158,7 +155,7 @@ impl UtxoRepo {
         keychain_id: KeychainId,
         utxos: impl Iterator<Item = &OutPoint>,
         tx_id: LedgerTransactionId,
-    ) -> Result<Option<LedgerTransactionId>, BriaError> {
+    ) -> Result<Option<LedgerTransactionId>, UtxoError> {
         let keychain_id = Uuid::from(keychain_id);
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"UPDATE bria_utxos
@@ -189,7 +186,7 @@ impl UtxoRepo {
     pub async fn find_keychain_utxos(
         &self,
         keychain_ids: impl Iterator<Item = KeychainId>,
-    ) -> Result<HashMap<KeychainId, KeychainUtxos>, BriaError> {
+    ) -> Result<HashMap<KeychainId, KeychainUtxos>, UtxoError> {
         let keychain_ids: Vec<Uuid> = keychain_ids.map(Uuid::from).collect();
         let rows = sqlx::query!(
             r#"SELECT wallet_id, keychain_id, tx_id, vout, kind as "kind: pg::PgKeychainKind", address_idx, value, address, bdk_spent,
@@ -251,7 +248,7 @@ impl UtxoRepo {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
-    ) -> Result<Vec<ReservableUtxo>, BriaError> {
+    ) -> Result<Vec<ReservableUtxo>, UtxoError> {
         let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
         let rows = sqlx::query!(
             r#"SELECT keychain_id,
@@ -292,7 +289,7 @@ impl UtxoRepo {
         payout_queue_id: PayoutQueueId,
         fee_rate: bitcoin::FeeRate,
         utxos: impl IntoIterator<Item = (KeychainId, OutPoint)>,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), UtxoError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"UPDATE bria_utxos
             SET spending_batch_id = "#,
@@ -325,7 +322,7 @@ impl UtxoRepo {
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, BriaError> {
+    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, UtxoError> {
         let rows = sqlx::query!("SELECT income_detected_ledger_tx_id, tx_id, vout FROM bria_utxos WHERE spending_batch_id = $1 AND wallet_id = $2", batch_id as BatchId, wallet_id as WalletId)
             .fetch_all(&self.pool)
             .await?;
@@ -344,7 +341,7 @@ impl UtxoRepo {
     pub async fn list_utxos_by_outpoint(
         &self,
         utxos: &HashMap<KeychainId, Vec<OutPoint>>,
-    ) -> Result<Vec<WalletUtxo>, BriaError> {
+    ) -> Result<Vec<WalletUtxo>, UtxoError> {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"SELECT wallet_id, keychain_id, tx_id, vout, kind, address_idx, value, address, bdk_spent,
                   CASE
@@ -411,7 +408,7 @@ impl UtxoRepo {
         &self,
         wallet_id: WalletId,
         queue_id: PayoutQueueId,
-    ) -> Result<usize, BriaError> {
+    ) -> Result<usize, UtxoError> {
         let res = sqlx::query!(
             r#"
             SELECT COALESCE(ROUND(AVG(counts)), 1) AS "average!"

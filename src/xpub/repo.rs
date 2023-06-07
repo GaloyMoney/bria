@@ -3,7 +3,7 @@ use tracing::instrument;
 use uuid::Uuid;
 
 use super::{entity::*, error::XPubError, reference::*, signer_config::*};
-use crate::{entity::*, error::*, primitives::*};
+use crate::{entity::*, primitives::*};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -17,7 +17,7 @@ impl XPubs {
     }
 
     #[instrument(name = "xpubs.persist", skip(self))]
-    pub async fn persist(&self, xpub: NewAccountXPub) -> Result<XPubId, BriaError> {
+    pub async fn persist(&self, xpub: NewAccountXPub) -> Result<XPubId, XPubError> {
         let mut tx = self.pool.begin().await?;
         let ret = self.persist_in_tx(&mut tx, xpub).await?;
         tx.commit().await?;
@@ -29,7 +29,7 @@ impl XPubs {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         xpub: NewAccountXPub,
-    ) -> Result<XPubId, BriaError> {
+    ) -> Result<XPubId, XPubError> {
         let xpub_id = xpub.id();
         sqlx::query!(
             r#"INSERT INTO bria_xpubs
@@ -56,7 +56,7 @@ impl XPubs {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         xpub: AccountXPub,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), XPubError> {
         if xpub.events.is_dirty() {
             EntityEvents::<XPubEvent>::persist(
                 "bria_xpub_events",
@@ -92,7 +92,7 @@ impl XPubs {
         &self,
         account_id: AccountId,
         xpub_ref: impl Into<XPubRef>,
-    ) -> Result<AccountXPub, BriaError> {
+    ) -> Result<AccountXPub, XPubError> {
         let xpub_ref = xpub_ref.into();
         let mut tx = self.pool.begin().await?;
         let db_uuid = match xpub_ref {

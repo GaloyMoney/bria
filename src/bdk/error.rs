@@ -8,4 +8,6 @@ pub enum BdkError {
     BdkLibError(#[from] bdk::Error),
     #[error("BdkError - ElectrumClient: {0}")]
     ElectrumClient(#[from] electrum_client::Error),
+    #[error("BdkError - Sqlx: {0}")]
+    Sqlx(#[from] sqlx::Error),
 }

@@ -2,9 +2,20 @@ use thiserror::Error;
 
 use super::JobExecutionError;
 use crate::{
-    account::error::AccountError, address::error::AddressError, bdk::error::BdkError,
-    ledger::error::LedgerError, payout::error::PayoutError, payout_queue::error::PayoutQueueError,
-    profile::error::ProfileError, wallet::error::WalletError, xpub::error::XPubError,
+    account::error::AccountError,
+    address::error::AddressError,
+    batch::error::BatchError,
+    bdk::error::BdkError,
+    fees::error::FeeEstimationError,
+    ledger::error::LedgerError,
+    payout::error::PayoutError,
+    payout_queue::error::PayoutQueueError,
+    primitives::bitcoin::psbt,
+    profile::error::ProfileError,
+    signing_session::error::SigningSessionError,
+    utxo::error::UtxoError,
+    wallet::error::WalletError,
+    xpub::{error::XPubError, SigningClientError},
 };
 
 #[derive(Error, Debug)]
@@ -25,10 +36,24 @@ pub enum JobError {
     LedgerError(#[from] LedgerError),
     #[error("{0}")]
     XPubError(#[from] XPubError),
-    #[error("JobError - Sqlx: {0}")]
-    Sqlx(#[from] sqlx::Error),
+    #[error("{0}")]
+    UtxoError(#[from] UtxoError),
+    #[error("{0}")]
+    FeeEstimationError(#[from] FeeEstimationError),
+    #[error("{0}")]
+    BatchError(#[from] BatchError),
+    #[error("{0}")]
+    SigningSessionError(#[from] SigningSessionError),
     #[error("{0}")]
     AccountError(#[from] AccountError),
+    #[error("{0}")]
+    SigningClientError(#[from] SigningClientError),
+    #[error("JobError - Sqlx: {0}")]
+    Sqlx(#[from] sqlx::Error),
+    #[error("JobError - PsbtMissingInSigningSessions")]
+    PsbtMissingInSigningSessions,
+    #[error("BriaError - psbt::Error: {0}")]
+    PsbtError(#[from] psbt::Error),
 }
 
 impl JobExecutionError for JobError {}
