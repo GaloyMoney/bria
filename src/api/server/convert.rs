@@ -503,6 +503,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
+            // WalletIdNotFound initiated internally
             ApplicationError::WalletError(WalletError::WalletIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
@@ -515,6 +516,12 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
+            // Called via UpdatePayoutQueue which accepts id as a request parameter. 
+            // message UpdatePayoutQueueRequest{
+            //     string id = 1;
+            //     optional string new_description = 2;
+            //     optional PayoutQueueConfig new_config = 3;
+            //   }
             ApplicationError::PayoutQueueError(PayoutQueueError::PayoutQueueIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
