@@ -145,3 +145,20 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn profile_name_not_found() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
+    let err = app
+        .create_profile_api_key(profile, "test".to_string())
+        .await;
+    assert!(matches!(
+        err,
+        Err(ApplicationError::ProfileError(
+            ProfileError::ProfileNameNotFound(_)
+        ))
+    ));
+    Ok(())
+}

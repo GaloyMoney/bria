@@ -1,7 +1,7 @@
 use sqlx_ledger::SqlxLedgerError;
 use thiserror::Error;
 
-use crate::{account::error::AccountError, error::*};
+use crate::{account::error::AccountError, error::*, profile::error::ProfileError};
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Error, Debug)]
@@ -18,6 +18,8 @@ pub enum AdminApiError {
     BadNetworkForDev,
     #[error("{0}")]
     AccountError(#[from] AccountError),
+    #[error("{0}")]
+    ProfileError(#[from] ProfileError),
 }
 
 impl From<BriaError> for AdminApiError {
