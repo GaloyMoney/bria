@@ -1,3 +1,35 @@
+# [bria release v0.1.17](https://github.com/GaloyMoney/bria/releases/tag/0.1.17)
+
+
+### Bug Fixes
+
+- Retry insert if ordered key disapears (#211)
+
+### Miscellaneous Tasks
+
+- Another iteration on adding errors (#217)
+- Bump tempfile from 3.5.0 to 3.6.0 (#218)
+- Add job error (#215)
+- Bump clap from 4.3.1 to 4.3.2 (#216)
+- Add xpub errors (#212)
+- Bump clap from 4.3.0 to 4.3.1 (#214)
+- Bump url from 2.3.1 to 2.4.0 (#213)
+- Add ledger errors (#210)
+- Bump chrono from 0.4.25 to 0.4.26 (#202)
+- Add new errors (#206)
+- Rename find_external_by_wallet_id -> list_external_by_wallet_id (#209)
+
+### Refactor
+
+- Add outbox errors (#224)
+- Add errors for profile (#223)
+
+### Testing
+
+- Increase max_connections in helpers::init_pool
+- Rename external_id_does_not_exist test
+- Assert application errors
+
 # [bria release v0.1.16](https://github.com/GaloyMoney/bria/releases/tag/0.1.16)
 
 
