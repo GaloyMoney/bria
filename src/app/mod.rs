@@ -118,7 +118,7 @@ impl App {
         &self,
         profile: Profile,
         name: String,
-    ) -> Result<Profile, BriaError> {
+    ) -> Result<Profile, ApplicationError> {
         let mut tx = self.pool.begin().await?;
         let new_profile = self
             .profiles
@@ -139,7 +139,7 @@ impl App {
         &self,
         profile: Profile,
         profile_name: String,
-    ) -> Result<ProfileApiKey, BriaError> {
+    ) -> Result<ProfileApiKey, ApplicationError> {
         let found_profile = self
             .profiles
             .find_by_name(profile.account_id, profile_name)

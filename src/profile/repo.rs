@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
-use crate::{dev_constants, error::*, primitives::*};
+use crate::{dev_constants, primitives::*};
 
 pub struct Profiles {
     pool: Pool<Postgres>,
@@ -19,7 +19,7 @@ impl Profiles {
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         profile_name: String,
-    ) -> Result<Profile, BriaError> {
+    ) -> Result<Profile, ProfileError> {
         let id = Uuid::new_v4();
         let record = sqlx::query!(
             r#"INSERT INTO bria_profiles (id, account_id, name)
@@ -65,7 +65,7 @@ impl Profiles {
         &self,
         account_id: AccountId,
         name: String,
-    ) -> Result<Profile, BriaError> {
+    ) -> Result<Profile, ProfileError> {
         let record = sqlx::query!(
             r#"SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"#,
             Uuid::from(account_id),
@@ -80,7 +80,7 @@ impl Profiles {
                 account_id,
                 name: row.name,
             })
-            .ok_or(BriaError::ProfileNotFound)
+            .ok_or(ProfileError::ProfileNameNotFound(name))
     }
 
     pub async fn create_key_for_profile_in_tx(
@@ -88,7 +88,7 @@ impl Profiles {
         tx: &mut sqlx::Transaction<'_, Postgres>,
         profile: Profile,
         dev: bool,
-    ) -> Result<ProfileApiKey, BriaError> {
+    ) -> Result<ProfileApiKey, ProfileError> {
         let key = if dev {
             dev_constants::BRIA_DEV_KEY.to_string()
         } else {
