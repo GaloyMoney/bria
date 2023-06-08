@@ -8,6 +8,7 @@ use crate::{
     bdk::error::BdkError,
     fees::error::FeeEstimationError,
     ledger::error::LedgerError,
+    outbox::error::OutboxError,
     payout::error::PayoutError,
     payout_queue::error::PayoutQueueError,
     primitives::bitcoin::psbt,
@@ -46,6 +47,8 @@ pub enum JobError {
     SigningSessionError(#[from] SigningSessionError),
     #[error("{0}")]
     AccountError(#[from] AccountError),
+    #[error("{0}")]
+    OutboxError(#[from] OutboxError),
     #[error("{0}")]
     SigningClientError(#[from] SigningClientError),
     #[error("JobError - Sqlx: {0}")]

@@ -12,7 +12,7 @@ use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{error::*, ledger::*, primitives::*};
+use crate::{ledger::*, primitives::*};
 
 pub use augmentation::*;
 use error::OutboxError;
@@ -61,7 +61,7 @@ impl Outbox {
         &self,
         mut ledger_event: JournalEvent,
         linked_span: tracing::Span,
-    ) -> Result<(), BriaError> {
+    ) -> Result<(), OutboxError> {
         let current_span = tracing::Span::current();
         current_span.add_link(linked_span.context().span().span_context().clone());
         if let Some(context) = ledger_event.notification_otel_context.take() {
@@ -96,7 +96,7 @@ impl Outbox {
         for event in events {
             self.event_sender
                 .send(event)
-                .map_err(|_| BriaError::SendEventError)?;
+                .map_err(|_| OutboxError::SendEventError)?;
         }
 
         *write_sequences = (sequence, Some(ledger_event.ledger_event_id));
@@ -109,7 +109,7 @@ impl Outbox {
         account_id: AccountId,
         start_after: Option<EventSequence>,
         augment: bool,
-    ) -> Result<OutboxListener, BriaError> {
+    ) -> Result<OutboxListener, OutboxError> {
         let sub = self.event_receiver.resubscribe();
         let latest_known = self.sequences_for(account_id).await?.read().await.0;
         let start = start_after.unwrap_or(latest_known);
@@ -128,7 +128,7 @@ impl Outbox {
     pub async fn last_ledger_event_id(
         &self,
         account_id: AccountId,
-    ) -> Result<Option<SqlxLedgerEventId>, BriaError> {
+    ) -> Result<Option<SqlxLedgerEventId>, OutboxError> {
         let sequences = self.sequences_for(account_id).await?;
         let read_seq = sequences.read().await;
         Ok(read_seq.1)
@@ -174,7 +174,7 @@ impl Outbox {
     async fn sequences_for(
         &self,
         account_id: AccountId,
-    ) -> Result<Arc<RwLock<SequenceElems>>, BriaError> {
+    ) -> Result<Arc<RwLock<SequenceElems>>, OutboxError> {
         Self::sequences_for_inner(&self.repo, &self.sequences, account_id).await
     }
 
@@ -182,7 +182,7 @@ impl Outbox {
         repo: &OutboxRepo,
         sequences: &Arc<RwLock<SequenceMap>>,
         account_id: AccountId,
-    ) -> Result<Arc<RwLock<SequenceElems>>, BriaError> {
+    ) -> Result<Arc<RwLock<SequenceElems>>, OutboxError> {
         {
             let read_map = sequences.read().await;
             if let Some(elems) = read_map.get(&account_id) {

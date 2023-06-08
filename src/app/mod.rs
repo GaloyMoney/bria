@@ -12,7 +12,6 @@ use crate::{
     address::*,
     batch::*,
     descriptor::*,
-    error::*,
     fees::{self, *},
     job,
     ledger::*,
@@ -681,14 +680,16 @@ impl App {
         profile: Profile,
         start_after: Option<u64>,
         augment: bool,
-    ) -> Result<OutboxListener, BriaError> {
-        self.outbox
+    ) -> Result<OutboxListener, ApplicationError> {
+        let res = self
+            .outbox
             .register_listener(
                 profile.account_id,
                 start_after.map(EventSequence::from),
                 augment,
             )
-            .await
+            .await?;
+        Ok(res)
     }
 
     #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]

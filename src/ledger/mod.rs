@@ -66,7 +66,7 @@ impl Ledger {
         &self,
         journal_id: JournalId,
         last_ledger_id: Option<SqlxLedgerEventId>,
-    ) -> Result<impl Stream<Item = Result<JournalEvent, BriaError>>, BriaError> {
+    ) -> Result<impl Stream<Item = Result<JournalEvent, LedgerError>>, LedgerError> {
         let stream = BroadcastStream::new(
             self.inner
                 .events(EventSubscriberOpts {
@@ -80,7 +80,7 @@ impl Ledger {
         );
         Ok(stream.filter_map(|event| {
             match event
-                .map_err(BriaError::from)
+                .map_err(LedgerError::from)
                 .and_then(MaybeIgnored::try_from)
             {
                 Ok(MaybeIgnored::Ignored) => None,

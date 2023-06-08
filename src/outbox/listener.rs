@@ -4,21 +4,22 @@ use tokio_stream::wrappers::{errors::BroadcastStreamRecvError, BroadcastStream};
 
 use std::{collections::BTreeMap, pin::Pin, task::Poll};
 
-use super::{augmentation::*, event::*, repo::*};
-use crate::{error::*, primitives::*};
+use super::{augmentation::*, error::OutboxError, event::*, repo::*};
+use crate::primitives::*;
 
 pub struct OutboxListener {
     repo: OutboxRepo,
     account_id: AccountId,
     augmenter: Option<Augmenter>,
     next_to_augment: Option<OutboxEvent<Augmentation>>,
-    augmentation_handle: Option<JoinHandle<Result<Augmentation, BriaError>>>,
+    augmentation_handle: Option<JoinHandle<Result<Augmentation, OutboxError>>>,
     last_sequence: EventSequence,
     latest_known: EventSequence,
     event_receiver: Pin<Box<BroadcastStream<OutboxEvent<WithoutAugmentation>>>>,
     buffer_size: usize,
     cache: BTreeMap<EventSequence, OutboxEvent<WithoutAugmentation>>,
-    next_page_handle: Option<JoinHandle<Result<Vec<OutboxEvent<WithoutAugmentation>>, BriaError>>>,
+    next_page_handle:
+        Option<JoinHandle<Result<Vec<OutboxEvent<WithoutAugmentation>>, OutboxError>>>,
 }
 
 impl OutboxListener {

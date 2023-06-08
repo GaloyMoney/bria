@@ -6,4 +6,8 @@ pub enum LedgerError {
     SqlxLedger(#[from] sqlx_ledger::SqlxLedgerError),
     #[error("LedgerError - SerdeJson: {0}")]
     SerdeJson(#[from] serde_json::Error),
+    #[error("LedgerError - EventStreamError: {0}")]
+    EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
+    #[error("LedgerError - MissingTxMetadata")]
+    MissingTxMetadata,
 }

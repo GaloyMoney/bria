@@ -1,6 +1,5 @@
-use crate::{address::*, error::*, payout::*, primitives::*};
-
-use super::event::*;
+use super::{error::OutboxError, event::*};
+use crate::{address::*, payout::*, primitives::*};
 
 pub struct Augmentation {
     pub address: Option<AddressAugmentation>,
@@ -32,7 +31,7 @@ impl Augmenter {
         &self,
         account_id: AccountId,
         payload: OutboxEventPayload,
-    ) -> Result<Augmentation, BriaError> {
+    ) -> Result<Augmentation, OutboxError> {
         match payload {
             OutboxEventPayload::UtxoDetected {
                 address, wallet_id, ..
