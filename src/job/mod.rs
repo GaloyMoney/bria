@@ -144,7 +144,7 @@ async fn populate_outbox(
     mut current_job: CurrentJob,
     outbox: Outbox,
     ledger: Ledger,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     JobExecutor::builder(&mut current_job)
         .max_retry_delay(std::time::Duration::from_secs(20))
         .build()
@@ -152,7 +152,7 @@ async fn populate_outbox(
         .execute(|data| async move {
             let data: PopulateOutboxData = data.expect("no PopulateOutboxData available");
             let data = populate_outbox::execute(data, outbox, ledger).await?;
-            Ok::<_, BriaError>(data)
+            Ok::<_, JobError>(data)
         })
         .await?;
     Ok(())

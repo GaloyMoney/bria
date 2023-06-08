@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use std::{collections::HashMap, sync::Arc};
 
-use super::event::*;
-use crate::{error::*, primitives::*};
+use super::{error::OutboxError, event::*};
+use crate::primitives::*;
 
 #[derive(Clone)]
 pub(super) struct OutboxRepo {
@@ -16,7 +16,7 @@ impl OutboxRepo {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_events<T>(&self, events: &[OutboxEvent<T>]) -> Result<(), BriaError> {
+    pub async fn persist_events<T>(&self, events: &[OutboxEvent<T>]) -> Result<(), OutboxError> {
         if events.is_empty() {
             return Ok(());
         }
@@ -46,7 +46,7 @@ impl OutboxRepo {
         account_id: AccountId,
         sequence: EventSequence,
         buffer_size: usize,
-    ) -> Result<Vec<OutboxEvent<WithoutAugmentation>>, BriaError> {
+    ) -> Result<Vec<OutboxEvent<WithoutAugmentation>>, OutboxError> {
         let rows = sqlx::query!(
             r#"
             SELECT id, account_id, sequence AS "sequence: EventSequence", ledger_event_id AS "ledger_event_id: SqlxLedgerEventId", ledger_tx_id, payload, recorded_at
@@ -81,7 +81,7 @@ impl OutboxRepo {
         &self,
     ) -> Result<
         HashMap<AccountId, Arc<tokio::sync::RwLock<(EventSequence, Option<SqlxLedgerEventId>)>>>,
-        BriaError,
+        OutboxError,
     > {
         let rows = sqlx::query!(
             r#"

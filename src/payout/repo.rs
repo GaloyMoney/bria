@@ -5,7 +5,7 @@ use uuid::Uuid;
 use std::collections::HashMap;
 
 use super::{entity::*, error::*, unbatched::*};
-use crate::{entity::*, error::*, primitives::*};
+use crate::{entity::*, primitives::*};
 
 #[derive(Debug, Clone)]
 pub struct Payouts {
@@ -48,7 +48,7 @@ impl Payouts {
         &self,
         account_id: AccountId,
         payout_id: PayoutId,
-    ) -> Result<Payout, BriaError> {
+    ) -> Result<Payout, PayoutError> {
         let rows = sqlx::query!(
             r#"
           SELECT b.*, e.sequence, e.event
@@ -63,7 +63,7 @@ impl Payouts {
         .await?;
 
         if rows.is_empty() {
-            return Err(BriaError::PayoutNotFound);
+            return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
         }
 
         let mut entity_events = EntityEvents::new();
