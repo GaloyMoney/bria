@@ -516,6 +516,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseIncomingUuid(err) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
+            ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
+                tonic::Status::not_found(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }

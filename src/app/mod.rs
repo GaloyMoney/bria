@@ -610,6 +610,18 @@ impl App {
         Ok(self.wallets.list_by_account_id(profile.account_id).await?)
     }
 
+    #[instrument(name = "app.find_payout_by_external_id", skip_all, err)]
+    pub async fn find_payout_by_external_id(
+        &self,
+        profile: Profile,
+        external_id: String,
+    ) -> Result<Payout, ApplicationError> {
+        Ok(self
+            .payouts
+            .find_by_external_id(profile.account_id, external_id)
+            .await?)
+    }
+
     #[instrument(name = "app.list_payouts", skip_all, err)]
     pub async fn list_payouts(
         &self,

@@ -73,6 +73,36 @@ impl Payouts {
         Ok(Payout::try_from(entity_events)?)
     }
 
+    #[instrument(name = "payouts.find_by_external_id", skip(self))]
+    pub async fn find_by_external_id(
+        &self,
+        account_id: AccountId,
+        external_id: String,
+    ) -> Result<Payout, PayoutError> {
+        let rows = sqlx::query!(
+            r#"
+          SELECT b.*, e.sequence, e.event
+          FROM bria_payouts b
+          JOIN bria_payout_events e ON b.id = e.id
+          WHERE account_id = $1 AND b.external_id = $2
+          ORDER BY b.created_at, b.id, e.sequence"#,
+            account_id as AccountId,
+            external_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if rows.is_empty() {
+            return Err(PayoutError::ExternalIdNotFound);
+        }
+
+        let mut entity_events = EntityEvents::new();
+        for row in rows {
+            entity_events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(Payout::try_from(entity_events)?)
+    }
+
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
