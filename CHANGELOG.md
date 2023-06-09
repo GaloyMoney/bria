@@ -1,3 +1,10 @@
+# [bria release v0.1.18](https://github.com/GaloyMoney/bria/releases/tag/0.1.18)
+
+
+### Refactor
+
+- Delete error.rs (#226)
+
 # [bria release v0.1.17](https://github.com/GaloyMoney/bria/releases/tag/0.1.17)
 
 
