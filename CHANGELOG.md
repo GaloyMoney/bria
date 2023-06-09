@@ -1,3 +1,10 @@
+# [bria release v0.1.19](https://github.com/GaloyMoney/bria/releases/tag/0.1.19)
+
+
+### Features
+
+- Add find_payout_by_external_id (#227)
+
 # [bria release v0.1.18](https://github.com/GaloyMoney/bria/releases/tag/0.1.18)
 
 
