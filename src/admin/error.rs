@@ -1,7 +1,9 @@
-use sqlx_ledger::SqlxLedgerError;
 use thiserror::Error;
 
-use crate::{account::error::AccountError, error::*, profile::error::ProfileError};
+use crate::{
+    account::error::AccountError, app::error::ApplicationError, ledger::error::LedgerError,
+    profile::error::ProfileError,
+};
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Error, Debug)]
@@ -10,23 +12,23 @@ pub enum AdminApiError {
     TonicError(#[from] tonic::transport::Error),
     #[error("AdminApiError - SqlxError: {0}")]
     SqlxError(#[from] sqlx::Error),
-    #[error("AdminApiError - SqlxLedgerError: {0}")]
-    SqlxLedgerError(#[from] SqlxLedgerError),
     #[error("AdminApiError - BriaError: {0}")]
-    BriaError(BriaError),
+    BriaError(ApplicationError),
     #[error("AdminApiError - BadNetworkForDev")]
     BadNetworkForDev,
     #[error("{0}")]
     AccountError(#[from] AccountError),
     #[error("{0}")]
     ProfileError(#[from] ProfileError),
+    #[error("{0}")]
+    LedgerError(#[from] LedgerError),
 }
 
-impl From<BriaError> for AdminApiError {
-    fn from(err: BriaError) -> Self {
+impl From<ApplicationError> for AdminApiError {
+    fn from(err: ApplicationError) -> Self {
         match err {
-            BriaError::Sqlx(e) => AdminApiError::SqlxError(e),
-            BriaError::Tonic(e) => AdminApiError::TonicError(e),
+            ApplicationError::Sqlx(e) => AdminApiError::SqlxError(e),
+            ApplicationError::ServerError(e) => AdminApiError::TonicError(e),
             e => AdminApiError::BriaError(e),
         }
     }

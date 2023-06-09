@@ -19,7 +19,6 @@ use proto::{bria_service_server::BriaService, *};
 use super::config::*;
 use crate::{
     app::{error::ApplicationError, *},
-    error::*,
     payout_queue,
     primitives::*,
 };
@@ -280,7 +279,7 @@ impl BriaService for Bria {
                     metadata
                         .map(serde_json::to_value)
                         .transpose()
-                        .map_err(BriaError::CouldNotParseIncomingMetadata)?,
+                        .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
             Ok(Response::new(NewAddressResponse { address }))
@@ -313,7 +312,7 @@ impl BriaService for Bria {
                     new_metadata
                         .map(serde_json::to_value)
                         .transpose()
-                        .map_err(BriaError::CouldNotParseIncomingMetadata)?,
+                        .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
             Ok(Response::new(UpdateAddressResponse {}))
@@ -496,7 +495,7 @@ impl BriaService for Bria {
                     metadata
                         .map(serde_json::to_value)
                         .transpose()
-                        .map_err(BriaError::CouldNotParseIncomingMetadata)?,
+                        .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
             Ok(Response::new(SubmitPayoutResponse { id: id.to_string() }))
@@ -593,7 +592,8 @@ impl BriaService for Bria {
             self.app
                 .update_payout_queue(
                     profile,
-                    id.parse().map_err(BriaError::CouldNotParseIncomingUuid)?,
+                    id.parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                     new_description,
                     new_config.map(payout_queue::PayoutQueueConfig::from),
                 )
@@ -620,7 +620,7 @@ impl BriaService for Bria {
                     profile,
                     batch_id
                         .parse()
-                        .map_err(BriaError::CouldNotParseIncomingUuid)?,
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                 )
                 .await?;
 

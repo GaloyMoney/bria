@@ -5,7 +5,6 @@ use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
     app::error::*,
-    error::BriaError,
     outbox::*,
     payout::*,
     payout_queue::*,
@@ -18,20 +17,6 @@ use crate::{
     wallet::*,
     xpub::*,
 };
-
-impl From<BriaError> for tonic::Status {
-    fn from(err: BriaError) -> Self {
-        match err {
-            BriaError::CouldNotParseIncomingMetadata(err) => {
-                tonic::Status::invalid_argument(err.to_string())
-            }
-            BriaError::CouldNotParseIncomingUuid(err) => {
-                tonic::Status::invalid_argument(err.to_string())
-            }
-            _ => tonic::Status::new(tonic::Code::Unknown, format!("{err}")),
-        }
-    }
-}
 
 impl From<Profile> for proto::Profile {
     fn from(p: Profile) -> Self {
@@ -524,6 +509,12 @@ impl From<ApplicationError> for tonic::Status {
             }
             ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::CouldNotParseIncomingMetadata(err) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
+            ApplicationError::CouldNotParseIncomingUuid(err) => {
+                tonic::Status::invalid_argument(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),
         }

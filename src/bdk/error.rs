@@ -10,4 +10,6 @@ pub enum BdkError {
     ElectrumClient(#[from] electrum_client::Error),
     #[error("BdkError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("BdkError - Serde: {0}")]
+    Serde(#[from] serde_json::Error),
 }

@@ -3,7 +3,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
 
-use crate::{bdk::error::BdkError, error::*, primitives::*};
+use crate::{bdk::error::BdkError, primitives::*};
 
 #[derive(Debug)]
 pub struct UnsyncedTransaction {
@@ -96,7 +96,7 @@ impl Transactions {
     pub async fn find_unsynced_tx(
         &self,
         excluded_tx_ids: &[String],
-    ) -> Result<Option<UnsyncedTransaction>, BriaError> {
+    ) -> Result<Option<UnsyncedTransaction>, BdkError> {
         let rows = sqlx::query!(
         r#"WITH tx_to_sync AS (
            SELECT tx_id, details_json, height
@@ -169,7 +169,7 @@ impl Transactions {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         min_height: u32,
-    ) -> Result<Option<ConfirmedSpendTransaction>, BriaError> {
+    ) -> Result<Option<ConfirmedSpendTransaction>, BdkError> {
         let rows = sqlx::query!(r#"
             WITH tx_to_sync AS (
               UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()

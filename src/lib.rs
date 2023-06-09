@@ -12,7 +12,6 @@ pub mod cli;
 pub mod descriptor;
 mod dev_constants;
 mod entity;
-mod error;
 pub mod fees;
 mod job;
 pub mod ledger;
