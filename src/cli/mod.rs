@@ -983,9 +983,13 @@ async fn run_cmd(
                             }
                         }
                     }
+                    let xpub_id = xpub
+                        .parse::<bitcoin::ExtendedPubKey>()
+                        .unwrap()
+                        .fingerprint();
                     match client
                         .set_signer_config(
-                            xpub,
+                            xpub_id.to_string(),
                             SetSignerConfigCommand::Bitcoind {
                                 endpoint: signer_endpoint,
                                 rpc_user: dev_constants::DEFAULT_BITCOIND_RPC_USER.to_string(),
