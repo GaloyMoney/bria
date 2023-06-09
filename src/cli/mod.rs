@@ -373,7 +373,21 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
-
+    /// Find Payout By External Id
+    FindPayout {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        external_id: String,
+    },
     /// List Wallets
     ListWallets {
         #[clap(
@@ -786,6 +800,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_payouts(wallet).await?;
+        }
+        Command::FindPayout {
+            url,
+            api_key,
+            external_id,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.find_payout_by_external_id(external_id).await?;
         }
         Command::ListWallets { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);

@@ -8,4 +8,6 @@ pub enum PayoutError {
     EntityError(#[from] crate::entity::EntityError),
     #[error("PayoutError - Could not find payout with id: {0}")]
     PayoutIdNotFound(String),
+    #[error("PayoutError - External Id does not exists")]
+    ExternalIdNotFound,
 }
