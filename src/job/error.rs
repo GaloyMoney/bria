@@ -55,7 +55,7 @@ pub enum JobError {
     Sqlx(#[from] sqlx::Error),
     #[error("JobError - PsbtMissingInSigningSessions")]
     PsbtMissingInSigningSessions,
-    #[error("BriaError - psbt::Error: {0}")]
+    #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
 }
 

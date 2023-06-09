@@ -3,12 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 use super::error::XPubError;
-use crate::{
-    error::*,
-    primitives::{
-        bitcoin::{DerivationPath, ExtendedPubKey},
-        XPubId,
-    },
+use crate::primitives::{
+    bitcoin::{DerivationPath, ExtendedPubKey},
+    XPubId,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -42,12 +39,12 @@ impl fmt::Display for XPub {
 }
 
 impl TryFrom<&DescriptorPublicKey> for XPub {
-    type Error = BriaError;
+    type Error = XPubError;
 
     fn try_from(pk: &DescriptorPublicKey) -> Result<Self, Self::Error> {
         let derivation_path = pk.full_derivation_path();
         match pk {
-            DescriptorPublicKey::Single(_) => Err(BriaError::UnsupportedPubKeyType),
+            DescriptorPublicKey::Single(_) => Err(XPubError::UnsupportedPubKeyType),
             DescriptorPublicKey::XPub(inner) => Ok(Self {
                 derivation: Some(derivation_path),
                 inner: inner.xkey,

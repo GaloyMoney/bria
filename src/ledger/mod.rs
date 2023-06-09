@@ -14,7 +14,7 @@ use tracing::instrument;
 
 use std::collections::HashMap;
 
-use crate::{account::balance::*, error::*, primitives::*};
+use crate::{account::balance::*, primitives::*};
 use constants::*;
 use error::LedgerError;
 pub use event::*;
@@ -413,7 +413,7 @@ impl Ledger {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         id: AccountId,
         account_name: String,
-    ) -> Result<JournalId, BriaError> {
+    ) -> Result<JournalId, LedgerError> {
         let new_journal = NewJournal::builder()
             .id(id)
             .description(format!("Journal for account '{account_name}'"))

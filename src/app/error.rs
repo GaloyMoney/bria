@@ -47,4 +47,8 @@ pub enum ApplicationError {
     ServerError(#[from] tonic::transport::Error),
     #[error("ApplicationError - UnsupportedPubKeyType")]
     UnsupportedPubKeyType,
+    #[error("ApplicationError - CouldNotParseIncomingMetadata: {0}")]
+    CouldNotParseIncomingMetadata(serde_json::Error),
+    #[error("ApplicationError - CouldNotParseIncomingUuid: {0}")]
+    CouldNotParseIncomingUuid(uuid::Error),
 }

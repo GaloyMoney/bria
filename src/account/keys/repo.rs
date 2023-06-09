@@ -19,7 +19,7 @@ impl AccountApiKeys {
         tx: &mut sqlx::Transaction<'_, Postgres>,
         name: String,
         account_id: AccountId,
-    ) -> Result<AccountApiKey, BriaError> {
+    ) -> Result<AccountApiKey, AccountError> {
         let code = Alphanumeric.sample_string(&mut rand::thread_rng(), 64);
         let key = format!("bria_{code}");
         let record = sqlx::query!(
@@ -39,7 +39,7 @@ impl AccountApiKeys {
         })
     }
 
-    pub async fn find_by_key(&self, key: &str) -> Result<AccountApiKey, BriaError> {
+    pub async fn find_by_key(&self, key: &str) -> Result<AccountApiKey, AccountError> {
         let record = sqlx::query!(
             r#"SELECT id, account_id, name FROM bria_account_api_keys WHERE encrypted_key = crypt($1, encrypted_key)"#,
             key

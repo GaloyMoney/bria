@@ -16,9 +16,9 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, error::*,
-    fees::MempoolSpaceClient, ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*,
-    signing_session::*, utxo::Utxos, wallet::*, xpub::*,
+    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::MempoolSpaceClient,
+    ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
+    utxo::Utxos, wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
@@ -442,7 +442,7 @@ async fn spawn_schedule_process_payout_queue(
     pool: &sqlx::PgPool,
     data: impl Into<ProcessPayoutQueueData>,
     delay: std::time::Duration,
-) -> Result<(), BriaError> {
+) -> Result<(), JobError> {
     let data = data.into();
     match JobBuilder::new_with_id(
         Uuid::from(data.payout_queue_id),

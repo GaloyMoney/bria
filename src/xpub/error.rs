@@ -16,4 +16,6 @@ pub enum XPubError {
     XPubParseError(bdk::bitcoin::util::base58::Error),
     #[error("XPubError - Bip32: {0}")]
     Bip32(#[from] crate::primitives::bitcoin::bip32::Error),
+    #[error("XPubError - UnsupportedPubKeyType")]
+    UnsupportedPubKeyType,
 }
