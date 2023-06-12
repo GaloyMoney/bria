@@ -519,6 +519,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
+            ApplicationError::DestinationBlocked(_) => {
+                tonic::Status::permission_denied(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }

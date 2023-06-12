@@ -4,9 +4,9 @@ use crate::{
     address::error::AddressError, batch::error::BatchError, bdk::error::BdkError,
     descriptor::error::DescriptorError, fees::error::FeeEstimationError, job::error::JobError,
     ledger::error::LedgerError, outbox::error::OutboxError, payout::error::PayoutError,
-    payout_queue::error::PayoutQueueError, profile::error::ProfileError,
-    signing_session::error::SigningSessionError, utxo::error::UtxoError,
-    wallet::error::WalletError, xpub::error::XPubError,
+    payout_queue::error::PayoutQueueError, primitives::PayoutDestination,
+    profile::error::ProfileError, signing_session::error::SigningSessionError,
+    utxo::error::UtxoError, wallet::error::WalletError, xpub::error::XPubError,
 };
 
 #[derive(Error, Debug)]
@@ -51,4 +51,6 @@ pub enum ApplicationError {
     CouldNotParseIncomingMetadata(serde_json::Error),
     #[error("ApplicationError - CouldNotParseIncomingUuid: {0}")]
     CouldNotParseIncomingUuid(uuid::Error),
+    #[error("ApplicationError - DestinationBlocked: {0}")]
+    DestinationBlocked(PayoutDestination),
 }
