@@ -1,3 +1,4 @@
+mod address_extractor;
 mod admin_client;
 mod api_client;
 mod config;
@@ -483,6 +484,11 @@ enum Command {
     },
     /// generate a hex encoded 32 byte random key
     GenSignerEncryptionKey {},
+    /// extract blocked addresses
+    ExtractAddresses {
+        #[clap(short, long)]
+        path: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -861,6 +867,7 @@ pub async fn run() -> anyhow::Result<()> {
         }
         Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
         Command::GenSignerEncryptionKey {} => gen::gen_signer_encryption_key()?,
+        Command::ExtractAddresses { path } => address_extractor::read_and_parse_addresses(path)?,
     }
     Ok(())
 }
