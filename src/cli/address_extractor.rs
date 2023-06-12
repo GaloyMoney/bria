@@ -18,12 +18,12 @@ pub fn read_and_parse_addresses(file_path: impl AsRef<Path>) -> Result<()> {
         })
         .collect();
 
-    println!("app:");
-    println!("  security:");
-    println!("    blocked_addresses:");
-    for address in set {
-        println!("    - {}", address);
-    }
-
+    println!(
+        "app:\n  security:\n    blocked_addresses:\n{}",
+        set.iter()
+            .map(|address| format!("      - {}", address))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
     Ok(())
 }
