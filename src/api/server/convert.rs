@@ -510,10 +510,10 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::CouldNotParseIncomingMetadata(err) => {
+            ApplicationError::CouldNotParseIncomingMetadata(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
-            ApplicationError::CouldNotParseIncomingUuid(err) => {
+            ApplicationError::CouldNotParseIncomingUuid(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
             ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
