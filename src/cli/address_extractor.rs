@@ -25,7 +25,7 @@ fn extract_addresses(file_contents: &str) -> HashSet<bitcoin::Address> {
 
     for cap in re.captures_iter(file_contents) {
         if let Some(addr) = cap.get(0) {
-            if let Some(address) = addr.as_str().parse::<bitcoin::Address>().ok() {
+            if let Ok(address) = addr.as_str().parse::<bitcoin::Address>() {
                 addresses.insert(address);
             }
         }
