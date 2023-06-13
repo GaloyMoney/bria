@@ -16,7 +16,7 @@ struct SecurityOutput {
 }
 
 fn extract_potential_addresses(file_contents: &str) -> HashSet<String> {
-    let re = Regex::new(r"\b(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}\b").unwrap();
+    let re = Regex::new(r"\b(bc1|1|3|tb1|m|n|2)[0-9a-zA-Z]*\b").unwrap();
     let mut potential_addresses = HashSet::new();
 
     for cap in re.captures_iter(file_contents) {
