@@ -66,6 +66,11 @@ enum Command {
         #[clap(env = "BRIA_ADMIN_API_KEY", default_value = "")]
         admin_api_key: String,
     },
+    /// Subcommand for various utilities
+    Utils {
+        #[clap(subcommand)]
+        command: UtilsCommand,
+    },
     /// Create a new profile
     CreateProfile {
         #[clap(
@@ -478,17 +483,18 @@ enum Command {
         #[clap(long, default_value = "false")]
         augment: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum UtilsCommand {
     GenDescriptorKeys {
         #[clap(short, long, default_value = "bitcoin")]
         network: bitcoin::Network,
     },
     /// generate a hex encoded 32 byte random key
     GenSignerEncryptionKey {},
-    /// extract blocked addresses
-    ExtractAddresses {
-        #[clap(short, long)]
-        path: PathBuf,
-    },
+    /// extract addresses
+    ExtractAddresses { path: PathBuf },
 }
 
 #[derive(Subcommand)]
@@ -619,6 +625,13 @@ pub async fn run() -> anyhow::Result<()> {
                 _ => (),
             }
         }
+        Command::Utils { command } => match command {
+            UtilsCommand::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
+            UtilsCommand::GenSignerEncryptionKey {} => gen::gen_signer_encryption_key()?,
+            UtilsCommand::ExtractAddresses { path } => {
+                address_extractor::read_and_parse_addresses(path)?
+            }
+        },
         Command::Admin {
             command,
             url,
@@ -865,9 +878,6 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.watch_events(one_shot, after, augment).await?;
         }
-        Command::GenDescriptorKeys { network } => gen::gen_descriptor_keys(network)?,
-        Command::GenSignerEncryptionKey {} => gen::gen_signer_encryption_key()?,
-        Command::ExtractAddresses { path } => address_extractor::read_and_parse_addresses(path)?,
     }
     Ok(())
 }
