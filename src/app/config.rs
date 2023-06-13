@@ -1,4 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashSet;
 
 use crate::{
     fees::MempoolSpaceConfig,
@@ -57,7 +58,8 @@ pub struct FeesConfig {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SecurityConfig {
-    blocked_addresses: Vec<bitcoin::Address>,
+    #[serde(deserialize_with = "deserialize_addresses")]
+    blocked_addresses: HashSet<bitcoin::Address>,
 }
 
 impl SecurityConfig {
@@ -68,6 +70,17 @@ impl SecurityConfig {
             false
         }
     }
+}
+
+fn deserialize_addresses<'de, D>(deserializer: D) -> Result<HashSet<bitcoin::Address>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let vec: Vec<String> = serde::Deserialize::deserialize(deserializer)?;
+    let address_iter = vec
+        .into_iter()
+        .map(|s| s.parse().map_err(serde::de::Error::custom));
+    address_iter.collect()
 }
 
 fn deserialize_network<'de, D>(deserializer: D) -> Result<Network, D::Error>
