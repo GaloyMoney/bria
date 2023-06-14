@@ -143,6 +143,16 @@ impl PayoutDestination {
     }
 }
 
+impl std::fmt::Display for PayoutDestination {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
+        match self {
+            PayoutDestination::OnchainAddress { value } => {
+                write!(f, "{}", value)
+            }
+        }
+    }
+}
+
 pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
 #[derive(

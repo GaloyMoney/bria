@@ -1,9 +1,29 @@
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::HashSet;
 
 use crate::{
-    fees::MempoolSpaceConfig, job::JobsConfig, primitives::bitcoin::Network,
+    fees::MempoolSpaceConfig,
+    job::JobsConfig,
+    primitives::{
+        bitcoin::{self, Network},
+        PayoutDestination,
+    },
     xpub::SignerEncryptionConfig,
 };
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AppConfig {
+    #[serde(default)]
+    pub blockchain: BlockchainConfig,
+    #[serde(default)]
+    pub jobs: JobsConfig,
+    #[serde(default)]
+    pub signer_encryption: SignerEncryptionConfig,
+    #[serde(default)]
+    pub fees: FeesConfig,
+    #[serde(default)]
+    pub security: SecurityConfig,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockchainConfig {
@@ -36,16 +56,19 @@ pub struct FeesConfig {
     pub mempool_space: MempoolSpaceConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct AppConfig {
-    #[serde(default)]
-    pub blockchain: BlockchainConfig,
-    #[serde(default)]
-    pub jobs: JobsConfig,
-    #[serde(default)]
-    pub signer_encryption: SignerEncryptionConfig,
-    #[serde(default)]
-    pub fees: FeesConfig,
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct SecurityConfig {
+    blocked_addresses: HashSet<bitcoin::Address>,
+}
+
+impl SecurityConfig {
+    pub fn is_blocked(&self, destination: &PayoutDestination) -> bool {
+        if let Some(addr) = destination.onchain_address() {
+            self.blocked_addresses.contains(&addr)
+        } else {
+            false
+        }
+    }
 }
 
 fn deserialize_network<'de, D>(deserializer: D) -> Result<Network, D::Error>

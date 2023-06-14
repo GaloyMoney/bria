@@ -510,14 +510,17 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::CouldNotParseIncomingMetadata(err) => {
+            ApplicationError::CouldNotParseIncomingMetadata(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
-            ApplicationError::CouldNotParseIncomingUuid(err) => {
+            ApplicationError::CouldNotParseIncomingUuid(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
             ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::DestinationBlocked(_) => {
+                tonic::Status::permission_denied(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),
         }
@@ -529,6 +532,7 @@ impl ToTraceLevel for tonic::Status {
         match self.code() {
             tonic::Code::NotFound => tracing::Level::WARN,
             tonic::Code::AlreadyExists => tracing::Level::WARN,
+            tonic::Code::PermissionDenied => tracing::Level::WARN,
             _ => tracing::Level::ERROR,
         }
     }

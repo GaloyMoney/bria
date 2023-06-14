@@ -567,6 +567,11 @@ impl App {
             .payout_queues
             .find_by_name(profile.account_id, queue_name)
             .await?;
+
+        if self.config.security.is_blocked(&destination) {
+            return Err(ApplicationError::DestinationBlocked(destination));
+        }
+
         let mut builder = NewPayout::builder();
         builder
             .account_id(profile.account_id)
