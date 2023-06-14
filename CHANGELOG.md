@@ -1,3 +1,16 @@
+# [bria release v0.1.21](https://github.com/GaloyMoney/bria/releases/tag/0.1.21)
+
+
+### Features
+
+- Add block_list for addresses (#228)
+
+### Miscellaneous Tasks
+
+- Bump uuid from 1.3.3 to 1.3.4 (#232)
+- Bump sqlx-ledger
+- Bump clap from 4.3.2 to 4.3.3 (#229)
+
 # [bria release v0.1.20](https://github.com/GaloyMoney/bria/releases/tag/0.1.20)
 
 
