@@ -45,12 +45,12 @@ pub enum ApplicationError {
     Sqlx(#[from] sqlx::Error),
     #[error("{0}")]
     ServerError(#[from] tonic::transport::Error),
-    #[error("ApplicationError - UnsupportedPubKeyType")]
+    #[error("UnsupportedPubKeyType")]
     UnsupportedPubKeyType,
-    #[error("ApplicationError - CouldNotParseIncomingMetadata: {0}")]
+    #[error("CouldNotParseIncomingMetadata: {0}")]
     CouldNotParseIncomingMetadata(serde_json::Error),
-    #[error("ApplicationError - CouldNotParseIncomingUuid: {0}")]
+    #[error("CouldNotParseIncomingUuid: {0}")]
     CouldNotParseIncomingUuid(uuid::Error),
-    #[error("ApplicationError - DestinationBlocked: {0}")]
+    #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
 }

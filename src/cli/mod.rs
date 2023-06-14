@@ -38,7 +38,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Runs the servers
+    /// Subcommand for running the server
     Daemon {
         /// Sets a custom config file
         #[clap(
@@ -487,6 +487,7 @@ enum Command {
 
 #[derive(Subcommand)]
 enum UtilsCommand {
+    /// generate a seed private key and derived descriptors
     GenDescriptorKeys {
         #[clap(short, long, default_value = "bitcoin")]
         network: bitcoin::Network,
