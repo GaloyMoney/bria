@@ -532,6 +532,7 @@ impl ToTraceLevel for tonic::Status {
         match self.code() {
             tonic::Code::NotFound => tracing::Level::WARN,
             tonic::Code::AlreadyExists => tracing::Level::WARN,
+            tonic::Code::PermissionDenied => tracing::Level::WARN,
             _ => tracing::Level::ERROR,
         }
     }
