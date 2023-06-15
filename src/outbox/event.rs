@@ -77,6 +77,7 @@ pub enum OutboxEventPayload {
     },
     PayoutCommitted {
         id: PayoutId,
+        vout: u32,
         profile_id: ProfileId,
         wallet_id: WalletId,
         payout_queue_id: PayoutQueueId,
@@ -88,6 +89,7 @@ pub enum OutboxEventPayload {
     },
     PayoutBroadcast {
         id: PayoutId,
+        vout: u32,
         profile_id: ProfileId,
         wallet_id: WalletId,
         payout_queue_id: PayoutQueueId,
@@ -99,6 +101,7 @@ pub enum OutboxEventPayload {
     },
     PayoutSettled {
         id: PayoutId,
+        vout: u32,
         profile_id: ProfileId,
         wallet_id: WalletId,
         payout_queue_id: PayoutQueueId,
@@ -154,6 +157,7 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutCommitted {
                         id: payout.id,
+                        vout: payout.vout_in_tx,
                         wallet_id: batch_info.wallet_id,
                         payout_queue_id: batch_info.payout_queue_id,
                         batch_id: batch_info.batch_id,
@@ -182,6 +186,7 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutBroadcast {
                         id: payout.id,
+                        vout: payout.vout_in_tx,
                         wallet_id: batch_info.wallet_id,
                         payout_queue_id: batch_info.payout_queue_id,
                         batch_id: batch_info.batch_id,
@@ -210,6 +215,7 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 for payout in batch_info.included_payouts {
                     res.push(OutboxEventPayload::PayoutSettled {
                         id: payout.id,
+                        vout: payout.vout_in_tx,
                         wallet_id: batch_info.wallet_id,
                         payout_queue_id: batch_info.payout_queue_id,
                         batch_id: batch_info.batch_id,

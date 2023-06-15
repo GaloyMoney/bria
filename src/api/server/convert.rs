@@ -391,6 +391,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             OutboxEventPayload::PayoutCommitted {
                 id,
                 tx_id,
+                vout,
                 wallet_id,
                 payout_queue_id,
                 satoshis,
@@ -400,6 +401,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
+                vout: vout.to_string(),
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
@@ -411,6 +413,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             OutboxEventPayload::PayoutBroadcast {
                 id,
                 tx_id,
+                vout,
                 wallet_id,
                 payout_queue_id,
                 satoshis,
@@ -420,6 +423,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutBroadcast(proto::PayoutBroadcast {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
+                vout: vout.to_string(),
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
@@ -431,6 +435,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             OutboxEventPayload::PayoutSettled {
                 id,
                 tx_id,
+                vout,
                 wallet_id,
                 payout_queue_id,
                 satoshis,
@@ -440,6 +445,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutSettled(proto::PayoutSettled {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
+                vout: vout.to_string(),
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
