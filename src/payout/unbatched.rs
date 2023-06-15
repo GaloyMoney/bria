@@ -42,8 +42,9 @@ impl UnbatchedPayouts {
 
     pub fn commit_to_batch(
         &mut self,
+        bitcoin_tx_id: bitcoin::Txid,
         batch_id: impl Into<BatchId>,
-        payout_ids: impl Iterator<Item = impl Into<PayoutId>>,
+        payout_ids: impl Iterator<Item = (impl Into<PayoutId>, u32)>,
     ) {
         if self.shifted.is_empty() {
             self.shifted.extend(
@@ -54,12 +55,19 @@ impl UnbatchedPayouts {
         }
         let batch_id = batch_id.into();
         self.batch_id = Some(batch_id);
-        for id in payout_ids {
+        for next in payout_ids {
+            let (id, vout) = next.into();
             let mut payout = self
                 .shifted
                 .remove(&id.into())
                 .expect("unbatched payout not found");
-            payout.commit_to_batch(batch_id);
+            payout.commit_to_batch(
+                batch_id,
+                bitcoin::OutPoint {
+                    txid: bitcoin_tx_id,
+                    vout,
+                },
+            );
             self.batched.push(payout);
         }
     }
@@ -90,8 +98,9 @@ pub struct UnbatchedPayout {
 }
 
 impl UnbatchedPayout {
-    pub(super) fn commit_to_batch(&mut self, batch_id: BatchId) {
-        self.events.push(PayoutEvent::CommittedToBatch { batch_id });
+    pub(super) fn commit_to_batch(&mut self, batch_id: BatchId, outpoint: bitcoin::OutPoint) {
+        self.events
+            .push(PayoutEvent::CommittedToBatch { batch_id, outpoint });
     }
 }
 

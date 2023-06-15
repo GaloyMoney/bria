@@ -31,7 +31,7 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<TxPayout>>,
+    pub included_payouts: HashMap<WalletId, Vec<(TxPayout, u32)>>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
@@ -345,7 +345,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 .included_payouts
                 .entry(self.current_wallet.expect("current wallet must be set"))
                 .or_default()
-                .push((payout_id, destination, satoshis));
+                .push(((payout_id, destination, satoshis), 0));
         }
 
         for (keychain_id, psbt) in self.current_wallet_psbts.drain(..) {

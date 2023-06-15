@@ -126,10 +126,11 @@ pub(super) async fn execute<'a>(
             .await?;
 
         unbatched_payouts.commit_to_batch(
+            tx_id,
             batch_id,
             included_payouts
                 .into_values()
-                .flat_map(|payouts| payouts.into_iter().map(|(id, _, _)| id)),
+                .flat_map(|payouts| payouts.into_iter().map(|((id, _, _), vout)| (id, vout))),
         );
         payouts.update_unbatched(&mut tx, unbatched_payouts).await?;
 
