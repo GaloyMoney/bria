@@ -40,4 +40,5 @@ pub struct PayoutInfo {
     pub profile_id: ProfileId,
     pub satoshis: Satoshis,
     pub destination: PayoutDestination,
+    pub vout_in_tx: u32,
 }

@@ -110,6 +110,7 @@ impl From<Payout> for PayoutInfo {
             profile_id: payout.profile_id,
             satoshis: payout.satoshis,
             destination: payout.destination,
+            vout_in_tx: payout.outpoint.expect("payout outpoint not found").vout,
         }
     }
 }

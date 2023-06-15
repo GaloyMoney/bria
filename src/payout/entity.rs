@@ -22,6 +22,7 @@ pub enum PayoutEvent {
     },
     CommittedToBatch {
         batch_id: BatchId,
+        outpoint: bitcoin::OutPoint,
     },
 }
 
@@ -34,6 +35,8 @@ pub struct Payout {
     pub payout_queue_id: PayoutQueueId,
     #[builder(setter(into), default)]
     pub batch_id: Option<BatchId>,
+    #[builder(setter(into), default)]
+    pub outpoint: Option<bitcoin::OutPoint>,
     pub satoshis: Satoshis,
     pub destination: PayoutDestination,
     pub external_id: String,
@@ -120,8 +123,8 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                 PayoutEvent::MetadataUpdated { metadata } => {
                     builder = builder.metadata(metadata.clone());
                 }
-                PayoutEvent::CommittedToBatch { batch_id } => {
-                    builder = builder.batch_id(*batch_id);
+                PayoutEvent::CommittedToBatch { batch_id, outpoint } => {
+                    builder = builder.batch_id(*batch_id).outpoint(*outpoint);
                 }
             }
         }

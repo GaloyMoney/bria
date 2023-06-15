@@ -31,7 +31,7 @@ pub struct WalletTotals {
 }
 
 pub struct FinishedPsbtBuild {
-    pub included_payouts: HashMap<WalletId, Vec<TxPayout>>,
+    pub included_payouts: HashMap<WalletId, Vec<(TxPayout, u32)>>,
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
@@ -78,14 +78,16 @@ pub struct AcceptingCurrentKeychainState;
 impl<T> PsbtBuilder<T> {
     fn finish_inner(self) -> FinishedPsbtBuild {
         let mut ret = self.result;
-        if let (Some(tx_id), Some(psbt)) = (ret.tx_id.as_mut(), ret.psbt.as_mut()) {
+        let mut outpoints = HashSet::new();
+        if let (Some(tx_id), Some(psbt)) = (ret.tx_id.as_mut(), ret.psbt.as_ref()) {
+            let outputs = &psbt.unsigned_tx.output;
+
+            // Identify change outputs
             for (_, total) in ret.wallet_totals.iter_mut() {
                 if total.change_satoshis == Satoshis::ZERO {
                     continue;
                 }
-                let (vout, _) = psbt
-                    .unsigned_tx
-                    .output
+                let (vout, _) = outputs
                     .iter()
                     .enumerate()
                     .find(|(_, out)| {
@@ -97,8 +99,30 @@ impl<T> PsbtBuilder<T> {
                     txid: *tx_id,
                     vout: vout as u32,
                 });
+                outpoints.insert(vout);
+            }
+
+            // Identify vout for payouts
+            for payouts in ret.included_payouts.values_mut() {
+                for ((_, addr, sats), vout) in payouts.iter_mut() {
+                    let (found, _) = outputs
+                        .iter()
+                        .enumerate()
+                        .find(|(vout, out)| {
+                            if outpoints.contains(vout) {
+                                return false;
+                            }
+                            out.script_pubkey == addr.script_pubkey()
+                                && Satoshis::from(out.value) == *sats
+                        })
+                        .expect("payout output disappeared");
+                    *vout = found as u32;
+                    outpoints.insert(found);
+                }
             }
         }
+
+        // Identify signing keychains
         for (wallet_id, keychain_utxos) in ret.included_utxos.iter() {
             let sum = ret
                 .wallet_totals
@@ -107,6 +131,7 @@ impl<T> PsbtBuilder<T> {
             sum.keychains_with_inputs
                 .extend(keychain_utxos.keys().copied());
         }
+
         ret
     }
 }
@@ -345,7 +370,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 .included_payouts
                 .entry(self.current_wallet.expect("current wallet must be set"))
                 .or_default()
-                .push((payout_id, destination, satoshis));
+                .push(((payout_id, destination, satoshis), 0));
         }
 
         for (keychain_id, psbt) in self.current_wallet_psbts.drain(..) {
