@@ -1,3 +1,10 @@
+# [bria release v0.1.22](https://github.com/GaloyMoney/bria/releases/tag/0.1.22)
+
+
+### Miscellaneous Tasks
+
+- Wire vout for payout in all layers (#233)
+
 # [bria release v0.1.21](https://github.com/GaloyMoney/bria/releases/tag/0.1.21)
 
 
