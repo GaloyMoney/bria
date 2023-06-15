@@ -426,7 +426,7 @@ message PayoutSubmitted {
 message PayoutCommitted {
   string id = 1;
   string tx_id = 2;
-  string vout = 3;
+  uint32 vout = 3;
   string wallet_id = 4;
   string payout_queue_id = 5;
   uint64 satoshis = 6;
@@ -439,7 +439,7 @@ message PayoutCommitted {
 message PayoutBroadcast {
   string id = 1;
   string tx_id = 2;
-  string vout = 3;
+  uint32 vout = 3;
   string wallet_id = 4;
   string payout_queue_id = 5;
   uint64 satoshis = 6;
@@ -452,7 +452,7 @@ message PayoutBroadcast {
 message PayoutSettled {
   string id = 1;
   string tx_id = 2;
-  string vout = 3;
+  uint32 vout = 3;
   string wallet_id = 4;
   string payout_queue_id = 5;
   uint64 satoshis = 6;

@@ -401,7 +401,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
-                vout: vout.to_string(),
+                vout,
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
@@ -423,7 +423,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutBroadcast(proto::PayoutBroadcast {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
-                vout: vout.to_string(),
+                vout,
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
@@ -445,7 +445,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
             } => proto::bria_event::Payload::PayoutSettled(proto::PayoutSettled {
                 id: id.to_string(),
                 tx_id: tx_id.to_string(),
-                vout: vout.to_string(),
+                vout,
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
