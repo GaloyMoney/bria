@@ -55,8 +55,7 @@ impl UnbatchedPayouts {
         }
         let batch_id = batch_id.into();
         self.batch_id = Some(batch_id);
-        for next in payout_ids {
-            let (id, vout) = next.into();
+        for (id, vout) in payout_ids {
             let mut payout = self
                 .shifted
                 .remove(&id.into())
