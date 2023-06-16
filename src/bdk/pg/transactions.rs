@@ -52,7 +52,7 @@ impl Transactions {
                 builder.push_bind(tx.confirmation_time.as_ref().map(|t| t.height as i32));
             });
 
-            query_builder.push("ON CONFLICT (keychain_id, tx_id) DO UPDATE SET details_json = EXCLUDED.details_json, height = EXCLUDED.height, modified_at = NOW()");
+            query_builder.push("ON CONFLICT (keychain_id, tx_id) DO UPDATE SET details_json = EXCLUDED.details_json, height = EXCLUDED.height, modified_at = NOW(), deleted_at = NULL");
 
             let query = query_builder.build();
             query
@@ -64,10 +64,28 @@ impl Transactions {
         Ok(())
     }
 
+    pub async fn delete(&self, tx_id: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
+        let tx = sqlx::query!(
+            r#"UPDATE bdk_transactions
+                 SET deleted_at = NOW()
+                 WHERE keychain_id = $1 AND tx_id = $2
+                 RETURNING details_json"#,
+            Uuid::from(self.keychain_id),
+            tx_id.to_string(),
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+
+        Ok(tx.map(|tx| {
+            serde_json::from_value(tx.details_json).expect("could not deserialize tx details")
+        }))
+    }
+
     pub async fn find_by_id(&self, tx_id: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
         let tx = sqlx::query!(
             r#"
-        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2"#,
+        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2 AND deleted_at IS NULL"#,
             Uuid::from(self.keychain_id),
             tx_id.to_string(),
         )
@@ -80,7 +98,7 @@ impl Transactions {
     pub async fn list(&self) -> Result<Vec<TransactionDetails>, bdk::Error> {
         let txs = sqlx::query!(
             r#"
-        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1"#,
+        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND deleted_at IS NULL"#,
             Uuid::from(self.keychain_id),
         )
         .fetch_all(&self.pool)
@@ -101,7 +119,7 @@ impl Transactions {
         r#"WITH tx_to_sync AS (
            SELECT tx_id, details_json, height
            FROM bdk_transactions
-           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2)
+           WHERE keychain_id = $1 AND synced_to_bria = false AND tx_id != ALL($2) AND deleted_at IS NULL
            ORDER BY height ASC NULLS LAST
            LIMIT 1
            ),
@@ -117,7 +135,7 @@ impl Transactions {
            ) OR u.tx_id = t.tx_id
            JOIN bdk_script_pubkeys p
            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
-           WHERE u.keychain_id = $1 AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)
+           WHERE u.keychain_id = $1 AND u.deleted_at IS NULL AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)
         "#,
         Uuid::from(self.keychain_id),
         &excluded_tx_ids
@@ -177,6 +195,7 @@ impl Transactions {
                 SELECT tx_id
                 FROM bdk_transactions
                 WHERE keychain_id = $1
+                AND deleted_at IS NULL
                 AND sent > 0
                 AND height IS NOT NULL
                 AND height <= $2
@@ -196,7 +215,7 @@ impl Transactions {
             JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(
                 SELECT output FROM previous_outputs
             ) OR u.tx_id = t.tx_id
-            WHERE u.keychain_id = $1 AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)
+            WHERE u.keychain_id = $1 AND u.deleted_at IS NULL AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)
         "#,
             Uuid::from(self.keychain_id),
             min_height as i32

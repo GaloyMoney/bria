@@ -110,14 +110,26 @@ impl BatchOperations for SqlxWalletDb {
     ) -> Result<Option<(KeychainKind, u32)>, bdk::Error> {
         unimplemented!()
     }
-    fn del_utxo(&mut self, _: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
-        unimplemented!()
+    fn del_utxo(&mut self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
+        self.rt.block_on(async {
+            Utxos::new(self.keychain_id, self.pool.clone())
+                .delete(outpoint)
+                .await
+        })
     }
     fn del_raw_tx(&mut self, _: &Txid) -> Result<Option<Transaction>, bdk::Error> {
         unimplemented!()
     }
-    fn del_tx(&mut self, _: &Txid, _: bool) -> Result<Option<TransactionDetails>, bdk::Error> {
-        unimplemented!()
+
+    fn del_tx(
+        &mut self,
+        tx_id: &Txid,
+        _include_raw: bool,
+    ) -> Result<Option<TransactionDetails>, bdk::Error> {
+        self.rt.block_on(async {
+            let txs = Transactions::new(self.keychain_id, self.pool.clone());
+            txs.delete(tx_id).await
+        })
     }
     fn del_last_index(&mut self, _: KeychainKind) -> Result<std::option::Option<u32>, bdk::Error> {
         unimplemented!()

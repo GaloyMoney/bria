@@ -39,7 +39,7 @@ impl Utxos {
                 builder.push_bind(utxo.is_spent);
             });
 
-            query_builder.push("ON CONFLICT (keychain_id, tx_id, vout) DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = EXCLUDED.is_spent, modified_at = NOW()");
+            query_builder.push("ON CONFLICT (keychain_id, tx_id, vout) DO UPDATE SET utxo_json = EXCLUDED.utxo_json, is_spent = EXCLUDED.is_spent, modified_at = NOW(), deleted_at = NULL");
 
             let query = query_builder.build();
             query
@@ -51,9 +51,30 @@ impl Utxos {
         Ok(())
     }
 
+    pub async fn delete(
+        &self,
+        outpoint: &bitcoin::OutPoint,
+    ) -> Result<Option<LocalUtxo>, bdk::Error> {
+        let row = sqlx::query!(
+            r#"UPDATE bdk_utxos SET deleted_at = NOW()
+                 WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3
+                 RETURNING utxo_json"#,
+            Uuid::from(self.keychain_id),
+            outpoint.txid.to_string(),
+            outpoint.vout as i32,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+
+        Ok(row.map(|row| {
+            serde_json::from_value::<LocalUtxo>(row.utxo_json).expect("Could not deserialize utxo")
+        }))
+    }
+
     pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
-            r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1"#,
+            r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1 AND deleted_at IS NULL"#,
             Uuid::from(self.keychain_id),
         )
         .fetch_all(&self.pool)
@@ -116,6 +137,8 @@ impl Utxos {
                 JOIN bdk_transactions t
                 ON u.keychain_id = t.keychain_id AND u.tx_id = t.tx_id
                 WHERE u.keychain_id = $1
+                AND u.deleted_at IS NULL
+                AND t.deleted_at IS NULL
                 AND utxo_json->>'keychain' = 'External'
                 AND u.synced_to_bria = true
                 AND u.confirmation_synced_to_bria = false
