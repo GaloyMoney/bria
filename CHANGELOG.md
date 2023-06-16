@@ -1,3 +1,10 @@
+# [bria release v0.1.24](https://github.com/GaloyMoney/bria/releases/tag/0.1.24)
+
+
+### Miscellaneous Tasks
+
+- Add some more trace data
+
 # [bria release v0.1.23](https://github.com/GaloyMoney/bria/releases/tag/0.1.23)
 
 
