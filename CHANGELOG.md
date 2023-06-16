@@ -1,3 +1,15 @@
+# [bria release v0.1.25](https://github.com/GaloyMoney/bria/releases/tag/0.1.25)
+
+
+### Bug Fixes
+
+- Do not ignore bdk error on sync
+- Clippy
+
+### Miscellaneous Tasks
+
+- Trace current_height
+
 # [bria release v0.1.24](https://github.com/GaloyMoney/bria/releases/tag/0.1.24)
 
 
