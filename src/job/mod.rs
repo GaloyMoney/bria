@@ -627,9 +627,7 @@ async fn onto_account_main_channel<D: serde::Serialize>(
             Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => {
                 return Ok(data)
             }
-            Err(sqlx::Error::Database(err))
-                if err.message().contains("mq_msgs_after_message_id_fkey") =>
-            {
+            Err(sqlx::Error::Database(err)) if err.message().contains("after_message_id_fkey") => {
                 tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 continue;
             }

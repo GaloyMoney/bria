@@ -132,10 +132,18 @@ pub(super) async fn execute<'a>(
                 .into_values()
                 .flat_map(|payouts| payouts.into_iter().map(|((id, _, _), vout)| (id, vout))),
         );
+
+        if unbatched_payouts.n_not_batched() > 0 {
+            queue_drain_error(unbatched_payouts.n_not_batched());
+        }
+
         payouts.update_unbatched(&mut tx, unbatched_payouts).await?;
 
         Ok((data, Some((tx, wallet_ids))))
     } else {
+        if unbatched_payouts.n_not_batched() > 0 {
+            queue_drain_error(unbatched_payouts.n_not_batched());
+        }
         Ok((data, None))
     }
 }
@@ -182,6 +190,16 @@ pub async fn construct_psbt(
         wallets,
     )
     .await?)
+}
+
+#[instrument(name = "job.queue_drain_error", fields(error = true, error.level, error.message))]
+fn queue_drain_error(n_not_batched: usize) {
+    let span = tracing::Span::current();
+    span.record(
+        "error.level",
+        tracing::field::display(&tracing::Level::ERROR),
+    );
+    span.record("error.message", "Queue could not be drained");
 }
 
 impl From<WalletTotals> for WalletSummary {
