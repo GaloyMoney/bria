@@ -549,7 +549,7 @@ async fn spawn_batch_broadcasting(
         .await
     {
         Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+            crate::tracing::insert_error_fields(tracing::Level::WARN, &e);
             Err(e.into())
         }
         Ok(_) => {
