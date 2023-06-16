@@ -1,3 +1,11 @@
+# [bria release v0.1.26](https://github.com/GaloyMoney/bria/releases/tag/0.1.26)
+
+
+### Bug Fixes
+
+- Sqlx-data
+- Implement delete for bdk-utxos/transactions
+
 # [bria release v0.1.25](https://github.com/GaloyMoney/bria/releases/tag/0.1.25)
 
 
