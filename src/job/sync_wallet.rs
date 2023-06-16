@@ -60,7 +60,13 @@ const MAX_TXS_PER_SYNC: usize = 100;
 #[instrument(
     name = "job.sync_wallet",
     skip(pool, wallets, batches, bria_utxos, bria_addresses, ledger),
-    fields(n_pending_utxos, n_confirmed_utxos, n_found_txs, has_more),
+    fields(
+        n_pending_utxos,
+        n_confirmed_utxos,
+        n_found_txs,
+        has_more,
+        current_height
+    ),
     err
 )]
 #[allow(clippy::too_many_arguments)]
@@ -98,6 +104,7 @@ pub async fn execute(
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
         let (blockchain, current_height) = init_electrum(&deps.blockchain_cfg.electrum_url).await?;
+        span.record("current_height", &current_height);
         let latest_change_settle_height = wallet.config.latest_change_settle_height(current_height);
         let _ = keychain_wallet.sync(blockchain).await;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
