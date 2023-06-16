@@ -106,7 +106,7 @@ pub async fn execute(
         let (blockchain, current_height) = init_electrum(&deps.blockchain_cfg.electrum_url).await?;
         span.record("current_height", current_height);
         let latest_change_settle_height = wallet.config.latest_change_settle_height(current_height);
-        let _ = keychain_wallet.sync(blockchain).await;
+        keychain_wallet.sync(blockchain).await?;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         let mut txs_to_skip = Vec::new();
