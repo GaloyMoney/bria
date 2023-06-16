@@ -1,3 +1,12 @@
+# [bria release v0.1.23](https://github.com/GaloyMoney/bria/releases/tag/0.1.23)
+
+
+### Miscellaneous Tasks
+
+- Alert not drained queue (#237)
+- Bump rust_decimal_macros from 1.29.1 to 1.30.0 (#236)
+- Bump clap from 4.3.3 to 4.3.4 (#235)
+
 # [bria release v0.1.22](https://github.com/GaloyMoney/bria/releases/tag/0.1.22)
 
 
