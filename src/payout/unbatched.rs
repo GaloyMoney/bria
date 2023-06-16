@@ -40,6 +40,10 @@ impl UnbatchedPayouts {
         self.simulated_payout = Some((wallet_id, payout));
     }
 
+    pub fn n_not_batched(&self) -> usize {
+        self.shifted.len() + self.inner.values().fold(0, |acc, v| acc + v.len())
+    }
+
     pub fn commit_to_batch(
         &mut self,
         bitcoin_tx_id: bitcoin::Txid,
