@@ -2076,7 +2076,7 @@
     },
     "query": "\n          SELECT b.*, e.sequence, e.event\n          FROM bria_payouts b\n          JOIN bria_payout_events e ON b.id = e.id\n          WHERE account_id = $1 AND b.id = $2\n          ORDER BY b.created_at, b.id, e.sequence"
   },
-  "be91bdc8a974d0e9c793111d58f1be9f99af73d68d9b602248845b8901598167": {
+  "c10c892b9997213a39501192937233ec95053c1a7598736e00c2525cd7e2e030": {
     "describe": {
       "columns": [
         {
@@ -2095,7 +2095,7 @@
         ]
       }
     },
-    "query": "UPDATE bdk_transactions \n                 SET deleted_at = NOW()\n                 WHERE keychain_id = $1 AND tx_id = $2\n                 RETURNING details_json"
+    "query": "UPDATE bdk_transactions\n                 SET deleted_at = NOW()\n                 WHERE keychain_id = $1 AND tx_id = $2\n                 RETURNING details_json"
   },
   "ccbffcf0dc4fec403b76afecafd708decb30f8c3124db79f2444a18754fe77a3": {
     "describe": {
