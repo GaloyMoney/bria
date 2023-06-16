@@ -12,7 +12,12 @@ pub struct BatchBroadcastingData {
     pub(super) batch_id: BatchId,
 }
 
-#[instrument(name = "job.batch_broadcasting", skip(batches), err)]
+#[instrument(
+    name = "job.batch_broadcasting",
+    skip(batches),
+    fields(txid, broadcast = false),
+    err
+)]
 pub async fn execute(
     data: BatchBroadcastingData,
     blockchain_cfg: BlockchainConfig,
@@ -20,9 +25,12 @@ pub async fn execute(
 ) -> Result<BatchBroadcastingData, JobError> {
     let blockchain = init_electrum(&blockchain_cfg.electrum_url).await?;
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
+    let span = tracing::Span::current();
+    span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
     if batch.accounting_complete() {
         if let Some(tx) = batch.signed_tx {
             blockchain.broadcast(&tx).map_err(BdkError::BdkLibError)?;
+            span.record("broadcast", true);
         }
     }
     Ok(data)

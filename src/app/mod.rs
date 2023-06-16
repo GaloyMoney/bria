@@ -475,7 +475,7 @@ impl App {
         Ok(payout_queue_id)
     }
 
-    #[instrument(name = "app.estimate_payout_fee", skip(self), err)]
+    #[instrument(name = "app.estimate_payout_fee", skip(self), ret, err)]
     pub async fn estimate_payout_fee(
         &self,
         profile: Profile,
