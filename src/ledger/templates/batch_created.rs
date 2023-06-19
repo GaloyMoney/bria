@@ -119,6 +119,7 @@ impl From<BatchCreatedParams> for TxParams {
             fee_sats,
             ref change_utxos,
             total_utxo_in_sats,
+            total_utxo_settled_in_sats,
             ..
         } = meta.tx_summary;
         let batch_id = meta.batch_info.batch_id;
@@ -155,6 +156,7 @@ impl From<BatchCreatedParams> for TxParams {
             ledger_account_ids.onchain_at_rest_id,
         );
         params.insert("total_utxo_in", total_utxo_in);
+        params.insert("total_utxo_settled_in", total_utxo_settled_in_sats.to_btc());
         params.insert("change", change);
         params.insert("fees", fee_sats);
         params.insert("encumbered_fees", encumbered_fees);
@@ -169,7 +171,7 @@ pub struct BatchCreated {}
 
 impl BatchCreated {
     #[instrument(name = "ledger.batch_created.init", skip_all)]
-    pub async fn init(ledger: &SqlxLedger) -> Result<(), LedgerError> {
+    pub async fn init(ledger: &SqlxLedger) -> Result<bool, LedgerError> {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
@@ -296,7 +298,7 @@ impl BatchCreated {
                 .account_id("params.onchain_at_rest_account_id")
                 .direction("DEBIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_in")
+                .units("params.total_utxo_settled_in")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -305,7 +307,7 @@ impl BatchCreated {
                 .account_id(format!("uuid('{ONCHAIN_UTXO_AT_REST_ID}')"))
                 .direction("CREDIT")
                 .layer("SETTLED")
-                .units("params.total_utxo_in")
+                .units("params.total_utxo_settled_in")
                 .build()
                 .expect("Couldn't build entry"),
             EntryInput::builder()
@@ -338,9 +340,9 @@ impl BatchCreated {
             .build()
             .expect("Couldn't build BATCH_CREATED_CODE");
         match ledger.tx_templates().create(template).await {
-            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(()),
+            Err(SqlxLedgerError::DuplicateKey(_)) => Ok(false),
             Err(e) => Err(e.into()),
-            Ok(_) => Ok(()),
+            Ok(_) => Ok(true),
         }
     }
 }
