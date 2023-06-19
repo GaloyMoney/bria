@@ -196,7 +196,9 @@ message GetAddressRequest {
 
 message GetAddressResponse{
   string wallet_id = 1;
-  WalletAddress address = 2;
+  string address = 2;
+  string external_id = 3; 
+  optional google.protobuf.Struct metadata = 4;
 }
 
 message ListUtxosRequest {

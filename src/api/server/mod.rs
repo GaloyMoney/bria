@@ -384,7 +384,7 @@ impl BriaService for Bria {
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
             let request = request.into_inner();
-            let address = match request.identifier {
+            let addr = match request.identifier {
                 Some(get_address_request::Identifier::Address(address)) => {
                     self.app.find_address(profile, address).await?
                 }
@@ -399,12 +399,21 @@ impl BriaService for Bria {
                     ))
                 }
             };
-
-            let wallet_id = address.wallet_id.clone().to_string();
-            let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
+            let wallet_id = addr.wallet_id.clone().to_string();
+            let address = if addr.is_external() {
+                addr.address.to_string()
+            } else {
+                "".to_string()
+            };
+            let external_id = addr.external_id.clone();
+            let metadata = addr.metadata().map(|json| {
+                serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
+            });
             Ok(Response::new(GetAddressResponse {
                 wallet_id,
-                address: Some(proto_address),
+                address,
+                external_id,
+                metadata,
             }))
         })
         .await
