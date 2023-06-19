@@ -195,10 +195,11 @@ message GetAddressRequest {
 }
 
 message GetAddressResponse{
-  string wallet_id = 1;
-  string address = 2;
-  string external_id = 3; 
-  optional google.protobuf.Struct metadata = 4;
+  optional string address = 1; 
+  string wallet_id = 2;
+  bool change_address = 3;
+  string external_id = 4;
+  optional google.protobuf.Struct metadata = 5;
 }
 
 message ListUtxosRequest {

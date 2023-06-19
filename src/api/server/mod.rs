@@ -400,10 +400,11 @@ impl BriaService for Bria {
                 }
             };
             let wallet_id = addr.wallet_id.clone().to_string();
-            let address = if addr.is_external() {
-                addr.address.to_string()
+            let change_address = addr.is_external();
+            let address: Option<String> = if change_address {
+                Some(addr.address.to_string())
             } else {
-                "".to_string()
+                None
             };
             let external_id = addr.external_id.clone();
             let metadata = addr.metadata().map(|json| {
@@ -411,8 +412,9 @@ impl BriaService for Bria {
             });
             Ok(Response::new(GetAddressResponse {
                 wallet_id,
-                address,
                 external_id,
+                change_address,
+                address,
                 metadata,
             }))
         })
