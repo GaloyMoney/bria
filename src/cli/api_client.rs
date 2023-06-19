@@ -227,13 +227,33 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn find_address_by_external_id(&self, external_id: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::FindAddressByExternalIdRequest { external_id });
+    pub async fn get_address(
+        &self,
+        address: Option<String>,
+        external_id: Option<String>,
+    ) -> anyhow::Result<()> {
+        let identifier = match (address, external_id) {
+            (Some(address), None) => proto::get_address_request::Identifier::Address(address),
+            (None, Some(external_id)) => {
+                proto::get_address_request::Identifier::ExternalId(external_id)
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Invalid parameters: you should provide either an address or an external_id"
+                ));
+            }
+        };
+
+        let request = tonic::Request::new(proto::GetAddressRequest {
+            identifier: Some(identifier),
+        });
+
         let response = self
             .connect()
             .await?
-            .find_address_by_external_id(self.inject_auth_token(request)?)
+            .get_address(self.inject_auth_token(request)?)
             .await?;
+
         output_json(response)
     }
 

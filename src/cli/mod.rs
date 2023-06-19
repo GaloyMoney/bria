@@ -267,8 +267,8 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
-    /// Find address by external id
-    FindAddress {
+    /// Find address by external id or address
+    GetAddress {
         #[clap(
             short,
             long,
@@ -279,8 +279,10 @@ enum Command {
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
-        #[clap(short, long)]
-        external_id: String,
+        #[clap(short = 'a', long, group = "identifier")]
+        address: Option<String>,
+        #[clap(short = 'e', long, group = "identifier")]
+        external_id: Option<String>,
     },
     /// List Unspent Transaction Outputs of a wallet
     ListUtxos {
@@ -742,13 +744,14 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_addresses(wallet).await?;
         }
-        Command::FindAddress {
+        Command::GetAddress {
             url,
             api_key,
+            address,
             external_id,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.find_address_by_external_id(external_id).await?;
+            client.get_address(address, external_id).await?;
         }
         Command::ListUtxos {
             url,

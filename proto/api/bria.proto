@@ -23,6 +23,7 @@ service BriaService {
   rpc FindAddressByExternalId (FindAddressByExternalIdRequest) returns (FindAddressByExternalIdResponse) {}
   rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
+  rpc GetAddress (GetAddressRequest) returns (GetAddressResponse) {}
 
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
 
@@ -182,6 +183,18 @@ message FindAddressByExternalIdRequest {
 }
 
 message FindAddressByExternalIdResponse {
+  string wallet_id = 1;
+  WalletAddress address = 2;
+}
+
+message GetAddressRequest {
+  oneof identifier {
+    string address = 1;
+    string external_id = 2;
+  }
+}
+
+message GetAddressResponse{
   string wallet_id = 1;
   WalletAddress address = 2;
 }
