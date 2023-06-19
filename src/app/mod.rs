@@ -681,6 +681,7 @@ impl App {
         Ok(())
     }
 
+    #[allow(clippy::type_complexity)]
     #[instrument(name = "app.get_batch", skip_all, err)]
     pub async fn get_batch(
         &self,

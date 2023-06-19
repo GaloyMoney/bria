@@ -668,8 +668,8 @@ impl BriaService for Bria {
                     .map(|sessions| {
                         sessions
                             .xpub_sessions
-                            .into_iter()
-                            .map(|(_, session)| proto::SigningSession::from(session))
+                            .into_values()
+                            .map(proto::SigningSession::from)
                             .collect()
                     })
                     .unwrap_or_default(),
