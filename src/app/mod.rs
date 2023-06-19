@@ -4,6 +4,8 @@ pub mod error;
 use sqlxmq::OwnedHandle;
 use tracing::instrument;
 
+use std::collections::HashMap;
+
 pub use config::*;
 use error::*;
 
@@ -36,6 +38,7 @@ pub struct App {
     wallets: Wallets,
     payout_queues: PayoutQueues,
     payouts: Payouts,
+    batches: Batches,
     signing_sessions: SigningSessions,
     ledger: Ledger,
     utxos: Utxos,
@@ -64,7 +67,7 @@ impl App {
             wallets.clone(),
             xpubs.clone(),
             payout_queues.clone(),
-            batches,
+            batches.clone(),
             signing_sessions.clone(),
             payouts.clone(),
             ledger.clone(),
@@ -95,6 +98,7 @@ impl App {
             wallets,
             payout_queues,
             payouts,
+            batches,
             signing_sessions,
             pool,
             ledger,
@@ -675,6 +679,34 @@ impl App {
         }
         self.payout_queues.update(payout_queue).await?;
         Ok(())
+    }
+
+    #[instrument(name = "app.get_batch", skip_all, err)]
+    pub async fn get_batch(
+        &self,
+        profile: Profile,
+        batch_id: BatchId,
+    ) -> Result<
+        (
+            Batch,
+            HashMap<WalletId, Vec<Payout>>,
+            Option<BatchSigningSession>,
+        ),
+        ApplicationError,
+    > {
+        let batch = self
+            .batches
+            .find_by_id(profile.account_id, batch_id)
+            .await?;
+        let payouts = self
+            .payouts
+            .list_for_batch(profile.account_id, batch_id)
+            .await?;
+        let signing_sessions = self
+            .signing_sessions
+            .list_for_batch(profile.account_id, batch_id)
+            .await?;
+        Ok((batch, payouts, signing_sessions))
     }
 
     #[instrument(name = "app.list_signing_sessions", skip_all, err)]

@@ -627,6 +627,57 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.get_batch", skip_all, fields(error, error.level, error.message), err)]
+    async fn get_batch(
+        &self,
+        request: Request<GetBatchRequest>,
+    ) -> Result<Response<GetBatchResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let batch_id = request.into_inner().id;
+
+            let (batch, mut payouts, sessions) = self
+                .app
+                .get_batch(
+                    profile,
+                    batch_id
+                        .parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                )
+                .await?;
+            let wallet_summaries = batch
+                .wallet_summaries
+                .into_iter()
+                .map(|(id, summary)| {
+                    proto::BatchWalletSummary::from((
+                        summary,
+                        payouts.remove(&id).unwrap_or_default(),
+                    ))
+                })
+                .collect();
+            Ok(Response::new(GetBatchResponse {
+                id: batch.id.to_string(),
+                payout_queue_id: batch.payout_queue_id.to_string(),
+                tx_id: batch.bitcoin_tx_id.to_string(),
+                unsigned_psbt: batch.unsigned_psbt.to_string(),
+                wallet_summaries,
+                signing_sessions: sessions
+                    .map(|sessions| {
+                        sessions
+                            .xpub_sessions
+                            .into_iter()
+                            .map(|(_, session)| proto::SigningSession::from(session))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            }))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.list_signing_sessions", skip_all, fields(error, error.level, error.message), err)]
     async fn list_signing_sessions(
         &self,

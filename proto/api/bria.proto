@@ -35,6 +35,7 @@ service BriaService {
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
 
+  rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
@@ -347,6 +348,26 @@ message FindPayoutByExternalIdRequest {
 
 message FindPayoutByExternalIdResponse {
   Payout payout = 1;
+}
+
+message GetBatchRequest {
+  string id = 1;
+}
+
+message GetBatchResponse {
+  string id = 1;
+  string payout_queue_id = 2;
+  string tx_id = 3;
+  string unsigned_psbt = 4;
+  repeated BatchWalletSummary wallet_summaries = 5;
+  repeated SigningSession signing_sessions = 6;
+}
+
+message BatchWalletSummary {
+  string wallet_id = 1;
+  uint64 total_spent_sats = 2;
+  uint64 fee_sats = 3;
+  repeated Payout payouts = 4;
 }
 
 message ListSigningSessionsRequest {
