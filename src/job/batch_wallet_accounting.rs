@@ -42,14 +42,11 @@ pub async fn execute(
         .remove(&data.wallet_id)
         .expect("wallet summary not found");
     let wallet = wallets.find_by_id(data.wallet_id).await?;
-
-    let encumbered_fees = ledger
-        .sum_reserved_fees_in_txs(
-            bria_utxos
-                .income_detected_ids_for_utxos_in(data.batch_id, data.wallet_id)
-                .await?,
-        )
+    let (income_ids, settled_sats) = bria_utxos
+        .accounting_info_for_batch(data.batch_id, data.wallet_id)
         .await?;
+
+    let encumbered_fees = ledger.sum_reserved_fees_in_txs(income_ids).await?;
 
     let payouts = payouts
         .list_for_batch(data.account_id, data.batch_id)
@@ -94,7 +91,7 @@ pub async fn execute(
                             fee_sats: wallet_summary.fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
-                            total_utxo_settled_in_sats: wallet_summary.total_in_sats,
+                            total_utxo_settled_in_sats: settled_sats,
                             change_utxos,
                         },
                     },
