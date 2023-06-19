@@ -446,12 +446,12 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn list_signing_sessions(&self, batch_id: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::ListSigningSessionsRequest { batch_id });
+    pub async fn get_batch(&self, id: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::GetBatchRequest { id });
         let response = self
             .connect()
             .await?
-            .list_signing_sessions(self.inject_auth_token(request)?)
+            .get_batch(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }

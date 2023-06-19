@@ -446,8 +446,8 @@ enum Command {
         #[clap(long = "interval-trigger")]
         interval_trigger: Option<u32>,
     },
-    /// List signing sessions for batch
-    ListSigningSessions {
+    /// Get Batch details
+    GetBatch {
         #[clap(
             short,
             long,
@@ -861,13 +861,13 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_xpubs().await?;
         }
-        Command::ListSigningSessions {
+        Command::GetBatch {
             url,
             api_key,
             batch_id,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.list_signing_sessions(batch_id).await?;
+            client.get_batch(batch_id).await?;
         }
         Command::WatchEvents {
             url,

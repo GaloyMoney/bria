@@ -35,7 +35,7 @@ service BriaService {
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
 
-  rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
+  rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
 
@@ -349,8 +349,32 @@ message FindPayoutByExternalIdResponse {
   Payout payout = 1;
 }
 
-message ListSigningSessionsRequest {
-  string batch_id = 1;
+message GetBatchRequest {
+  string id = 1;
+}
+
+message GetBatchResponse {
+  string id = 1;
+  string payout_queue_id = 2;
+  string tx_id = 3;
+  string unsigned_psbt = 4;
+  repeated BatchWalletSummary wallet_summaries = 5;
+  repeated SigningSession signing_sessions = 6;
+}
+
+message BatchWalletSummary {
+  string wallet_id = 1;
+  uint64 total_spent_sats = 2;
+  uint64 fee_sats = 3;
+  repeated PayoutSummary payouts = 4;
+}
+
+message PayoutSummary {
+  string id = 1;
+  uint64 satoshis = 2;
+  oneof destination {
+    string onchain_address = 3;
+  }
 }
 
 message SigningSession {
@@ -360,11 +384,6 @@ message SigningSession {
   string state = 4;
   optional string failure_reason = 5;
 }
-
-message ListSigningSessionsResponse {
-  repeated SigningSession sessions = 1;
-}
-
 message ListXpubsRequest {}
 
 message ListXpubsResponse {

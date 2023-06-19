@@ -627,35 +627,53 @@ impl BriaService for Bria {
         .await
     }
 
-    #[instrument(name = "bria.list_signing_sessions", skip_all, fields(error, error.level, error.message), err)]
-    async fn list_signing_sessions(
+    #[instrument(name = "bria.get_batch", skip_all, fields(error, error.level, error.message), err)]
+    async fn get_batch(
         &self,
-        request: Request<ListSigningSessionsRequest>,
-    ) -> Result<Response<ListSigningSessionsResponse>, Status> {
+        request: Request<GetBatchRequest>,
+    ) -> Result<Response<GetBatchResponse>, Status> {
         crate::tracing::record_error(|| async move {
             extract_tracing(&request);
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let batch_id = request.into_inner().batch_id;
-            let sessions = self
+            let batch_id = request.into_inner().id;
+
+            let (batch, mut payouts, sessions) = self
                 .app
-                .list_signing_sessions(
+                .get_batch(
                     profile,
                     batch_id
                         .parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                 )
                 .await?;
-
-            let session_messages: Vec<proto::SigningSession> = sessions
+            let wallet_summaries = batch
+                .wallet_summaries
                 .into_iter()
-                .map(proto::SigningSession::from)
+                .map(|(id, summary)| {
+                    proto::BatchWalletSummary::from((
+                        summary,
+                        payouts.remove(&id).unwrap_or_default(),
+                    ))
+                })
                 .collect();
-            let response = ListSigningSessionsResponse {
-                sessions: session_messages,
-            };
-            Ok(Response::new(response))
+            Ok(Response::new(GetBatchResponse {
+                id: batch.id.to_string(),
+                payout_queue_id: batch.payout_queue_id.to_string(),
+                tx_id: batch.bitcoin_tx_id.to_string(),
+                unsigned_psbt: batch.unsigned_psbt.to_string(),
+                wallet_summaries,
+                signing_sessions: sessions
+                    .map(|sessions| {
+                        sessions
+                            .xpub_sessions
+                            .into_values()
+                            .map(proto::SigningSession::from)
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            }))
         })
         .await
     }

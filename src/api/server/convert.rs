@@ -5,6 +5,7 @@ use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
     app::error::*,
+    batch::*,
     outbox::*,
     payout::*,
     payout_queue::*,
@@ -284,6 +285,32 @@ impl From<proto::TxPriority> for TxPriority {
             proto::TxPriority::NextBlock => TxPriority::NextBlock,
             proto::TxPriority::HalfHour => TxPriority::HalfHour,
             proto::TxPriority::OneHour => TxPriority::OneHour,
+        }
+    }
+}
+
+impl From<(WalletSummary, Vec<Payout>)> for proto::BatchWalletSummary {
+    fn from((summary, payouts): (WalletSummary, Vec<Payout>)) -> Self {
+        Self {
+            wallet_id: summary.wallet_id.to_string(),
+            total_spent_sats: u64::try_from(summary.total_spent_sats)
+                .expect("Satoshis -> u64 failed"),
+            fee_sats: u64::try_from(summary.fee_sats).expect("Satoshis -> u64 failed"),
+            payouts: payouts
+                .into_iter()
+                .map(|payout| {
+                    let destination = match payout.destination {
+                        PayoutDestination::OnchainAddress { value } => {
+                            proto::payout_summary::Destination::OnchainAddress(value.to_string())
+                        }
+                    };
+                    proto::PayoutSummary {
+                        id: payout.id.to_string(),
+                        satoshis: u64::from(payout.satoshis),
+                        destination: Some(destination),
+                    }
+                })
+                .collect(),
         }
     }
 }
