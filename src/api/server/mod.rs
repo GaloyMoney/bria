@@ -399,24 +399,8 @@ impl BriaService for Bria {
                     ))
                 }
             };
-            let wallet_id = addr.wallet_id.clone().to_string();
-            let change_address = addr.is_external();
-            let address: Option<String> = if change_address {
-                Some(addr.address.to_string())
-            } else {
-                None
-            };
-            let external_id = addr.external_id.clone();
-            let metadata = addr.metadata().map(|json| {
-                serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
-            });
-            Ok(Response::new(GetAddressResponse {
-                wallet_id,
-                external_id,
-                change_address,
-                address,
-                metadata,
-            }))
+            let response = proto::GetAddressResponse::from(addr);
+            Ok(Response::new(response))
         })
         .await
     }
