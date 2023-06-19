@@ -10,26 +10,34 @@ service BriaService {
   rpc CreateProfile (CreateProfileRequest) returns (CreateProfileResponse) {}
   rpc ListProfiles (ListProfilesRequest) returns (ListProfilesResponse) {}
   rpc CreateProfileApiKey (CreateProfileApiKeyRequest) returns (CreateProfileApiKeyResponse) {}
+
   rpc ImportXpub (ImportXpubRequest) returns (ImportXpubResponse) {}
   rpc ListXpubs (ListXpubsRequest) returns(ListXpubsResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
+
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc ListWallets (ListWalletsRequest) returns (ListWalletsResponse) {}
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
-  rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
+
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
   rpc FindAddressByExternalId (FindAddressByExternalIdRequest) returns (FindAddressByExternalIdResponse) {}
   rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
+
   rpc ListUtxos (ListUtxosRequest) returns (ListUtxosResponse) {}
+
   rpc CreatePayoutQueue (CreatePayoutQueueRequest) returns (CreatePayoutQueueResponse) {}
   rpc ListPayoutQueues (ListPayoutQueuesRequest) returns (ListPayoutQueuesResponse) {}
   rpc UpdatePayoutQueue (UpdatePayoutQueueRequest) returns (UpdatePayoutQueueResponse) {}
-  rpc SubmitPayout (SubmitPayoutRequest) returns (SubmitPayoutResponse) {}
+
   rpc EstimatePayoutFee (EstimatePayoutFeeRequest) returns (EstimatePayoutFeeResponse) {}
+  rpc SubmitPayout (SubmitPayoutRequest) returns (SubmitPayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
+
   rpc ListSigningSessions (ListSigningSessionsRequest) returns (ListSigningSessionsResponse) {}
+
+  rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
 
   rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
 }
