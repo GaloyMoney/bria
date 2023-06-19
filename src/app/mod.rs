@@ -709,20 +709,6 @@ impl App {
         Ok((batch, payouts, signing_sessions))
     }
 
-    #[instrument(name = "app.list_signing_sessions", skip_all, err)]
-    pub async fn list_signing_sessions(
-        &self,
-        profile: Profile,
-        batch_id: BatchId,
-    ) -> Result<Vec<SigningSession>, ApplicationError> {
-        Ok(self
-            .signing_sessions
-            .list_for_batch(profile.account_id, batch_id)
-            .await?
-            .map(|BatchSigningSession { xpub_sessions }| xpub_sessions.into_values().collect())
-            .unwrap_or_default())
-    }
-
     #[instrument(name = "app.subscribe_all", skip(self), err)]
     pub async fn subscribe_all(
         &self,

@@ -296,7 +296,21 @@ impl From<(WalletSummary, Vec<Payout>)> for proto::BatchWalletSummary {
             total_spent_sats: u64::try_from(summary.total_spent_sats)
                 .expect("Satoshis -> u64 failed"),
             fee_sats: u64::try_from(summary.fee_sats).expect("Satoshis -> u64 failed"),
-            payouts: payouts.into_iter().map(proto::Payout::from).collect(),
+            payouts: payouts
+                .into_iter()
+                .map(|payout| {
+                    let destination = match payout.destination {
+                        PayoutDestination::OnchainAddress { value } => {
+                            proto::payout_summary::Destination::OnchainAddress(value.to_string())
+                        }
+                    };
+                    proto::PayoutSummary {
+                        id: payout.id.to_string(),
+                        satoshis: u64::from(payout.satoshis),
+                        destination: Some(destination),
+                    }
+                })
+                .collect(),
         }
     }
 }
