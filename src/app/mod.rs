@@ -685,7 +685,7 @@ impl App {
     ) -> Result<Vec<SigningSession>, ApplicationError> {
         Ok(self
             .signing_sessions
-            .find_for_batch(profile.account_id, batch_id)
+            .list_for_batch(profile.account_id, batch_id)
             .await?
             .map(|BatchSigningSession { xpub_sessions }| xpub_sessions.into_values().collect())
             .unwrap_or_default())

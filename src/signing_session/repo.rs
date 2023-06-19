@@ -51,7 +51,7 @@ impl SigningSessions {
         tx.commit().await?;
         if let (Some(account_id), Some(batch_id)) = (account_id, batch_id) {
             Ok(self
-                .find_for_batch(account_id, batch_id)
+                .list_for_batch(account_id, batch_id)
                 .await?
                 .expect("New session not found"))
         } else {
@@ -75,7 +75,7 @@ impl SigningSessions {
         Ok(())
     }
 
-    pub async fn find_for_batch(
+    pub async fn list_for_batch(
         &self,
         account_id: AccountId,
         batch_id: BatchId,

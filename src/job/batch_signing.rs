@@ -37,7 +37,7 @@ pub async fn execute(
     let mut last_err = None;
     let mut current_keychain = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
-        .find_for_batch(data.account_id, data.batch_id)
+        .list_for_batch(data.account_id, data.batch_id)
         .await?
     {
         (batch_session.xpub_sessions, HashMap::new())

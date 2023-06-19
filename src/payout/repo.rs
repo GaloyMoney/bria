@@ -182,33 +182,32 @@ impl Payouts {
         &self,
         account_id: AccountId,
         batch_id: BatchId,
-        wallet_id: WalletId,
-    ) -> Result<Vec<Payout>, PayoutError> {
+    ) -> Result<HashMap<WalletId, Vec<Payout>>, PayoutError> {
         let rows = sqlx::query!(
             r#"
               SELECT b.*, e.sequence, e.event
               FROM bria_payouts b
               JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.account_id = $1 AND b.batch_id = $2 AND b.wallet_id = $3
+              WHERE b.account_id = $1 AND b.batch_id = $2
               ORDER BY b.created_at, b.id, e.sequence"#,
             account_id as AccountId,
             batch_id as BatchId,
-            wallet_id as WalletId
         )
         .fetch_all(&self.pool)
         .await?;
-        let mut wallet_payouts = Vec::new();
+        let mut payout_ids = Vec::new();
         let mut entity_events = HashMap::new();
         for row in rows {
-            let id = WalletId::from(row.id);
-            wallet_payouts.push(id);
+            let id = PayoutId::from(row.id);
+            payout_ids.push(id);
             let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
             events.load_event(row.sequence as usize, row.event)?;
         }
-        let mut payouts = Vec::new();
-        for id in wallet_payouts {
+        let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
+        for id in payout_ids {
             if let Some(events) = entity_events.remove(&id) {
-                payouts.push(Payout::try_from(events)?);
+                let payout = Payout::try_from(events)?;
+                payouts.entry(payout.wallet_id).or_default().push(payout);
             }
         }
         Ok(payouts)

@@ -52,8 +52,10 @@ pub async fn execute(
         .await?;
 
     let payouts = payouts
-        .list_for_batch(data.account_id, data.batch_id, data.wallet_id)
-        .await?;
+        .list_for_batch(data.account_id, data.batch_id)
+        .await?
+        .remove(&data.wallet_id)
+        .expect("payouts not found");
     if let Some((tx, tx_id)) = batches
         .set_batch_created_ledger_tx_id(data.batch_id, data.wallet_id)
         .await?
