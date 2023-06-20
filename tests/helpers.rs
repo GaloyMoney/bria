@@ -66,9 +66,11 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
         .context("client.list_wallets")?
         .is_empty()
     {
-        client
-            .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
-            .context("client.create_wallet - 1")?;
+        if client.load_wallet(BITCOIND_WALLET_NAME).is_err() {
+            client
+                .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+                .context("client.create_wallet - 1")?;
+        }
         let addr = client
             .get_new_address(None, None)
             .context("client.get_new_address - 1")?;
@@ -78,9 +80,11 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     }
     let wallet_info = client.get_wallet_info().context("client.get_wallet_info")?;
     if wallet_info.wallet_name != BITCOIND_WALLET_NAME {
-        client
-            .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
-            .context("client.create_wallet - 2")?;
+        if client.load_wallet(BITCOIND_WALLET_NAME).is_err() {
+            client
+                .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+                .context("client.create_wallet - 1")?;
+        }
         let addr = client
             .get_new_address(None, None)
             .context("client.get_new_address - 2")?;
