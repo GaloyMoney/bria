@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use anyhow::Context;
 use bdk::{
     bitcoin::{
         secp256k1::{rand, Secp256k1},
@@ -55,17 +56,34 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     let client = BitcoindClient::new(
         &format!("{bitcoind_host}:18443"),
         Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
-    )?;
-    if client.list_wallets()?.is_empty() {
-        client.create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)?;
-        let addr = client.get_new_address(None, None)?;
-        client.generate_to_address(101, &addr)?;
+    )
+    .context("BitcoindClient::new")?;
+    if client
+        .list_wallets()
+        .context("client.list_wallets")?
+        .is_empty()
+    {
+        client
+            .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+            .context("client.create_wallet")?;
+        let addr = client
+            .get_new_address(None, None)
+            .context("client.get_new_address")?;
+        client
+            .generate_to_address(101, &addr)
+            .context("client.generate_to_address")?;
     }
-    let wallet_info = client.get_wallet_info()?;
+    let wallet_info = client.get_wallet_info().context("client.get_wallet_info")?;
     if wallet_info.wallet_name != BITCOIND_WALLET_NAME {
-        client.create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)?;
-        let addr = client.get_new_address(None, None)?;
-        client.generate_to_address(101, &addr)?;
+        client
+            .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+            .context("client.create_wallet")?;
+        let addr = client
+            .get_new_address(None, None)
+            .context("client.get_new_address")?;
+        client
+            .generate_to_address(101, &addr)
+            .context("client.generate_to_address")?;
     }
     Ok(client)
 }
