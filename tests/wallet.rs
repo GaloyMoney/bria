@@ -2,10 +2,12 @@ mod helpers;
 
 use rand::distributions::{Alphanumeric, DistString};
 use serde_json::json;
+use serial_test::serial;
 
 use bria::{app::*, xpub::*};
 
 #[tokio::test]
+#[serial]
 async fn create_wpkh_wallet() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
@@ -46,6 +48,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+#[serial]
 async fn create_descriptors_wallet() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;

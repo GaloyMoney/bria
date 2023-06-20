@@ -1,11 +1,13 @@
 mod helpers;
 
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
+use serial_test::serial;
 use uuid::Uuid;
 
 use bria::{primitives::*, wallet::*, xpub::*};
 
 #[tokio::test]
+#[serial]
 async fn build_psbt() -> anyhow::Result<()> {
     // ChatGPT description of this test:
     //
