@@ -47,6 +47,7 @@ pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
     match bitcoind_client_inner() {
         Err(e) => {
             dbg!("bitcoind_client_inner failed: {}", e);
+            let _ = fs::remove_dir_all("/data/.bitcoin/regtest/wallets/bria");
             bitcoind_client_inner()
         }
         Ok(c) => Ok(c),
