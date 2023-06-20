@@ -43,17 +43,21 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
 }
 
 const BITCOIND_WALLET_NAME: &str = "bria";
-pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
-    match bitcoind_client_inner() {
-        Err(e) => {
-            dbg!("bitcoind_client_inner failed: {}", e);
-            let _ = std::fs::remove_dir_all("/data/.bitcoin/regtest/wallets/bria");
-            bitcoind_client_inner()
+pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
+    for _ in 1..3 {
+        match bitcoind_client_inner().await {
+            Err(e) => {
+                dbg!("bitcoind_client_inner failed: {}", e);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+            Ok(c) => return Ok(c),
         }
-        Ok(c) => Ok(c),
     }
+    Err(anyhow::anyhow!(
+        "bitcoind_client_inner failed too many times"
+    ))
 }
-pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
+pub async fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     use bitcoincore_rpc::Auth;
 
     let bitcoind_host = std::env::var("BITCOIND_HOST").unwrap_or("localhost".to_string());
@@ -62,6 +66,15 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
         Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
     )
     .context("BitcoindClient::new")?;
+    for _ in 1..10 {
+        match client.get_blockchain_info() {
+            Err(e) => {
+                dbg!("client.get_blockchain_info", e);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+            _ => break,
+        }
+    }
     if client
         .list_wallets()
         .context("client.list_wallets")?

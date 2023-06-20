@@ -52,7 +52,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         other_wallet_current_keychain.get_internal_address(AddressIndex::New)?;
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
 
-    let bitcoind = helpers::bitcoind_client()?;
+    let bitcoind = helpers::bitcoind_client().await?;
     let wallet_funding = 7;
     let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
     helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
