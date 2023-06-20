@@ -45,6 +45,9 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
 const BITCOIND_WALLET_NAME: &str = "bria";
 pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
     for _ in 1..3 {
+        if let Err(e) = std::fs::remove_dir_all("/data/.bitcoin/regtest/wallets") {
+            dbg!("remove_dir_all failed: {}", e);
+        }
         match bitcoind_client_inner().await {
             Err(e) => {
                 dbg!("bitcoind_client_inner failed: {}", e);
