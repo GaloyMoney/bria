@@ -395,7 +395,7 @@ impl BriaService for Bria {
                 }
                 _ => {
                     return Err(Status::invalid_argument(
-                        "either address of external_id must be provided",
+                        "either address or external_id must be provided",
                     ))
                 }
             };
@@ -577,6 +577,44 @@ impl BriaService for Bria {
                 .await?;
             let proto_payout: proto::Payout = proto::Payout::from(payout);
             Ok(Response::new(FindPayoutByExternalIdResponse {
+                payout: Some(proto_payout),
+            }))
+        })
+        .await
+    }
+
+    #[instrument(name = "bria.get_payout", skip_all, fields(error, error.level, error.message), err)]
+    async fn get_payout(
+        &self,
+        request: Request<GetPayoutRequest>,
+    ) -> Result<Response<GetPayoutResponse>, Status> {
+        use std::str::FromStr;
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let payout = match request.identifier {
+                Some(get_payout_request::Identifier::Id(id)) => {
+                    if let Ok(payout_id) = PayoutId::from_str(id.as_str()) {
+                        self.app.find_payout(profile, payout_id).await?
+                    } else {
+                        return Err(Status::invalid_argument("could not parse the payout_id"));
+                    }
+                }
+                Some(get_payout_request::Identifier::ExternalId(external_id)) => {
+                    self.app
+                        .find_payout_by_external_id(profile, external_id)
+                        .await?
+                }
+                _ => {
+                    return Err(Status::invalid_argument(
+                        "either payout_id or external_id must be provided",
+                    ))
+                }
+            };
+            let proto_payout: proto::Payout = proto::Payout::from(payout);
+            Ok(Response::new(GetPayoutResponse {
                 payout: Some(proto_payout),
             }))
         })

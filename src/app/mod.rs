@@ -644,6 +644,15 @@ impl App {
             .await?)
     }
 
+    #[instrument(name = "app.find_payout", skip_all, err)]
+    pub async fn find_payout(
+        &self,
+        profile: Profile,
+        id: PayoutId,
+    ) -> Result<Payout, ApplicationError> {
+        Ok(self.payouts.find_by_id(profile.account_id, id).await?)
+    }
+
     #[instrument(name = "app.list_payouts", skip_all, err)]
     pub async fn list_payouts(
         &self,
