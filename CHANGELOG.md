@@ -1,3 +1,22 @@
+# [bria release v0.1.27](https://github.com/GaloyMoney/bria/releases/tag/0.1.27)
+
+
+### Bug Fixes
+
+- Correction for create batch template (#242)
+
+### Features
+
+- Get batch (#239)
+
+### Miscellaneous Tasks
+
+- Add get_address command (#240)
+
+### Refactor
+
+- Some restructuring (#238)
+
 # [bria release v0.1.26](https://github.com/GaloyMoney/bria/releases/tag/0.1.26)
 
 
