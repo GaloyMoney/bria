@@ -55,6 +55,3 @@ regex = "1.8.4"
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
 tonic-build = { version = "0.9", features = ["prost"] }
-
-[dev-dependencies]
-serial_test = "*"
