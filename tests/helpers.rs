@@ -45,7 +45,10 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
 const BITCOIND_WALLET_NAME: &str = "bria";
 pub fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
     match bitcoind_client_inner() {
-        Err(_) => bitcoind_client_inner(),
+        Err(e) => {
+            dbg!("bitcoind_client_inner failed: {}", e);
+            bitcoind_client_inner()
+        }
         Ok(c) => Ok(c),
     }
 }
