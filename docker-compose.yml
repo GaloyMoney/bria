@@ -56,10 +56,12 @@ services:
       - BITCOIND_SIGNER_ENDPOINT=https://bitcoind-signer:18443
       - LND_HOST=lnd
       - ELECTRUM_HOST=fulcrum
+      - CARGO_TARGET_DIR=/usr/local/cargo-target
     working_dir: /repo
     volumes:
       - ./:/repo
       - cargo-cache:/usr/local/cargo
+      - cargo-target:/usr/local/cargo-target
   otel-agent:
     image: otel/opentelemetry-collector-contrib:0.57.2
     command: [ "--config=/etc/otel-agent-config.yaml" ]
@@ -123,3 +125,4 @@ services:
       DATABASE_ENABLED: "false"
 volumes:
   cargo-cache:
+  cargo-target:
