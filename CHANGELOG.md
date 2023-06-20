@@ -1,3 +1,22 @@
+# [bria release v0.1.28](https://github.com/GaloyMoney/bria/releases/tag/0.1.28)
+
+
+### Bug Fixes
+
+- Missing std:: prefix
+
+### Miscellaneous Tasks
+
+- Add get-payout command (#243)
+- Bump serde_json from 1.0.96 to 1.0.97 (#241)
+
+### Testing
+
+- Attempt to remove wallet dir
+- Try load wallet before create
+- Report firts error in bitcoind_client
+- Better context output
+
 # [bria release v0.1.27](https://github.com/GaloyMoney/bria/releases/tag/0.1.27)
 
 
