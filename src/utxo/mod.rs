@@ -224,14 +224,20 @@ impl Utxos {
             .await
     }
 
-    #[instrument(name = "utxos.income_detected_ledger_ids", skip_all, err)]
-    pub async fn income_detected_ids_for_utxos_in(
+    #[instrument(name = "utxos.accounting_info_for_batch", skip_all, err)]
+    pub async fn accounting_info_for_batch(
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, UtxoError> {
+    ) -> Result<
+        (
+            HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>,
+            Satoshis,
+        ),
+        UtxoError,
+    > {
         self.utxos
-            .income_detected_ids_for_utxos_in(batch_id, wallet_id)
+            .accounting_info_for_batch(batch_id, wallet_id)
             .await
     }
 

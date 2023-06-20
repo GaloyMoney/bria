@@ -344,6 +344,7 @@ async fn create_batch() -> anyhow::Result<()> {
     let fee_sats = Satoshis::from(2_346);
     let total_spent_sats = Satoshis::from(100_000_000);
     let total_utxo_in_sats = Satoshis::from(200_000_000);
+    let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
     let change_sats = total_utxo_in_sats - total_spent_sats - fee_sats;
     let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
     let outpoint = OutPoint {
@@ -378,7 +379,7 @@ async fn create_batch() -> anyhow::Result<()> {
                             "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
                                 .parse()
                                 .unwrap(),
-                        total_utxo_settled_in_sats: total_utxo_in_sats,
+                        total_utxo_settled_in_sats,
                         total_utxo_in_sats,
                         fee_sats,
                         change_utxos: std::iter::once(ChangeOutput {
@@ -414,7 +415,7 @@ async fn create_batch() -> anyhow::Result<()> {
         summary.utxo_encumbered_incoming,
         total_utxo_in_sats - fee_sats - total_spent_sats
     );
-    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_in_sats);
+    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_settled_in_sats);
     assert_eq!(summary.utxo_pending_outgoing, total_utxo_in_sats - fee_sats);
 
     let account_balances = ledger

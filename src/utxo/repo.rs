@@ -318,15 +318,31 @@ impl UtxoRepo {
         Ok(())
     }
 
-    pub async fn income_detected_ids_for_utxos_in(
+    pub async fn accounting_info_for_batch(
         &self,
         batch_id: BatchId,
         wallet_id: WalletId,
-    ) -> Result<HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>, UtxoError> {
-        let rows = sqlx::query!("SELECT income_detected_ledger_tx_id, tx_id, vout FROM bria_utxos WHERE spending_batch_id = $1 AND wallet_id = $2", batch_id as BatchId, wallet_id as WalletId)
-            .fetch_all(&self.pool)
-            .await?;
+    ) -> Result<
+        (
+            HashMap<LedgerTransactionId, Vec<bitcoin::OutPoint>>,
+            Satoshis,
+        ),
+        UtxoError,
+    > {
+        let rows = sqlx::query!(
+            r#"
+          SELECT income_detected_ledger_tx_id, tx_id, vout,
+            CASE WHEN income_settled_ledger_tx_id IS NOT NULL THEN value ELSE 0 END AS "value!"
+            FROM bria_utxos
+            WHERE spending_batch_id = $1 AND wallet_id = $2"#,
+            batch_id as BatchId,
+            wallet_id as WalletId
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
         let mut map = HashMap::new();
+        let mut sum = Satoshis::ZERO;
         for row in rows {
             map.entry(LedgerTransactionId::from(row.income_detected_ledger_tx_id))
                 .or_insert_with(Vec::new)
@@ -334,8 +350,10 @@ impl UtxoRepo {
                     txid: row.tx_id.parse().unwrap(),
                     vout: row.vout as u32,
                 });
+            sum += Satoshis::from(row.value);
         }
-        Ok(map)
+
+        Ok((map, sum))
     }
 
     pub async fn list_utxos_by_outpoint(
