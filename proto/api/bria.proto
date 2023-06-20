@@ -198,7 +198,7 @@ message GetAddressResponse{
   optional string address = 1; 
   string wallet_id = 2;
   bool change_address = 3;
-  string external_id = 4;
+  optional string external_id = 4;
   optional google.protobuf.Struct metadata = 5;
 }
 

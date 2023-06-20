@@ -123,15 +123,17 @@ impl From<WalletAddress> for proto::GetAddressResponse {
     fn from(addr: WalletAddress) -> Self {
         let wallet_id = addr.wallet_id.to_string();
         let change_address = addr.is_external();
-        let address: Option<String> = if change_address {
-            Some(addr.address.to_string())
+        let (address, metadata, external_id) = if change_address {
+            (
+                Some(addr.address.to_string()),
+                addr.metadata().map(|json| {
+                    serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
+                }),
+                Some(addr.external_id),
+            )
         } else {
-            None
+            (None, None, None)
         };
-        let external_id = addr.external_id.to_string();
-        let metadata = addr.metadata().map(|json| {
-            serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
-        });
         Self {
             address,
             wallet_id,
