@@ -21,7 +21,7 @@ pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
     let pg_host = std::env::var("PG_HOST").unwrap_or("localhost".to_string());
     let pg_con = format!("postgres://user:password@{pg_host}:5432/pg");
     let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(10)
         .connect(&pg_con)
         .await?;
     Ok(pool)
@@ -66,15 +66,6 @@ pub async fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> 
         Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
     )
     .context("BitcoindClient::new")?;
-    for _ in 1..10 {
-        match client.get_blockchain_info() {
-            Err(e) => {
-                dbg!("client.get_blockchain_info", e);
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            }
-            _ => break,
-        }
-    }
     if client
         .list_wallets()
         .context("client.list_wallets")?
