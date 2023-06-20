@@ -65,25 +65,25 @@ pub fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> {
     {
         client
             .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
-            .context("client.create_wallet")?;
+            .context("client.create_wallet - 1")?;
         let addr = client
             .get_new_address(None, None)
-            .context("client.get_new_address")?;
+            .context("client.get_new_address - 1")?;
         client
             .generate_to_address(101, &addr)
-            .context("client.generate_to_address")?;
+            .context("client.generate_to_address - 1")?;
     }
     let wallet_info = client.get_wallet_info().context("client.get_wallet_info")?;
     if wallet_info.wallet_name != BITCOIND_WALLET_NAME {
         client
             .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
-            .context("client.create_wallet")?;
+            .context("client.create_wallet - 2")?;
         let addr = client
             .get_new_address(None, None)
-            .context("client.get_new_address")?;
+            .context("client.get_new_address - 2")?;
         client
             .generate_to_address(101, &addr)
-            .context("client.generate_to_address")?;
+            .context("client.generate_to_address - 2")?;
     }
     Ok(client)
 }
