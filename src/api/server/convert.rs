@@ -119,6 +119,31 @@ impl From<WalletAddress> for proto::WalletAddress {
     }
 }
 
+impl From<WalletAddress> for proto::GetAddressResponse {
+    fn from(addr: WalletAddress) -> Self {
+        let wallet_id = addr.wallet_id.to_string();
+        let change_address = addr.is_external();
+        let (address, metadata, external_id) = if change_address {
+            (
+                Some(addr.address.to_string()),
+                addr.metadata().map(|json| {
+                    serde_json::from_value(json.clone()).expect("Could not transfer json -> struct")
+                }),
+                Some(addr.external_id),
+            )
+        } else {
+            (None, None, None)
+        };
+        Self {
+            address,
+            wallet_id,
+            change_address,
+            external_id,
+            metadata,
+        }
+    }
+}
+
 impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
         Self {

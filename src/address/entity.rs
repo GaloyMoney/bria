@@ -34,6 +34,7 @@ pub struct WalletAddress {
     pub address: bitcoin::Address,
     pub wallet_id: WalletId,
     pub external_id: String,
+    kind: KeychainKind,
     pub(super) db_uuid: uuid::Uuid,
     pub(super) events: EntityEvents<AddressEvent>,
 }
@@ -61,6 +62,10 @@ impl WalletAddress {
         if self.metadata() != Some(&metadata) {
             self.events.push(AddressEvent::MetadataUpdated { metadata });
         }
+    }
+
+    pub fn is_external(&self) -> bool {
+        self.kind == KeychainKind::External
     }
 }
 
@@ -134,13 +139,15 @@ impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
                     account_id,
                     wallet_id,
                     address,
+                    kind,
                     ..
                 } => {
                     builder = builder
                         .db_uuid(*db_uuid)
                         .account_id(*account_id)
                         .address(address.clone())
-                        .wallet_id(*wallet_id);
+                        .wallet_id(*wallet_id)
+                        .kind(*kind);
                 }
                 AddressEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.to_owned());

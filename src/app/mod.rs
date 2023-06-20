@@ -431,6 +431,19 @@ impl App {
         Ok(address)
     }
 
+    #[instrument(name = "app.get_address_by_external_id", skip(self), err)]
+    pub async fn find_address(
+        &self,
+        profile: Profile,
+        address: String,
+    ) -> Result<WalletAddress, ApplicationError> {
+        let address = self
+            .addresses
+            .find_by_address(profile.account_id, address)
+            .await?;
+        Ok(address)
+    }
+
     #[instrument(name = "app.list_xpubs", skip(self), err)]
     pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, ApplicationError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;

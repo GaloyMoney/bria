@@ -374,6 +374,37 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.get_address", skip_all, fields(error, error.level, error.message), err)]
+    async fn get_address(
+        &self,
+        request: Request<GetAddressRequest>,
+    ) -> Result<Response<GetAddressResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let addr = match request.identifier {
+                Some(get_address_request::Identifier::Address(address)) => {
+                    self.app.find_address(profile, address).await?
+                }
+                Some(get_address_request::Identifier::ExternalId(external_id)) => {
+                    self.app
+                        .find_address_by_external_id(profile, external_id)
+                        .await?
+                }
+                _ => {
+                    return Err(Status::invalid_argument(
+                        "either address of external_id must be provided",
+                    ))
+                }
+            };
+            let response = proto::GetAddressResponse::from(addr);
+            Ok(Response::new(response))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.list_utxos", skip_all, fields(error, error.level, error.message), err)]
     async fn list_utxos(
         &self,
