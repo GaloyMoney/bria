@@ -35,7 +35,8 @@ service BriaService {
   rpc SubmitPayout (SubmitPayoutRequest) returns (SubmitPayoutResponse) {}
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
-
+  rpc GetPayout (GetPayoutRequest) returns (GetPayoutResponse) {}
+  
   rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
@@ -362,6 +363,17 @@ message FindPayoutByExternalIdRequest {
 }
 
 message FindPayoutByExternalIdResponse {
+  Payout payout = 1;
+}
+
+message GetPayoutRequest {
+  oneof identifier {
+    string id = 1;
+    string external_id = 2;
+  }
+}
+
+message GetPayoutResponse {
   Payout payout = 1;
 }
 

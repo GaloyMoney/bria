@@ -379,12 +379,31 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn find_payout_by_external_id(&self, external_id: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::FindPayoutByExternalIdRequest { external_id });
+    pub async fn get_payout(
+        &self,
+        id: Option<String>,
+        external_id: Option<String>,
+    ) -> anyhow::Result<()> {
+        let identifier = match (id, external_id) {
+            (Some(id), None) => proto::get_payout_request::Identifier::Id(id),
+            (None, Some(external_id)) => {
+                proto::get_payout_request::Identifier::ExternalId(external_id)
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Invalid parameters: you should provide either a payout_id or an external_id"
+                ));
+            }
+        };
+
+        let request = tonic::Request::new(proto::GetPayoutRequest {
+            identifier: Some(identifier),
+        });
+
         let response = self
             .connect()
             .await?
-            .find_payout_by_external_id(self.inject_auth_token(request)?)
+            .get_payout(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }

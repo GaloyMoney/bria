@@ -381,8 +381,8 @@ enum Command {
         #[clap(short, long)]
         wallet: String,
     },
-    /// Find Payout By External Id
-    FindPayout {
+    /// Find Payout By external id or payout_id
+    GetPayout {
         #[clap(
             short,
             long,
@@ -393,8 +393,10 @@ enum Command {
         url: Option<Url>,
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
-        #[clap(short, long)]
-        external_id: String,
+        #[clap(short = 'i', long, group = "identifier")]
+        id: Option<String>,
+        #[clap(short = 'e', long, group = "identifier")]
+        external_id: Option<String>,
     },
     /// List Wallets
     ListWallets {
@@ -824,13 +826,14 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.list_payouts(wallet).await?;
         }
-        Command::FindPayout {
+        Command::GetPayout {
             url,
             api_key,
+            id,
             external_id,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.find_payout_by_external_id(external_id).await?;
+            client.get_payout(id, external_id).await?;
         }
         Command::ListWallets { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);
