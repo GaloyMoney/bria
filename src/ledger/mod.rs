@@ -53,7 +53,9 @@ impl Ledger {
         templates::SpendDetected::init(&inner).await?;
         templates::SpendSettled::init(&inner).await?;
         templates::PayoutSubmitted::init(&inner).await?;
-        templates::BatchCreated::init(&inner).await?;
+        if templates::BatchCreated::init(&inner).await? {
+            templates::fix::legacy_batch_created(&inner).await?;
+        }
         templates::BatchBroadcast::init(&inner).await?;
 
         Ok(Self {
