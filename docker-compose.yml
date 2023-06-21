@@ -31,6 +31,7 @@ services:
       - ./:/repo
       - /var/run/docker.sock:/var/run/docker.sock
       - cargo-cache:/usr/local/cargo
+      - cargo-target:/usr/local/cargo-target
     environment:
       - HOST_PROJECT_PATH=${PWD}
       - BRIA_HOME=/bria
@@ -44,6 +45,7 @@ services:
       - BITCOIND_SIGNER_ENDPOINT=https://bitcoind-signer:18443
       - LND_HOST=lnd
       - ELECTRUM_HOST=fulcrum
+      - CARGO_TARGET_DIR=/usr/local/cargo-target
   integration-tests:
     image: us.gcr.io/galoy-org/rust-concourse
     depends_on:
