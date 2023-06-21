@@ -49,6 +49,7 @@ impl Ledger {
 
         templates::UtxoDetected::init(&inner).await?;
         templates::UtxoSettled::init(&inner).await?;
+        templates::UtxoDropped::init(&inner).await?;
         templates::SpentUtxoSettled::init(&inner).await?;
         templates::SpendDetected::init(&inner).await?;
         templates::SpendSettled::init(&inner).await?;
@@ -110,14 +111,49 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: UtxoDroppedParams,
+        detected_txn_id: LedgerTransactionId,
+        ledger_account_ids: WalletLedgerAccountIds,
     ) -> Result<(), LedgerError> {
-        self.inner
-            .post_transaction_in_tx(tx, tx_id, UTXO_DROPPED_CODE, Some(params))
+        // generate the params from detected_tx_id
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(detected_txn_id))
             .await?;
+        if let Some(UtxoDetectedMeta {
+            account_id,
+            wallet_id,
+            keychain_id,
+            outpoint,
+            satoshis,
+            address,
+            encumbered_spending_fees,
+            confirmation_time,
+        }) = txs[0].metadata()?
+        {
+            let params = UtxoDroppedParams {
+                journal_id: txs[0].journal_id,
+                onchain_incoming_account_id: ledger_account_ids.onchain_incoming_id,
+                effective_incoming_account_id: ledger_account_ids.effective_incoming_id,
+                onchain_fee_account_id: ledger_account_ids.fee_id,
+                meta: UtxoDroppedMeta {
+                    account_id,
+                    wallet_id,
+                    keychain_id,
+                    outpoint,
+                    satoshis,
+                    address,
+                    encumbered_spending_fees,
+                    confirmation_time,
+                    detected_txn_id,
+                },
+            };
+            self.inner
+                .post_transaction_in_tx(tx, tx_id, UTXO_DROPPED_CODE, Some(params))
+                .await?;
+        }
         Ok(())
     }
-
 
     #[instrument(name = "ledger.utxo_settled", skip(self, tx))]
     pub async fn utxo_settled(

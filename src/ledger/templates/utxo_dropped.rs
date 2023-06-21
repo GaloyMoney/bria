@@ -19,7 +19,8 @@ pub struct UtxoDroppedMeta {
     pub satoshis: Satoshis,
     pub address: bitcoin::Address,
     pub encumbered_spending_fees: EncumberedSpendingFees,
-   pub confirmation_time: Option<BlockTime>,
+    pub confirmation_time: Option<BlockTime>,
+    pub detected_txn_id: LedgerTransactionId,
 }
 
 #[derive(Debug)]
@@ -65,6 +66,11 @@ impl UtxoDroppedParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
+                .name("correlation_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
                 .name("meta")
                 .r#type(ParamDataType::JSON)
                 .build()
@@ -103,6 +109,7 @@ impl From<UtxoDroppedParams> for TxParams {
                     .date()
             })
             .unwrap_or_else(|| Utc::now().date_naive());
+        let correlation_id = meta.detected_txn_id;
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);
@@ -116,6 +123,7 @@ impl From<UtxoDroppedParams> for TxParams {
         params.insert("encumbered_spending_fees", fees);
         params.insert("meta", meta);
         params.insert("effective", effective);
+        params.insert("correlation_id", correlation_id);
         params
     }
 }
