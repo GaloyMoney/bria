@@ -114,7 +114,6 @@ impl Ledger {
         detected_txn_id: LedgerTransactionId,
         ledger_account_ids: WalletLedgerAccountIds,
     ) -> Result<(), LedgerError> {
-        // generate the params from detected_tx_id
         let txs = self
             .inner
             .transactions()
