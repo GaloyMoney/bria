@@ -105,6 +105,20 @@ impl Ledger {
         Ok(())
     }
 
+    #[instrument(name = "ledger.utxo_dropped", skip(self, tx))]
+    pub async fn utxo_dropped(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: UtxoDroppedParams,
+    ) -> Result<(), LedgerError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, UTXO_DROPPED_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
+
     #[instrument(name = "ledger.utxo_settled", skip(self, tx))]
     pub async fn utxo_settled(
         &self,

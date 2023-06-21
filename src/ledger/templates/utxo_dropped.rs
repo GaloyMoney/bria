@@ -10,6 +10,116 @@ use crate::{
     primitives::*,
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UtxoDroppedMeta {
+    pub account_id: AccountId,
+    pub wallet_id: WalletId,
+    pub keychain_id: KeychainId,
+    pub outpoint: bitcoin::OutPoint,
+    pub satoshis: Satoshis,
+    pub address: bitcoin::Address,
+    pub encumbered_spending_fees: EncumberedSpendingFees,
+   pub confirmation_time: Option<BlockTime>,
+}
+
+#[derive(Debug)]
+pub struct UtxoDroppedParams {
+    pub journal_id: JournalId,
+    pub onchain_incoming_account_id: LedgerAccountId,
+    pub effective_incoming_account_id: LedgerAccountId,
+    pub onchain_fee_account_id: LedgerAccountId,
+    pub meta: UtxoDroppedMeta,
+}
+
+impl UtxoDroppedParams {
+    pub fn defs() -> Vec<ParamDefinition> {
+        vec![
+            ParamDefinition::builder()
+                .name("journal_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("onchain_incoming_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("effective_incoming_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("onchain_fee_account_id")
+                .r#type(ParamDataType::UUID)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("amount")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("encumbered_spending_fees")
+                .r#type(ParamDataType::DECIMAL)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("meta")
+                .r#type(ParamDataType::JSON)
+                .build()
+                .unwrap(),
+            ParamDefinition::builder()
+                .name("effective")
+                .r#type(ParamDataType::DATE)
+                .build()
+                .unwrap(),
+        ]
+    }
+}
+
+impl From<UtxoDroppedParams> for TxParams {
+    fn from(
+        UtxoDroppedParams {
+            journal_id,
+            onchain_incoming_account_id,
+            effective_incoming_account_id,
+            onchain_fee_account_id,
+            meta,
+        }: UtxoDroppedParams,
+    ) -> Self {
+        let amount = meta.satoshis.to_btc();
+        let fees = meta
+            .encumbered_spending_fees
+            .values()
+            .fold(Satoshis::ZERO, |s, v| s + *v)
+            .to_btc();
+        let effective = meta
+            .confirmation_time
+            .as_ref()
+            .map(|t| {
+                NaiveDateTime::from_timestamp_opt(t.timestamp as i64, 0)
+                    .expect("Couldn't convert blocktime to NaiveDateTime")
+                    .date()
+            })
+            .unwrap_or_else(|| Utc::now().date_naive());
+        let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
+        let mut params = Self::default();
+        params.insert("journal_id", journal_id);
+        params.insert("onchain_incoming_account_id", onchain_incoming_account_id);
+        params.insert(
+            "effective_incoming_account_id",
+            effective_incoming_account_id,
+        );
+        params.insert("onchain_fee_account_id", onchain_fee_account_id);
+        params.insert("amount", amount);
+        params.insert("encumbered_spending_fees", fees);
+        params.insert("meta", meta);
+        params.insert("effective", effective);
+        params
+    }
+}
+
 pub struct UtxoDropped {}
 
 impl UtxoDropped {

@@ -6,6 +6,7 @@ mod spend_detected;
 mod spend_settled;
 mod spent_utxo_settled;
 mod utxo_detected;
+mod utxo_dropped;
 mod utxo_settled;
 
 pub use batch_broadcast::*;
@@ -16,6 +17,7 @@ pub use spend_detected::*;
 pub use spend_settled::*;
 pub use spent_utxo_settled::*;
 pub use utxo_detected::*;
+pub use utxo_dropped::*;
 pub use utxo_settled::*;
 
 pub mod fix;
