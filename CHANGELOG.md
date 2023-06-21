@@ -1,3 +1,21 @@
+# [bria release v0.1.29](https://github.com/GaloyMoney/bria/releases/tag/0.1.29)
+
+
+### Bug Fixes
+
+- Get-address shows wrong changeAddress flag
+
+### Miscellaneous Tasks
+
+- Remove empty file
+
+### Testing
+
+- Reduce pool size in test
+- Remove dir on retry
+- Retry connecting to bitcoind
+- Make wallet + psbt run serially
+
 # [bria release v0.1.28](https://github.com/GaloyMoney/bria/releases/tag/0.1.28)
 
 
