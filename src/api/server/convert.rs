@@ -122,8 +122,10 @@ impl From<WalletAddress> for proto::WalletAddress {
 impl From<WalletAddress> for proto::GetAddressResponse {
     fn from(addr: WalletAddress) -> Self {
         let wallet_id = addr.wallet_id.to_string();
-        let change_address = addr.is_external();
+        let change_address = !addr.is_external();
         let (address, metadata, external_id) = if change_address {
+            (None, None, None)
+        } else {
             (
                 Some(addr.address.to_string()),
                 addr.metadata().map(|json| {
@@ -131,8 +133,6 @@ impl From<WalletAddress> for proto::GetAddressResponse {
                 }),
                 Some(addr.external_id),
             )
-        } else {
-            (None, None, None)
         };
         Self {
             address,
