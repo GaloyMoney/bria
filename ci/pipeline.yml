@@ -284,7 +284,7 @@ jobs:
         path: pipeline-tasks/ci/tasks/open-charts-pr.sh
 
 resources:
-- #@ repo_resource()
+- #@ repo_resource(True)
 - #@ pipeline_tasks_resource()
 - #@ slack_resource()
 - #@ version_resource()
