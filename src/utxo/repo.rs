@@ -446,12 +446,12 @@ impl UtxoRepo {
         Ok(usize::try_from(res.average).expect("Could convert to usize"))
     }
 
-    pub async fn find_delete_utxo(
+    pub async fn delete_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         outpoint: bitcoin::OutPoint,
         keychain_id: KeychainId,
-    ) -> Result<Option<LedgerTransactionId>, UtxoError> {
+    ) -> Result<LedgerTransactionId, UtxoError> {
         let utxo_check = sqlx::query!(
             r#"SELECT income_detected_ledger_tx_id, income_settled_ledger_tx_id FROM bria_utxos 
     WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3"#,
@@ -472,9 +472,10 @@ impl UtxoRepo {
                     outpoint.vout as i32,
                     Uuid::from(keychain_id)
                 )
-                .fetch_optional(tx)
+                .fetch_one(tx)
                 .await?;
-                Ok(row.map(|row| LedgerTransactionId::from(row.income_detected_ledger_tx_id)))
+
+                Ok(LedgerTransactionId::from(row.income_detected_ledger_tx_id))
             }
             Some(_) => Err(UtxoError::UtxoAlreadySettledError),
             None => Err(UtxoError::UtxoDoesNotExistError),
