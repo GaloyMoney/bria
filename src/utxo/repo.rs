@@ -476,8 +476,8 @@ impl UtxoRepo {
                 .await?;
                 Ok(row.map(|row| LedgerTransactionId::from(row.income_detected_ledger_tx_id)))
             }
-            Some(_) => Err(UtxoError::UtxoAlreadySettledErorr),
-            None => Err(UtxoError::UtxoDoesNotExist),
+            Some(_) => Err(UtxoError::UtxoAlreadySettledError),
+            None => Err(UtxoError::UtxoDoesNotExistError),
         }
     }
 }

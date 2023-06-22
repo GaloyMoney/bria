@@ -7,7 +7,7 @@ pub enum UtxoError {
     #[error("UtxoError - EntityError: {0}")]
     EntityError(#[from] crate::entity::EntityError),
     #[error("UtxoError - Utxo already settled")]
-    UtxoAlreadySettledErorr,
+    UtxoAlreadySettledError,
     #[error("UtxoError - Utxo does not exist")]
-    UtxoDoesNotExist,
+    UtxoDoesNotExistError,
 }
