@@ -289,6 +289,7 @@ impl App {
             .build()
             .expect("Couldn't build NewWallet");
         let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
+
         let descriptors = vec![
             NewDescriptor::builder()
                 .account_id(profile.account_id)
