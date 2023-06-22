@@ -280,4 +280,20 @@ impl Transactions {
         .await?;
         Ok(())
     }
+
+    #[instrument(name = "bdk_transactions.find_delete_transaction", skip(self, tx))]
+    pub async fn find_delete_transaction(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        outpoint: bitcoin::OutPoint,
+    ) -> Result<(), BdkError> {
+        sqlx::query!(
+            r#"DELETE FROM bdk_transactions 
+            WHERE tx_id = $1"#,
+            outpoint.txid.to_string(),
+        )
+        .execute(tx)
+        .await?;
+        Ok(())
+    }
 }

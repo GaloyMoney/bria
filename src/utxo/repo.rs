@@ -445,4 +445,22 @@ impl UtxoRepo {
 
         Ok(usize::try_from(res.average).expect("Could convert to usize"))
     }
+
+    pub async fn find_delete_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        outpoint: bitcoin::OutPoint,
+    ) -> Result<Option<LedgerTransactionId>, UtxoError> {
+        let row = sqlx::query!(
+            r#"DELETE FROM bria_utxos 
+            WHERE tx_id = $1 AND vout = $2
+            RETURNING income_detected_ledger_tx_id"#,
+            outpoint.txid.to_string(),
+            outpoint.vout as i32
+        )
+        .fetch_optional(tx)
+        .await?;
+
+        Ok(row.map(|row| LedgerTransactionId::from(row.income_detected_ledger_tx_id)))
+    }
 }
