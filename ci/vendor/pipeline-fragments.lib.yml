@@ -377,7 +377,7 @@ plan:
         path: pipeline-tasks/ci/vendor/tasks/chart-open-charts-pr.sh
 #@ end
 
-#@ def repo_resource():
+#@ def repo_resource(webhook = False):
 name: repo
 type: git
 source:
@@ -386,6 +386,9 @@ source:
   uri: #@ data.values.git_uri
   branch: #@ data.values.git_branch
   private_key: #@ data.values.github_private_key
+#@ if webhook:
+webhook_token: ((webhook.secret))
+#@ end
 #@ end
 
 #@ def pipeline_tasks_resource():
