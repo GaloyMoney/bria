@@ -153,11 +153,20 @@ impl Ledger {
                 }
             }
 
+            let onchain_incoming_account_id = onchain_incoming_account_id.ok_or_else(|| {
+                LedgerError::NotFound("Onchain incoming account ID not found".into())
+            })?;
+            let effective_incoming_account_id = effective_incoming_account_id.ok_or_else(|| {
+                LedgerError::NotFound("Effective incoming account ID not found".into())
+            })?;
+            let onchain_fee_account_id = onchain_fee_account_id
+                .ok_or_else(|| LedgerError::NotFound("Onchain fee account ID not found".into()))?;
+
             let params = UtxoDroppedParams {
                 journal_id: txs[0].journal_id,
-                onchain_incoming_account_id: onchain_incoming_account_id.unwrap(),
-                effective_incoming_account_id: effective_incoming_account_id.unwrap(),
-                onchain_fee_account_id: onchain_fee_account_id.unwrap(),
+                onchain_incoming_account_id,
+                effective_incoming_account_id,
+                onchain_fee_account_id,
                 meta: UtxoDroppedMeta {
                     account_id,
                     wallet_id,

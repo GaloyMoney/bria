@@ -10,4 +10,6 @@ pub enum LedgerError {
     EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
     #[error("LedgerError - MissingTxMetadata")]
     MissingTxMetadata,
+    #[error("LedgerError - NotFound: {0}")]
+    NotFound(String),
 }

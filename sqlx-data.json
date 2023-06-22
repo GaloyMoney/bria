@@ -151,30 +151,6 @@
     },
     "query": "UPDATE bria_batch_wallet_summaries\n               SET batch_broadcast_ledger_tx_id = $1\n               WHERE bria_batch_wallet_summaries.batch_id = $2\n                 AND bria_batch_wallet_summaries.wallet_id = $3"
   },
-  "1bf343cc9eee0c80d9057f64f8d14a3a14ca3b738a1ed67025502ed36025f28e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "tx_id",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "utxo_json",
-          "ordinal": 1,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "WITH deleted AS (\n               DELETE FROM bdk_utxos \n               WHERE (keychain_id, tx_id, vout) IN (\n                   SELECT keychain_id, tx_id, vout FROM bdk_utxos \n                   WHERE deleted_at IS NOT NULL \n                   LIMIT 1\n               ) \n               RETURNING tx_id, utxo_json\n           )\n           SELECT * FROM deleted;"
-  },
   "1c966653b607ef9cd8a305aac131cf64a17ab0803fdc55db8b55a14fced7178d": {
     "describe": {
       "columns": [
@@ -444,6 +420,30 @@
       }
     },
     "query": "\n            SELECT COALESCE(ROUND(AVG(counts)), 1) AS \"average!\"\n            FROM (\n                SELECT COUNT(*) AS counts\n                FROM bria_utxos\n                WHERE wallet_id = $1 AND spending_payout_queue_id = $2 AND spending_batch_id IS NOT NULL\n                GROUP BY wallet_id, spending_batch_id\n            ) as subquery\n        "
+  },
+  "2a9835c533ecef13ab273aa1330c0b1df595cf9293c55a5647b88dc78cc69d08": {
+    "describe": {
+      "columns": [
+        {
+          "name": "keychain_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "WITH deleted AS (\n               DELETE FROM bdk_utxos \n               WHERE (keychain_id, tx_id, vout) IN (\n                   SELECT keychain_id, tx_id, vout FROM bdk_utxos \n                   WHERE deleted_at IS NOT NULL \n                   LIMIT 1\n               ) \n               RETURNING keychain_id, utxo_json\n           )\n           SELECT * FROM deleted;"
   },
   "2c5e7765d15a8b3893f40a98898cca618f69ae9b16abeeb1dfe37fd8e3408f13": {
     "describe": {
@@ -1258,6 +1258,34 @@
     },
     "query": "UPDATE bria_utxos\n            SET bdk_spent = $1,\n                block_height = $2,\n                income_settled_ledger_tx_id = $3,\n                modified_at = NOW()\n            WHERE keychain_id = $4\n              AND tx_id = $5\n              AND vout = $6\n            RETURNING address_idx, value, address, income_detected_ledger_tx_id, spend_detected_ledger_tx_id"
   },
+  "67e7dadb46c1d0ab817127eb7b191fdc6bfc06540b8b2f1ae6901a0d30ecb0ea": {
+    "describe": {
+      "columns": [
+        {
+          "name": "income_detected_ledger_tx_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "income_settled_ledger_tx_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT income_detected_ledger_tx_id, income_settled_ledger_tx_id FROM bria_utxos \n    WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3"
+  },
   "685fc5567c7787a765db331506310c85560d9bd07edab7abb95738adcd45e369": {
     "describe": {
       "columns": [
@@ -2030,7 +2058,7 @@
     },
     "query": "INSERT INTO bdk_descriptor_checksums (script_bytes, keychain_kind, keychain_id)\n            VALUES ($1, $2, $3)"
   },
-  "b6b86fdd0aa2ba5a93d5b6c2baba432c2310a0a8d88a395e94d10c8115b7de98": {
+  "ba10ce43d18fc9c9f332850f1b7946a4977313cf099645822ca7ef283250cc29": {
     "describe": {
       "columns": [
         {
@@ -2045,11 +2073,12 @@
       "parameters": {
         "Left": [
           "Text",
-          "Int4"
+          "Int4",
+          "Uuid"
         ]
       }
     },
-    "query": "DELETE FROM bria_utxos \n            WHERE tx_id = $1 AND vout = $2\n            RETURNING income_detected_ledger_tx_id"
+    "query": "DELETE FROM bria_utxos \n            WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3\n            RETURNING income_detected_ledger_tx_id"
   },
   "bac453e06ae1ceebef3012cf0119ec13fcc982c544b3fde38f557b264dea6e9a": {
     "describe": {

@@ -254,7 +254,8 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         outpoint: bitcoin::OutPoint,
+        keychain_id: KeychainId,
     ) -> Result<Option<LedgerTransactionId>, UtxoError> {
-        self.utxos.find_delete_utxo(tx, outpoint).await
+        self.utxos.find_delete_utxo(tx, outpoint, keychain_id).await
     }
 }

@@ -175,7 +175,7 @@ impl Utxos {
     pub async fn find_delete_unsynced(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-    ) -> Result<Option<bitcoin::OutPoint>, BdkError> {
+    ) -> Result<Option<(bitcoin::OutPoint, KeychainId)>, BdkError> {
         let row = sqlx::query!(
             r#"WITH deleted AS (
                DELETE FROM bdk_utxos 
@@ -184,7 +184,7 @@ impl Utxos {
                    WHERE deleted_at IS NOT NULL 
                    LIMIT 1
                ) 
-               RETURNING tx_id, utxo_json
+               RETURNING keychain_id, utxo_json
            )
            SELECT * FROM deleted;"#,
         )
@@ -193,7 +193,8 @@ impl Utxos {
         Ok(row.map(|row| {
             let local_utxo = serde_json::from_value::<LocalUtxo>(row.utxo_json)
                 .expect("Could not deserialize the utxo");
-            local_utxo.outpoint
+            let keychain_id = KeychainId::from(row.keychain_id);
+            (local_utxo.outpoint, keychain_id)
         }))
     }
 }

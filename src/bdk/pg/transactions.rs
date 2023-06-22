@@ -282,7 +282,7 @@ impl Transactions {
     }
 
     #[instrument(name = "bdk_transactions.find_delete_transaction", skip(self, tx))]
-    pub async fn find_delete_transaction(
+    pub async fn delete_transaction(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         outpoint: bitcoin::OutPoint,
