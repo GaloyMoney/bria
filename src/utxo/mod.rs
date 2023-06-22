@@ -250,7 +250,7 @@ impl Utxos {
     }
 
     #[instrument(name = "utxos.delete_unsynced_utxo", skip(self), err)]
-    pub async fn delete_unsynced_utxo(
+    pub async fn delete_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         outpoint: bitcoin::OutPoint,

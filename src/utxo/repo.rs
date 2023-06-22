@@ -452,33 +452,26 @@ impl UtxoRepo {
         outpoint: bitcoin::OutPoint,
         keychain_id: KeychainId,
     ) -> Result<LedgerTransactionId, UtxoError> {
-        let utxo_check = sqlx::query!(
-            r#"SELECT income_detected_ledger_tx_id, income_settled_ledger_tx_id FROM bria_utxos 
-    WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3"#,
+        let row = sqlx::query!(
+            r#"DELETE FROM bria_utxos 
+            WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3 AND income_settled_ledger_tx_id IS NULL
+            RETURNING income_detected_ledger_tx_id, income_settled_ledger_tx_id"#,
             outpoint.txid.to_string(),
             outpoint.vout as i32,
             Uuid::from(keychain_id)
         )
-        .fetch_optional(&mut *tx)
+        .fetch_optional(tx)
         .await?;
-
-        match utxo_check {
-            Some(utxo) if utxo.income_settled_ledger_tx_id.is_none() => {
-                let row = sqlx::query!(
-                    r#"DELETE FROM bria_utxos 
-            WHERE tx_id = $1 AND vout = $2 AND keychain_id = $3
-            RETURNING income_detected_ledger_tx_id"#,
-                    outpoint.txid.to_string(),
-                    outpoint.vout as i32,
-                    Uuid::from(keychain_id)
-                )
-                .fetch_one(tx)
-                .await?;
-
-                Ok(LedgerTransactionId::from(row.income_detected_ledger_tx_id))
+        if let Some(deleted_row) = row {
+            if deleted_row.income_settled_ledger_tx_id.is_none() {
+                Ok(LedgerTransactionId::from(
+                    deleted_row.income_detected_ledger_tx_id,
+                ))
+            } else {
+                Err(UtxoError::UtxoAlreadySettledError)
             }
-            Some(_) => Err(UtxoError::UtxoAlreadySettledError),
-            None => Err(UtxoError::UtxoDoesNotExistError),
+        } else {
+            Err(UtxoError::UtxoDoesNotExistError)
         }
     }
 }

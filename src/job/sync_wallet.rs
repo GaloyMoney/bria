@@ -492,11 +492,11 @@ pub async fn execute(
 
         loop {
             let mut tx = pool.begin().await?;
-            if let Some((outpoint, keychain_id)) = bdk_utxos.find_delete_unsynced(&mut tx).await? {
+            if let Some((outpoint, keychain_id)) = bdk_utxos.find_deleted_utxo(&mut tx).await? {
                 bdk_txs.delete_transaction(&mut tx, outpoint).await?;
                 let detected_txn_id = deps
                     .bria_utxos
-                    .delete_unsynced_utxo(&mut tx, outpoint, keychain_id)
+                    .delete_utxo(&mut tx, outpoint, keychain_id)
                     .await?;
                 deps.ledger
                     .utxo_dropped(tx, LedgerTransactionId::new(), detected_txn_id)
