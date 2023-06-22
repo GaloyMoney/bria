@@ -112,13 +112,13 @@ impl Ledger {
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
         detected_txn_id: LedgerTransactionId,
-        ledger_account_ids: WalletLedgerAccountIds,
     ) -> Result<(), LedgerError> {
         let txs = self
             .inner
             .transactions()
             .list_by_ids(std::iter::once(detected_txn_id))
             .await?;
+
         if let Some(UtxoDetectedMeta {
             account_id,
             wallet_id,
@@ -130,11 +130,34 @@ impl Ledger {
             confirmation_time,
         }) = txs[0].metadata()?
         {
+            let entries = self
+                .inner
+                .entries()
+                .list_by_transaction_ids(vec![detected_txn_id])
+                .await?;
+
+            let mut onchain_incoming_account_id = None;
+            let mut effective_incoming_account_id = None;
+            let mut onchain_fee_account_id = None;
+
+            for entry in entries.into_values().flatten() {
+                match entry.entry_type.as_str() {
+                    "UTXO_DETECTED_UTX_IN_PEN_CR" => {
+                        onchain_incoming_account_id = Some(entry.account_id)
+                    }
+                    "UTXO_DETECTED_LOG_IN_PEN_CR" => {
+                        effective_incoming_account_id = Some(entry.account_id)
+                    }
+                    "UTXO_DETECTED_FR_ENC_DR" => onchain_fee_account_id = Some(entry.account_id),
+                    _ => {}
+                }
+            }
+
             let params = UtxoDroppedParams {
                 journal_id: txs[0].journal_id,
-                onchain_incoming_account_id: ledger_account_ids.onchain_incoming_id,
-                effective_incoming_account_id: ledger_account_ids.effective_incoming_id,
-                onchain_fee_account_id: ledger_account_ids.fee_id,
+                onchain_incoming_account_id: onchain_incoming_account_id.unwrap(),
+                effective_incoming_account_id: effective_incoming_account_id.unwrap(),
+                onchain_fee_account_id: onchain_fee_account_id.unwrap(),
                 meta: UtxoDroppedMeta {
                     account_id,
                     wallet_id,
