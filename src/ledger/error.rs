@@ -11,5 +11,7 @@ pub enum LedgerError {
     #[error("LedgerError - MissingTxMetadata")]
     MissingTxMetadata,
     #[error("LedgerError - NotFound: {0}")]
-    NotFound(String),
+    ExpectedEntryNotFoundInTx(&'static str),
+    #[error("LedgerError - Transaction not found")]
+    TransactionNotFound,
 }
