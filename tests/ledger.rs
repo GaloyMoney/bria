@@ -718,7 +718,6 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
-    let zero = Satoshis::from(0);
     let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
@@ -765,9 +764,7 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     let tx = pool.begin().await?;
     let tx_id = LedgerTransactionId::new();
-    ledger
-        .utxo_dropped(tx, tx_id, pending_id, wallet_ledger_accounts)
-        .await?;
+    ledger.utxo_dropped(tx, tx_id, pending_id).await?;
 
     let update_summary = WalletBalanceSummary::from(
         ledger
@@ -775,9 +772,9 @@ async fn utxo_dropped() -> anyhow::Result<()> {
             .await?,
     );
 
-    assert_eq!(update_summary.utxo_pending_incoming, zero);
-    assert_eq!(update_summary.effective_pending_income, zero);
-    assert_eq!(update_summary.fees_encumbered, zero);
+    assert_eq!(update_summary.utxo_pending_incoming, Satoshis::ZERO);
+    assert_eq!(update_summary.effective_pending_income, Satoshis::ZERO);
+    assert_eq!(update_summary.fees_encumbered, Satoshis::ZERO);
 
     Ok(())
 }
