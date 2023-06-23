@@ -255,6 +255,13 @@ impl std::ops::Mul<i32> for Satoshis {
     }
 }
 
+impl std::ops::Mul<usize> for Satoshis {
+    type Output = Satoshis;
+    fn mul(self, rhs: usize) -> Self {
+        Satoshis::from(self.0 * Decimal::from(rhs))
+    }
+}
+
 impl std::ops::Div<Satoshis> for Satoshis {
     type Output = Satoshis;
     fn div(self, rhs: Satoshis) -> Self {

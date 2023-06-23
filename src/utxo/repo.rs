@@ -422,27 +422,22 @@ impl UtxoRepo {
             .collect())
     }
 
-    pub async fn average_utxos_per_batch(
+    pub async fn average_utxo_value(
         &self,
         wallet_id: WalletId,
         queue_id: PayoutQueueId,
-    ) -> Result<usize, UtxoError> {
-        let res = sqlx::query!(
-            r#"
-            SELECT COALESCE(ROUND(AVG(counts)), 1) AS "average!"
-            FROM (
-                SELECT COUNT(*) AS counts
-                FROM bria_utxos
-                WHERE wallet_id = $1 AND spending_payout_queue_id = $2 AND spending_batch_id IS NOT NULL
-                GROUP BY wallet_id, spending_batch_id
-            ) as subquery
+    ) -> Result<Option<Satoshis>, UtxoError> {
+        let row = sqlx::query!(
+            r#"SELECT AVG(value) as avg_value
+               FROM bria_utxos
+               WHERE wallet_id = $1 AND spending_payout_queue_id = $2 AND spending_batch_id IS NOT NULL
         "#,
             wallet_id as WalletId,
             queue_id as PayoutQueueId
         )
-        .fetch_one(&self.pool)
+        .fetch_optional(&self.pool)
         .await?;
 
-        Ok(usize::try_from(res.average).expect("Could convert to usize"))
+        Ok(row.and_then(|res| res.avg_value.map(Satoshis::from)))
     }
 }

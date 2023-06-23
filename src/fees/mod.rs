@@ -24,7 +24,7 @@ pub async fn fees_to_encumber(
 }
 
 pub fn estimate_proportional_fee(
-    n_inputs: usize,
+    avg_utxo_size: Option<Satoshis>,
     input_satisfaction_weight: usize,
     fee_rate: bitcoin::FeeRate,
     avg_n_payouts: usize,
@@ -60,7 +60,12 @@ pub fn estimate_proportional_fee(
         output,
     };
 
-    let input_weight = (TXIN_BASE_WEIGHT + input_satisfaction_weight) * n_inputs;
+    let avg_utxo_size = avg_utxo_size.unwrap_or(total_out);
+    let n_inputs = ((avg_payout_value * avg_n_payouts + output_value) / avg_utxo_size)
+        .into_inner()
+        .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero);
+    let input_weight = (TXIN_BASE_WEIGHT + input_satisfaction_weight)
+        * usize::try_from(n_inputs).expect("Could not convert decimal -> usize");
     let total_weight = tx.weight() + input_weight + 2; // 2 for segwit marker and flag
     let fee = rust_decimal::Decimal::from(fee_rate.fee_wu(total_weight));
     let proportion = output_value.into_inner() / total_out.into_inner();
@@ -123,7 +128,7 @@ mod tests {
             .unwrap();
 
         let estimate = estimate_proportional_fee(
-            1,
+            Some(Satoshis::from(200_000_000)),
             descriptor.max_satisfaction_weight().unwrap(),
             fee_rate,
             0,

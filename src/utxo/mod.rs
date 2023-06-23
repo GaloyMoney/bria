@@ -214,14 +214,12 @@ impl Utxos {
             .await
     }
 
-    pub async fn average_utxos_per_batch(
+    pub async fn average_utxo_value(
         &self,
         wallet_id: WalletId,
         queue_id: PayoutQueueId,
-    ) -> Result<usize, UtxoError> {
-        self.utxos
-            .average_utxos_per_batch(wallet_id, queue_id)
-            .await
+    ) -> Result<Option<Satoshis>, UtxoError> {
+        self.utxos.average_utxo_value(wallet_id, queue_id).await
     }
 
     #[instrument(name = "utxos.accounting_info_for_batch", skip_all, err)]
