@@ -495,7 +495,9 @@ pub async fn execute(
             if let Some((outpoint, keychain_id)) =
                 bdk_utxos.find_and_remove_soft_deleted_utxo(&mut tx).await?
             {
-                bdk_txs.delete_transaction(&mut tx, outpoint).await?;
+                bdk_txs
+                    .delete_transaction_if_no_more_utxos_exist(&mut tx, outpoint)
+                    .await?;
                 let detected_txn_id = deps
                     .bria_utxos
                     .delete_utxo(&mut tx, outpoint, keychain_id)

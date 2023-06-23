@@ -281,8 +281,11 @@ impl Transactions {
         Ok(())
     }
 
-    #[instrument(name = "bdk_transactions.delete_transaction", skip(self, tx))]
-    pub async fn delete_transaction(
+    #[instrument(
+        name = "bdk_transactions.delete_transaction_if_no_more_utxos_exist",
+        skip(self, tx)
+    )]
+    pub async fn delete_transaction_if_no_more_utxos_exist(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         outpoint: bitcoin::OutPoint,
