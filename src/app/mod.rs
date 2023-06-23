@@ -543,16 +543,13 @@ impl App {
         }
 
         // No utxos were available to simulate the batch
-        let simulated_utxos = self
-            .utxos
-            .average_utxos_per_batch(wallet.id, queue_id)
-            .await?;
+        let avg_utxo_size = self.utxos.average_utxo_value(wallet.id, queue_id).await?;
         let (n_payouts, payout_size) = self
             .payouts
             .average_payout_per_batch(wallet.id, queue_id)
             .await?;
         Ok(fees::estimate_proportional_fee(
-            simulated_utxos,
+            avg_utxo_size,
             wallet
                 .current_keychain_wallet(&self.pool)
                 .max_satisfaction_weight(),
