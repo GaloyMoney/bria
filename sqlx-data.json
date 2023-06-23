@@ -1687,6 +1687,19 @@
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
   },
+  "8858c30d9fb3a57a3305bb6eec88f9726f7736f7a1866288bcf690abfe263fca": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            DELETE FROM bdk_transactions \n            WHERE keychain_id = $1 AND  tx_id = $2 AND NOT EXISTS (\n                SELECT 1 FROM bdk_utxos WHERE keychain_id = $1 AND tx_id = $2\n            )\n            "
+  },
   "8abc350bc93afb4300b89a6c894324a8386d72dbe1bae507f47d90f8130b4aa7": {
     "describe": {
       "columns": [
@@ -2504,18 +2517,6 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payout_queues b\n              JOIN bria_payout_queue_events e ON b.id = e.id\n              WHERE account_id = $1 AND name = $2\n              ORDER BY e.sequence"
-  },
-  "ed0d148296c518a2cb0588840307c733bb8b5297d1ff82b4927819e6e672d554": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "DELETE FROM bdk_transactions \n            WHERE tx_id = $1"
   },
   "ef8b83a66cdeb4d36d14308de0253cd462c04e43f9a97910d0c44362dacc3d77": {
     "describe": {

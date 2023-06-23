@@ -288,8 +288,13 @@ impl Transactions {
         outpoint: bitcoin::OutPoint,
     ) -> Result<(), BdkError> {
         sqlx::query!(
-            r#"DELETE FROM bdk_transactions 
-            WHERE tx_id = $1"#,
+            r#"
+            DELETE FROM bdk_transactions 
+            WHERE keychain_id = $1 AND  tx_id = $2 AND NOT EXISTS (
+                SELECT 1 FROM bdk_utxos WHERE keychain_id = $1 AND tx_id = $2
+            )
+            "#,
+            Uuid::from(self.keychain_id),
             outpoint.txid.to_string(),
         )
         .execute(tx)
