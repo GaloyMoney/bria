@@ -1,3 +1,15 @@
+# [bria release v0.1.30](https://github.com/GaloyMoney/bria/releases/tag/0.1.30)
+
+
+### Bug Fixes
+
+- Estimate fee leak (#247)
+
+### Miscellaneous Tasks
+
+- Dummy whitespace
+- Bump deps
+
 # [bria release v0.1.29](https://github.com/GaloyMoney/bria/releases/tag/0.1.29)
 
 
