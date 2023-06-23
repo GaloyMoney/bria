@@ -171,18 +171,19 @@ impl Utxos {
         }))
     }
 
-    pub async fn find_deleted_utxo(
+    pub async fn find_and_remove_soft_deleted_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<Option<(bitcoin::OutPoint, KeychainId)>, BdkError> {
         let row = sqlx::query!(
             r#"DELETE FROM bdk_utxos 
-               WHERE (keychain_id, tx_id, vout) IN (
-                   SELECT keychain_id, tx_id, vout FROM bdk_utxos 
-                   WHERE deleted_at IS NOT NULL 
+               WHERE keychain_id = $1 AND (tx_id, vout) IN (
+                   SELECT tx_id, vout FROM bdk_utxos 
+                   WHERE keychain_id = $1 AND deleted_at IS NOT NULL 
                    LIMIT 1
                ) 
                RETURNING keychain_id, utxo_json;"#,
+            Uuid::from(self.keychain_id),
         )
         .fetch_optional(tx)
         .await?;

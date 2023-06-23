@@ -281,7 +281,7 @@ impl Transactions {
         Ok(())
     }
 
-    #[instrument(name = "bdk_transactions.find_delete_transaction", skip(self, tx))]
+    #[instrument(name = "bdk_transactions.delete_transaction", skip(self, tx))]
     pub async fn delete_transaction(
         &self,
         tx: &mut Transaction<'_, Postgres>,
