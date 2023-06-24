@@ -1,3 +1,10 @@
+# [bria release v0.1.31](https://github.com/GaloyMoney/bria/releases/tag/0.1.31)
+
+
+### Bug Fixes
+
+- Return AddressNotFound instead of EntityError
+
 # [bria release v0.1.30](https://github.com/GaloyMoney/bria/releases/tag/0.1.30)
 
 
