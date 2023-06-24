@@ -553,6 +553,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
+            ApplicationError::AddressError(AddressError::AddressNotFound(_)) => {
+                tonic::Status::not_found(err.to_string())
+            }
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
             }

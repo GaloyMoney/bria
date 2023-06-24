@@ -161,6 +161,11 @@ impl Addresses {
         )
         .fetch_all(&self.pool)
         .await?;
+
+        if rows.is_empty() {
+            return Err(AddressError::AddressNotFound(address));
+        }
+
         let mut events = EntityEvents::new();
         for row in rows {
             events.load_event(row.sequence as usize, row.event)?;

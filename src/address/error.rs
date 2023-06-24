@@ -6,6 +6,8 @@ pub enum AddressError {
     ExternalIdAlreadyExists,
     #[error("AddressError - external_id does not exist")]
     ExternalIdNotFound,
+    #[error("AddressError - Could not find address: {0}")]
+    AddressNotFound(String),
     #[error("AddressError - Sqlx: {0}")]
     Sqlx(sqlx::Error),
     #[error("AddressError - EntityError: {0}")]
