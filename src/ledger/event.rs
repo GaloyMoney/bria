@@ -18,6 +18,7 @@ pub struct JournalEvent {
 pub enum JournalEventMetadata {
     UtxoDetected(UtxoDetectedMeta),
     UtxoSettled(UtxoSettledMeta),
+    UtxoDropped(UtxoDroppedMeta),
     SpendDetected(SpendDetectedMeta),
     SpendSettled(SpendSettledMeta),
     PayoutSubmitted(PayoutSubmittedMeta),
@@ -46,6 +47,10 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
                     ),
                     UTXO_SETTLED_ID | SPENT_UTXO_SETTLED_ID => JournalEventMetadata::UtxoSettled(
                         tx.metadata::<UtxoSettledMeta>()?
+                            .ok_or(LedgerError::MissingTxMetadata)?,
+                    ),
+                    UTXO_DROPPED_ID => JournalEventMetadata::UtxoDropped(
+                        tx.metadata::<UtxoDroppedMeta>()?
                             .ok_or(LedgerError::MissingTxMetadata)?,
                     ),
                     SPEND_DETECTED_ID => JournalEventMetadata::SpendDetected(

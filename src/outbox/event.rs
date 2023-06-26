@@ -67,6 +67,14 @@ pub enum OutboxEventPayload {
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
     },
+    UtxoDropped {
+        tx_id: bitcoin::Txid,
+        vout: u32,
+        satoshis: Satoshis,
+        address: bitcoin::Address,
+        wallet_id: WalletId,
+        keychain_id: KeychainId,
+    },
     PayoutSubmitted {
         id: PayoutId,
         profile_id: ProfileId,
@@ -134,6 +142,14 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 wallet_id: meta.wallet_id,
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
+            }),
+            UtxoDropped(meta) => res.push(OutboxEventPayload::UtxoDropped {
+                tx_id: meta.outpoint.txid,
+                vout: meta.outpoint.vout,
+                satoshis: meta.satoshis,
+                address: meta.address,
+                wallet_id: meta.wallet_id,
+                keychain_id: meta.keychain_id,
             }),
             PayoutSubmitted(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
                 id: meta.payout_id,

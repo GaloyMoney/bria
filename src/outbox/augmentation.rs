@@ -67,6 +67,23 @@ impl Augmenter {
                     payout: None,
                 })
             }
+            OutboxEventPayload::UtxoDropped {
+                address, wallet_id, ..
+            } => {
+                let address_info = self
+                    .addresses
+                    .find_by_address(account_id, address.to_string())
+                    .await?;
+                Ok(Augmentation {
+                    address: Some(AddressAugmentation {
+                        address,
+                        wallet_id,
+                        metadata: address_info.metadata().cloned(),
+                        external_id: address_info.external_id,
+                    }),
+                    payout: None,
+                })
+            }
             OutboxEventPayload::PayoutSubmitted { id, .. }
             | OutboxEventPayload::PayoutCommitted { id, .. }
             | OutboxEventPayload::PayoutBroadcast { id, .. }
