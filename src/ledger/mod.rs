@@ -134,7 +134,7 @@ impl Ledger {
         let entries = self
             .inner
             .entries()
-            .list_by_transaction_ids(vec![detected_txn_id])
+            .list_by_transaction_ids(std::iter::once(detected_txn_id))
             .await?;
 
         let mut onchain_incoming_account_id = None;

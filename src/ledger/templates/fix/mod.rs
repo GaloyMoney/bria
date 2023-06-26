@@ -20,7 +20,7 @@ pub async fn legacy_batch_created(inner: &SqlxLedger) -> Result<(), LedgerError>
         .list_by_template_id(TxTemplateId::from(SPEND_SETTLED_ID))
         .await?;
     let mut txs = HashMap::new();
-    let tx_ids = transactions
+    let tx_ids: Vec<TransactionId> = transactions
         .into_iter()
         .filter_map(|tx| {
             tx.metadata::<SpendSettledMeta>()
