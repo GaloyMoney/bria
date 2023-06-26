@@ -1,110 +1,49 @@
 # Bria
-The bridge from your applications to the bitcoin network
+The bridge from your applications to the bitcoin network.
 
-## e2e demo
-In tab 1 (server)
+Bria enables you to share access to onchain bitcoin liquidity in an efficient manner to multiple consumers.
+
+Key features of bria are:
+- configuration of multiple wallets
+- remote / offline signing
+- recording of metadata and external ids (for idempotency) for payouts and addresses
+- transaction batching via configurable payout queues
+- 'outbox' pattern for informing clients of state changes via a globally ordered event sequence
+
+## Developing
+
+For developing all dependencies are run via docker compose
+
+To run the tests make sure `PG_CON` is pointing to the PG instance inside docker:
 ```
-make build
-export PATH="${PATH}:$(pwd)/target/debug"
-make reset-deps
-bria daemon --config ./tests/e2e/bria.local.yml
-```
-
-In tab 2 (cli)
-```
-# setup
-export PATH="${PATH}:$(pwd)/target/debug"
-source ./tests/e2e/helpers.bash
-bitcoind_init
-
-# Bootstrapping
-bria admin bootstrap
-cat .bria/admin-api-key
-
-# Create account
-bria admin create-account -n demo
-cat .bria/profile-api-key
-bria admin list-accounts
-
-# See the default profile (created during account creation)
-bria list-profiles
-
-# Create wallet
-bria import-xpub -n lnd_key -x tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4 -d m/84h/0h/0h
-bria create-wallet -n demo wpkh -x lnd_key
-
-# Create address
-
-bria new-address -w demo
-bria list-addresses -w demo
-bria_addr="$(bria new-address -w demo -m '{"hello": "world"}' | jq -r 'address')"
-bria list-addresses -w demo
-
-# Watching the blockchain for money in / out
-bria wallet-balance -w demo
-bitcoin_cli -regtest sendtoaddress ${bria_addr} 1
-# see money come in via pending
-bria wallet-balance -w demo
-
-# send money to externally created address
-lnd_cli newaddress p2wkh | jq -r '.address'
-lnd_cli newaddress p2wkh | jq -r '.address'
-lnd_addr="$(lnd_cli newaddress p2wkh | jq -r '.address')" # <- this should be a new address
-
-bria list-addresses -w demo # <- 2 adderesses visible
-bitcoin_cli -regtest sendtoaddress ${lnd_addr} 1
-bria wallet-balance -w demo
-bria list-addresses -w demo # <- 3 adderesses visible
-
-# Settle income
-bitcoin_cli -generate 2
-bria wallet-balance -w demo
-
-# send money out (extenally)
-bitcoind_addr="$(bitcoin_cli -regtest getnewaddress)"
-lnd_cli sendcoins --addr=${bitcoind_addr} --amt=50000000
-bria wallet-balance -w demo
-bitcoin_cli -generate 1
-bria wallet-balance -w demo
-
-# sweep wallet to reset balances
-lnd_cli sendcoins --addr=${bitcoind_addr} --sweepall
-
-# Send money from bria
-bria submit-payout -h
-bria create-batch-group -h
-
-bria_cmd create-batch-group --name demo --interval-trigger 5
-bria_cmd submit-payout --wallet demo --queue-name demo --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
-bria wallet-balance -w demo
-bria list-payouts -w demo
-
-bitcoin_cli -regtest sendtoaddress ${bria_addr} 1
-bria wallet-balance -w demo
-bria list-payouts -w demo # batch_id = null
-bitcoin_cli -generate 2
-bria wallet-balance -w demo
-bria list-payouts -w demo # batch_id != null
-
-# signing
-batch_id=$(bria list-payouts -w demo | jq -r '.payouts[0].batchId')
-bria list-signing-sessions -b "${batch_id}"
-
-bria set-signer-config --xpub lnd_key lnd --endpoint "${LND_ENDPOINT}" --macaroon-file "./dev/lnd/regtest/lnd.admin.macaroon" --cert-file "./dev/lnd/tls.cert"
-bria list-signing-sessions -b "${batch_id}" # state = Complete
-bitcoin_cli -generate 2
-bria wallet-balance -w demo
+$ cat <<EOF > .envrc
+export PG_HOST=127.0.0.1
+export PG_CON=postgres://user:password@${PG_HOST}:5432/pg
+EOF
+direnv allow
 ```
 
-In tab 3 (events)
+Add dev dependencies:
 ```
-export PATH="${PATH}:$(pwd)/target/debug"
-bria watch-events
+$ make install-dev-deps
 ```
-Back in tab 2
+
+Run the tests via:
 ```
-bitcoin_cli -regtest sendtoaddress ${bria_addr} 1
-bitcoin_cli -generate 2
-bria watch-events -a 7
-bria watch-events -a 0
+$ make reset-deps next-watch
+```
+
+For bash based e2e tests we use [bats](https://bats-core.readthedocs.io/en/stable/) as a test runner.
+Run the tests via:
+```
+$ make e2e
+```
+
+If your e2e tests stall and you want to inspect the state (or just want to play around locally) then:
+```
+$ make local-daemon
+```
+Will bring up the daemon and you can run cli commands against it eg:
+```
+$ cargo run --bin bria admin list-accounts
 ```
