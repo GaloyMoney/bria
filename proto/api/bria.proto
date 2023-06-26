@@ -36,7 +36,7 @@ service BriaService {
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
   rpc GetPayout (GetPayoutRequest) returns (GetPayoutResponse) {}
-  
+
   rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
@@ -196,7 +196,7 @@ message GetAddressRequest {
 }
 
 message GetAddressResponse{
-  optional string address = 1; 
+  optional string address = 1;
   string wallet_id = 2;
   bool change_address = 3;
   optional string external_id = 4;
