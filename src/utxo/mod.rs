@@ -249,7 +249,7 @@ impl Utxos {
         self.utxos.list_utxos_by_outpoint(utxos).await
     }
 
-    #[instrument(name = "utxos.delete_unsynced_utxo", skip(self), err)]
+    #[instrument(name = "utxos.delete_utxo", skip(self), err)]
     pub async fn delete_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,

@@ -1,7 +1,6 @@
 use bdk::{bitcoin::Txid, LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
-use uuid::Uuid;
 
 use crate::{bdk::error::BdkError, primitives::*};
 
@@ -45,7 +44,7 @@ impl Transactions {
             );
 
             query_builder.push_values(batch, |mut builder, tx| {
-                builder.push_bind(Uuid::from(self.keychain_id));
+                builder.push_bind(self.keychain_id as KeychainId);
                 builder.push_bind(tx.txid.to_string());
                 builder.push_bind(serde_json::to_value(tx).unwrap());
                 builder.push_bind(tx.sent as i64);
@@ -70,7 +69,7 @@ impl Transactions {
                  SET deleted_at = NOW()
                  WHERE keychain_id = $1 AND tx_id = $2
                  RETURNING details_json"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             tx_id.to_string(),
         )
         .fetch_optional(&self.pool)
@@ -86,7 +85,7 @@ impl Transactions {
         let tx = sqlx::query!(
             r#"
         SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2 AND deleted_at IS NULL"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             tx_id.to_string(),
         )
         .fetch_optional(&self.pool)
@@ -99,7 +98,7 @@ impl Transactions {
         let txs = sqlx::query!(
             r#"
         SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND deleted_at IS NULL"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
         )
         .fetch_all(&self.pool)
         .await
@@ -137,7 +136,7 @@ impl Transactions {
            ON p.keychain_id = $1 AND u.utxo_json->'txout'->>'script_pubkey' = p.script_hex
            WHERE u.keychain_id = $1 AND u.deleted_at IS NULL AND (u.synced_to_bria = false OR u.tx_id != t.tx_id)
         "#,
-        Uuid::from(self.keychain_id),
+        self.keychain_id as KeychainId,
         &excluded_tx_ids
         )
            .fetch_all(&self.pool)
@@ -217,7 +216,7 @@ impl Transactions {
             ) OR u.tx_id = t.tx_id
             WHERE u.keychain_id = $1 AND u.deleted_at IS NULL AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)
         "#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             min_height as i32
         )
         .fetch_all(tx)
@@ -256,7 +255,7 @@ impl Transactions {
         sqlx::query!(
             r#"UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             tx_id.to_string(),
         )
         .execute(&self.pool)
@@ -273,7 +272,7 @@ impl Transactions {
         sqlx::query!(
             r#"UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             tx_id.to_string(),
         )
         .execute(&mut *tx)
@@ -297,7 +296,7 @@ impl Transactions {
                 SELECT 1 FROM bdk_utxos WHERE keychain_id = $1 AND tx_id = $2
             )
             "#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             outpoint.txid.to_string(),
         )
         .execute(tx)
