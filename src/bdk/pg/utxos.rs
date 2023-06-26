@@ -59,7 +59,7 @@ impl Utxos {
             r#"UPDATE bdk_utxos SET deleted_at = NOW()
                  WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3
                  RETURNING utxo_json"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             outpoint.txid.to_string(),
             outpoint.vout as i32,
         )
@@ -75,7 +75,7 @@ impl Utxos {
     pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1 AND deleted_at IS NULL"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
         )
         .fetch_all(&self.pool)
         .await
@@ -95,7 +95,7 @@ impl Utxos {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
         )
@@ -113,7 +113,7 @@ impl Utxos {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET confirmation_synced_to_bria = true, modified_at = NOW()
             WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
         )
@@ -150,7 +150,7 @@ impl Utxos {
             )
             SELECT u.tx_id, utxo_json, details_json
             FROM updated_utxo u JOIN bdk_transactions t on u.tx_id = t.tx_id"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
             min_height as i32,
         )
         .fetch_optional(tx)
@@ -183,7 +183,7 @@ impl Utxos {
                    LIMIT 1
                ) 
                RETURNING keychain_id, utxo_json;"#,
-            Uuid::from(self.keychain_id),
+            self.keychain_id as KeychainId,
         )
         .fetch_optional(tx)
         .await?;
