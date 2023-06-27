@@ -1,3 +1,20 @@
+# [bria release v0.1.32](https://github.com/GaloyMoney/bria/releases/tag/0.1.32)
+
+
+### Documentation
+
+- Update README with dev instructions
+
+### Features
+
+- Add  utxo_dropped (#245)
+
+### Miscellaneous Tasks
+
+- Bump serde_yaml from 0.9.21 to 0.9.22 (#248)
+- Bump clap from 4.3.5 to 4.3.8 (#249)
+- Bump serde_json from 1.0.97 to 1.0.99 (#250)
+
 # [bria release v0.1.31](https://github.com/GaloyMoney/bria/releases/tag/0.1.31)
 
 
