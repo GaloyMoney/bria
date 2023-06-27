@@ -36,7 +36,7 @@ service BriaService {
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
   rpc GetPayout (GetPayoutRequest) returns (GetPayoutResponse) {}
-  
+
   rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
@@ -196,7 +196,7 @@ message GetAddressRequest {
 }
 
 message GetAddressResponse{
-  optional string address = 1; 
+  optional string address = 1;
   string wallet_id = 2;
   bool change_address = 3;
   optional string external_id = 4;
@@ -438,6 +438,7 @@ message BriaEvent {
   oneof payload {
     UtxoDetected utxo_detected = 4;
     UtxoSettled utxo_settled = 5;
+    UtxoDropped utxo_dropped = 10;
     PayoutSubmitted payout_submitted = 6;
     PayoutCommitted payout_committed = 7;
     PayoutBroadcast payout_broadcast = 8;
@@ -466,6 +467,14 @@ message UtxoSettled {
   string address = 5;
   uint32 block_height = 6;
   uint64 block_time = 7;
+}
+
+message UtxoDropped {
+  string wallet_id = 1;
+  string tx_id = 2;
+  uint32 vout = 3;
+  uint64 satoshis = 4;
+  string address = 5;
 }
 
 message PayoutSubmitted {

@@ -1279,6 +1279,34 @@
     },
     "query": "\n          SELECT income_detected_ledger_tx_id, tx_id, vout,\n            CASE WHEN income_settled_ledger_tx_id IS NOT NULL THEN value ELSE 0 END AS \"value!\"\n            FROM bria_utxos\n            WHERE spending_batch_id = $1 AND wallet_id = $2"
   },
+  "6be9de130ce687ccb8f2c775005d14b9f6ae4b6609d21ba66563bcc78fba3286": {
+    "describe": {
+      "columns": [
+        {
+          "name": "income_detected_ledger_tx_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "income_settled_ledger_tx_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Int4"
+        ]
+      }
+    },
+    "query": "DELETE FROM bria_utxos\n            WHERE  keychain_id = $1 AND tx_id = $2 AND vout = $3\n            RETURNING income_detected_ledger_tx_id, income_settled_ledger_tx_id"
+  },
   "6c752d8fc85a3062ed39cbbed6e7d9729de1727487bd8e71e0e00ffcf1f4db1b": {
     "describe": {
       "columns": [
@@ -1637,6 +1665,45 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_wallets b\n              JOIN bria_wallet_events e ON b.id = e.id\n              WHERE b.id = ANY($1)\n              ORDER BY b.id, e.sequence"
+  },
+  "8858c30d9fb3a57a3305bb6eec88f9726f7736f7a1866288bcf690abfe263fca": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            DELETE FROM bdk_transactions \n            WHERE keychain_id = $1 AND  tx_id = $2 AND NOT EXISTS (\n                SELECT 1 FROM bdk_utxos WHERE keychain_id = $1 AND tx_id = $2\n            )\n            "
+  },
+  "8abc350bc93afb4300b89a6c894324a8386d72dbe1bae507f47d90f8130b4aa7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "keychain_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "utxo_json",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM bdk_utxos \n               WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                   SELECT tx_id, vout FROM bdk_utxos \n                   WHERE keychain_id = $1 AND deleted_at IS NOT NULL \n                   LIMIT 1\n               ) \n               RETURNING keychain_id, utxo_json;"
   },
   "8b1d87e9c8410e2effb5a49472f7c60d188a00edd5afdc4e679962b85f25465a": {
     "describe": {

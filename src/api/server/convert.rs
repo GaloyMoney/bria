@@ -424,6 +424,20 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 block_height: confirmation_time.height,
                 block_time: confirmation_time.timestamp,
             }),
+            OutboxEventPayload::UtxoDropped {
+                tx_id,
+                vout,
+                satoshis,
+                address,
+                wallet_id,
+                ..
+            } => proto::bria_event::Payload::UtxoDropped(proto::UtxoDropped {
+                wallet_id: wallet_id.to_string(),
+                tx_id: tx_id.to_string(),
+                vout,
+                satoshis: u64::from(satoshis),
+                address: address.to_string(),
+            }),
             OutboxEventPayload::PayoutSubmitted {
                 id,
                 wallet_id,

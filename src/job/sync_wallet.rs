@@ -489,6 +489,26 @@ pub async fn execute(
                 break;
             }
         }
+
+        loop {
+            let mut tx = pool.begin().await?;
+            if let Some((outpoint, keychain_id)) =
+                bdk_utxos.find_and_remove_soft_deleted_utxo(&mut tx).await?
+            {
+                bdk_txs
+                    .delete_transaction_if_no_more_utxos_exist(&mut tx, outpoint)
+                    .await?;
+                let detected_txn_id = deps
+                    .bria_utxos
+                    .delete_utxo(&mut tx, outpoint, keychain_id)
+                    .await?;
+                deps.ledger
+                    .utxo_dropped(tx, LedgerTransactionId::new(), detected_txn_id)
+                    .await?;
+            } else {
+                break;
+            }
+        }
     }
 
     let has_more = trackers.n_found_txs >= MAX_TXS_PER_SYNC;

@@ -698,3 +698,83 @@ fn assert_summaries_match(wallet: WalletBalanceSummary, account: AccountBalanceS
     assert_eq!(wallet.fees_encumbered, account.fees_encumbered);
     assert_eq!(wallet.fees_pending, account.fees_pending);
 }
+
+#[tokio::test]
+async fn utxo_dropped() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+
+    let ledger = Ledger::init(&pool).await?;
+
+    let account_id = AccountId::new();
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let mut tx = pool.begin().await?;
+    let journal_id = ledger
+        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .await?;
+    let wallet_id = WalletId::new();
+    let wallet_ledger_accounts = ledger
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .await?;
+
+    let one_btc = Satoshis::from(100_000_000);
+    let one_sat = Satoshis::from(1);
+    let address: bitcoin::Address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap();
+    let outpoint = OutPoint {
+        txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap(),
+        vout: 0,
+    };
+
+    let keychain_id = KeychainId::new();
+    let pending_id = LedgerTransactionId::new();
+
+    ledger
+        .utxo_detected(
+            tx,
+            pending_id,
+            UtxoDetectedParams {
+                journal_id,
+                onchain_incoming_account_id: wallet_ledger_accounts.onchain_incoming_id,
+                onchain_fee_account_id: wallet_ledger_accounts.fee_id,
+                effective_incoming_account_id: wallet_ledger_accounts.effective_incoming_id,
+                meta: UtxoDetectedMeta {
+                    account_id,
+                    wallet_id,
+                    keychain_id,
+                    outpoint,
+                    satoshis: one_btc,
+                    address: address.clone(),
+                    encumbered_spending_fees: std::iter::once((outpoint, one_sat)).collect(),
+                    confirmation_time: None,
+                },
+            },
+        )
+        .await?;
+
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+
+    assert_eq!(summary.utxo_pending_incoming, one_btc);
+    assert_eq!(summary.effective_pending_income, one_btc);
+    assert_eq!(summary.fees_encumbered, one_sat);
+
+    let tx = pool.begin().await?;
+    let tx_id = LedgerTransactionId::new();
+    ledger.utxo_dropped(tx, tx_id, pending_id).await?;
+
+    let update_summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+
+    assert_eq!(update_summary.utxo_pending_incoming, Satoshis::ZERO);
+    assert_eq!(update_summary.effective_pending_income, Satoshis::ZERO);
+    assert_eq!(update_summary.fees_encumbered, Satoshis::ZERO);
+
+    Ok(())
+}

@@ -246,4 +246,14 @@ impl Utxos {
     ) -> Result<Vec<WalletUtxo>, UtxoError> {
         self.utxos.list_utxos_by_outpoint(utxos).await
     }
+
+    #[instrument(name = "utxos.delete_utxo", skip(self), err)]
+    pub async fn delete_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        outpoint: bitcoin::OutPoint,
+        keychain_id: KeychainId,
+    ) -> Result<LedgerTransactionId, UtxoError> {
+        self.utxos.delete_utxo(tx, outpoint, keychain_id).await
+    }
 }

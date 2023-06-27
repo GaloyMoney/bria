@@ -7,6 +7,9 @@ pub(super) const UTXO_DETECTED_ID: Uuid = uuid!("00000000-0000-0000-0000-0000000
 pub(super) const UTXO_SETTLED_CODE: &str = "UTXO_SETTLED";
 pub(super) const UTXO_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 
+pub(super) const UTXO_DROPPED_CODE: &str = "UTXO_DROPPED";
+pub(super) const UTXO_DROPPED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000009");
+
 pub(super) const SPENT_UTXO_SETTLED_CODE: &str = "SPENT_UTXO_SETTLED";
 pub(super) const SPENT_UTXO_SETTLED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 

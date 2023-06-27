@@ -440,4 +440,29 @@ impl UtxoRepo {
 
         Ok(row.and_then(|res| res.avg_value.map(Satoshis::from)))
     }
+
+    pub async fn delete_utxo(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        outpoint: bitcoin::OutPoint,
+        keychain_id: KeychainId,
+    ) -> Result<LedgerTransactionId, UtxoError> {
+        let row = sqlx::query!(
+            r#"DELETE FROM bria_utxos
+            WHERE  keychain_id = $1 AND tx_id = $2 AND vout = $3
+            RETURNING income_detected_ledger_tx_id, income_settled_ledger_tx_id"#,
+            Uuid::from(keychain_id),
+            outpoint.txid.to_string(),
+            outpoint.vout as i32,
+        )
+        .fetch_optional(tx)
+        .await?;
+        match row {
+            Some(deleted_row) if deleted_row.income_settled_ledger_tx_id.is_none() => Ok(
+                LedgerTransactionId::from(deleted_row.income_detected_ledger_tx_id),
+            ),
+            Some(_) => Err(UtxoError::UtxoAlreadySettledError),
+            None => Err(UtxoError::UtxoDoesNotExistError),
+        }
+    }
 }

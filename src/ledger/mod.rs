@@ -49,6 +49,7 @@ impl Ledger {
 
         templates::UtxoDetected::init(&inner).await?;
         templates::UtxoSettled::init(&inner).await?;
+        templates::UtxoDropped::init(&inner).await?;
         templates::SpentUtxoSettled::init(&inner).await?;
         templates::SpendDetected::init(&inner).await?;
         templates::SpendSettled::init(&inner).await?;
@@ -102,6 +103,88 @@ impl Ledger {
         self.inner
             .post_transaction_in_tx(tx, tx_id, UTXO_DETECTED_CODE, Some(params))
             .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.utxo_dropped", skip(self, tx))]
+    pub async fn utxo_dropped(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        detected_txn_id: LedgerTransactionId,
+    ) -> Result<(), LedgerError> {
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(detected_txn_id))
+            .await?;
+
+        let txn = txs.get(0).ok_or(LedgerError::TransactionNotFound)?;
+
+        let UtxoDetectedMeta {
+            account_id,
+            wallet_id,
+            keychain_id,
+            outpoint,
+            satoshis,
+            address,
+            encumbered_spending_fees,
+            confirmation_time,
+        } = txn.metadata()?.ok_or(LedgerError::MissingTxMetadata)?;
+        let entries = self
+            .inner
+            .entries()
+            .list_by_transaction_ids(std::iter::once(detected_txn_id))
+            .await?;
+
+        let mut onchain_incoming_account_id = None;
+        let mut effective_incoming_account_id = None;
+        let mut onchain_fee_account_id = None;
+
+        for entry in entries.into_values().flatten() {
+            match entry.entry_type.as_str() {
+                "UTXO_DETECTED_UTX_IN_PEN_CR" => {
+                    onchain_incoming_account_id = Some(entry.account_id)
+                }
+                "UTXO_DETECTED_LOG_IN_PEN_CR" => {
+                    effective_incoming_account_id = Some(entry.account_id)
+                }
+                "UTXO_DETECTED_FR_ENC_DR" => onchain_fee_account_id = Some(entry.account_id),
+                _ => {}
+            }
+        }
+        let onchain_incoming_account_id = onchain_incoming_account_id.ok_or(
+            LedgerError::ExpectedEntryNotFoundInTx("Onchain incoming account ID not found"),
+        )?;
+        let effective_incoming_account_id = effective_incoming_account_id.ok_or(
+            LedgerError::ExpectedEntryNotFoundInTx("Effective incoming account ID not found"),
+        )?;
+        let onchain_fee_account_id = onchain_fee_account_id.ok_or(
+            LedgerError::ExpectedEntryNotFoundInTx("Onchain fee account ID not found"),
+        )?;
+
+        let params = UtxoDroppedParams {
+            journal_id: txn.journal_id,
+            onchain_incoming_account_id,
+            effective_incoming_account_id,
+            onchain_fee_account_id,
+            meta: UtxoDroppedMeta {
+                account_id,
+                wallet_id,
+                keychain_id,
+                outpoint,
+                satoshis,
+                address,
+                encumbered_spending_fees,
+                confirmation_time,
+                detected_txn_id,
+            },
+        };
+
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, UTXO_DROPPED_CODE, Some(params))
+            .await?;
+
         Ok(())
     }
 
