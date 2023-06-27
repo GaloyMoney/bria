@@ -205,6 +205,47 @@ impl App {
         Ok(())
     }
 
+    #[instrument(name = "app.submit_signed_psbt", skip(self), err)]
+    pub async fn submit_signed_psbt(
+        &self,
+        profile: Profile,
+        batch_id: BatchId,
+        xpub_id: XPubId,
+        signed_psbt: String,
+    ) -> Result<(), ApplicationError> {
+        use std::str::FromStr;
+        let parsed_psbt = bitcoin::psbt::PartiallySignedTransaction::from_str(&signed_psbt)
+            .expect("psbt should parse");
+        let mut tx = self.pool.begin().await?;
+        let mut sessions = if let Some(batch_session) = self
+            .signing_sessions
+            .list_for_batch(profile.account_id, batch_id)
+            .await?
+        {
+            batch_session.xpub_sessions
+        } else {
+            return Err(ApplicationError::SessionNotFoundForBatch(
+                batch_id.clone().to_string(),
+            ));
+        };
+        let session = sessions.get_mut(&xpub_id).ok_or_else(|| {
+            ApplicationError::SessionNotFoundForXPubId(xpub_id.clone().to_string())
+        })?;
+
+        session.manually_signed_complete(parsed_psbt);
+        self.signing_sessions
+            .update_sessions(&mut tx, &sessions)
+            .await?;
+        let batch_ids = self
+            .signing_sessions
+            .list_batch_ids_for(&mut tx, profile.account_id, xpub_id)
+            .await?;
+
+        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
+            .await?;
+        Ok(())
+    }
+
     #[instrument(name = "app.create_wpkh_wallet", skip(self), err)]
     pub async fn create_wpkh_wallet(
         &self,

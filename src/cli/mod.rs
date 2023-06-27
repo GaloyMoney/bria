@@ -165,6 +165,25 @@ enum Command {
         #[clap(subcommand)]
         command: SetSignerConfigCommand,
     },
+    /// Submit a signed psbt
+    SubmitSignedPsbt {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        batch_id: String,
+        #[clap(short, long)]
+        xpub_id: String,
+        #[clap(short, long)]
+        psbt: String,
+    },
     /// Create a wallet from imported xpubs
     CreateWallet {
         #[clap(
@@ -694,6 +713,16 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.set_signer_config(xpub, command).await?;
+        }
+        Command::SubmitSignedPsbt {
+            url,
+            api_key,
+            batch_id,
+            xpub_id,
+            psbt,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.submit_signed_psbt(batch_id, xpub_id, psbt).await?;
         }
         Command::CreateWallet {
             url,

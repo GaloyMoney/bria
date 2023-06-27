@@ -163,6 +163,38 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.submit_signed_psbt", skip_all, fields(error, error.level, error.message), err)]
+    async fn submit_signed_psbt(
+        &self,
+        request: Request<SubmitSignedPsbtRequest>,
+    ) -> Result<Response<SubmitSignedPsbtResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let SubmitSignedPsbtRequest {
+                batch_id,
+                xpub_id,
+                signed_psbt,
+            } = request;
+            self.app
+                .submit_signed_psbt(
+                    profile,
+                    batch_id
+                        .parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                    xpub_id
+                        .parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingXpubId)?,
+                    signed_psbt,
+                )
+                .await?;
+            Ok(Response::new(SubmitSignedPsbtResponse {}))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.create_wallet", skip_all, fields(error, error.level, error.message), err)]
     async fn create_wallet(
         &self,

@@ -139,6 +139,25 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn submit_signed_psbt(
+        &self,
+        batch_id: String,
+        xpub_id: String,
+        psbt: String,
+    ) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::SubmitSignedPsbtRequest {
+            batch_id,
+            xpub_id,
+            signed_psbt: psbt,
+        });
+        let response = self
+            .connect()
+            .await?
+            .submit_signed_psbt(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn create_wallet(
         &self,
         name: String,
