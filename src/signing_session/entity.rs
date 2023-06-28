@@ -93,6 +93,7 @@ impl SigningSession {
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { reason } => Some(reason),
                 SigningSessionEvent::RemoteSigningCompleted { .. } => None,
+                SigningSessionEvent::ManuallySignedCompleted { .. } => None,
                 _ => ret,
             };
         }

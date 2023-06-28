@@ -71,4 +71,8 @@ pub enum ApplicationError {
     SessionNotFoundForXPubId(crate::primitives::XPubId),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
+    #[error("Signed Tx does not contain script sig")]
+    SignedTxDoesNotContainScriptSig,
+    #[error("Signed Tx does not contain script witness")]
+    SignedTxDoesNotContainScriptWitness,
 }

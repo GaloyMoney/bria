@@ -223,6 +223,14 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
+        for txin in &signed_psbt.unsigned_tx.input {
+            if txin.script_sig.is_empty() {
+                return Err(ApplicationError::SignedTxDoesNotContainScriptSig);
+            }
+            if txin.witness.is_empty() {
+                return Err(ApplicationError::SignedTxDoesNotContainScriptWitness);
+            }
+        }
         let mut sessions = self
             .signing_sessions
             .list_for_batch(profile.account_id, batch_id)
