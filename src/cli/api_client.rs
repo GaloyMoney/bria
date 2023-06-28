@@ -142,13 +142,13 @@ impl ApiClient {
     pub async fn submit_signed_psbt(
         &self,
         batch_id: String,
-        xpub_id: String,
-        psbt: String,
+        xpub_ref: String,
+        signed_psbt: String,
     ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::SubmitSignedPsbtRequest {
             batch_id,
-            xpub_id,
-            signed_psbt: psbt,
+            xpub_ref,
+            signed_psbt,
         });
         let response = self
             .connect()

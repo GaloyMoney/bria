@@ -66,7 +66,9 @@ pub enum ApplicationError {
     #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
     #[error("Session not found for batch id: {0}")]
-    SessionNotFoundForBatch(String),
+    SessionNotFoundForBatchId(crate::primitives::BatchId),
     #[error("Session not found for xpub id: {0}")]
-    SessionNotFoundForXPubId(String),
+    SessionNotFoundForXPubId(crate::primitives::XPubId),
+    #[error("Could not parse incoming psbt: {0}")]
+    CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
 }

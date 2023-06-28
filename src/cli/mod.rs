@@ -180,9 +180,9 @@ enum Command {
         #[clap(short, long)]
         batch_id: String,
         #[clap(short, long)]
-        xpub_id: String,
+        xpub_ref: String,
         #[clap(short, long)]
-        psbt: String,
+        signed_psbt: String,
     },
     /// Create a wallet from imported xpubs
     CreateWallet {
@@ -718,11 +718,13 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             batch_id,
-            xpub_id,
-            psbt,
+            xpub_ref,
+            signed_psbt,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.submit_signed_psbt(batch_id, xpub_id, psbt).await?;
+            client
+                .submit_signed_psbt(batch_id, xpub_ref, signed_psbt)
+                .await?;
         }
         Command::CreateWallet {
             url,

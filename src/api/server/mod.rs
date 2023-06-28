@@ -175,7 +175,7 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let SubmitSignedPsbtRequest {
                 batch_id,
-                xpub_id,
+                xpub_ref,
                 signed_psbt,
             } = request;
             self.app
@@ -184,10 +184,10 @@ impl BriaService for Bria {
                     batch_id
                         .parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
-                    xpub_id
-                        .parse()
-                        .map_err(ApplicationError::CouldNotParseIncomingXpubId)?,
-                    signed_psbt,
+                    xpub_ref,
+                    signed_psbt
+                        .parse::<bitcoin::psbt::PartiallySignedTransaction>()
+                        .map_err(ApplicationError::CouldNotParseIncomingPsbt)?,
                 )
                 .await?;
             Ok(Response::new(SubmitSignedPsbtResponse {}))
