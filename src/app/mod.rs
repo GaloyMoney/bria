@@ -238,7 +238,7 @@ impl App {
             .ok_or_else(|| ApplicationError::SigningSessionNotFoundForXPubId(xpub_id))?;
 
         let mut tx = self.pool.begin().await?;
-        session.manually_signed_complete(signed_psbt);
+        session.submit_externally_signed_psbt(signed_psbt);
         self.signing_sessions
             .update_sessions(&mut tx, &sessions)
             .await?;
