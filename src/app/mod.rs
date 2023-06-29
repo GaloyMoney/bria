@@ -223,23 +223,19 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
-        for txin in &signed_psbt.unsigned_tx.input {
-            if txin.script_sig.is_empty() {
-                return Err(ApplicationError::SignedTxDoesNotContainScriptSig);
-            }
-            if txin.witness.is_empty() {
-                return Err(ApplicationError::SignedTxDoesNotContainScriptWitness);
-            }
+        let xpub = xpub.value;
+        if !psbt_validator::validate_psbt(&signed_psbt, xpub) {
+            return Err(ApplicationError::SubmittedPsbtIsNotValid);
         }
         let mut sessions = self
             .signing_sessions
             .list_for_batch(profile.account_id, batch_id)
             .await?
-            .ok_or(ApplicationError::SessionNotFoundForBatchId(batch_id))?
+            .ok_or(ApplicationError::SigningSessionNotFoundForBatchId(batch_id))?
             .xpub_sessions;
         let session = sessions
             .get_mut(&xpub_id)
-            .ok_or_else(|| ApplicationError::SessionNotFoundForXPubId(xpub_id))?;
+            .ok_or_else(|| ApplicationError::SigningSessionNotFoundForXPubId(xpub_id))?;
 
         let mut tx = self.pool.begin().await?;
         session.manually_signed_complete(signed_psbt);

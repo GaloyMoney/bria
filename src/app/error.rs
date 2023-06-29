@@ -65,14 +65,16 @@ pub enum ApplicationError {
     CouldNotParseIncomingXpubId(<bitcoin::Fingerprint as std::str::FromStr>::Err),
     #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
-    #[error("Session not found for batch id: {0}")]
-    SessionNotFoundForBatchId(crate::primitives::BatchId),
-    #[error("Session not found for xpub id: {0}")]
-    SessionNotFoundForXPubId(crate::primitives::XPubId),
+    #[error("Signing Session not found for batch id: {0}")]
+    SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
+    #[error("Signing Session not found for xpub id: {0}")]
+    SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Signed Tx does not contain script sig")]
     SignedTxDoesNotContainScriptSig,
     #[error("Signed Tx does not contain script witness")]
     SignedTxDoesNotContainScriptWitness,
+    #[error("Submitted Psbt is not valid")]
+    SubmittedPsbtIsNotValid,
 }
