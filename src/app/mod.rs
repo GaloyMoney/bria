@@ -283,7 +283,7 @@ impl App {
         self.create_wallet(profile, wallet_name, keychain).await
     }
 
-    #[instrument(name = "app.create_sortedmulti_wallet", skip(self), err)]
+    #[instrument(name = "app.create_sorted_multisig_wallet", skip(self), err)]
     pub async fn create_sorted_multisig_wallet(
         &self,
         profile: Profile,
