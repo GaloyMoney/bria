@@ -573,7 +573,7 @@ enum CreateWalletCommand {
         change_descriptor: String,
     },
     SortedMultisig {
-        #[clap(short, long, num_args(2..) )]
+        #[clap(short, long, num_args(2..=15) )]
         xpub: Vec<String>,
         #[clap(short, long)]
         threshold: u32,

@@ -33,6 +33,8 @@ pub async fn execute(
     xpubs: XPubs,
     signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(BatchSigningData, bool), JobError> {
+    let mut stalled = false;
+    let mut last_err = None;
     let mut current_keychain = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .list_for_batch(data.account_id, data.batch_id)
@@ -92,12 +94,14 @@ pub async fn execute(
             Ok(Some(client)) => client,
             Ok(None) => {
                 session.attempt_failed(SigningFailureReason::SignerConfigMissing);
+                stalled = true;
                 tracing::warn!("signer_config_missing");
                 continue;
             }
             Err(err) => {
                 session.attempt_failed(&err);
                 tracing::error!("{}", err.to_string());
+                last_err = Some(err);
                 continue;
             }
         };
@@ -108,6 +112,7 @@ pub async fn execute(
             Err(err) => {
                 session.attempt_failed(&err);
                 tracing::error!("{}", err.to_string());
+                last_err = Some(err);
                 continue;
             }
         }
@@ -133,13 +138,22 @@ pub async fn execute(
             let wallet = wallets.find_by_id(wallet_id).await?;
             current_keychain = Some(wallet.current_keychain_wallet(&pool));
         }
-        let tx = current_keychain
-            .unwrap()
+        match current_keychain
+            .expect("keychain should always exist")
             .finalize_psbt(first_signed_psbt)
-            .await?
-            .extract_tx();
-        batches.set_signed_tx(data.batch_id, tx).await?;
-        Ok((data, true))
+            .await
+        {
+            Ok(finalized_psbt) => {
+                let tx = finalized_psbt.extract_tx();
+                batches.set_signed_tx(data.batch_id, tx).await?;
+                Ok((data, true))
+            }
+            Err(err) => match last_err {
+                Some(e) => Err(e.into()),
+                None if stalled => Ok((data, false)),
+                None => Err(err.into()),
+            },
+        }
     } else {
         Ok((data, false))
     }

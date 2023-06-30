@@ -61,8 +61,6 @@ pub enum ApplicationError {
     CouldNotParseIncomingMetadata(serde_json::Error),
     #[error("CouldNotParseIncomingUuid: {0}")]
     CouldNotParseIncomingUuid(uuid::Error),
-    #[error("CouldNotParseIncomingXpubId: {0}")]
-    CouldNotParseIncomingXpubId(<bitcoin::Fingerprint as std::str::FromStr>::Err),
     #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
     #[error("Signing Session not found for batch id: {0}")]
