@@ -123,9 +123,14 @@ message KeychainConfig {
         string external = 1;
         string internal = 2;
     }
+    message SortedMultisig {
+        repeated string xpubs = 1;
+        uint32 threshold = 2;
+    }
     oneof config {
         Wpkh wpkh = 1;
         Descriptors descriptors = 2;
+        SortedMultisig sorted_multisig = 3;
     }
 }
 

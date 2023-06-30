@@ -139,6 +139,28 @@ bria_lnd_init() {
   echo "Bria Initialization Complete"
 }
 
+bria_multisig_init() {
+  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
+    retry 10 1 bria_cmd admin bootstrap
+  else
+    bria_cmd admin bootstrap
+  fi
+
+  bria_cmd admin create-account -n default
+  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
+  retry 10 1 bria_cmd import-xpub -n key1 -x tpubDCr5twyowBZhQZEdAXWeJgZtKZgGbKSY4Co55hgw551xCZtHk5fWw9EyGKDBE6cSZPzc4QWR4NyZAeuZDKvRHpQmch78CKwLSy8FEhbvBeR -d m/84h/0h/0h
+  retry 10 1 bria_cmd import-xpub -n key2 -x tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1 -d m/84h/0h/0h
+  retry 10 1 bria_cmd create-wallet -n default sorted-multisig -x key1 key2 -t 1
+  else
+  bria_cmd import-xpub -n key1 -x tpubDCr5twyowBZhQZEdAXWeJgZtKZgGbKSY4Co55hgw551xCZtHk5fWw9EyGKDBE6cSZPzc4QWR4NyZAeuZDKvRHpQmch78CKwLSy8FEhbvBeR -d m/84h/0h/0h
+  bria_cmd import-xpub -n key2 -x tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1 -d m/84h/0h/0h
+  bria_cmd create-wallet -n default sorted-multisig -x key1 key2 -t 1
+  fi
+
+  echo "Bria Initialization Complete"
+}
+
+
 
 # Run the given command in the background. Useful for starting a
 # node and then moving on with commands that exercise it for the

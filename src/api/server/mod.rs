@@ -232,6 +232,16 @@ impl BriaService for Bria {
                         .create_descriptors_wallet(profile, name, external, internal)
                         .await?
                 }
+                Some(KeychainConfig {
+                    config:
+                        Some(keychain_config::Config::SortedMultisig(
+                            keychain_config::SortedMultisig {
+                                xpubs,
+                                threshold,
+                            })),
+                }) => {
+                    self.app.create_sorted_multisig_wallet(profile, name, xpubs, threshold).await?
+                }
                 _ => {
                     return Err(Status::invalid_argument("invalid keychain config"));
                 }

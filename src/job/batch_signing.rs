@@ -33,8 +33,6 @@ pub async fn execute(
     xpubs: XPubs,
     signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(BatchSigningData, bool), JobError> {
-    let mut stalled = false;
-    let mut last_err = None;
     let mut current_keychain = None;
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .list_for_batch(data.account_id, data.batch_id)
@@ -94,14 +92,12 @@ pub async fn execute(
             Ok(Some(client)) => client,
             Ok(None) => {
                 session.attempt_failed(SigningFailureReason::SignerConfigMissing);
-                stalled = true;
                 tracing::warn!("signer_config_missing");
                 continue;
             }
             Err(err) => {
                 session.attempt_failed(&err);
                 tracing::error!("{}", err.to_string());
-                last_err = Some(err);
                 continue;
             }
         };
@@ -112,7 +108,6 @@ pub async fn execute(
             Err(err) => {
                 session.attempt_failed(&err);
                 tracing::error!("{}", err.to_string());
-                last_err = Some(err);
                 continue;
             }
         }
@@ -123,42 +118,29 @@ pub async fn execute(
         signing_sessions.update_sessions(&mut tx, &sessions).await?;
         tx.commit().await?;
     }
-
-    tracing::Span::current().record("stalled", stalled);
-    if let Some(err) = last_err {
-        return Err(err.into());
-    } else if stalled {
-        return Ok((data, false));
-    }
-
     let mut sessions = sessions.into_values();
-    let mut first_psbt = sessions
-        .next()
-        .and_then(|s| s.signed_psbt().cloned())
-        .ok_or(JobError::PsbtMissingInSigningSessions)?;
-    for s in sessions {
-        first_psbt.combine(
-            s.signed_psbt()
-                .ok_or(JobError::PsbtMissingInSigningSessions)?
-                .clone(),
-        )?;
+    if let Some(mut first_signed_psbt) = sessions.find_map(|s| s.signed_psbt().cloned()) {
+        sessions.for_each(|s| {
+            if let Some(psbt) = s.signed_psbt() {
+                let _ = first_signed_psbt.combine(psbt.clone());
+            }
+        });
+        if current_keychain.is_none() {
+            let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
+            let span = tracing::Span::current();
+            span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
+            let wallet_id = batch.wallet_summaries.into_keys().next().unwrap();
+            let wallet = wallets.find_by_id(wallet_id).await?;
+            current_keychain = Some(wallet.current_keychain_wallet(&pool));
+        }
+        let tx = current_keychain
+            .unwrap()
+            .finalize_psbt(first_signed_psbt)
+            .await?
+            .extract_tx();
+        batches.set_signed_tx(data.batch_id, tx).await?;
+        Ok((data, true))
+    } else {
+        Ok((data, false))
     }
-
-    if current_keychain.is_none() {
-        let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
-        let span = tracing::Span::current();
-        span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
-        let wallet_id = batch.wallet_summaries.into_keys().next().unwrap();
-        let wallet = wallets.find_by_id(wallet_id).await?;
-        current_keychain = Some(wallet.current_keychain_wallet(&pool));
-    }
-
-    let tx = current_keychain
-        .unwrap()
-        .finalize_psbt(first_psbt)
-        .await?
-        .extract_tx();
-    batches.set_signed_tx(data.batch_id, tx).await?;
-
-    Ok((data, true))
 }

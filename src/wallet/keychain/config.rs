@@ -14,11 +14,19 @@ pub enum KeychainConfig {
         internal: ExtendedDescriptor,
         external: ExtendedDescriptor,
     },
+    SortedMultisig {
+        xpub: Vec<XPub>,
+        threshold: u32,
+    },
 }
 
 impl KeychainConfig {
     pub fn wpkh(xpub: XPub) -> Self {
         Self::Wpkh { xpub }
+    }
+
+    pub fn sorted_multisig(xpub: Vec<XPub>, threshold: u32) -> Self {
+        Self::SortedMultisig { xpub, threshold }
     }
 
     pub fn xpubs(&self) -> Vec<XPub> {
@@ -38,6 +46,7 @@ impl KeychainConfig {
                 });
                 ret.into_values().collect()
             }
+            Self::SortedMultisig { xpub, .. } => xpub.clone(),
         }
     }
 
@@ -47,6 +56,17 @@ impl KeychainConfig {
                 .parse()
                 .expect("Couldn't create internal wpkh descriptor"),
             Self::Descriptors { external, .. } => external.clone(),
+            Self::SortedMultisig { xpub, threshold } => {
+                let keys = xpub
+                    .iter()
+                    .map(|xpub| format!("{}/0/*", xpub))
+                    .collect::<Vec<_>>();
+                let keys = keys.join(",");
+                println!("{}", keys);
+                format!("wsh(sortedmulti({},{}))", threshold, keys)
+                    .parse()
+                    .expect("Couldn't create external sorted multisig descriptor")
+            }
         }
     }
 
@@ -56,6 +76,16 @@ impl KeychainConfig {
                 .parse()
                 .expect("Couldn't create internal wpkh descriptor"),
             Self::Descriptors { internal, .. } => internal.clone(),
+            Self::SortedMultisig { xpub, threshold } => {
+                let keys = xpub
+                    .iter()
+                    .map(|xpub| format!("{}/1/*", xpub))
+                    .collect::<Vec<_>>();
+                let keys = keys.join(",");
+                format!("wsh(sortedmulti({},{}))", threshold, keys)
+                    .parse()
+                    .expect("Couldn't create internal sorted multisig descriptor")
+            }
         }
     }
 }
@@ -73,6 +103,7 @@ impl TryFrom<(&str, &str)> for KeychainConfig {
         {
             return Err(crate::wallet::error::WalletError::UnsupportedPubKeyType);
         }
+
         Ok(Self::Descriptors { internal, external })
     }
 }

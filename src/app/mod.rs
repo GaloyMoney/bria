@@ -283,6 +283,32 @@ impl App {
         self.create_wallet(profile, wallet_name, keychain).await
     }
 
+    #[instrument(name = "app.create_sortedmulti_wallet", skip(self), err)]
+    pub async fn create_sorted_multisig_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        xpubs: Vec<String>,
+        threshold: u32,
+    ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
+        let xpub_values: Vec<XPub> = futures::future::try_join_all(
+            xpubs
+                .iter()
+                .map(|xpub| {
+                    xpub.parse::<XPubRef>()
+                        .expect("xpub_ref should always parse")
+                })
+                .map(|xpub_ref| self.xpubs.find_from_ref(profile.account_id, xpub_ref)),
+        )
+        .await?
+        .into_iter()
+        .map(|xpub| xpub.value)
+        .collect();
+
+        let keychain = KeychainConfig::sorted_multisig(xpub_values, threshold);
+        self.create_wallet(profile, wallet_name, keychain).await
+    }
+
     async fn create_wallet(
         &self,
         profile: Profile,

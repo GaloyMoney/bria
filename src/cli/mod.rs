@@ -572,6 +572,12 @@ enum CreateWalletCommand {
         #[clap(short, long)]
         change_descriptor: String,
     },
+    SortedMultisig {
+        #[clap(short, long, num_args(2..) )]
+        xpub: Vec<String>,
+        #[clap(short, long)]
+        threshold: u32,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1155,6 +1161,12 @@ impl From<CreateWalletCommand> for crate::api::proto::keychain_config::Config {
                 external: descriptor,
                 internal: change_descriptor,
             }),
+            CreateWalletCommand::SortedMultisig { xpub, threshold } => {
+                Config::SortedMultisig(SortedMultisig {
+                    xpubs: xpub,
+                    threshold,
+                })
+            }
         }
     }
 }
