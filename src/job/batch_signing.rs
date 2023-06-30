@@ -125,11 +125,11 @@ pub async fn execute(
     }
     let mut sessions = sessions.into_values();
     if let Some(mut first_signed_psbt) = sessions.find_map(|s| s.signed_psbt().cloned()) {
-        sessions.for_each(|s| {
+        for s in sessions {
             if let Some(psbt) = s.signed_psbt() {
                 let _ = first_signed_psbt.combine(psbt.clone());
             }
-        });
+        }
         if current_keychain.is_none() {
             let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
             let span = tracing::Span::current();
@@ -138,21 +138,21 @@ pub async fn execute(
             let wallet = wallets.find_by_id(wallet_id).await?;
             current_keychain = Some(wallet.current_keychain_wallet(&pool));
         }
-        match current_keychain
-            .expect("keychain should always exist")
-            .finalize_psbt(first_signed_psbt)
-            .await
-        {
-            Ok(finalized_psbt) => {
+        match (
+            current_keychain
+                .expect("keychain should always exist")
+                .finalize_psbt(first_signed_psbt)
+                .await,
+            last_err,
+        ) {
+            (Ok(finalized_psbt), _) => {
                 let tx = finalized_psbt.extract_tx();
                 batches.set_signed_tx(data.batch_id, tx).await?;
                 Ok((data, true))
             }
-            Err(err) => match last_err {
-                Some(e) => Err(e.into()),
-                None if stalled => Ok((data, false)),
-                None => Err(err.into()),
-            },
+            (_, Some(e)) => Err(e.into()),
+            _ if stalled => Ok((data, false)),
+            (Err(err), _) => Err(err.into()),
         }
     } else {
         Ok((data, false))
