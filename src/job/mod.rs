@@ -259,6 +259,7 @@ async fn process_payout_queue(
 ) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
+        .initial_retry_delay(std::time::Duration::from_secs(2))
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
@@ -617,6 +618,7 @@ async fn onto_account_main_channel<D: serde::Serialize>(
     loop {
         match JobBuilder::new_with_id(uuid, name)
             .set_ordered(true)
+            .set_retry_backoff(std::time::Duration::from_secs(2))
             .set_channel_name("account_main")
             .set_channel_args(&account_main_channel_arg(account_id))
             .set_json(&data)
