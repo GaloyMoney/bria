@@ -5,9 +5,9 @@ load "helpers"
 setup_file() {
   restart_bitcoin_stack
   reset_pg
-  bitcoind_init
+  bitcoind_init default
   start_daemon
-  bria_init
+  bria_init default
 }
 
 teardown_file() {
@@ -34,7 +34,7 @@ teardown_file() {
   bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
 
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_income) == 100000000 ]] && break
     sleep 1
   done
@@ -51,7 +51,7 @@ teardown_file() {
   bitcoin_cli -generate 2
 
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_current_settled) == 100000000 ]] && break
     sleep 1
   done
@@ -68,7 +68,7 @@ teardown_file() {
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
   bitcoin_signer_cli -regtest sendtoaddress "${bitcoind_address}" 0.5
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 50000000 ]] && break
     sleep 1
   done
@@ -84,7 +84,7 @@ teardown_file() {
   bitcoin_cli -generate 1
 
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_current_settled) != 0 ]] && break
     sleep 1
   done
@@ -119,7 +119,7 @@ teardown_file() {
     ${bitcoind_address}
 
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 210000000 ]] && break
     sleep 1
   done
@@ -128,7 +128,7 @@ teardown_file() {
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 0 ]] && break
     sleep 1
   done
@@ -142,13 +142,13 @@ teardown_file() {
 }
 
 @test "bitcoind_signer_sync: Can sweep all" {
-  cache_default_wallet_balance
+  cache_wallet_balance default
   [[ $(cached_current_settled) != 0 ]] || exit 1
 
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
   bitcoin_signer_cli -named sendall recipients="[\"${bitcoind_address}\"]" fee_rate=1
   for i in {1..10}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_current_settled) == 0 ]] \
       && [[ $(cached_pending_outgoing) != 0 ]] \
       && break
@@ -160,7 +160,7 @@ teardown_file() {
 
   bitcoin_cli -generate 1
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 0 ]] \
       && [[ $(cached_encumbered_fees) == 0 ]] \
       && break
@@ -186,7 +186,7 @@ teardown_file() {
     ${bitcoind_address}
 
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 60000000 ]] && break
     sleep 1
   done
@@ -195,7 +195,7 @@ teardown_file() {
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
-    cache_default_wallet_balance
+    cache_wallet_balance default
     [[ $(cached_pending_outgoing) == 0 ]] && break
     sleep 1
   done

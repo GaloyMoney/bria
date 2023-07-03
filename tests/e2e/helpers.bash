@@ -17,8 +17,9 @@ bria_cmd() {
   ${bria_location} $@
 }
 
-cache_default_wallet_balance() {
-  balance=$(bria_cmd wallet-balance -w default)
+cache_wallet_balance() {
+  local wallet_name="${1}"
+  balance=$(bria_cmd wallet-balance -w "${wallet_name}")
 }
 
 cached_pending_income() {
@@ -95,11 +96,18 @@ restart_bitcoin_stack() {
 }
 
 bitcoind_init() {
-  bitcoin_cli createwallet "default" || true
-  bitcoin_cli -generate 200
+  local wallet="${1}"
 
-  bitcoin_signer_cli createwallet "default" || true
-  bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
+  bitcoin_cli createwallet "default" || true
+  bitcoin_cli generatetoaddress 200 "$(bitcoin_cli getnewaddress)"
+
+  if [[ "${wallet}" == "default" ]]; then 
+    bitcoin_signer_cli createwallet "default" || true
+    bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
+  elif [[ "${wallet}" == "multisig" ]]; then
+    bitcoin_signer_cli createwallet "multisig" || true 
+    bitcoin_signer_cli -rpcwallet=multisig importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_multisig_signer_descriptors.json)"
+  fi
 }
 
 start_daemon() {
@@ -114,6 +122,8 @@ stop_daemon() {
 }
 
 bria_init() {
+  local wallet_type="${1}"
+  
   if [[ "${BRIA_CONFIG}" == "docker" ]]; then
     retry 10 1 bria_cmd admin bootstrap
   else
@@ -121,10 +131,28 @@ bria_init() {
   fi
 
   bria_cmd admin create-account -n default
-  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-    retry 10 1 bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
-  else
-    bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
+  
+  if [[ "${wallet_type}" == "default" ]]; then
+    if [[ "${BRIA_CONFIG}" == "docker" ]]; then
+      retry 10 1 bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
+      -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
+    else
+      bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
+      -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
+    fi
+  elif [[ "${wallet_type}" == "multisig" ]]; then
+    local key1="tpubDE8HT914zGpxhJhgoMX35xgNyjHy5d1neGXHjTLAtuUssTA7tNWNs177JsFPbJwD5FBXCHJYbwUC9AzSEpYHC4hKgaCvZyZTuCbWfNUWXoM"
+    local key2="tpubDF2UP3xmRcJoi5LDYZKVoUj6MsaUrcPiTgV7Q2b8eWtnSsM3EhFeszEiG9iTU7Gixzym4a1F2T6gSp59y7iZrtTKZRAw6fqzbevphHxBzGz"
+    
+    if [[ "${BRIA_CONFIG}" == "docker" ]]; then
+      retry 10 1 bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
+      bria_cmd import-xpub -x "${key2}" -n key2 -d m/48h/1h/0h/2h
+      bria_cmd create-wallet -n multisig sorted-multisig -x key1 key2 -t 1
+    else
+      bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
+      bria_cmd import-xpub -x "${key2}" -n key2 -d m/48h/1h/0h/2h
+      bria_cmd create-wallet -n multisig sorted-multisig -x key1 key2 -t 1
+    fi
   fi
 
   echo "Bria Initialization Complete"
@@ -138,28 +166,6 @@ bria_lnd_init() {
 
   echo "Bria Initialization Complete"
 }
-
-bria_multisig_init() {
-  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-    retry 10 1 bria_cmd admin bootstrap
-  else
-    bria_cmd admin bootstrap
-  fi
-
-  bria_cmd admin create-account -n default
-  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-  retry 10 1 bria_cmd import-xpub -n key1 -x tpubDCr5twyowBZhQZEdAXWeJgZtKZgGbKSY4Co55hgw551xCZtHk5fWw9EyGKDBE6cSZPzc4QWR4NyZAeuZDKvRHpQmch78CKwLSy8FEhbvBeR -d m/84h/0h/0h
-  retry 10 1 bria_cmd import-xpub -n key2 -x tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1 -d m/84h/0h/0h
-  retry 10 1 bria_cmd create-wallet -n default sorted-multisig -x key1 key2 -t 1
-  else
-  bria_cmd import-xpub -n key1 -x tpubDCr5twyowBZhQZEdAXWeJgZtKZgGbKSY4Co55hgw551xCZtHk5fWw9EyGKDBE6cSZPzc4QWR4NyZAeuZDKvRHpQmch78CKwLSy8FEhbvBeR -d m/84h/0h/0h
-  bria_cmd import-xpub -n key2 -x tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1 -d m/84h/0h/0h
-  bria_cmd create-wallet -n default sorted-multisig -x key1 key2 -t 1
-  fi
-
-  echo "Bria Initialization Complete"
-}
-
 
 
 # Run the given command in the background. Useful for starting a

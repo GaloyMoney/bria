@@ -5,9 +5,9 @@ load "helpers"
 setup_file() {
   restart_bitcoin_stack
   reset_pg
-  bitcoind_init
+  bitcoind_init default
   start_daemon
-  bria_init
+  bria_init default
 }
 
 teardown_file() {
@@ -24,7 +24,7 @@ teardown_file() {
   done
   event=$(bria_cmd watch-events -a 0 -o | jq -r '.payload.utxoDetected')
   [ "$event" != "null" ] || exit 1
-  cache_default_wallet_balance
+  cache_wallet_balance default
   [[ $(cached_pending_income) == 100000000 ]] || exit 1;
 
   restart_bitcoin_stack
@@ -33,7 +33,7 @@ teardown_file() {
   event=$(bria_cmd watch-events -a 1 -o | jq -r '.payload.utxoDropped')
   [ "$event" != "null" ] || exit 1
 
-  cache_default_wallet_balance
+  cache_wallet_balance default
   [[ $(cached_pending_income) == 0 ]] || exit 1;
 }
 
