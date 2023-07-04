@@ -127,34 +127,25 @@ bria_init() {
   local wallet_type="${1:-default}"
   
   if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-    retry 10 1 bria_cmd admin bootstrap
+    retry_cmd="retry 10 1"
   else
-    bria_cmd admin bootstrap
+    retry_cmd=""
   fi
+
+  $retry_cmd bria_cmd admin bootstrap
 
   bria_cmd admin create-account -n default
   
   if [[ "${wallet_type}" == "default" ]]; then
-    if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-      retry 10 1 bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
+    $retry_cmd bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
       -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
-    else
-      bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
-      -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
-    fi
   elif [[ "${wallet_type}" == "multisig" ]]; then
     local key1="tpubDE8HT914zGpxhJhgoMX35xgNyjHy5d1neGXHjTLAtuUssTA7tNWNs177JsFPbJwD5FBXCHJYbwUC9AzSEpYHC4hKgaCvZyZTuCbWfNUWXoM"
     local key2="tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4"
     
-    if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-      retry 10 1 bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
-      bria_cmd import-xpub -x "${key2}" -n lnd_key -d m/84h/0h/0h
-      bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 1
-    else
-      bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
-      bria_cmd import-xpub -x "${key2}" -n lnd_key -d m/84h/0h/0h
-      bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 2
-    fi
+    $retry_cmd bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
+    bria_cmd import-xpub -x "${key2}" -n lnd_key -d m/84h/0h/0h
+    bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 2
   fi
 
   echo "Bria Initialization Complete"
