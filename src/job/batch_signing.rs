@@ -18,8 +18,15 @@ pub struct BatchSigningData {
 
 #[instrument(
     name = "job.batch_signing",
-    skip(pool, wallets, signing_sessions, batches, xpubs),
-    fields(stalled, txid),
+    skip(
+        pool,
+        wallets,
+        signing_sessions,
+        batches,
+        xpubs,
+        signer_encryption_config
+    ),
+    fields(stalled, txid, finalization_status),
     err
 )]
 #[allow(clippy::too_many_arguments)]
@@ -33,6 +40,7 @@ pub async fn execute(
     xpubs: XPubs,
     signer_encryption_config: SignerEncryptionConfig,
 ) -> Result<(BatchSigningData, bool), JobError> {
+    let span = tracing::Span::current();
     let mut stalled = false;
     let mut last_err = None;
     let mut current_keychain = None;
@@ -45,7 +53,6 @@ pub async fn execute(
         let mut new_sessions = HashMap::new();
         let mut account_xpubs = HashMap::new();
         let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
-        let span = tracing::Span::current();
         span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
         let unsigned_psbt = batch.unsigned_psbt;
         for (wallet_id, summary) in batch.wallet_summaries {
@@ -124,6 +131,8 @@ pub async fn execute(
         tx.commit().await?;
     }
     let mut sessions = sessions.into_values();
+
+    span.record("stalled", &tracing::field::display(stalled));
     if let Some(mut first_signed_psbt) = sessions.find_map(|s| s.signed_psbt().cloned()) {
         for s in sessions {
             if let Some(psbt) = s.signed_psbt() {
@@ -132,7 +141,6 @@ pub async fn execute(
         }
         if current_keychain.is_none() {
             let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
-            let span = tracing::Span::current();
             span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
             let wallet_id = batch.wallet_summaries.into_keys().next().unwrap();
             let wallet = wallets.find_by_id(wallet_id).await?;
@@ -146,14 +154,27 @@ pub async fn execute(
             last_err,
         ) {
             (Ok(Some(finalized_psbt)), _) => {
+                span.record("finalization_status", "complete");
                 let tx = finalized_psbt.extract_tx();
                 batches.set_signed_tx(data.batch_id, tx).await?;
                 Ok((data, true))
             }
-            (_, Some(e)) => Err(e.into()),
-            (Ok(None), _) => Ok((data, false)),
-            _ if stalled => Ok((data, false)),
-            (Err(err), _) => Err(err.into()),
+            (_, Some(e)) => {
+                span.record("finalization_status", "returning_last_error");
+                Err(e.into())
+            }
+            (Ok(None), _) => {
+                span.record("finalization_status", "stalled_due_to_finalization");
+                Ok((data, false))
+            }
+            _ if stalled => {
+                span.record("finalization_status", "stalled");
+                Ok((data, false))
+            }
+            (Err(err), _) => {
+                span.record("finalization_status", "errored");
+                Err(err.into())
+            }
         }
     } else {
         Ok((data, false))
