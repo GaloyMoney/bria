@@ -10,7 +10,6 @@ services:
       - otel-agent
       - fulcrum
       - mempool
-      - bitcoind-signer2
   postgres:
     image: postgres:14.1
     environment:
@@ -78,15 +77,6 @@ services:
     volumes:
       - ${HOST_PROJECT_PATH:-.}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
   bitcoind-signer:
-    image: lncm/bitcoind:v24.0.1
-    volumes:
-      - ${HOST_PROJECT_PATH:-.}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
-    depends_on: [ bitcoind ]
-    entrypoint: [ "/bin/sh", "-c" ]
-    command:
-      - |
-        bitcoind -connect=bitcoind:18444
-  bitcoind-signer2:
     image: lncm/bitcoind:v24.0.1
     volumes:
       - ${HOST_PROJECT_PATH:-.}/dev/bitcoind/bitcoin.conf:/data/.bitcoin/bitcoin.conf
