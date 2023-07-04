@@ -46,11 +46,14 @@ impl KeychainWallet {
     pub async fn finalize_psbt(
         &self,
         mut psbt: psbt::PartiallySignedTransaction,
-    ) -> Result<psbt::PartiallySignedTransaction, BdkError> {
+    ) -> Result<Option<psbt::PartiallySignedTransaction>, BdkError> {
         match self
             .with_wallet(move |wallet| {
-                wallet.finalize_psbt(&mut psbt, SignOptions::default())?;
-                Ok::<_, BdkError>(psbt)
+                if wallet.finalize_psbt(&mut psbt, SignOptions::default())? {
+                    Ok::<_, BdkError>(Some(psbt))
+                } else {
+                    Ok::<_, BdkError>(None)
+                }
             })
             .await
         {

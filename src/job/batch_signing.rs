@@ -145,12 +145,13 @@ pub async fn execute(
                 .await,
             last_err,
         ) {
-            (Ok(finalized_psbt), _) => {
+            (Ok(Some(finalized_psbt)), _) => {
                 let tx = finalized_psbt.extract_tx();
                 batches.set_signed_tx(data.batch_id, tx).await?;
                 Ok((data, true))
             }
             (_, Some(e)) => Err(e.into()),
+            (Ok(None), _) => Ok((data, false)),
             _ if stalled => Ok((data, false)),
             (Err(err), _) => Err(err.into()),
         }
