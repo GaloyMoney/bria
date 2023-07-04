@@ -5,7 +5,7 @@ load "helpers"
 setup_file() {
   restart_bitcoin_stack
   reset_pg
-  bitcoind_init default
+  bitcoind_init
   start_daemon
   bria_lnd_init
 }
@@ -34,7 +34,7 @@ teardown_file() {
   bitcoin_cli -regtest sendtoaddress ${lnd_address} 1
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_income) == 100000000 ]] && break
     sleep 1
   done
@@ -51,7 +51,7 @@ teardown_file() {
   bitcoin_cli -generate 2
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_current_settled) == 100000000 ]] && break
     sleep 1
   done
@@ -68,7 +68,7 @@ teardown_file() {
   bitcoind_address=$(bitcoin_cli -regtest getnewaddress)
   lnd_cli sendcoins --addr=${bitcoind_address} --amt=50000000
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 50000000 ]] && break
     sleep 1
   done
@@ -84,7 +84,7 @@ teardown_file() {
   bitcoin_cli -generate 1
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_current_settled) != 0 ]] && break
     sleep 1
   done
@@ -111,7 +111,7 @@ teardown_file() {
   lnd_cli sendcoins --addr=${bitcoind_address} --amt=210000000 --min_confs 0
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 210000000 ]] && break
     sleep 1
   done
@@ -120,7 +120,7 @@ teardown_file() {
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 0 ]] && break
     sleep 1
   done
@@ -135,7 +135,7 @@ teardown_file() {
   bitcoin_cli -generate 1
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_encumbered_fees) == 0 ]] && break
     sleep 1
   done
@@ -150,7 +150,7 @@ teardown_file() {
   lnd_cli sendcoins --addr=${bitcoind_address} --amt=60000000 --min_confs 0
 
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 60000000 ]] && break
     sleep 1
   done
@@ -159,7 +159,7 @@ teardown_file() {
 
   bitcoin_cli -generate 2
   for i in {1..30}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 0 ]] && break
     sleep 1
   done

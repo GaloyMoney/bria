@@ -14,4 +14,8 @@ pub enum WalletError {
     UnsupportedPubKeyType,
     #[error("WalletError - BdkMiniscriptError: {0}")]
     BdkMiniscriptError(#[from] bdk::miniscript::Error),
+    #[error("WalletError - Submitted Psbt does not have valid signatures.")]
+    PsbtDoesNotHaveValidSignatures,
+    #[error("WalletError - Unsigned txn in signed and unsigned psbt don't match")]
+    UnsignedTxnMismatch,
 }

@@ -6,6 +6,8 @@ if [[ "${BRIA_CONFIG}" == "docker" ]]; then
   COMPOSE_FILE_ARG="-f docker-compose.yml"
 fi
 BITCOIND_SIGNER_ENDPOINT="${BITCOIND_SIGNER_ENDPOINT:-https://localhost:18543}"
+LND_HOST="${LND_HOST:-localhost}"
+LND_ENDPOINT="https://${LND_HOST}:10009"
 SATS_IN_ONE_BTC=100000000
 
 bria_cmd() {
@@ -18,7 +20,7 @@ bria_cmd() {
 }
 
 cache_wallet_balance() {
-  local wallet_name="${1}"
+  local wallet_name="${1:-default}"
   balance=$(bria_cmd wallet-balance -w "${wallet_name}")
 }
 
@@ -96,7 +98,7 @@ restart_bitcoin_stack() {
 }
 
 bitcoind_init() {
-  local wallet="${1}"
+  local wallet="${1:-default}"
 
   bitcoin_cli createwallet "default" || true
   bitcoin_cli generatetoaddress 200 "$(bitcoin_cli getnewaddress)"
@@ -122,7 +124,7 @@ stop_daemon() {
 }
 
 bria_init() {
-  local wallet_type="${1}"
+  local wallet_type="${1:-default}"
   
   if [[ "${BRIA_CONFIG}" == "docker" ]]; then
     retry 10 1 bria_cmd admin bootstrap
@@ -142,16 +144,16 @@ bria_init() {
     fi
   elif [[ "${wallet_type}" == "multisig" ]]; then
     local key1="tpubDE8HT914zGpxhJhgoMX35xgNyjHy5d1neGXHjTLAtuUssTA7tNWNs177JsFPbJwD5FBXCHJYbwUC9AzSEpYHC4hKgaCvZyZTuCbWfNUWXoM"
-    local key2="tpubDF2UP3xmRcJoi5LDYZKVoUj6MsaUrcPiTgV7Q2b8eWtnSsM3EhFeszEiG9iTU7Gixzym4a1F2T6gSp59y7iZrtTKZRAw6fqzbevphHxBzGz"
+    local key2="tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4"
     
     if [[ "${BRIA_CONFIG}" == "docker" ]]; then
       retry 10 1 bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
-      bria_cmd import-xpub -x "${key2}" -n key2 -d m/48h/1h/0h/2h
-      bria_cmd create-wallet -n multisig sorted-multisig -x key1 key2 -t 1
+      bria_cmd import-xpub -x "${key2}" -n key2 -d m/84h/0h/0h
+      bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 1
     else
       bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
-      bria_cmd import-xpub -x "${key2}" -n key2 -d m/48h/1h/0h/2h
-      bria_cmd create-wallet -n multisig sorted-multisig -x key1 key2 -t 1
+      bria_cmd import-xpub -x "${key2}" -n lnd_key -d m/84h/0h/0h
+      bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 2
     fi
   fi
 

@@ -5,9 +5,9 @@ load "helpers"
 setup_file() {
   restart_bitcoin_stack
   reset_pg
-  bitcoind_init default
+  bitcoind_init
   start_daemon
-  bria_init default
+  bria_init
 }
 
 teardown_file() {
@@ -29,7 +29,7 @@ teardown_file() {
     [[ "${n_utxos}" == "2" ]] && break
     sleep 1
   done
-  cache_wallet_balance default
+  cache_wallet_balance
   [[ $(cached_encumbered_fees) != 0 ]] || exit 1
   [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
@@ -43,7 +43,7 @@ teardown_file() {
   [[ "${n_payouts}" == "2" ]] || exit 1
   batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
-  cache_wallet_balance default
+  cache_wallet_balance
   [[ $(cached_encumbered_outgoing) == 150000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
@@ -55,7 +55,7 @@ teardown_file() {
     [[ "${utxo_height}" != "null" ]] && break;
     sleep 1
   done
-  cache_wallet_balance default
+  cache_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   for i in {1..20}; do
@@ -65,7 +65,7 @@ teardown_file() {
   done
   [[ "${batch_id}" != "null" ]] || exit 1
   for i in {1..60}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 150000000 ]] && break;
     sleep 1
   done
@@ -85,7 +85,7 @@ teardown_file() {
 
   [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 
-  cache_wallet_balance default
+  cache_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   bria_cmd set-signer-config \
@@ -106,7 +106,7 @@ teardown_file() {
   fi
 
   for i in {1..20}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_pending_income) != 0 ]] && break;
     sleep 1
   done
@@ -116,7 +116,7 @@ teardown_file() {
   bitcoin_cli -generate 2
 
   for i in {1..20}; do
-    cache_wallet_balance default
+    cache_wallet_balance
     [[ $(cached_current_settled) != 0 ]] && break;
     sleep 1
   done

@@ -223,14 +223,13 @@ impl App {
             )
             .await?;
         let xpub_id = xpub.id();
+        let xpub = xpub.value;
         let unsigned_psbt = self
             .batches
             .find_by_id(profile.account_id, batch_id)
             .await?
             .unsigned_psbt;
-        if !psbt_validator::validate_psbt(&signed_psbt, &unsigned_psbt) {
-            return Err(ApplicationError::SubmittedPsbtIsNotValid);
-        }
+        psbt_validator::validate_psbt(&signed_psbt, xpub, &unsigned_psbt)?;
         let mut sessions = self
             .signing_sessions
             .list_for_batch(profile.account_id, batch_id)
