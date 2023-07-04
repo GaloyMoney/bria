@@ -69,6 +69,4 @@ pub enum ApplicationError {
     SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
-    #[error("Submitted Psbt is not valid")]
-    SubmittedPsbtIsNotValid,
 }
