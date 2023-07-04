@@ -148,7 +148,7 @@ bria_init() {
     
     if [[ "${BRIA_CONFIG}" == "docker" ]]; then
       retry 10 1 bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
-      bria_cmd import-xpub -x "${key2}" -n key2 -d m/84h/0h/0h
+      bria_cmd import-xpub -x "${key2}" -n lnd_key -d m/84h/0h/0h
       bria_cmd create-wallet -n multisig sorted-multisig -x key1 lnd_key -t 1
     else
       bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
