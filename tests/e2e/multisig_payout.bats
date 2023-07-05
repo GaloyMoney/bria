@@ -62,8 +62,11 @@ teardown_file() {
   unsigned_psbt=$(bria_cmd get-batch -b "${batch_id}" | jq -r '.unsignedPsbt')
   signed_psbt=$(bitcoin_signer_cli -rpcwallet=multisig walletprocesspsbt "${unsigned_psbt}" true ALL true | jq -r '.psbt')
   bria_cmd submit-signed-psbt -b "${batch_id}" -x key1 -s "${signed_psbt}"
-  signed_psbt2=$(bitcoin_signer_cli -rpcwallet=multisig2 walletprocesspsbt "${unsigned_psbt}" true ALL true | jq -r '.psbt')
-  bria_cmd submit-signed-psbt -b "${batch_id}" -x key2 -s "${signed_psbt2}"
+  bria_cmd set-signer-config \
+    --xpub key2 bitcoind \
+    --endpoint "${BITCOIND_SIGNER_ENDPOINT}"/wallet/multisig2 \
+    --rpc-user "rpcuser" \
+    --rpc-password "rpcpassword"
   
   for i in {1..20}; do
     signing_status=$(bria_cmd get-batch -b "${batch_id}" | jq -r '.sessions[0].state')
