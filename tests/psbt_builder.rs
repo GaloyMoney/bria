@@ -207,6 +207,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     let tx = domain_current_keychain
         .finalize_psbt(signed_psbt)
         .await?
+        .expect("Finalize should have completed")
         .extract_tx();
     helpers::electrum_blockchain().await?.broadcast(&tx)?;
 

@@ -163,6 +163,38 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.submit_signed_psbt", skip_all, fields(error, error.level, error.message), err)]
+    async fn submit_signed_psbt(
+        &self,
+        request: Request<SubmitSignedPsbtRequest>,
+    ) -> Result<Response<SubmitSignedPsbtResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let SubmitSignedPsbtRequest {
+                batch_id,
+                xpub_ref,
+                signed_psbt,
+            } = request;
+            self.app
+                .submit_signed_psbt(
+                    profile,
+                    batch_id
+                        .parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                    xpub_ref,
+                    signed_psbt
+                        .parse::<bitcoin::psbt::PartiallySignedTransaction>()
+                        .map_err(ApplicationError::CouldNotParseIncomingPsbt)?,
+                )
+                .await?;
+            Ok(Response::new(SubmitSignedPsbtResponse {}))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.create_wallet", skip_all, fields(error, error.level, error.message), err)]
     async fn create_wallet(
         &self,
@@ -199,6 +231,16 @@ impl BriaService for Bria {
                     self.app
                         .create_descriptors_wallet(profile, name, external, internal)
                         .await?
+                }
+                Some(KeychainConfig {
+                    config:
+                        Some(keychain_config::Config::SortedMultisig(
+                            keychain_config::SortedMultisig {
+                                xpubs,
+                                threshold,
+                            })),
+                }) => {
+                    self.app.create_sorted_multisig_wallet(profile, name, xpubs, threshold).await?
                 }
                 _ => {
                     return Err(Status::invalid_argument("invalid keychain config"));
@@ -364,7 +406,7 @@ impl BriaService for Bria {
                 .app
                 .find_address_by_external_id(profile, external_id)
                 .await?;
-            let wallet_id = address.wallet_id.clone().to_string();
+            let wallet_id = address.wallet_id.to_string();
             let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
             Ok(Response::new(FindAddressByExternalIdResponse {
                 wallet_id,

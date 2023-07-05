@@ -1,12 +1,22 @@
 use thiserror::Error;
 
 use crate::{
-    address::error::AddressError, batch::error::BatchError, bdk::error::BdkError,
-    descriptor::error::DescriptorError, fees::error::FeeEstimationError, job::error::JobError,
-    ledger::error::LedgerError, outbox::error::OutboxError, payout::error::PayoutError,
-    payout_queue::error::PayoutQueueError, primitives::PayoutDestination,
-    profile::error::ProfileError, signing_session::error::SigningSessionError,
-    utxo::error::UtxoError, wallet::error::WalletError, xpub::error::XPubError,
+    address::error::AddressError,
+    batch::error::BatchError,
+    bdk::error::BdkError,
+    descriptor::error::DescriptorError,
+    fees::error::FeeEstimationError,
+    job::error::JobError,
+    ledger::error::LedgerError,
+    outbox::error::OutboxError,
+    payout::error::PayoutError,
+    payout_queue::error::PayoutQueueError,
+    primitives::{bitcoin, PayoutDestination},
+    profile::error::ProfileError,
+    signing_session::error::SigningSessionError,
+    utxo::error::UtxoError,
+    wallet::error::WalletError,
+    xpub::error::XPubError,
 };
 
 #[derive(Error, Debug)]
@@ -53,4 +63,10 @@ pub enum ApplicationError {
     CouldNotParseIncomingUuid(uuid::Error),
     #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
+    #[error("Signing Session not found for batch id: {0}")]
+    SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
+    #[error("Signing Session not found for xpub id: {0}")]
+    SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
+    #[error("Could not parse incoming psbt: {0}")]
+    CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
 }

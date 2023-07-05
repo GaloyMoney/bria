@@ -29,7 +29,7 @@ teardown_file() {
     [[ "${n_utxos}" == "2" ]] && break
     sleep 1
   done
-  cache_default_wallet_balance
+  cache_wallet_balance
   [[ $(cached_encumbered_fees) != 0 ]] || exit 1
   [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
@@ -43,7 +43,7 @@ teardown_file() {
   [[ "${n_payouts}" == "2" ]] || exit 1
   batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
-  cache_default_wallet_balance
+  cache_wallet_balance
   [[ $(cached_encumbered_outgoing) == 150000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
@@ -55,7 +55,7 @@ teardown_file() {
     [[ "${utxo_height}" != "null" ]] && break;
     sleep 1
   done
-  cache_default_wallet_balance
+  cache_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   for i in {1..20}; do
@@ -65,7 +65,7 @@ teardown_file() {
   done
   [[ "${batch_id}" != "null" ]] || exit 1
   for i in {1..60}; do
-    cache_default_wallet_balance
+    cache_wallet_balance
     [[ $(cached_pending_outgoing) == 150000000 ]] && break;
     sleep 1
   done
@@ -85,7 +85,7 @@ teardown_file() {
 
   [[ "${signing_failure_reason}" == "SignerConfigMissing" ]] || exit 1
 
-  cache_default_wallet_balance
+  cache_wallet_balance
   [[ $(cached_pending_income) == 0 ]] || exit 1
 
   bria_cmd set-signer-config \
@@ -95,18 +95,18 @@ teardown_file() {
     --rpc-password "rpcpassword"
 
   for i in {1..20}; do
-    signing_status=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].state')
+    signing_status=$(bria_cmd get-batch -b "${batch_id}" | jq -r '.signingSessions[0].state')
     [[ "${signing_status}" == "Complete" ]] && break
     sleep 1
   done
   if [[ "${signing_status}" != "Complete" ]]; then
-    signing_failure_reason=$(bria_cmd list-signing-sessions -b "${batch_id}" | jq -r '.sessions[0].failureReason')
+    signing_failure_reason=$(bria_cmd get-batch -b "${batch_id}" | jq -r '.signingSessions[0].failureReason')
     echo "signing_status: ${signing_status}"
     echo "signing_failure_reason: ${signing_failure_reason}"
   fi
 
   for i in {1..20}; do
-    cache_default_wallet_balance
+    cache_wallet_balance
     [[ $(cached_pending_income) != 0 ]] && break;
     sleep 1
   done
@@ -116,7 +116,7 @@ teardown_file() {
   bitcoin_cli -generate 2
 
   for i in {1..20}; do
-    cache_default_wallet_balance
+    cache_wallet_balance
     [[ $(cached_current_settled) != 0 ]] && break;
     sleep 1
   done

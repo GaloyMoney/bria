@@ -597,6 +597,21 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::DestinationBlocked(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }
+            ApplicationError::SigningSessionNotFoundForBatchId(_) => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::SigningSessionNotFoundForXPubId(_) => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::WalletError(WalletError::PsbtDoesNotHaveValidSignatures) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
+            ApplicationError::WalletError(WalletError::UnsignedTxnMismatch) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
+            ApplicationError::CouldNotParseIncomingPsbt(_) => {
+                tonic::Status::invalid_argument(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }
@@ -608,6 +623,7 @@ impl ToTraceLevel for tonic::Status {
             tonic::Code::NotFound => tracing::Level::WARN,
             tonic::Code::AlreadyExists => tracing::Level::WARN,
             tonic::Code::PermissionDenied => tracing::Level::WARN,
+            tonic::Code::InvalidArgument => tracing::Level::WARN,
             _ => tracing::Level::ERROR,
         }
     }

@@ -4,6 +4,7 @@ mod entity;
 pub mod error;
 mod keychain;
 mod psbt_builder;
+pub mod psbt_validator;
 mod repo;
 
 pub use balance::*;

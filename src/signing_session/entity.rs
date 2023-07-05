@@ -23,6 +23,9 @@ pub enum SigningSessionEvent {
     SigningAttemptFailed {
         reason: SigningFailureReason,
     },
+    ExternallySignedPsbtSubmitted {
+        signed_psbt: psbt::PartiallySignedTransaction,
+    },
     RemoteSigningCompleted {
         signed_psbt: psbt::PartiallySignedTransaction,
     },
@@ -58,6 +61,11 @@ impl SigningSession {
             .push(SigningSessionEvent::RemoteSigningCompleted { signed_psbt })
     }
 
+    pub fn submit_externally_signed_psbt(&mut self, signed_psbt: psbt::PartiallySignedTransaction) {
+        self.events
+            .push(SigningSessionEvent::ExternallySignedPsbtSubmitted { signed_psbt })
+    }
+
     pub fn is_completed(&self) -> bool {
         self.signed_psbt().is_some()
     }
@@ -65,8 +73,12 @@ impl SigningSession {
     pub fn signed_psbt(&self) -> Option<&psbt::PartiallySignedTransaction> {
         let mut ret = None;
         for event in self.events.iter() {
-            if let SigningSessionEvent::RemoteSigningCompleted { signed_psbt } = event {
-                ret = Some(signed_psbt);
+            match event {
+                SigningSessionEvent::RemoteSigningCompleted { signed_psbt }
+                | SigningSessionEvent::ExternallySignedPsbtSubmitted { signed_psbt } => {
+                    ret = Some(signed_psbt);
+                }
+                _ => (),
             }
         }
         ret
@@ -81,6 +93,7 @@ impl SigningSession {
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { reason } => Some(reason),
                 SigningSessionEvent::RemoteSigningCompleted { .. } => None,
+                SigningSessionEvent::ExternallySignedPsbtSubmitted { .. } => None,
                 _ => ret,
             };
         }
@@ -93,6 +106,9 @@ impl SigningSession {
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { .. } => SigningSessionState::Failed,
                 SigningSessionEvent::RemoteSigningCompleted { .. } => SigningSessionState::Complete,
+                SigningSessionEvent::ExternallySignedPsbtSubmitted { .. } => {
+                    SigningSessionState::Complete
+                }
                 _ => ret,
             };
         }

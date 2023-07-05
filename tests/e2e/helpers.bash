@@ -17,8 +17,9 @@ bria_cmd() {
   ${bria_location} $@
 }
 
-cache_default_wallet_balance() {
-  balance=$(bria_cmd wallet-balance -w default)
+cache_wallet_balance() {
+  local wallet_name="${1:-default}"
+  balance=$(bria_cmd wallet-balance -w "${wallet_name}")
 }
 
 cached_pending_income() {
@@ -95,11 +96,20 @@ restart_bitcoin_stack() {
 }
 
 bitcoind_init() {
-  bitcoin_cli createwallet "default" || true
-  bitcoin_cli -generate 200
+  local wallet="${1:-default}"
 
-  bitcoin_signer_cli createwallet "default" || true
-  bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
+  bitcoin_cli createwallet "default" || true
+  bitcoin_cli generatetoaddress 200 "$(bitcoin_cli getnewaddress)"
+
+  if [[ "${wallet}" == "default" ]]; then 
+    bitcoin_signer_cli createwallet "default" || true
+    bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
+  elif [[ "${wallet}" == "multisig" ]]; then
+    bitcoin_signer_cli createwallet "multisig" || true 
+    bitcoin_signer_cli -rpcwallet=multisig importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_multisig_signer_descriptors.json)"
+    bitcoin_signer_cli createwallet "multisig2" || true 
+    bitcoin_signer_cli -rpcwallet=multisig2 importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_multisig2_signer_descriptors.json)"
+  fi
 }
 
 start_daemon() {
@@ -114,17 +124,28 @@ stop_daemon() {
 }
 
 bria_init() {
+  local wallet_type="${1:-default}"
+  
   if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-    retry 10 1 bria_cmd admin bootstrap
+    retry_cmd="retry 10 1"
   else
-    bria_cmd admin bootstrap
+    retry_cmd=""
   fi
 
+  $retry_cmd bria_cmd admin bootstrap
+
   bria_cmd admin create-account -n default
-  if [[ "${BRIA_CONFIG}" == "docker" ]]; then
-    retry 10 1 bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
-  else
-    bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
+  
+  if [[ "${wallet_type}" == "default" ]]; then
+    $retry_cmd bria_cmd create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
+      -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
+  elif [[ "${wallet_type}" == "multisig" ]]; then
+    local key1="tpubDEaDfeS1EXpqLVASNCW7qAHW1TFPBpk2Z39gUXjFnsfctomZ7N8iDpy6RuGwqdXAAZ5sr5kQZrxyuEn15tqPJjM4mcPSuXzV27AWRD3p9Q4"
+    local key2="tpubDEPCxBfMFRNdfJaUeoTmepLJ6ZQmeTiU1Sko2sdx1R3tmPpZemRUjdAHqtmLfaVrBg1NBx2Yx3cVrsZ2FTyBuhiH9mPSL5ozkaTh1iZUTZx"
+    
+    $retry_cmd bria_cmd import-xpub -x "${key1}" -n key1 -d m/48h/1h/0h/2h
+    bria_cmd import-xpub -x "${key2}" -n key2 -d m/48h/1h/0h/2h
+    bria_cmd create-wallet -n multisig sorted-multisig -x key1 key2 -t 2
   fi
 
   echo "Bria Initialization Complete"

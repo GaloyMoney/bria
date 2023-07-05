@@ -165,6 +165,25 @@ enum Command {
         #[clap(subcommand)]
         command: SetSignerConfigCommand,
     },
+    /// Submit a signed psbt
+    SubmitSignedPsbt {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        batch_id: String,
+        #[clap(short, long)]
+        xpub_ref: String,
+        #[clap(short, long)]
+        signed_psbt: String,
+    },
     /// Create a wallet from imported xpubs
     CreateWallet {
         #[clap(
@@ -553,6 +572,12 @@ enum CreateWalletCommand {
         #[clap(short, long)]
         change_descriptor: String,
     },
+    SortedMultisig {
+        #[clap(short, long, num_args(2..=15) )]
+        xpub: Vec<String>,
+        #[clap(short, long)]
+        threshold: u32,
+    },
 }
 
 #[derive(Subcommand)]
@@ -694,6 +719,18 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.set_signer_config(xpub, command).await?;
+        }
+        Command::SubmitSignedPsbt {
+            url,
+            api_key,
+            batch_id,
+            xpub_ref,
+            signed_psbt,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client
+                .submit_signed_psbt(batch_id, xpub_ref, signed_psbt)
+                .await?;
         }
         Command::CreateWallet {
             url,
@@ -1124,6 +1161,12 @@ impl From<CreateWalletCommand> for crate::api::proto::keychain_config::Config {
                 external: descriptor,
                 internal: change_descriptor,
             }),
+            CreateWalletCommand::SortedMultisig { xpub, threshold } => {
+                Config::SortedMultisig(SortedMultisig {
+                    xpubs: xpub,
+                    threshold,
+                })
+            }
         }
     }
 }

@@ -205,6 +205,50 @@ impl App {
         Ok(())
     }
 
+    #[instrument(name = "app.submit_signed_psbt", skip(self), err)]
+    pub async fn submit_signed_psbt(
+        &self,
+        profile: Profile,
+        batch_id: BatchId,
+        xpub_ref: String,
+        signed_psbt: bitcoin::psbt::PartiallySignedTransaction,
+    ) -> Result<(), ApplicationError> {
+        let xpub = self
+            .xpubs
+            .find_from_ref(
+                profile.account_id,
+                xpub_ref
+                    .parse::<XPubRef>()
+                    .expect("ref should always parse"),
+            )
+            .await?;
+        let xpub_id = xpub.id();
+        let xpub = xpub.value;
+        let unsigned_psbt = self
+            .batches
+            .find_by_id(profile.account_id, batch_id)
+            .await?
+            .unsigned_psbt;
+        psbt_validator::validate_psbt(&signed_psbt, xpub, &unsigned_psbt)?;
+        let mut sessions = self
+            .signing_sessions
+            .list_for_batch(profile.account_id, batch_id)
+            .await?
+            .ok_or(ApplicationError::SigningSessionNotFoundForBatchId(batch_id))?
+            .xpub_sessions;
+        let session = sessions
+            .get_mut(&xpub_id)
+            .ok_or_else(|| ApplicationError::SigningSessionNotFoundForXPubId(xpub_id))?;
+
+        let mut tx = self.pool.begin().await?;
+        session.submit_externally_signed_psbt(signed_psbt);
+        self.signing_sessions
+            .update_sessions(&mut tx, &sessions)
+            .await?;
+        job::spawn_all_batch_signings(tx, std::iter::once((profile.account_id, batch_id))).await?;
+        Ok(())
+    }
+
     #[instrument(name = "app.create_wpkh_wallet", skip(self), err)]
     pub async fn create_wpkh_wallet(
         &self,
@@ -239,6 +283,32 @@ impl App {
         internal: String,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let keychain = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
+        self.create_wallet(profile, wallet_name, keychain).await
+    }
+
+    #[instrument(name = "app.create_sorted_multisig_wallet", skip(self), err)]
+    pub async fn create_sorted_multisig_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        xpubs: Vec<String>,
+        threshold: u32,
+    ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
+        let xpub_values: Vec<XPub> = futures::future::try_join_all(
+            xpubs
+                .iter()
+                .map(|xpub| {
+                    xpub.parse::<XPubRef>()
+                        .expect("xpub_ref should always parse")
+                })
+                .map(|xpub_ref| self.xpubs.find_from_ref(profile.account_id, xpub_ref)),
+        )
+        .await?
+        .into_iter()
+        .map(|xpub| xpub.value)
+        .collect();
+
+        let keychain = KeychainConfig::sorted_multisig(xpub_values, threshold);
         self.create_wallet(profile, wallet_name, keychain).await
     }
 

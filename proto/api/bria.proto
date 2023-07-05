@@ -15,6 +15,8 @@ service BriaService {
   rpc ListXpubs (ListXpubsRequest) returns(ListXpubsResponse) {}
   rpc SetSignerConfig (SetSignerConfigRequest) returns (SetSignerConfigResponse) {}
 
+  rpc SubmitSignedPsbt (SubmitSignedPsbtRequest) returns (SubmitSignedPsbtResponse) {}
+
   rpc CreateWallet (CreateWalletRequest) returns (CreateWalletResponse) {}
   rpc ListWallets (ListWalletsRequest) returns (ListWalletsResponse) {}
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
@@ -104,6 +106,14 @@ message BitcoindSignerConfig {
 
 message SetSignerConfigResponse {}
 
+message SubmitSignedPsbtRequest {
+  string batch_id = 1;
+  string xpub_ref = 2; 
+  string signed_psbt = 3;
+}
+
+message SubmitSignedPsbtResponse {}
+
 message KeychainConfig {
     message Wpkh {
         string xpub = 1;
@@ -113,9 +123,14 @@ message KeychainConfig {
         string external = 1;
         string internal = 2;
     }
+    message SortedMultisig {
+        repeated string xpubs = 1;
+        uint32 threshold = 2;
+    }
     oneof config {
         Wpkh wpkh = 1;
         Descriptors descriptors = 2;
+        SortedMultisig sorted_multisig = 3;
     }
 }
 
