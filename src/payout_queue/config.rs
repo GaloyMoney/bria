@@ -19,6 +19,7 @@ pub enum PayoutQueueTrigger {
         #[serde(default = "default_interval")]
         seconds: Duration,
     },
+    Manual,
 }
 
 impl Default for PayoutQueueConfig {

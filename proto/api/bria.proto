@@ -32,6 +32,7 @@ service BriaService {
   rpc CreatePayoutQueue (CreatePayoutQueueRequest) returns (CreatePayoutQueueResponse) {}
   rpc ListPayoutQueues (ListPayoutQueuesRequest) returns (ListPayoutQueuesResponse) {}
   rpc UpdatePayoutQueue (UpdatePayoutQueueRequest) returns (UpdatePayoutQueueResponse) {}
+  rpc TriggerPayoutQueue (TriggerPayoutQueueRequest) returns (TriggerPayoutQueueResponse) {}
 
   rpc EstimatePayoutFee (EstimatePayoutFeeRequest) returns (EstimatePayoutFeeResponse) {}
   rpc SubmitPayout (SubmitPayoutRequest) returns (SubmitPayoutResponse) {}
@@ -290,6 +291,7 @@ message PayoutQueueConfig {
   bool consolidate_deprecated_keychains = 2;
   oneof trigger {
     uint32 interval_secs = 5;
+    bool manual = 6;
   }
 }
 
@@ -302,6 +304,12 @@ enum TxPriority {
 message CreatePayoutQueueResponse {
   string id = 1;
 }
+
+message TriggerPayoutQueueRequest {
+  string name = 1;
+}
+
+message TriggerPayoutQueueResponse {}
 
 message PayoutQueue {
   string id = 1;

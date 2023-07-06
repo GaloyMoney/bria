@@ -562,6 +562,25 @@ impl App {
         Ok(payout_queue_id)
     }
 
+    #[instrument(name = "app.trigger_payout_queue", skip(self), err)]
+    pub async fn trigger_payout_queue(
+        &self,
+        profile: Profile,
+        name: String,
+    ) -> Result<(), ApplicationError> {
+        let payout_queue = self
+            .payout_queues
+            .find_by_name(profile.account_id, name)
+            .await?;
+        job::spawn_schedule_process_payout_queue(
+            &self.pool,
+            (payout_queue.account_id, payout_queue.id),
+            std::time::Duration::from_secs(0),
+        )
+        .await?;
+        Ok(())
+    }
+
     #[instrument(name = "app.estimate_payout_fee", skip(self), ret, err)]
     pub async fn estimate_payout_fee(
         &self,

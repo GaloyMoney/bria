@@ -439,7 +439,7 @@ pub async fn spawn_process_all_payout_queues(
 }
 
 #[instrument(name = "job.schedule_spawn_process_payout_queue", skip_all, fields(error, error.level, error.message), err)]
-async fn spawn_schedule_process_payout_queue(
+pub async fn spawn_schedule_process_payout_queue(
     pool: &sqlx::PgPool,
     data: impl Into<ProcessPayoutQueueData>,
     delay: std::time::Duration,

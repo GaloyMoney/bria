@@ -296,14 +296,25 @@ impl ApiClient {
         tx_priority: TxPriority,
         consolidate_deprecated_keychains: bool,
         interval_trigger: Option<u32>,
+        manual_trigger: Option<bool>,
     ) -> anyhow::Result<()> {
         let tx_priority = match tx_priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
             TxPriority::HalfHour => proto::TxPriority::HalfHour as i32,
             TxPriority::OneHour => proto::TxPriority::OneHour as i32,
         };
-
-        let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);
+        let trigger = match (interval_trigger, manual_trigger) {
+            (Some(interval), None) | (Some(interval), Some(false)) => {
+                Some(proto::payout_queue_config::Trigger::IntervalSecs(interval))
+            }
+            (None, Some(true)) => Some(proto::payout_queue_config::Trigger::Manual(true)),
+            (Some(_), Some(true)) => {
+                return Err(anyhow::anyhow!(
+                    "Invalid parameters: you should provide either an interval_trigger or a manual_trigger"
+                ));
+            }
+            _ => None,
+        };
 
         let config = proto::PayoutQueueConfig {
             tx_priority,
@@ -323,6 +334,16 @@ impl ApiClient {
             .create_payout_queue(self.inject_auth_token(request)?)
             .await?;
 
+        output_json(response)
+    }
+
+    pub async fn trigger_payout_queue(&self, name: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::TriggerPayoutQueueRequest { name });
+        let response = self
+            .connect()
+            .await?
+            .trigger_payout_queue(self.inject_auth_token(request)?)
+            .await?;
         output_json(response)
     }
 

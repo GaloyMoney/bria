@@ -501,6 +501,23 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.trigger_payout_queue", skip_all, fields(error, error.level, error.message), err)]
+    async fn trigger_payout_queue(
+        &self,
+        request: Request<TriggerPayoutQueueRequest>,
+    ) -> Result<Response<TriggerPayoutQueueResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let TriggerPayoutQueueRequest { name } = request;
+            self.app.trigger_payout_queue(profile, name).await?;
+            Ok(Response::new(TriggerPayoutQueueResponse {}))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.estimate_payout_fee", skip_all, fields(error, error.level, error.message), err)]
     async fn estimate_payout_fee(
         &self,
