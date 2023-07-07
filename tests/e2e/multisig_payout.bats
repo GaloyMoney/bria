@@ -98,3 +98,39 @@ teardown_file() {
 
   [[ $(cached_current_settled) != 0 ]] || exit 1;
 }
+
+@test "broadcast a txn using bitcoind and check if balance updated" {
+  bria_address=$(bria_cmd new-address -w multisig | jq -r '.address')
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 1 
+  bitcoin_cli -generate 5
+
+  bria_cmd submit-payout --wallet multisig --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
+  for i in {1..20}; do
+    batch_id=$(bria_cmd list-payouts -w multisig | jq -r '.payouts[1].batchId')
+    [[ "${batch_id}" != "null" ]] && break
+    sleep 1
+  done
+  [[ "${batch_id}" != "null" ]] || exit 1
+
+  unsigned_psbt=$(bria_cmd get-batch -b "${batch_id}" | jq -r '.unsignedPsbt')
+  signed_psbt=$(bitcoin_signer_cli -rpcwallet=multisig walletprocesspsbt "${unsigned_psbt}" true ALL true | jq -r '.psbt')
+  signed_psbt2=$(bitcoin_signer_cli -rpcwallet=multisig2 walletprocesspsbt "${signed_psbt}" true ALL true | jq -r '.psbt')
+  hex=$(bitcoin_cli finalizepsbt "${signed_psbt2}" true | jq -r '.hex')
+  bitcoin_cli sendrawtransaction "${hex}"
+
+  for i in {1..20}; do
+    cache_wallet_balance multisig
+    [[ $(cached_pending_income) != 0 ]] && break;
+    sleep 1
+  done
+  [[ $(cached_pending_income) != 0 ]] || exit 1
+ 
+  bitcoin_cli -generate 2 
+
+  for i in {1..20}; do
+    cache_wallet_balance multisig
+    [[ $(cached_pending_income) == 0 ]] && break;
+    sleep 1
+  done
+  [[ $(cached_pending_income) == 0 ]] || exit 1;
+}
