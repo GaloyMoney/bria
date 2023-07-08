@@ -99,7 +99,7 @@ teardown_file() {
   [[ $(cached_current_settled) != 0 ]] || exit 1;
 }
 
-@test "broadcast a txn using bitcoind and check if balance updated" {
+@test "multisig_payout: Broadcast a txn using bitcoind and check if balance updated" {
   bria_address=$(bria_cmd new-address -w multisig | jq -r '.address')
   bitcoin_cli -regtest sendtoaddress ${bria_address} 1 
   bitcoin_cli -generate 5
