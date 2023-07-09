@@ -568,14 +568,19 @@ impl App {
         profile: Profile,
         name: String,
     ) -> Result<(), ApplicationError> {
+        use job::process_payout_queue::ProcessPayoutQueueData;
+        use uuid::Uuid;
         let payout_queue = self
             .payout_queues
             .find_by_name(profile.account_id, name)
             .await?;
-        job::spawn_schedule_process_payout_queue(
+        let data = ProcessPayoutQueueData::from((payout_queue.account_id, payout_queue.id));
+        job::onto_account_main_channel(
             &self.pool,
-            (payout_queue.account_id, payout_queue.id),
-            std::time::Duration::from_secs(0),
+            payout_queue.account_id,
+            Uuid::new_v4(),
+            "process_payout_queue",
+            data,
         )
         .await?;
         Ok(())

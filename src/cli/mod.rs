@@ -340,7 +340,7 @@ enum Command {
         consolidate_deprecated_keychains: bool,
         #[clap(short = 'i', long = "interval-trigger")]
         interval_trigger: Option<u32>,
-        #[clap(short = 'm', long = "manual", default_value = "false")]
+        #[clap(short = 'm', long = "manual")]
         manual_trigger: Option<bool>,
     },
     /// Trigger Payout Queue

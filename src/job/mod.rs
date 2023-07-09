@@ -439,7 +439,7 @@ pub async fn spawn_process_all_payout_queues(
 }
 
 #[instrument(name = "job.schedule_spawn_process_payout_queue", skip_all, fields(error, error.level, error.message), err)]
-pub async fn spawn_schedule_process_payout_queue(
+async fn spawn_schedule_process_payout_queue(
     pool: &sqlx::PgPool,
     data: impl Into<ProcessPayoutQueueData>,
     delay: std::time::Duration,
@@ -607,7 +607,7 @@ fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {
     format!("payout_queue_id:{payout_queue_id}")
 }
 
-async fn onto_account_main_channel<D: serde::Serialize>(
+pub async fn onto_account_main_channel<D: serde::Serialize>(
     pool: &sqlx::PgPool,
     account_id: AccountId,
     uuid: impl Into<Uuid>,
