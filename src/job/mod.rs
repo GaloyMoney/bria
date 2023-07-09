@@ -225,6 +225,21 @@ async fn sync_wallet(
     Ok(())
 }
 
+pub async fn spawn_process_payout_queue(
+    pool: &sqlx::PgPool,
+    data: impl Into<ProcessPayoutQueueData>,
+) -> Result<ProcessPayoutQueueData, JobError> {
+    let data = data.into();
+    onto_account_main_channel(
+        pool,
+        data.account_id,
+        Uuid::new_v4(),
+        "process_payout_queue",
+        data,
+    )
+    .await
+}
+
 #[job(name = "schedule_process_payout_queue")]
 async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
@@ -234,14 +249,7 @@ async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<()
         .execute(|data| async move {
             let mut data: ProcessPayoutQueueData = data.expect("no SyncWalletData available");
             data.tracing_data = crate::tracing::extract_tracing_data();
-            onto_account_main_channel(
-                &pool,
-                data.account_id,
-                Uuid::new_v4(),
-                "process_payout_queue",
-                data,
-            )
-            .await
+            spawn_process_payout_queue(&pool, data).await
         })
         .await?;
     Ok(())
@@ -607,7 +615,7 @@ fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {
     format!("payout_queue_id:{payout_queue_id}")
 }
 
-pub async fn onto_account_main_channel<D: serde::Serialize>(
+async fn onto_account_main_channel<D: serde::Serialize>(
     pool: &sqlx::PgPool,
     account_id: AccountId,
     uuid: impl Into<Uuid>,
