@@ -123,3 +123,44 @@ teardown_file() {
 
   [[ $(cached_current_settled) != 0 ]] || exit 1;
 }
+
+@test "payout: Creates a manually triggered payout-queue and triggers it" {
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 1 
+  bitcoin_cli -generate 10
+  bria_cmd create-payout-queue -n manual -m true
+  bria_cmd submit-payout --wallet default --queue-name manual --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
+
+  for i in {1..20}; do  
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[2].batchId')
+     [[ "${batch_id}" != "null" ]] && break;
+    sleep 1
+  done
+  [[ "${batch_id}" == "null" ]] || exit 1
+
+  bria_cmd trigger-payout-queue --name manual;
+
+  for i in {1..20}; do  
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[2].batchId')
+    [[ "${batch_id}" != "null" ]] && break
+    sleep 1
+  done
+  [[ "${batch_id}" != "null" ]] || exit 1
+
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_pending_income) != 0 ]] && break;
+    echo $(bria_cmd wallet-balance -w default)
+    sleep 1
+  done
+  [[ $(cached_pending_income) != 0 ]] || exit 1
+
+  bitcoin_cli -generate 2
+  
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_pending_income) == 0 ]] && break;
+    sleep 1
+  done
+  [[ $(cached_pending_income) == 0 ]] || exit 1;
+}

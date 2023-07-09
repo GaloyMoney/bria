@@ -340,6 +340,17 @@ enum Command {
         consolidate_deprecated_keychains: bool,
         #[clap(short = 'i', long = "interval-trigger")]
         interval_trigger: Option<u32>,
+        #[clap(short = 'm', long = "manual")]
+        manual_trigger: Option<bool>,
+    },
+    /// Trigger Payout Queue
+    TriggerPayoutQueue {
+        #[clap(short, long, value_parser, default_value = "http://localhost:2742")]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        name: String,
     },
     EstimatePayoutFee {
         #[clap(
@@ -808,6 +819,7 @@ pub async fn run() -> anyhow::Result<()> {
             tx_priority,
             consolidate_deprecated_keychains,
             interval_trigger,
+            manual_trigger,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
@@ -817,8 +829,13 @@ pub async fn run() -> anyhow::Result<()> {
                     tx_priority,
                     consolidate_deprecated_keychains,
                     interval_trigger,
+                    manual_trigger,
                 )
                 .await?;
+        }
+        Command::TriggerPayoutQueue { url, api_key, name } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.trigger_payout_queue(name).await?;
         }
         Command::EstimatePayoutFee {
             url,
@@ -1074,6 +1091,7 @@ async fn run_cmd(
                             TxPriority::NextBlock,
                             true,
                             Some(5),
+                            None,
                         )
                         .await
                     {
