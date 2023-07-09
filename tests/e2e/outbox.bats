@@ -14,7 +14,7 @@ teardown_file() {
   stop_daemon
 }
 
-@test "outbox: utxo_dropped event" {
+@test "outbox: Emits utxo_dropped event" {
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
   bitcoin_cli -regtest sendtoaddress ${bria_address} 1
   for i in {1..30}; do
@@ -37,7 +37,7 @@ teardown_file() {
   [[ $(cached_pending_income) == 0 ]] || exit 1;
 }
 
-@test "outbox: adds address augmentation to events" {
+@test "outbox: Adds address augmentation to events" {
   bria_address=$(bria_cmd new-address -w default -m '{"hello":"world"}' | jq -r '.address')
   bitcoin_cli -regtest sendtoaddress ${bria_address} 1
   event=$(bria_cmd watch-events -a 2 -o | jq -r '.augmentation')
@@ -49,7 +49,7 @@ teardown_file() {
   [ "$meta" = "world" ] || exit 1
 }
 
-@test "outbox: adds payout augmentation info to events" {
+@test "outbox: Adds payout augmentation info to events" {
   bria_cmd create-payout-queue --name high --interval-trigger 5
   bria_cmd submit-payout --wallet default --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000 -e "external"
   external_id=$(bria_cmd watch-events -a 3 -o --augment | jq -r '.augmentation.payoutInfo.externalId')
