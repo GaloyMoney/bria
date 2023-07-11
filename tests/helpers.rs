@@ -60,6 +60,7 @@ pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
         "bitcoind_client_inner failed too many times"
     ))
 }
+
 pub async fn bitcoind_client_inner(wallet_name: &str) -> anyhow::Result<bitcoincore_rpc::Client> {
     use bitcoincore_rpc::Auth;
 
