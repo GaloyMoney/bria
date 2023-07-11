@@ -44,7 +44,7 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
 
 const BITCOIND_WALLET_NAME: &str = "bria";
 pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
-    for _ in 1..3 {
+    for _ in 0..3 {
         match bitcoind_client_inner().await {
             Err(e) => {
                 dbg!("bitcoind_client_inner failed: {}", e);
@@ -71,7 +71,8 @@ pub async fn bitcoind_client_inner() -> anyhow::Result<bitcoincore_rpc::Client> 
         .context("client.list_wallets")?
         .is_empty()
     {
-        if client.load_wallet(BITCOIND_WALLET_NAME).is_err() {
+        if let Some(err) = client.load_wallet(BITCOIND_WALLET_NAME) {
+            dbg!("client.load_wallet failed: {}", err);
             client
                 .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
                 .context("client.create_wallet - 1")?;
