@@ -1,3 +1,10 @@
+# [bria release v0.1.35](https://github.com/GaloyMoney/bria/releases/tag/0.1.35)
+
+
+### Testing
+
+- Whitespace
+
 # [bria release v0.1.34](https://github.com/GaloyMoney/bria/releases/tag/0.1.34)
 
 
