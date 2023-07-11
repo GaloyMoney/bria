@@ -1,3 +1,26 @@
+# [bria release v0.1.33](https://github.com/GaloyMoney/bria/releases/tag/0.1.33)
+
+
+### Features
+
+- Add manually triggered payout queues (#263)
+- Added sorted_multisig (#258)
+
+### Miscellaneous Tasks
+
+- Bump serde_json from 1.0.99 to 1.0.100 (#262)
+- Bump serde from 1.0.164 to 1.0.167 (#264)
+- Bump clap from 4.3.9 to 4.3.10 (#256)
+- Bump tokio from 1.29.0 to 1.29.1 (#257)
+- Bump uuid from 1.3.4 to 1.4.0 (#251)
+- Bump clap from 4.3.8 to 4.3.9 (#254)
+- Begin retry_backoff at 2s for proecss_payout_queue
+- Bump tokio from 1.28.2 to 1.29.0 (#253)
+
+### Testing
+
+- Add bitcoind broadcast test for multisig (#265)
+
 # [bria release v0.1.32](https://github.com/GaloyMoney/bria/releases/tag/0.1.32)
 
 
