@@ -23,7 +23,7 @@ pub struct PayoutCancelledMeta {
 pub struct PayoutCancelledParams {
     pub journal_id: JournalId,
     pub effective_outgoing_account_id: LedgerAccountId,
-    pub external_id: String,
+    pub correlation_id: LedgerTransactionId,
     pub meta: PayoutCancelledMeta,
 }
 
@@ -46,8 +46,8 @@ impl PayoutCancelledParams {
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
-                .name("external_id")
-                .r#type(ParamDataType::STRING)
+                .name("correlation_id")
+                .r#type(ParamDataType::UUID)
                 .build()
                 .unwrap(),
             ParamDefinition::builder()
@@ -69,7 +69,7 @@ impl From<PayoutCancelledParams> for TxParams {
         PayoutCancelledParams {
             journal_id,
             effective_outgoing_account_id,
-            external_id,
+            correlation_id,
             meta,
         }: PayoutCancelledParams,
     ) -> Self {
@@ -83,7 +83,7 @@ impl From<PayoutCancelledParams> for TxParams {
             effective_outgoing_account_id,
         );
         params.insert("amount", amount);
-        params.insert("external_id", external_id);
+        params.insert("correlation_id", correlation_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params
@@ -97,7 +97,7 @@ impl PayoutCancelled {
         let tx_input = TxInput::builder()
             .journal_id("params.journal_id")
             .effective("params.effective")
-            .external_id("params.external_id")
+            .correlation_id("params.correlation_id")
             .metadata("params.meta")
             .description("'Cancelled payout'")
             .build()

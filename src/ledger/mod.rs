@@ -54,6 +54,7 @@ impl Ledger {
         templates::SpendDetected::init(&inner).await?;
         templates::SpendSettled::init(&inner).await?;
         templates::PayoutSubmitted::init(&inner).await?;
+        templates::PayoutCancelled::init(&inner).await?;
         if templates::BatchCreated::init(&inner).await? {
             templates::fix::legacy_batch_created(&inner).await?;
         }
@@ -252,8 +253,52 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        params: PayoutCancelledParams,
+        correlation_id: LedgerTransactionId,
     ) -> Result<(), LedgerError> {
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(correlation_id))
+            .await?;
+        let txn = txs.get(0).ok_or(LedgerError::TransactionNotFound)?;
+        let PayoutSubmittedMeta {
+            payout_id,
+            account_id,
+            wallet_id,
+            profile_id,
+            payout_queue_id,
+            satoshis,
+            destination,
+        } = txn.metadata()?.ok_or(LedgerError::MissingTxMetadata)?;
+        let entries = self
+            .inner
+            .entries()
+            .list_by_transaction_ids(std::iter::once(correlation_id))
+            .await?;
+        let effective_outgoing_account_id = entries
+            .into_values()
+            .flatten()
+            .find_map(|entry| match entry.entry_type.as_str() {
+                "PAYOUT_SUBMITTED_LOG_OUT_ENC_CR" => Some(entry.account_id),
+                _ => None,
+            })
+            .ok_or(LedgerError::ExpectedEntryNotFoundInTx(
+                "Effective outgoing account ID not found",
+            ))?;
+        let params = PayoutCancelledParams {
+            journal_id: txn.journal_id,
+            effective_outgoing_account_id,
+            correlation_id,
+            meta: PayoutCancelledMeta {
+                payout_id,
+                account_id,
+                wallet_id,
+                profile_id,
+                payout_queue_id,
+                satoshis,
+                destination,
+            },
+        };
         self.inner
             .post_transaction_in_tx(tx, tx_id, PAYOUT_CANCELLED_CODE, Some(params))
             .await?;
