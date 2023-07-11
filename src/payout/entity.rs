@@ -49,16 +49,16 @@ pub struct Payout {
 }
 
 impl Payout {
-    pub fn cancel_payout(&mut self, profile_id: ProfileId) {
+    pub fn cancel_payout(&mut self) {
         self.events.push(PayoutEvent::Cancelled {
-            executed_by: profile_id,
+            executed_by: self.profile_id,
         })
     }
 
-    pub fn is_payout_cancelled(&self, profile_id: ProfileId) -> bool {
+    pub fn is_payout_cancelled(&self) -> bool {
         for event in self.events.iter() {
             if let PayoutEvent::Cancelled { executed_by } = event {
-                if profile_id == *executed_by {
+                if self.profile_id == *executed_by {
                     return true;
                 }
             }
@@ -151,6 +151,6 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                 _ => (),
             }
         }
-        builder.build()
+        builder.events(events).build()
     }
 }

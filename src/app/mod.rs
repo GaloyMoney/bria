@@ -722,7 +722,7 @@ impl App {
         if payout.batch_id.is_some() {
             return Err(ApplicationError::PayoutAlreadyCommitted);
         }
-        payout.cancel_payout(profile.id);
+        payout.cancel_payout();
         self.ledger
             .payout_cancelled(
                 tx,
