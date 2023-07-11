@@ -133,10 +133,15 @@ impl Payouts {
         let mut payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = HashMap::new();
         for (id, wallet_id) in wallet_payouts {
             if let Some(events) = entity_events.remove(&id) {
-                payouts
-                    .entry(wallet_id)
-                    .or_default()
-                    .push(UnbatchedPayout::try_from(events)?);
+                if !events
+                    .iter()
+                    .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
+                {
+                    payouts
+                        .entry(wallet_id)
+                        .or_default()
+                        .push(UnbatchedPayout::try_from(events)?);
+                }
             }
         }
         Ok(UnbatchedPayouts::new(payouts))

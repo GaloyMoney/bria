@@ -54,17 +54,6 @@ impl Payout {
             executed_by: self.profile_id,
         })
     }
-
-    pub fn is_payout_cancelled(&self) -> bool {
-        for event in self.events.iter() {
-            if let PayoutEvent::Cancelled { executed_by } = event {
-                if self.profile_id == *executed_by {
-                    return true;
-                }
-            }
-        }
-        false
-    }
 }
 #[derive(Debug, Builder, Clone)]
 pub struct NewPayout {
