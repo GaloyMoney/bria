@@ -24,8 +24,8 @@ pub enum PayoutEvent {
         batch_id: BatchId,
         outpoint: bitcoin::OutPoint,
     },
-    PayoutCancelled {
-        cancelled_by: ProfileId,
+    Cancelled {
+        executed_by: ProfileId,
     },
 }
 
@@ -50,15 +50,15 @@ pub struct Payout {
 
 impl Payout {
     pub fn cancel_payout(&mut self, profile_id: ProfileId) {
-        self.events.push(PayoutEvent::PayoutCancelled {
-            cancelled_by: profile_id,
+        self.events.push(PayoutEvent::Cancelled {
+            executed_by: profile_id,
         })
     }
 
     pub fn is_payout_cancelled(&self, profile_id: ProfileId) -> bool {
         for event in self.events.iter() {
-            if let PayoutEvent::PayoutCancelled { cancelled_by } = event {
-                if profile_id == *cancelled_by {
+            if let PayoutEvent::Cancelled { executed_by } = event {
+                if profile_id == *executed_by {
                     return true;
                 }
             }
