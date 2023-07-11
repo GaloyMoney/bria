@@ -274,4 +274,36 @@ impl Payouts {
             Satoshis::from(res.average_payout_value),
         ))
     }
+
+    #[instrument(name = "payouts.find_by_id_for_cancellation", skip(self))]
+    pub async fn find_by_id_for_cancellation(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        account_id: AccountId,
+        payout_id: PayoutId,
+    ) -> Result<Payout, PayoutError> {
+        let rows = sqlx::query!(
+            r#"
+        SELECT b.*, e.sequence, e.event
+        FROM bria_payouts b
+        JOIN bria_payout_events e ON b.id = e.id
+        WHERE account_id = $1 AND b.id = $2
+        ORDER BY b.created_at, b.id, e.sequence
+        FOR UPDATE"#,
+            account_id as AccountId,
+            payout_id as PayoutId,
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if rows.is_empty() {
+            return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
+        }
+
+        let mut entity_events = EntityEvents::new();
+        for row in rows {
+            entity_events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(Payout::try_from(entity_events)?)
+    }
 }
