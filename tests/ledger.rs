@@ -778,3 +778,97 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn payout_cancelled() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+
+    let ledger = Ledger::init(&pool).await?;
+
+    let account_id = AccountId::new();
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let mut tx = pool.begin().await?;
+    let journal_id = ledger
+        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .await?;
+    let wallet_id = WalletId::new();
+    let wallet_ledger_accounts = ledger
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .await?;
+
+    tx.commit().await?;
+
+    let payout_id = PayoutId::new();
+    let satoshis = Satoshis::from(50_000_000);
+    let payout_queue_id = PayoutQueueId::new();
+    let profile_id = ProfileId::new();
+
+    let tx = pool.begin().await?;
+
+    ledger
+        .payout_submitted(
+            tx,
+            LedgerTransactionId::new(),
+            PayoutSubmittedParams {
+                journal_id,
+                effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
+                external_id: payout_id.to_string(),
+                meta: PayoutSubmittedMeta {
+                    account_id,
+                    payout_id,
+                    wallet_id,
+                    payout_queue_id,
+                    profile_id,
+                    satoshis,
+                    destination: PayoutDestination::OnchainAddress {
+                        value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
+                    },
+                },
+            },
+        )
+        .await?;
+
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+
+    assert_eq!(summary.effective_encumbered_outgoing, satoshis);
+
+    let account_summary = AccountBalanceSummary::from(
+        ledger
+            .get_account_ledger_account_balances(journal_id)
+            .await?,
+    );
+    assert_summaries_match(summary, account_summary);
+
+    let payout_cancelled_params = PayoutCancelledParams {
+        journal_id,
+        external_id: payout_id.to_string(),
+        effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
+        meta: PayoutCancelledMeta {
+            account_id,
+            payout_id,
+            wallet_id,
+            payout_queue_id,
+            profile_id,
+            satoshis,
+            destination: PayoutDestination::OnchainAddress {
+                value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
+            },
+        },
+    };
+    let tx = pool.begin().await?;
+    ledger
+        .payout_cancelled(tx, LedgerTransactionId::new(), payout_cancelled_params)
+        .await?;
+
+    let summary = WalletBalanceSummary::from(
+        ledger
+            .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+            .await?,
+    );
+    assert_eq!(summary.effective_encumbered_outgoing, Satoshis::ZERO);
+    Ok(())
+}

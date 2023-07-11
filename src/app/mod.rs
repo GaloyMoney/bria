@@ -709,6 +709,39 @@ impl App {
         Ok(id)
     }
 
+    pub async fn cancel_payout(
+        &self,
+        profile: Profile,
+        id: PayoutId,
+    ) -> Result<(), ApplicationError> {
+        let mut payout = self.payouts.find_by_id(profile.account_id, id).await?;
+        if payout.batch_id.is_some() {
+            unimplemented!();
+        }
+        payout.cancel_payout(profile.id);
+        let wallet = self.wallets.find_by_id(payout.wallet_id).await?;
+        let tx = self.pool.begin().await?;
+        let params = PayoutCancelledParams {
+            journal_id: wallet.journal_id,
+            effective_outgoing_account_id: wallet.ledger_account_ids.effective_outgoing_id,
+            external_id: payout.external_id,
+            meta: PayoutCancelledMeta {
+                account_id: profile.account_id,
+                payout_id: payout.id,
+                payout_queue_id: payout.payout_queue_id,
+                wallet_id: payout.wallet_id,
+                profile_id: profile.id,
+                satoshis: payout.satoshis,
+                destination: payout.destination,
+            },
+        };
+        self.ledger
+            .payout_cancelled(tx, LedgerTransactionId::new(), params)
+            .await?;
+
+        Ok(())
+    }
+
     #[instrument(name = "app.list_wallets", skip_all, err)]
     pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, ApplicationError> {
         Ok(self.wallets.list_by_account_id(profile.account_id).await?)

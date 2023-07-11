@@ -247,6 +247,19 @@ impl Ledger {
         Ok(())
     }
 
+    #[instrument(name = "ledger.payout_cancelled", skip(self, tx))]
+    pub async fn payout_cancelled(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        params: PayoutCancelledParams,
+    ) -> Result<(), LedgerError> {
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, PAYOUT_CANCELLED_CODE, Some(params))
+            .await?;
+        Ok(())
+    }
+
     #[instrument(name = "ledger.batch_created", skip(self, tx))]
     pub async fn batch_created(
         &self,
