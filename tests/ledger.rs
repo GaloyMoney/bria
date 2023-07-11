@@ -800,15 +800,12 @@ async fn payout_cancelled() -> anyhow::Result<()> {
 
     let payout_id = PayoutId::new();
     let satoshis = Satoshis::from(50_000_000);
-    let payout_queue_id = PayoutQueueId::new();
-    let profile_id = ProfileId::new();
-
     let tx = pool.begin().await?;
-
+    let ledger_id = LedgerTransactionId::new();
     ledger
         .payout_submitted(
             tx,
-            LedgerTransactionId::new(),
+            ledger_id,
             PayoutSubmittedParams {
                 journal_id,
                 effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
@@ -817,8 +814,8 @@ async fn payout_cancelled() -> anyhow::Result<()> {
                     account_id,
                     payout_id,
                     wallet_id,
-                    payout_queue_id,
-                    profile_id,
+                    payout_queue_id: PayoutQueueId::new(),
+                    profile_id: ProfileId::new(),
                     satoshis,
                     destination: PayoutDestination::OnchainAddress {
                         value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
@@ -843,32 +840,21 @@ async fn payout_cancelled() -> anyhow::Result<()> {
     );
     assert_summaries_match(summary, account_summary);
 
-    let payout_cancelled_params = PayoutCancelledParams {
-        journal_id,
-        external_id: payout_id.to_string(),
-        effective_outgoing_account_id: wallet_ledger_accounts.effective_outgoing_id,
-        meta: PayoutCancelledMeta {
-            account_id,
-            payout_id,
-            wallet_id,
-            payout_queue_id,
-            profile_id,
-            satoshis,
-            destination: PayoutDestination::OnchainAddress {
-                value: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa".parse().unwrap(),
-            },
-        },
-    };
     let tx = pool.begin().await?;
     ledger
-        .payout_cancelled(tx, LedgerTransactionId::new(), payout_cancelled_params)
+        .payout_cancelled(tx, LedgerTransactionId::new(), ledger_id)
         .await?;
-
     let summary = WalletBalanceSummary::from(
         ledger
             .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
             .await?,
     );
     assert_eq!(summary.effective_encumbered_outgoing, Satoshis::ZERO);
+    let account_summary = AccountBalanceSummary::from(
+        ledger
+            .get_account_ledger_account_balances(journal_id)
+            .await?,
+    );
+    assert_summaries_match(summary, account_summary);
     Ok(())
 }
