@@ -4,6 +4,8 @@ git_uri: git@github.com:GaloyMoney/bria.git
 git_branch: main
 github_private_key: ((github.private_key))
 github_token: ((github.api_token))
+github_app_id: ((github.github_app_id))
+github_app_private_key: ((github.github_app_private_key))
 
 git_charts_uri: git@github.com:GaloyMoney/charts.git
 git_charts_branch: main
