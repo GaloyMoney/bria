@@ -1,3 +1,7 @@
+# [bria release v0.1.36](https://github.com/GaloyMoney/bria/releases/tag/0.1.36)
+
+
+
 # [bria release v0.1.34](https://github.com/GaloyMoney/bria/releases/tag/0.1.34)
 
 
