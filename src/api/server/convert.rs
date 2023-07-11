@@ -615,6 +615,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseIncomingPsbt(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
+            ApplicationError::PayoutAlreadyCommitted => {
+                tonic::Status::failed_precondition(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }
@@ -627,6 +630,7 @@ impl ToTraceLevel for tonic::Status {
             tonic::Code::AlreadyExists => tracing::Level::WARN,
             tonic::Code::PermissionDenied => tracing::Level::WARN,
             tonic::Code::InvalidArgument => tracing::Level::WARN,
+            tonic::Code::FailedPrecondition => tracing::Level::WARN,
             _ => tracing::Level::ERROR,
         }
     }
