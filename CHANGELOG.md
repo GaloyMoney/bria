@@ -1,3 +1,18 @@
+# [bria release v0.1.34](https://github.com/GaloyMoney/bria/releases/tag/0.1.34)
+
+
+### Miscellaneous Tasks
+
+- Bump Cargo.lock
+- Bump deps
+
+### Testing
+
+- Fix path to wallet
+- Revert to original bitcoind_inner
+- Longer wait between bitcoind retries
+- Random bitcoind wallet name
+
 # [bria release v0.1.33](https://github.com/GaloyMoney/bria/releases/tag/0.1.33)
 
 
