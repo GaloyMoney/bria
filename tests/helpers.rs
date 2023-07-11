@@ -51,7 +51,7 @@ pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
         match bitcoind_client_inner(&wallet_name).await {
             Err(e) => {
                 dbg!("bitcoind_client_inner failed: {}", e);
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             }
             Ok(c) => return Ok(c),
         }
