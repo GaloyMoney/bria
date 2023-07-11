@@ -60,7 +60,8 @@ pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {
         "bitcoind_client_inner failed too many times"
     ))
 }
-pub async fn bitcoind_client_inner(wallet_name: &str) -> anyhow::Result<bitcoincore_rpc::Client> {
+const BITCOIND_WALLET_NAME: &str = "bria";
+pub async fn bitcoind_client_inner(_wallet_name: &str) -> anyhow::Result<bitcoincore_rpc::Client> {
     use bitcoincore_rpc::Auth;
 
     let bitcoind_host = std::env::var("BITCOIND_HOST").unwrap_or("localhost".to_string());
@@ -69,15 +70,37 @@ pub async fn bitcoind_client_inner(wallet_name: &str) -> anyhow::Result<bitcoinc
         Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
     )
     .context("BitcoindClient::new")?;
-    client
-        .create_wallet(wallet_name, None, None, None, None)
-        .context("client.create_wallet - 1")?;
-    let addr = client
-        .get_new_address(None, None)
-        .context("client.get_new_address - 2")?;
-    client
-        .generate_to_address(101, &addr)
-        .context("client.generate_to_address - 2")?;
+    if client
+        .list_wallets()
+        .context("client.list_wallets")?
+        .is_empty()
+    {
+        if client.load_wallet(BITCOIND_WALLET_NAME).is_err() {
+            client
+                .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+                .context("client.create_wallet - 1")?;
+        }
+        let addr = client
+            .get_new_address(None, None)
+            .context("client.get_new_address - 1")?;
+        client
+            .generate_to_address(101, &addr)
+            .context("client.generate_to_address - 1")?;
+    }
+    let wallet_info = client.get_wallet_info().context("client.get_wallet_info")?;
+    if wallet_info.wallet_name != BITCOIND_WALLET_NAME {
+        if client.load_wallet(BITCOIND_WALLET_NAME).is_err() {
+            client
+                .create_wallet(BITCOIND_WALLET_NAME, None, None, None, None)
+                .context("client.create_wallet - 2")?;
+        }
+        let addr = client
+            .get_new_address(None, None)
+            .context("client.get_new_address - 2")?;
+        client
+            .generate_to_address(101, &addr)
+            .context("client.generate_to_address - 2")?;
+    }
     Ok(client)
 }
 
