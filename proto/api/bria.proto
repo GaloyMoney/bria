@@ -470,6 +470,7 @@ message BriaEvent {
     UtxoSettled utxo_settled = 5;
     UtxoDropped utxo_dropped = 10;
     PayoutSubmitted payout_submitted = 6;
+    PayoutCancelled payout_cancelled = 11;
     PayoutCommitted payout_committed = 7;
     PayoutBroadcast payout_broadcast = 8;
     PayoutSettled payout_settled = 9;
@@ -508,6 +509,16 @@ message UtxoDropped {
 }
 
 message PayoutSubmitted {
+  string id = 1;
+  string wallet_id = 2;
+  string payout_queue_id = 3;
+  uint64 satoshis = 4;
+  oneof destination {
+    string onchain_address = 5;
+  };
+}
+
+message PayoutCancelled {
   string id = 1;
   string wallet_id = 2;
   string payout_queue_id = 3;

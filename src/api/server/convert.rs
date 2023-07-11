@@ -457,6 +457,22 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                     destination.to_string(),
                 )),
             }),
+            OutboxEventPayload::PayoutCancelled {
+                id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination,
+                ..
+            } => proto::bria_event::Payload::PayoutCancelled(proto::PayoutCancelled {
+                id: id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_cancelled::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
             OutboxEventPayload::PayoutCommitted {
                 id,
                 tx_id,
