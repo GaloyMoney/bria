@@ -680,6 +680,29 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.cancel_payout", skip_all, fields(error, error.level, error.message), err)]
+    async fn cancel_payout(
+        &self,
+        request: Request<CancelPayoutRequest>,
+    ) -> Result<Response<CancelPayoutResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let CancelPayoutRequest { id } = request;
+            self.app
+                .cancel_payout(
+                    profile,
+                    id.parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                )
+                .await?;
+            Ok(Response::new(CancelPayoutResponse {}))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.list_wallets", skip_all, fields(error, error.level, error.message), err)]
     async fn list_wallets(
         &self,

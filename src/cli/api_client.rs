@@ -448,6 +448,15 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn cancel_payout(&self, id: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CancelPayoutRequest { id });
+        let response = self
+            .connect()
+            .await?
+            .cancel_payout(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
     pub async fn list_payout_queues(&self) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListPayoutQueuesRequest {});
         let response = self

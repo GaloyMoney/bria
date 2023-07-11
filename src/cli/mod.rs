@@ -428,6 +428,20 @@ enum Command {
         #[clap(short = 'e', long, group = "identifier")]
         external_id: Option<String>,
     },
+    CancelPayout {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short = 'i', long)]
+        id: String,
+    },
     /// List Wallets
     ListWallets {
         #[clap(
@@ -888,6 +902,10 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.get_payout(id, external_id).await?;
+        }
+        Command::CancelPayout { url, api_key, id } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.cancel_payout(id).await?;
         }
         Command::ListWallets { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);

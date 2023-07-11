@@ -39,6 +39,7 @@ service BriaService {
   rpc ListPayouts (ListPayoutsRequest) returns (ListPayoutsResponse) {}
   rpc FindPayoutByExternalId (FindPayoutByExternalIdRequest) returns (FindPayoutByExternalIdResponse) {}
   rpc GetPayout (GetPayoutRequest) returns (GetPayoutResponse) {}
+  rpc CancelPayout(CancelPayoutRequest) returns (CancelPayoutResponse) {}
 
   rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
 
@@ -399,6 +400,12 @@ message GetPayoutRequest {
 message GetPayoutResponse {
   Payout payout = 1;
 }
+
+message CancelPayoutRequest {
+  string id = 1;
+}
+
+message CancelPayoutResponse {}
 
 message GetBatchRequest {
   string id = 1;
