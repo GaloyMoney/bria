@@ -23,6 +23,8 @@ Code diff contained in this image:
 https://github.com/GaloyMoney/bria/compare/${old_ref}...${ref}
 EOF
 
+exit 1
+
 gh pr close ${BOT_BRANCH} || true
 gh pr create \
   --title "chore(deps) bump-bria-image-${ref}" \
