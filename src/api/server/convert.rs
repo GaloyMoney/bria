@@ -182,6 +182,7 @@ impl From<KeychainUtxos> for proto::KeychainUtxos {
 
 impl From<Payout> for proto::Payout {
     fn from(payout: Payout) -> Self {
+        let cancelled = payout.is_cancelled();
         let destination = match payout.destination {
             PayoutDestination::OnchainAddress { value } => {
                 proto::payout::Destination::OnchainAddress(value.to_string())
@@ -195,6 +196,7 @@ impl From<Payout> for proto::Payout {
             batch_id: payout.batch_id.map(|id| id.to_string()),
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
+            cancelled,
             external_id: payout.external_id,
             metadata: payout.metadata.map(|json| {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")

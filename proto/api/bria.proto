@@ -374,6 +374,7 @@ message Payout {
   oneof destination {
     string onchain_address = 6;
   }
+  bool cancelled = 9;
   string external_id = 7;
   optional google.protobuf.Struct metadata = 8;
 }
