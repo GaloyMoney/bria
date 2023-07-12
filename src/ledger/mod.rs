@@ -239,11 +239,11 @@ impl Ledger {
     pub async fn payout_submitted(
         &self,
         tx: Transaction<'_, Postgres>,
-        tx_id: LedgerTransactionId,
+        tx_id: impl Into<LedgerTransactionId> + std::fmt::Debug,
         params: PayoutSubmittedParams,
     ) -> Result<(), LedgerError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id, PAYOUT_SUBMITTED_CODE, Some(params))
+            .post_transaction_in_tx(tx, tx_id.into(), PAYOUT_SUBMITTED_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -253,8 +253,9 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        payout_submitted_tx_id: LedgerTransactionId,
+        payout_submitted_tx_id: impl Into<LedgerTransactionId> + std::fmt::Debug,
     ) -> Result<(), LedgerError> {
+        let payout_submitted_tx_id = payout_submitted_tx_id.into();
         let txs = self
             .inner
             .transactions()

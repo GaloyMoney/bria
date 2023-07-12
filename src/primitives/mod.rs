@@ -28,6 +28,16 @@ crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }
 crate::entity_id! { PayoutQueueId }
 crate::entity_id! { PayoutId }
+impl From<PayoutId> for LedgerTransactionId {
+    fn from(id: PayoutId) -> Self {
+        Self::from(uuid::Uuid::from(id))
+    }
+}
+impl From<LedgerTransactionId> for PayoutId {
+    fn from(id: LedgerTransactionId) -> Self {
+        Self::from(uuid::Uuid::from(id))
+    }
+}
 crate::entity_id! { BatchId }
 crate::entity_id! { OutboxEventId }
 

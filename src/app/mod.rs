@@ -689,7 +689,7 @@ impl App {
         self.ledger
             .payout_submitted(
                 tx,
-                LedgerTransactionId::from(uuid::Uuid::from(id)),
+                id,
                 PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
                     effective_outgoing_account_id: wallet.ledger_account_ids.effective_outgoing_id,
@@ -727,11 +727,7 @@ impl App {
         }
         payout.cancel_payout(profile.id);
         self.ledger
-            .payout_cancelled(
-                tx,
-                LedgerTransactionId::new(),
-                LedgerTransactionId::from(uuid::Uuid::from(payout.id)),
-            )
+            .payout_cancelled(tx, LedgerTransactionId::new(), payout.id)
             .await?;
         self.payouts.update(payout).await?;
         Ok(())
