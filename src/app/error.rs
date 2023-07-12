@@ -71,4 +71,5 @@ pub enum ApplicationError {
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Payout already committed to a batch")]
     PayoutAlreadyCommitted,
+    
 }
