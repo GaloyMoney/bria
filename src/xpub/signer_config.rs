@@ -11,7 +11,7 @@ pub struct ConfigCyper(pub(super) Vec<u8>);
 #[derive(Clone)]
 pub struct Nonce(pub(super) Vec<u8>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(into = "RawSignerEncryptionConfig")]
 #[serde(try_from = "RawSignerEncryptionConfig")]
 pub struct SignerEncryptionConfig {
@@ -87,6 +87,15 @@ impl std::fmt::Debug for SignerConfig {
                 write!(f, "SignerConfig::Bitcoind(endpoint={})", config.endpoint)
             }
         }
+    }
+}
+
+impl std::fmt::Debug for SignerEncryptionConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "SignerEncryptionConfig {{ key: *******Redacted******* }}"
+        )
     }
 }
 
