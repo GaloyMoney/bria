@@ -722,6 +722,9 @@ impl App {
         if payout.batch_id.is_some() {
             return Err(ApplicationError::PayoutAlreadyCommitted);
         }
+        if payout.is_cancelled() {
+            return Err(ApplicationError::PayoutAlreadyCancelled);
+        }
         payout.cancel_payout();
         self.ledger
             .payout_cancelled(
@@ -730,6 +733,7 @@ impl App {
                 LedgerTransactionId::from(uuid::Uuid::from(payout.id)),
             )
             .await?;
+        self.payouts.update(payout).await?;
         Ok(())
     }
 

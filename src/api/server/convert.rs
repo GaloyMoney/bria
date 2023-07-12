@@ -634,6 +634,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutAlreadyCommitted => {
                 tonic::Status::failed_precondition(err.to_string())
             }
+            ApplicationError::PayoutAlreadyCancelled => {
+                tonic::Status::failed_precondition(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }

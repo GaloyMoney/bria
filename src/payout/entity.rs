@@ -45,6 +45,7 @@ pub struct Payout {
     pub external_id: String,
     #[builder(setter(into), default)]
     pub metadata: Option<serde_json::Value>,
+
     pub(super) events: EntityEvents<PayoutEvent>,
 }
 
@@ -54,7 +55,17 @@ impl Payout {
             executed_by: self.profile_id,
         })
     }
+
+    pub fn is_cancelled(&self) -> bool {
+        for event in self.events.iter() {
+            if let PayoutEvent::Cancelled { .. } = event {
+                return true;
+            }
+        }
+        false
+    }
 }
+
 #[derive(Debug, Builder, Clone)]
 pub struct NewPayout {
     #[builder(setter(into))]
