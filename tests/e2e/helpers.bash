@@ -114,7 +114,14 @@ bitcoind_init() {
 
 start_daemon() {
   SIGNER_ENCRYPTION_KEY="${SIGNER_ENCRYPTION_KEY}" background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml run > .e2e-logs
-  sleep 10 # wait for daemon to be up and running
+  for i in {1..20}
+  do
+    if head .e2e-logs | grep -q 'Starting main server on port'; then
+      break
+    else
+      sleep 1
+    fi
+  done
 }
 
 stop_daemon() {
