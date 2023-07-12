@@ -23,7 +23,7 @@ pub struct PayoutCancelledMeta {
 pub struct PayoutCancelledParams {
     pub journal_id: JournalId,
     pub effective_outgoing_account_id: LedgerAccountId,
-    pub correlation_id: LedgerTransactionId,
+    pub payout_submitted_tx_id: LedgerTransactionId,
     pub meta: PayoutCancelledMeta,
 }
 
@@ -69,7 +69,7 @@ impl From<PayoutCancelledParams> for TxParams {
         PayoutCancelledParams {
             journal_id,
             effective_outgoing_account_id,
-            correlation_id,
+            payout_submitted_tx_id,
             meta,
         }: PayoutCancelledParams,
     ) -> Self {
@@ -83,7 +83,7 @@ impl From<PayoutCancelledParams> for TxParams {
             effective_outgoing_account_id,
         );
         params.insert("amount", amount);
-        params.insert("correlation_id", correlation_id);
+        params.insert("correlation_id", payout_submitted_tx_id);
         params.insert("meta", meta);
         params.insert("effective", effective);
         params

@@ -253,12 +253,12 @@ impl Ledger {
         &self,
         tx: Transaction<'_, Postgres>,
         tx_id: LedgerTransactionId,
-        correlation_id: LedgerTransactionId,
+        payout_submitted_tx_id: LedgerTransactionId,
     ) -> Result<(), LedgerError> {
         let txs = self
             .inner
             .transactions()
-            .list_by_ids(std::iter::once(correlation_id))
+            .list_by_ids(std::iter::once(payout_submitted_tx_id))
             .await?;
         let txn = txs.get(0).ok_or(LedgerError::TransactionNotFound)?;
         let PayoutSubmittedMeta {
@@ -273,7 +273,7 @@ impl Ledger {
         let entries = self
             .inner
             .entries()
-            .list_by_transaction_ids(std::iter::once(correlation_id))
+            .list_by_transaction_ids(std::iter::once(payout_submitted_tx_id))
             .await?;
         let effective_outgoing_account_id = entries
             .into_values()
@@ -288,7 +288,7 @@ impl Ledger {
         let params = PayoutCancelledParams {
             journal_id: txn.journal_id,
             effective_outgoing_account_id,
-            correlation_id,
+            payout_submitted_tx_id,
             meta: PayoutCancelledMeta {
                 payout_id,
                 account_id,
