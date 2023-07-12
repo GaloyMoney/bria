@@ -723,7 +723,7 @@ impl App {
             return Err(ApplicationError::PayoutAlreadyCommitted);
         }
         if payout.is_cancelled() {
-            return Err(ApplicationError::PayoutAlreadyCancelled);
+            return Ok(());
         }
         payout.cancel_payout();
         self.ledger
