@@ -83,6 +83,14 @@ pub enum OutboxEventPayload {
         satoshis: Satoshis,
         destination: PayoutDestination,
     },
+    PayoutCancelled {
+        id: PayoutId,
+        profile_id: ProfileId,
+        wallet_id: WalletId,
+        payout_queue_id: PayoutQueueId,
+        satoshis: Satoshis,
+        destination: PayoutDestination,
+    },
     PayoutCommitted {
         id: PayoutId,
         vout: u32,
@@ -152,6 +160,14 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 keychain_id: meta.keychain_id,
             }),
             PayoutSubmitted(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
+                id: meta.payout_id,
+                wallet_id: meta.wallet_id,
+                payout_queue_id: meta.payout_queue_id,
+                profile_id: meta.profile_id,
+                satoshis: meta.satoshis,
+                destination: meta.destination,
+            }),
+            PayoutCancelled(meta) => res.push(OutboxEventPayload::PayoutCancelled {
                 id: meta.payout_id,
                 wallet_id: meta.wallet_id,
                 payout_queue_id: meta.payout_queue_id,

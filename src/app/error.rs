@@ -69,4 +69,6 @@ pub enum ApplicationError {
     SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
+    #[error("Payout already committed to a batch")]
+    PayoutAlreadyCommitted,
 }

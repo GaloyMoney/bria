@@ -182,6 +182,7 @@ impl From<KeychainUtxos> for proto::KeychainUtxos {
 
 impl From<Payout> for proto::Payout {
     fn from(payout: Payout) -> Self {
+        let cancelled = payout.is_cancelled();
         let destination = match payout.destination {
             PayoutDestination::OnchainAddress { value } => {
                 proto::payout::Destination::OnchainAddress(value.to_string())
@@ -195,6 +196,7 @@ impl From<Payout> for proto::Payout {
             batch_id: payout.batch_id.map(|id| id.to_string()),
             satoshis: u64::from(payout.satoshis),
             destination: Some(destination),
+            cancelled,
             external_id: payout.external_id,
             metadata: payout.metadata.map(|json| {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
@@ -457,6 +459,22 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                     destination.to_string(),
                 )),
             }),
+            OutboxEventPayload::PayoutCancelled {
+                id,
+                wallet_id,
+                payout_queue_id,
+                satoshis,
+                destination,
+                ..
+            } => proto::bria_event::Payload::PayoutCancelled(proto::PayoutCancelled {
+                id: id.to_string(),
+                wallet_id: wallet_id.to_string(),
+                payout_queue_id: payout_queue_id.to_string(),
+                satoshis: u64::from(satoshis),
+                destination: Some(proto::payout_cancelled::Destination::OnchainAddress(
+                    destination.to_string(),
+                )),
+            }),
             OutboxEventPayload::PayoutCommitted {
                 id,
                 tx_id,
@@ -615,6 +633,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseIncomingPsbt(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
+            ApplicationError::PayoutAlreadyCommitted => {
+                tonic::Status::failed_precondition(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }
@@ -627,6 +648,7 @@ impl ToTraceLevel for tonic::Status {
             tonic::Code::AlreadyExists => tracing::Level::WARN,
             tonic::Code::PermissionDenied => tracing::Level::WARN,
             tonic::Code::InvalidArgument => tracing::Level::WARN,
+            tonic::Code::FailedPrecondition => tracing::Level::WARN,
             _ => tracing::Level::ERROR,
         }
     }

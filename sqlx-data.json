@@ -2127,6 +2127,81 @@
     },
     "query": "\n          SELECT b.*, e.sequence, e.event\n          FROM bria_payouts b\n          JOIN bria_payout_events e ON b.id = e.id\n          WHERE account_id = $1 AND b.id = $2\n          ORDER BY b.created_at, b.id, e.sequence"
   },
+  "be18ca32819fdda44a36323ced8e6aa95532db9cf1714814e6f15bfb56ae791f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "wallet_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "payout_queue_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "batch_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "profile_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "external_id",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 7,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT b.*, e.sequence, e.event\n        FROM bria_payouts b\n        JOIN bria_payout_events e ON b.id = e.id\n        WHERE account_id = $1 AND b.id = $2\n        ORDER BY b.created_at, b.id, e.sequence\n        FOR UPDATE"
+  },
   "c10c892b9997213a39501192937233ec95053c1a7598736e00c2525cd7e2e030": {
     "describe": {
       "columns": [

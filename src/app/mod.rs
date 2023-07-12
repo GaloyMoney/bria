@@ -689,7 +689,7 @@ impl App {
         self.ledger
             .payout_submitted(
                 tx,
-                LedgerTransactionId::from(uuid::Uuid::from(id)),
+                id,
                 PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
                     effective_outgoing_account_id: wallet.ledger_account_ids.effective_outgoing_id,
@@ -707,6 +707,30 @@ impl App {
             )
             .await?;
         Ok(id)
+    }
+
+    pub async fn cancel_payout(
+        &self,
+        profile: Profile,
+        id: PayoutId,
+    ) -> Result<(), ApplicationError> {
+        let mut tx = self.pool.begin().await?;
+        let mut payout = self
+            .payouts
+            .find_by_id_for_cancellation(&mut tx, profile.account_id, id)
+            .await?;
+        if payout.batch_id.is_some() {
+            return Err(ApplicationError::PayoutAlreadyCommitted);
+        }
+        if payout.is_cancelled() {
+            return Ok(());
+        }
+        payout.cancel_payout(profile.id);
+        self.ledger
+            .payout_cancelled(tx, LedgerTransactionId::new(), payout.id)
+            .await?;
+        self.payouts.update(payout).await?;
+        Ok(())
     }
 
     #[instrument(name = "app.list_wallets", skip_all, err)]

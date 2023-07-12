@@ -85,6 +85,7 @@ impl Augmenter {
                 })
             }
             OutboxEventPayload::PayoutSubmitted { id, .. }
+            | OutboxEventPayload::PayoutCancelled { id, .. }
             | OutboxEventPayload::PayoutCommitted { id, .. }
             | OutboxEventPayload::PayoutBroadcast { id, .. }
             | OutboxEventPayload::PayoutSettled { id, .. } => {

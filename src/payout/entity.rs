@@ -24,6 +24,9 @@ pub enum PayoutEvent {
         batch_id: BatchId,
         outpoint: bitcoin::OutPoint,
     },
+    Cancelled {
+        executed_by: ProfileId,
+    },
 }
 
 #[derive(Builder)]
@@ -42,6 +45,25 @@ pub struct Payout {
     pub external_id: String,
     #[builder(setter(into), default)]
     pub metadata: Option<serde_json::Value>,
+
+    pub(super) events: EntityEvents<PayoutEvent>,
+}
+
+impl Payout {
+    pub fn cancel_payout(&mut self, profile_id: ProfileId) {
+        self.events.push(PayoutEvent::Cancelled {
+            executed_by: profile_id,
+        })
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        for event in self.events.iter() {
+            if let PayoutEvent::Cancelled { .. } = event {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 #[derive(Debug, Builder, Clone)]
@@ -126,8 +148,9 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
                 PayoutEvent::CommittedToBatch { batch_id, outpoint } => {
                     builder = builder.batch_id(*batch_id).outpoint(*outpoint);
                 }
+                _ => (),
             }
         }
-        builder.build()
+        builder.events(events).build()
     }
 }

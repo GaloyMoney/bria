@@ -139,7 +139,22 @@ impl Payouts {
                     .push(UnbatchedPayout::try_from(events)?);
             }
         }
-        Ok(UnbatchedPayouts::new(payouts))
+        let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = payouts
+            .into_iter()
+            .map(|(wallet_id, unbatched_payouts)| {
+                let filtered_unbatched_payouts = unbatched_payouts
+                    .into_iter()
+                    .filter(|payout| {
+                        !payout
+                            .events
+                            .iter()
+                            .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
+                    })
+                    .collect();
+                (wallet_id, filtered_unbatched_payouts)
+            })
+            .collect();
+        Ok(UnbatchedPayouts::new(filtered_payouts))
     }
 
     #[instrument(name = "payouts.list_for_wallet", skip(self))]
@@ -273,5 +288,53 @@ impl Payouts {
                 .expect("Couldn't unwrap avg_payouts_per_batch"),
             Satoshis::from(res.average_payout_value),
         ))
+    }
+
+    #[instrument(name = "payouts.find_by_id_for_cancellation", skip(self))]
+    pub async fn find_by_id_for_cancellation(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        account_id: AccountId,
+        payout_id: PayoutId,
+    ) -> Result<Payout, PayoutError> {
+        let rows = sqlx::query!(
+            r#"
+        SELECT b.*, e.sequence, e.event
+        FROM bria_payouts b
+        JOIN bria_payout_events e ON b.id = e.id
+        WHERE account_id = $1 AND b.id = $2
+        ORDER BY b.created_at, b.id, e.sequence
+        FOR UPDATE"#,
+            account_id as AccountId,
+            payout_id as PayoutId,
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        if rows.is_empty() {
+            return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
+        }
+
+        let mut entity_events = EntityEvents::new();
+        for row in rows {
+            entity_events.load_event(row.sequence as usize, row.event)?;
+        }
+        Ok(Payout::try_from(entity_events)?)
+    }
+
+    pub async fn update(&self, payout: Payout) -> Result<(), PayoutError> {
+        if !payout.events.is_dirty() {
+            return Ok(());
+        }
+
+        let mut tx = self.pool.begin().await?;
+        EntityEvents::<PayoutEvent>::persist(
+            "bria_payout_events",
+            &mut tx,
+            payout.events.new_serialized_events(payout.id),
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
     }
 }
