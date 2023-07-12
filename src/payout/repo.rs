@@ -311,4 +311,20 @@ impl Payouts {
         }
         Ok(Payout::try_from(entity_events)?)
     }
+
+    pub async fn update(&self, payout: Payout) -> Result<(), PayoutError> {
+        if !payout.events.is_dirty() {
+            return Ok(());
+        }
+
+        let mut tx = self.pool.begin().await?;
+        EntityEvents::<PayoutEvent>::persist(
+            "bria_payout_events",
+            &mut tx,
+            payout.events.new_serialized_events(payout.id),
+        )
+        .await?;
+        tx.commit().await?;
+        Ok(())
+    }
 }
