@@ -50,9 +50,9 @@ pub struct Payout {
 }
 
 impl Payout {
-    pub fn cancel_payout(&mut self) {
+    pub fn cancel_payout(&mut self, profile_id: ProfileId) {
         self.events.push(PayoutEvent::Cancelled {
-            executed_by: self.profile_id,
+            executed_by: profile_id,
         })
     }
 

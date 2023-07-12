@@ -725,7 +725,7 @@ impl App {
         if payout.is_cancelled() {
             return Ok(());
         }
-        payout.cancel_payout();
+        payout.cancel_payout(profile.id);
         self.ledger
             .payout_cancelled(
                 tx,
