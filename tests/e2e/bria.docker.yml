@@ -5,3 +5,6 @@ app:
   fees:
     mempool_space:
       url: http://mempool:8999
+  deprecated_encryption_key:
+    nonce: ""
+    key: ""

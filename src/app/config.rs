@@ -11,6 +11,12 @@ use crate::{
     xpub::SignerEncryptionConfig,
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeprecatedEncyptionKey {
+    pub nonce: String,
+    pub key: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
@@ -19,7 +25,7 @@ pub struct AppConfig {
     pub jobs: JobsConfig,
     #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
-    pub deprecated_config: Option<SignerEncryptionConfig>,
+    pub deprecated_encryption_key: Option<DeprecatedEncyptionKey>,
     #[serde(default)]
     pub fees: FeesConfig,
     #[serde(default)]
