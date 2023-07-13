@@ -69,3 +69,11 @@ pub fn gen_signer_encryption_key() -> anyhow::Result<()> {
     println!("{}", hex_string);
     Ok(())
 }
+
+pub fn gen_updated_encryption_key(deprecated_key: String) -> anyhow::Result<()> {
+    let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+    let key_bytes = key.as_slice();
+    let hex_string = hex::encode(key_bytes);
+    println!("{}", hex_string);
+    Ok(())
+}

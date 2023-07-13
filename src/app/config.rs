@@ -19,6 +19,7 @@ pub struct AppConfig {
     pub jobs: JobsConfig,
     #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
+    pub deprecated_config: Option<SignerEncryptionConfig>,
     #[serde(default)]
     pub fees: FeesConfig,
     #[serde(default)]

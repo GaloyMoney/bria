@@ -90,7 +90,7 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
-        Ok(Self {
+        let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
             xpubs,
@@ -107,7 +107,26 @@ impl App {
             mempool_space_client,
             config,
             _runner: runner,
-        })
+        };
+        if let Some(deprecated_config) = app.config.deprecated_config.as_ref() {
+            app.rotate_key().await?;
+        }
+        Ok(app)
+    }
+
+    #[instrument(name = "app.rotate_key", skip_all, err)]
+    pub async fn rotate_key(&self, profile: Profile) -> Result<(), ApplicationError> {
+        let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
+        if let Some(deprecated_config) = self.config.deprecated_config.as_ref() {
+            for mut xpub in xpubs {
+                if let Some(signing_cfg) = xpub.signing_cfg(deprecated_config.key) {
+                    let mut tx = self.pool.begin().await?;
+                    xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
+                    self.xpubs.persist_updated(&mut tx, xpub).await?;
+                }
+            }
+        }
+        Ok(())
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
