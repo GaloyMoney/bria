@@ -544,6 +544,11 @@ enum UtilsCommand {
     GenSignerEncryptionKey {},
     /// extract addresses
     ExtractAddresses { path: PathBuf },
+    /// generate a new encryption key, encrypted deprecated key and nonce
+    GenUpdatedEncryptionKey {
+        #[clap(short, long)]
+        old_key: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -685,6 +690,9 @@ pub async fn run() -> anyhow::Result<()> {
             UtilsCommand::GenSignerEncryptionKey {} => gen::gen_signer_encryption_key()?,
             UtilsCommand::ExtractAddresses { path } => {
                 address_extractor::read_and_parse_addresses(path)?
+            }
+            UtilsCommand::GenUpdatedEncryptionKey { old_key } => {
+                gen::gen_updated_encryption_key(old_key)?
             }
         },
         Command::Admin {

@@ -5,8 +5,8 @@ use bdk::{
 };
 
 use chacha20poly1305::{
-    aead::{KeyInit, OsRng},
-    ChaCha20Poly1305,
+    aead::{Aead, KeyInit, OsRng},
+    AeadCore, ChaCha20Poly1305,
 };
 
 use std::str::FromStr;
@@ -70,10 +70,18 @@ pub fn gen_signer_encryption_key() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn gen_updated_encryption_key(deprecated_key: String) -> anyhow::Result<()> {
-    let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-    let key_bytes = key.as_slice();
-    let hex_string = hex::encode(key_bytes);
-    println!("{}", hex_string);
+pub fn gen_updated_encryption_key(old_key: String) -> anyhow::Result<()> {
+    let new_encryption_key = ChaCha20Poly1305::generate_key(&mut OsRng);
+    let hex_new_encryption_key = hex::encode(new_encryption_key.as_slice());
+    let cipher = ChaCha20Poly1305::new(&new_encryption_key);
+    let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let encrypted_old_key = cipher
+        .encrypt(&nonce, old_key.as_ref())
+        .expect("should always encrypt");
+    let hex_encrypted_old_key = hex::encode(encrypted_old_key);
+    let hex_nonce = hex::encode(nonce.as_slice());
+    println!("New encryption key: {}", hex_new_encryption_key);
+    println!("Encrypted old key: {}", hex_encrypted_old_key);
+    println!("Nonce: {}", hex_nonce);
     Ok(())
 }
