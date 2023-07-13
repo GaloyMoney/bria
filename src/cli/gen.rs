@@ -75,8 +75,9 @@ pub fn gen_updated_encryption_key(old_key: String) -> anyhow::Result<()> {
     let hex_new_encryption_key = hex::encode(new_encryption_key.as_slice());
     let cipher = ChaCha20Poly1305::new(&new_encryption_key);
     let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+    let old_key_bytes = hex::decode(old_key)?;
     let encrypted_old_key = cipher
-        .encrypt(&nonce, old_key.as_ref())
+        .encrypt(&nonce, old_key_bytes.as_slice())
         .expect("should always encrypt");
     let hex_encrypted_old_key = hex::encode(encrypted_old_key);
     let hex_nonce = hex::encode(nonce.as_slice());
