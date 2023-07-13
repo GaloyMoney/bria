@@ -76,6 +76,12 @@ pub fn gen_updated_encryption_key(old_key: String) -> anyhow::Result<()> {
     let cipher = ChaCha20Poly1305::new(&new_encryption_key);
     let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
     let old_key_bytes = hex::decode(old_key)?;
+    if old_key_bytes.len() != 32 {
+        return Err(anyhow::anyhow!(
+            "Deprecated signer encryption key must be 32 bytes, got {}",
+            old_key_bytes.len()
+        ));
+    }
     let encrypted_old_key = cipher
         .encrypt(&nonce, old_key_bytes.as_slice())
         .expect("should always encrypt");
