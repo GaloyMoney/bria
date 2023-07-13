@@ -1,3 +1,4 @@
+use chacha20poly1305;
 use thiserror::Error;
 
 use crate::{
@@ -71,4 +72,14 @@ pub enum ApplicationError {
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Payout already committed to a batch")]
     PayoutAlreadyCommitted,
+    #[error("Hex decode error: {0}")]
+    HexDecodeError(#[from] hex::FromHexError),
+    #[error("Could not decrypt the encrypted key")]
+    CouldNotDecryptKey,
+}
+
+impl From<chacha20poly1305::Error> for ApplicationError {
+    fn from(_value: chacha20poly1305::Error) -> Self {
+        ApplicationError::CouldNotDecryptKey
+    }
 }

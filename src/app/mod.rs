@@ -1,3 +1,8 @@
+use chacha20poly1305::{
+    aead::{Aead, KeyInit},
+    ChaCha20Poly1305,
+};
+
 mod config;
 pub mod error;
 
@@ -108,25 +113,11 @@ impl App {
             config,
             _runner: runner,
         };
-        if let Some(deprecated_config) = app.config.deprecated_config.as_ref() {
-            app.rotate_key().await?;
+        if app.config.deprecated_encryption_key.is_some() {
+            unimplemented!();
+            //  app.rotate_key(profile).await; how to get profile?
         }
         Ok(app)
-    }
-
-    #[instrument(name = "app.rotate_key", skip_all, err)]
-    pub async fn rotate_key(&self, profile: Profile) -> Result<(), ApplicationError> {
-        let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
-        if let Some(deprecated_config) = self.config.deprecated_config.as_ref() {
-            for mut xpub in xpubs {
-                if let Some(signing_cfg) = xpub.signing_cfg(deprecated_config.key) {
-                    let mut tx = self.pool.begin().await?;
-                    xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
-                    self.xpubs.persist_updated(&mut tx, xpub).await?;
-                }
-            }
-        }
-        Ok(())
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
@@ -221,6 +212,29 @@ impl App {
             .await?;
         job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
             .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "app.rotate_key", skip_all, err)]
+    pub async fn rotate_key(&self, profile: Profile) -> Result<(), ApplicationError> {
+        if let Some(deprecated_encrypted_key) = self.config.deprecated_encryption_key.as_ref() {
+            let cipher = ChaCha20Poly1305::new(&self.config.signer_encryption.key);
+            let nonce_bytes = hex::decode(&deprecated_encrypted_key.nonce)?;
+            let nonce = chacha20poly1305::Nonce::from_slice(&nonce_bytes);
+            let deprecated_encrypted_key_bytes = hex::decode(&deprecated_encrypted_key.key)?;
+            let deprecated_key_bytes =
+                cipher.decrypt(&nonce, deprecated_encrypted_key_bytes.as_slice())?;
+            let deprecated_key =
+                chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
+            let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
+            for mut xpub in xpubs {
+                if let Some(signing_cfg) = xpub.signing_cfg(deprecated_key) {
+                    let mut tx = self.pool.begin().await?;
+                    xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
+                    self.xpubs.persist_updated(&mut tx, xpub).await?;
+                }
+            }
+        }
         Ok(())
     }
 
