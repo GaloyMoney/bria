@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeprecatedEncyptionKey {
+pub struct DeprecatedEncryptionKey {
     pub nonce: String,
     pub key: String,
 }
@@ -25,7 +25,7 @@ pub struct AppConfig {
     pub jobs: JobsConfig,
     #[serde(default)]
     pub signer_encryption: SignerEncryptionConfig,
-    pub deprecated_encryption_key: Option<DeprecatedEncyptionKey>,
+    pub deprecated_encryption_key: Option<DeprecatedEncryptionKey>,
     #[serde(default)]
     pub fees: FeesConfig,
     #[serde(default)]

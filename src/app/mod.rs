@@ -223,7 +223,7 @@ impl App {
             let nonce = chacha20poly1305::Nonce::from_slice(&nonce_bytes);
             let deprecated_encrypted_key_bytes = hex::decode(&deprecated_encrypted_key.key)?;
             let deprecated_key_bytes =
-                cipher.decrypt(&nonce, deprecated_encrypted_key_bytes.as_slice())?;
+                cipher.decrypt(nonce, deprecated_encrypted_key_bytes.as_slice())?;
             let deprecated_key =
                 chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
             let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
