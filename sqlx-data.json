@@ -275,60 +275,6 @@
     },
     "query": "SELECT sequence, event_type, event FROM bria_xpub_events\n               WHERE id = $1\n               ORDER BY sequence"
   },
-  "231ba91c9baed6665becc88e07945ddf609e627b51729b0584b47d9e887216b8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "account_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "fingerprint",
-          "ordinal": 3,
-          "type_info": "Bytea"
-        },
-        {
-          "name": "created_at",
-          "ordinal": 4,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "sequence",
-          "ordinal": 5,
-          "type_info": "Int4"
-        },
-        {
-          "name": "event",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "SELECT b.*, e.sequence, e.event\n        FROM bria_xpubs b\n        JOIN bria_xpub_events e ON b.id = e.id\n        ORDER BY b.id, e.sequence"
-  },
   "261d72b26bef231847a2a3ef8430cdaec087a4ce1ac98291b67704415436d4d7": {
     "describe": {
       "columns": [
@@ -1217,6 +1163,60 @@
       }
     },
     "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.batch_id = $2\n              ORDER BY b.created_at, b.id, e.sequence"
+  },
+  "65983b64c9a35cb2869757d3d734053ce507f6ba50564e05606c4b153cdec4f7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "fingerprint",
+          "ordinal": 3,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 4,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "sequence",
+          "ordinal": 5,
+          "type_info": "Int4"
+        },
+        {
+          "name": "event",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT b.*, e.sequence, e.event\n            FROM bria_xpubs b\n            JOIN bria_xpub_events e ON b.id = e.id\n            ORDER BY b.id, e.sequence"
   },
   "667c94ea72926ba7b05c7d785e1c9124b57fa2e15969f7df898657b1d075587a": {
     "describe": {
@@ -2480,6 +2480,36 @@
       }
     },
     "query": "INSERT INTO bria_admin_api_keys (name, encrypted_key)\n            VALUES ($1, crypt($2, gen_salt('bf'))) RETURNING (id)"
+  },
+  "e3cf291e45af0836a825837138d551c573b281e4736bb2c6c3ff5cf3dcf5602b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "cypher",
+          "ordinal": 1,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "nonce",
+          "ordinal": 2,
+          "type_info": "Bytea"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n            SELECT id, cypher, nonce\n            FROM bria_xpub_signer_configs\n            "
   },
   "e6b22adbdcceb4afb26aeceb299fbb32d97989aa7d87ab7f529d2393c36e4f74": {
     "describe": {

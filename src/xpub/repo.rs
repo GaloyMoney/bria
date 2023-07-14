@@ -175,7 +175,7 @@ impl XPubs {
         .fetch_all(&self.pool)
         .await?;
 
-        let config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
             .into_iter()
             .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
             .collect();
@@ -189,8 +189,7 @@ impl XPubs {
 
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
-            let config = config_map.get(&id).cloned();
-
+            let config = config_map.remove(&id);
             let xpub = AccountXPub::try_from((events, config))?;
             xpubs.push(xpub);
         }
@@ -201,27 +200,22 @@ impl XPubs {
     pub async fn list_all_xpubs(&self) -> Result<Vec<AccountXPub>, XPubError> {
         let rows = sqlx::query!(
             r#"SELECT b.*, e.sequence, e.event
-        FROM bria_xpubs b
-        JOIN bria_xpub_events e ON b.id = e.id
-        ORDER BY b.id, e.sequence"#,
+            FROM bria_xpubs b
+            JOIN bria_xpub_events e ON b.id = e.id
+            ORDER BY b.id, e.sequence"#,
         )
         .fetch_all(&self.pool)
         .await?;
-
-        let ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
-
         let config_rows = sqlx::query!(
             r#"
             SELECT id, cypher, nonce
             FROM bria_xpub_signer_configs
-            WHERE id = ANY($1)
             "#,
-            &ids
         )
         .fetch_all(&self.pool)
         .await?;
 
-        let config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
             .into_iter()
             .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
             .collect();
@@ -235,8 +229,7 @@ impl XPubs {
 
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
-            let config = config_map.get(&id).cloned();
-
+            let config = config_map.remove(&id);
             let xpub = AccountXPub::try_from((events, config))?;
             xpubs.push(xpub);
         }
