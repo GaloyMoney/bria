@@ -210,7 +210,7 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.rotate_key", skip_all, err)]
+    #[instrument(name = "app.rotate_encryption_key", skip_all, err)]
     pub async fn rotate_encryption_key(
         &self,
         deprecated_encryption_key: &DeprecatedEncryptionKey,
