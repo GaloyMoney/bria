@@ -74,12 +74,12 @@ pub enum ApplicationError {
     PayoutAlreadyCommitted,
     #[error("Hex decode error: {0}")]
     HexDecodeError(#[from] hex::FromHexError),
-    #[error("Could not decrypt the encrypted key")]
-    CouldNotDecryptKey,
+    #[error("Could not decrypt the encrypted key: {0}")]
+    CouldNotDecryptKey(chacha20poly1305::Error),
 }
 
 impl From<chacha20poly1305::Error> for ApplicationError {
-    fn from(_value: chacha20poly1305::Error) -> Self {
-        ApplicationError::CouldNotDecryptKey
+    fn from(value: chacha20poly1305::Error) -> Self {
+        ApplicationError::CouldNotDecryptKey(value)
     }
 }

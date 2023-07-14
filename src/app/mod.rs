@@ -1,8 +1,3 @@
-use chacha20poly1305::{
-    aead::{Aead, KeyInit},
-    ChaCha20Poly1305,
-};
-
 mod config;
 pub mod error;
 
@@ -113,8 +108,9 @@ impl App {
             config,
             _runner: runner,
         };
-        if let Some(deprecrate_encryption_key) = app.config.deprecated_encryption_key.clone() {
-            app.rotate_encryption_key(deprecrate_encryption_key).await?;
+        if let Some(deprecrated_encryption_key) = app.config.deprecated_encryption_key.as_ref() {
+            app.rotate_encryption_key(deprecrated_encryption_key)
+                .await?;
         }
         Ok(app)
     }
@@ -217,12 +213,16 @@ impl App {
     #[instrument(name = "app.rotate_key", skip_all, err)]
     pub async fn rotate_encryption_key(
         &self,
-        deprecated_encryption_key: DeprecatedEncryptionKey,
+        deprecated_encryption_key: &DeprecatedEncryptionKey,
     ) -> Result<(), ApplicationError> {
+        use chacha20poly1305::{
+            aead::{Aead, KeyInit},
+            ChaCha20Poly1305,
+        };
         let cipher = ChaCha20Poly1305::new(&self.config.signer_encryption.key);
-        let nonce_bytes = hex::decode(deprecated_encryption_key.nonce)?;
+        let nonce_bytes = hex::decode(&deprecated_encryption_key.nonce)?;
         let nonce = chacha20poly1305::Nonce::from_slice(nonce_bytes.as_slice());
-        let deprecated_encrypted_key_bytes = hex::decode(deprecated_encryption_key.key)?;
+        let deprecated_encrypted_key_bytes = hex::decode(&deprecated_encryption_key.key)?;
         let deprecated_key_bytes =
             cipher.decrypt(nonce, deprecated_encrypted_key_bytes.as_slice())?;
         let deprecated_key = chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
