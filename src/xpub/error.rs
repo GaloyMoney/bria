@@ -18,4 +18,6 @@ pub enum XPubError {
     Bip32(#[from] crate::primitives::bitcoin::bip32::Error),
     #[error("XPubError - UnsupportedPubKeyType")]
     UnsupportedPubKeyType,
+    #[error("Could not decrypt signer config: {0}")]
+    CouldNotDecryptSignerConfig(chacha20poly1305::Error),
 }

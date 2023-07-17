@@ -47,7 +47,7 @@ impl SignerConfig {
                 chacha20poly1305::Nonce::from_slice(nonce.0.as_slice()),
                 encrypted_config.0.as_slice(),
             )
-            .unwrap();
+            .map_err(XPubError::CouldNotDecryptSignerConfig)?;
         let config: SignerConfig = serde_json::from_slice(decrypted_config.as_slice())?;
         Ok(config)
     }
