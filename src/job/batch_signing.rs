@@ -176,6 +176,8 @@ pub async fn execute(
                 Err(err.into())
             }
         }
+    } else if let Some(err) = last_err {
+        Err(err.into())
     } else {
         Ok((data, false))
     }
