@@ -31,7 +31,7 @@ impl SignerConfig {
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
         let encrypted_config = cipher
             .encrypt(&nonce, serde_json::to_vec(self)?.as_slice())
-            .unwrap();
+            .expect("should always encrypt");
 
         Ok((ConfigCyper(encrypted_config), Nonce(nonce.to_vec())))
     }
