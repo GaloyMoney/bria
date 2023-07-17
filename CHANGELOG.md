@@ -1,3 +1,20 @@
+# [bria release v0.1.37](https://github.com/GaloyMoney/bria/releases/tag/0.1.37)
+
+
+### Features
+
+- Payout cancelled (#270)
+
+### Miscellaneous Tasks
+
+- Add key rotation (#274)
+- Implement Debug for SignerEncryptionConfig (#273)
+- Bump serde_json from 1.0.100 to 1.0.102 (#271)
+
+### Testing
+
+- More robust start_daemon delay
+
 # [bria release v0.1.36](https://github.com/GaloyMoney/bria/releases/tag/0.1.36)
 
 
