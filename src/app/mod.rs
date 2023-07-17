@@ -90,7 +90,7 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
-        Ok(Self {
+        let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
             xpubs,
@@ -107,7 +107,12 @@ impl App {
             mempool_space_client,
             config,
             _runner: runner,
-        })
+        };
+        if let Some(deprecrated_encryption_key) = app.config.deprecated_encryption_key.as_ref() {
+            app.rotate_encryption_key(deprecrated_encryption_key)
+                .await?;
+        }
+        Ok(app)
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
@@ -202,6 +207,34 @@ impl App {
             .await?;
         job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
             .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "app.rotate_encryption_key", skip_all, err)]
+    pub async fn rotate_encryption_key(
+        &self,
+        deprecated_encryption_key: &DeprecatedEncryptionKey,
+    ) -> Result<(), ApplicationError> {
+        use chacha20poly1305::{
+            aead::{Aead, KeyInit},
+            ChaCha20Poly1305,
+        };
+        let cipher = ChaCha20Poly1305::new(&self.config.signer_encryption.key);
+        let nonce_bytes = hex::decode(&deprecated_encryption_key.nonce)?;
+        let nonce = chacha20poly1305::Nonce::from_slice(nonce_bytes.as_slice());
+        let deprecated_encrypted_key_bytes = hex::decode(&deprecated_encryption_key.key)?;
+        let deprecated_key_bytes =
+            cipher.decrypt(nonce, deprecated_encrypted_key_bytes.as_slice())?;
+        let deprecated_key = chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
+        let xpubs = self.xpubs.list_all_xpubs().await?;
+        let mut tx = self.pool.begin().await?;
+        for mut xpub in xpubs {
+            if let Some(signing_cfg) = xpub.signing_cfg(deprecated_key) {
+                xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
+                self.xpubs.persist_updated(&mut tx, xpub).await?;
+            }
+        }
+        tx.commit().await?;
         Ok(())
     }
 
