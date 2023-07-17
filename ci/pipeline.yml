@@ -128,9 +128,6 @@ jobs:
       tag: artifacts/gh-release-tag
       repository: repo
       merge: true
-  - put: version
-    params:
-      file: version/version
   - task: github-release
     config:
       image_resource: #@ rust_task_image_config()
@@ -153,6 +150,9 @@ jobs:
       tag: artifacts/gh-release-tag
       body: artifacts/gh-release-notes.md
       globs: [artifacts/binaries/*]
+  - put: version
+    params:
+      file: version/version
 
 - name: release-docker
   serial: true
