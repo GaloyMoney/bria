@@ -219,7 +219,7 @@ impl Transactions {
             self.keychain_id as KeychainId,
             min_height as i32
         )
-        .fetch_all(tx)
+        .fetch_all(&mut **tx)
         .await?;
 
         let mut inputs = Vec::new();
@@ -275,7 +275,7 @@ impl Transactions {
             self.keychain_id as KeychainId,
             tx_id.to_string(),
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
         Ok(())
     }
@@ -299,7 +299,7 @@ impl Transactions {
             self.keychain_id as KeychainId,
             outpoint.txid.to_string(),
         )
-        .execute(tx)
+        .execute(&mut **tx)
         .await?;
         Ok(())
     }

@@ -32,7 +32,7 @@ impl Batches {
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref(),
             bitcoin::consensus::encode::serialize(&batch.unsigned_psbt)
-        ).execute(&mut *tx).await?;
+        ).execute(&mut **tx).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries
@@ -62,7 +62,7 @@ impl Batches {
             },
         );
         let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        query.execute(&mut **tx).await?;
 
         Ok(batch.id)
     }
@@ -172,7 +172,7 @@ impl Batches {
             wallet_id as WalletId,
             batch_id as BatchId,
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?
         .rows_affected();
 
@@ -207,7 +207,7 @@ impl Batches {
             bitcoin_tx_id.as_ref(),
             wallet_id as WalletId
         )
-        .fetch_optional(&mut tx)
+        .fetch_optional(&mut *tx)
         .await?;
         if row.is_none() || row.as_ref().unwrap().batch_created_ledger_tx_id.is_none() {
             return Ok(None);
@@ -232,7 +232,7 @@ impl Batches {
             batch_id,
             wallet_id as WalletId,
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
 
         Ok(Some((

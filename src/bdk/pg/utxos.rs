@@ -99,7 +99,7 @@ impl Utxos {
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
         Ok(())
     }
@@ -117,7 +117,7 @@ impl Utxos {
             utxo.outpoint.txid.to_string(),
             utxo.outpoint.vout as i32,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
         Ok(())
     }
@@ -153,7 +153,7 @@ impl Utxos {
             self.keychain_id as KeychainId,
             min_height as i32,
         )
-        .fetch_optional(tx)
+        .fetch_optional(&mut **tx)
         .await?;
 
         Ok(row.map(|row| {
@@ -185,7 +185,7 @@ impl Utxos {
                RETURNING keychain_id, utxo_json;"#,
             self.keychain_id as KeychainId,
         )
-        .fetch_optional(tx)
+        .fetch_optional(&mut **tx)
         .await?;
         Ok(row.map(|row| {
             let local_utxo = serde_json::from_value::<LocalUtxo>(row.utxo_json)

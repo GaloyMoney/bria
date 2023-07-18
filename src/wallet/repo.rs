@@ -26,7 +26,7 @@ impl Wallets {
             Uuid::from(new_wallet.account_id),
             new_wallet.name
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut **tx)
         .await?;
         EntityEvents::<WalletEvent>::persist(
             "bria_wallet_events",

@@ -26,7 +26,7 @@ impl Accounts {
             id,
             account_name,
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut **tx)
         .await?;
         Ok(Account {
             name: account_name,

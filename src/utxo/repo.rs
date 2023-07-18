@@ -49,7 +49,7 @@ impl UtxoRepo {
           utxo.utxo_detected_ledger_tx_id as LedgerTransactionId,
           utxo.bdk_spent,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         Ok(if result.rows_affected() > 0 {
@@ -86,7 +86,7 @@ impl UtxoRepo {
             outpoint.txid.to_string(),
             outpoint.vout as i32,
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut **tx)
         .await?;
 
         Ok(SettledUtxo {
@@ -131,7 +131,7 @@ impl UtxoRepo {
         );
 
         let query = query_builder.build();
-        let res = query.fetch_all(&mut *tx).await?;
+        let res = query.fetch_all(&mut **tx).await?;
         Ok(if n_inputs == res.len() {
             res.into_iter()
                 .map(|row| SpentUtxo {
@@ -173,7 +173,7 @@ impl UtxoRepo {
         });
         query_builder.push("RETURNING spend_detected_ledger_tx_id");
         let query = query_builder.build();
-        let res = query.fetch_all(&mut *tx).await?;
+        let res = query.fetch_all(&mut **tx).await?;
         Ok(if rows == res.len() {
             Some(LedgerTransactionId::from(
                 res[0].get::<Uuid, _>("spend_detected_ledger_tx_id"),
@@ -259,7 +259,7 @@ impl UtxoRepo {
                FOR UPDATE"#,
             &uuids[..]
         )
-        .fetch_all(&mut *tx)
+        .fetch_all(&mut **tx)
         .await?;
 
         let reservable_utxos = rows
@@ -314,7 +314,7 @@ impl UtxoRepo {
         );
 
         let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        query.execute(&mut **tx).await?;
         Ok(())
     }
 
@@ -455,7 +455,7 @@ impl UtxoRepo {
             outpoint.txid.to_string(),
             outpoint.vout as i32,
         )
-        .fetch_optional(tx)
+        .fetch_optional(&mut **tx)
         .await?;
         match row {
             Some(deleted_row) if deleted_row.income_settled_ledger_tx_id.is_none() => Ok(

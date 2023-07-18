@@ -161,7 +161,7 @@ impl<'a> JobExecutor<'a> {
                 interval,
                 self.job.id()
             )
-            .execute(&mut tx)
+            .execute(&mut *tx)
             .await?;
         }
         self.job

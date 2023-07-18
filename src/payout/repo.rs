@@ -32,7 +32,7 @@ impl Payouts {
             Uuid::from(new_payout.payout_queue_id),
             Uuid::from(new_payout.profile_id),
             new_payout.external_id,
-        ).execute(&mut *tx).await?;
+        ).execute(&mut **tx).await?;
         let id = new_payout.id;
         EntityEvents::<PayoutEvent>::persist(
             "bria_payout_events",
@@ -251,7 +251,7 @@ impl Payouts {
             payouts.batch_id.unwrap() as BatchId,
             &ids[..],
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
         Ok(())
     }
@@ -308,7 +308,7 @@ impl Payouts {
             account_id as AccountId,
             payout_id as PayoutId,
         )
-        .fetch_all(&mut *tx)
+        .fetch_all(&mut **tx)
         .await?;
 
         if rows.is_empty() {
