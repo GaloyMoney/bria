@@ -14,7 +14,7 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: sqlx-cli
-          version: "^0.6"
+          version: "^0.7.1"
       - name: Install nextest
         uses: baptiste0928/cargo-install@v2
         with:
