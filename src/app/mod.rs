@@ -1,7 +1,7 @@
 mod config;
 pub mod error;
 
-use sqlxmq::OwnedHandle;
+use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
 
 use std::collections::HashMap;
@@ -30,7 +30,7 @@ use crate::{
 
 #[allow(dead_code)]
 pub struct App {
-    _runner: OwnedHandle,
+    _runner: JobRunnerHandle,
     outbox: Outbox,
     profiles: Profiles,
     xpubs: XPubs,
