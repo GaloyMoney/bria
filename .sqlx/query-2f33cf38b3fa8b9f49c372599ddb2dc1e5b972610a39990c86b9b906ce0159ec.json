@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n              INSERT INTO bdk_indexes (keychain_id, keychain_kind)\n              VALUES ($1, $2)\n              ON CONFLICT (keychain_id, keychain_kind)\n              DO UPDATE SET index = bdk_indexes.index + 1, modified_at = NOW()\n              WHERE bdk_indexes.keychain_id = $1 AND bdk_indexes.keychain_kind = $2\n              RETURNING index;\n              ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "index",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "bdkkeychainkind",
+            "kind": {
+              "Enum": [
+                "external",
+                "internal"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2f33cf38b3fa8b9f49c372599ddb2dc1e5b972610a39990c86b9b906ce0159ec"
+}

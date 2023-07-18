@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                COALESCE(ROUND(AVG(counts)), 0) AS \"average_payouts_per_batch!\",\n                COALESCE(ROUND(AVG(satoshis)), 0) AS \"average_payout_value!\"\n            FROM (\n                SELECT \n                    bria_payouts.batch_id,\n                    COUNT(*) AS counts,\n                    AVG((event->>'satoshis')::NUMERIC) AS satoshis\n                FROM bria_payouts\n                JOIN bria_payout_events ON bria_payouts.id = bria_payout_events.id\n                WHERE bria_payouts.wallet_id = $1 AND bria_payouts.payout_queue_id = $2 AND bria_payout_events.event_type = 'initialized'\n                GROUP BY bria_payouts.batch_id\n            ) as subquery\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "average_payouts_per_batch!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 1,
+        "name": "average_payout_value!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "685fc5567c7787a765db331506310c85560d9bd07edab7abb95738adcd45e369"
+}

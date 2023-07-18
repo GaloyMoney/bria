@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT wallet_id, keychain_id, tx_id, vout, kind as \"kind: pg::PgKeychainKind\", address_idx, value, address, bdk_spent,\n                  CASE\n                      WHEN kind = 'external' THEN address\n                      ELSE NULL\n                  END as optional_address,\n                  block_height, income_detected_ledger_tx_id, income_settled_ledger_tx_id, spending_batch_id\n           FROM bria_utxos\n           WHERE keychain_id = ANY($1) AND bdk_spent = false\n           ORDER BY created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "wallet_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "keychain_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "tx_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "vout",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "kind: pg::PgKeychainKind",
+        "type_info": {
+          "Custom": {
+            "name": "keychainkind",
+            "kind": {
+              "Enum": [
+                "external",
+                "internal"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "address_idx",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 6,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "bdk_spent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "optional_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "block_height",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "income_detected_ledger_tx_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "income_settled_ledger_tx_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "spending_batch_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3fca5e81c350c9848aa07300603886d2dbdbbf6c987e8cea695af04813c056f0"
+}
