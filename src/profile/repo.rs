@@ -29,7 +29,7 @@ impl Profiles {
             Uuid::from(account_id),
             profile_name,
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut **tx)
         .await?;
         Ok(Profile {
             id: ProfileId::from(record.id),
@@ -101,7 +101,7 @@ impl Profiles {
             key,
             Uuid::from(profile.id),
         )
-        .fetch_one(&mut *tx)
+        .fetch_one(&mut **tx)
         .await?;
         Ok(ProfileApiKey {
             key,

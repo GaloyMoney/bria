@@ -40,7 +40,7 @@ impl XPubs {
             xpub.key_name,
             xpub_id.as_bytes()
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
         let id = xpub.db_uuid;
         EntityEvents::<XPubEvent>::persist(
@@ -81,7 +81,7 @@ impl XPubs {
                 cypher_bytes,
                 nonce_bytes,
             )
-            .execute(&mut *tx)
+            .execute(&mut **tx)
             .await?;
         }
 
@@ -102,7 +102,7 @@ impl XPubs {
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
-                .fetch_one(&mut tx)
+                .fetch_one(&mut *tx)
                 .await?;
                 record.id
             }
@@ -112,7 +112,7 @@ impl XPubs {
                     Uuid::from(account_id),
                     name
                 )
-                .fetch_one(&mut tx)
+                .fetch_one(&mut *tx)
                 .await?;
                 record.id
             }
@@ -124,7 +124,7 @@ impl XPubs {
                ORDER BY sequence"#,
             db_uuid
         )
-        .fetch_all(&mut tx)
+        .fetch_all(&mut *tx)
         .await?;
         let mut events = EntityEvents::new();
         for row in rows {

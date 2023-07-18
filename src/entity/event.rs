@@ -102,7 +102,7 @@ impl<T: DeserializeOwned + Serialize + 'static> EntityEvents<T> {
             builder.push_bind(event);
         });
         let query = query_builder.build();
-        query.execute(&mut *tx).await?;
+        query.execute(&mut **tx).await?;
         Ok(())
     }
 }

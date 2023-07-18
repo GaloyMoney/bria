@@ -53,7 +53,7 @@ impl Descriptors {
             bitcoin::pg::PgKeychainKind::from(descriptor.keychain_kind)
                 as bitcoin::pg::PgKeychainKind,
         )
-        .fetch_one(tx)
+        .fetch_one(&mut **tx)
         .await?;
 
         if res.wallet_id != Some(descriptor.wallet_id) {

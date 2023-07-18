@@ -33,7 +33,7 @@ impl Addresses {
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
 
         Self::persist_events(&mut tx, address).await?;
@@ -59,7 +59,7 @@ impl Addresses {
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await?;
 
         if res.rows_affected() == 0 {
@@ -82,7 +82,7 @@ impl Addresses {
             address.account_id as AccountId,
             address.address.to_string()
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
         EntityEvents::<AddressEvent>::persist(
             "bria_address_events",

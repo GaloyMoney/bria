@@ -28,7 +28,7 @@ impl PayoutQueues {
             queue.account_id as AccountId,
             queue.name,
         )
-        .execute(&mut tx)
+        .execute(&mut *tx)
         .await?;
         let id = queue.id;
         EntityEvents::<PayoutQueueEvent>::persist(

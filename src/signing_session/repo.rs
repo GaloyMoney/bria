@@ -38,7 +38,7 @@ impl SigningSessions {
             builder.push_bind(xpub_id.as_bytes().to_owned());
         });
         let query = query_builder.build();
-        query.execute(&mut tx).await?;
+        query.execute(&mut *tx).await?;
         EntityEvents::<SigningSessionEvent>::persist(
             "bria_signing_session_events",
             &mut tx,
@@ -127,7 +127,7 @@ impl SigningSessions {
             Uuid::from(account_id),
             xpub_id.as_bytes()
         )
-        .fetch_all(&mut *tx)
+        .fetch_all(&mut **tx)
         .await?;
 
         Ok(rows
