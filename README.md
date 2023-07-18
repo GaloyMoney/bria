@@ -12,7 +12,7 @@ Key features of bria are:
 
 ## Demo
 
-To see bria in action you can watch [this end-to-end demo](https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8?sid=d0008868-ffa0-4915-98b3-ae20f64985b8)
+To see bria in action you can watch [this end-to-end demo](https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8)
 
 ## Developing
 
