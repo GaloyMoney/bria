@@ -40,7 +40,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
 ## Demo
-[![Watch the video](https://github.com/yourusername/repository/blob/path/to/animation.gif)](https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8)
+[Watch the video](https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8)
 
 
 ## Installation
