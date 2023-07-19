@@ -19,28 +19,25 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 </details>
 
 ## Key features
-- configuration and management of multiple wallets
-  - all wallets are scoped within an account
+- multi account / multi wallet / multi queue
+    - you can configure multiple wallets socped to an account
+    - signing via muliple supported remote signers including feeding PSBTs manually
+    - transaction batching via configurable payout queues (check the demo for details)
 
-- remote / offline signing
-    - no hot wallet in Bria (for now)
-    - multiple external signers are supported including feeding PSBTs manually
+- cloud ready - intended for use as part of a distributed system
+    - designed to be horizontally scalable
+    - support for idempotent operations via external IDs
+    - embed and update external metadata on addresses and payouts to reference external data
+    - globally ordered event sequence can be streamed to achieve garuanteed eventual consistency
 
-- recording of metadata and external ids (for idempotency) for payouts and addresses
-  - made to be part of a distributed system
+- advanced accounting via an embedded ledger
+    - internal use of double sided bookkeeping
+    - database dump of ledger conforms with accounting best practices
+    - great for accountants / auditors to know exactly what is going on
 
-- 'outbox' pattern for informing clients of state changes via a globally ordered event sequence
-  - to keep upstream clients in sync with the internal state
-  - safely to recover from disconnections
-
-- double sided bookkeeping by an embedded ledger that conforms with accounting standards
-
-- transaction batching via configurable payout queues
-  - details in the demo
-
-- extensive automated testing
-  - unit and integration tests in Rust
-  - end to end tests using BATS
+- secure by design
+  - extensive automated testing (unit + integration in rust, end-to-end using BATS)
+  - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
 ## Demo
 [![Watch the video](https://github.com/yourusername/repository/blob/path/to/animation.gif)](https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8)
