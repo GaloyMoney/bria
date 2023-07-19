@@ -3354,7 +3354,7 @@ dependencies = [
 [[package]]
 name = "sqlxmq"
 version = "0.4.1"
-source = "git+https://github.com/Diggsey/sqlxmq?rev=658d584#658d58426114d569d45ab23d71db47fbd4665e47"
+source = "git+https://github.com/GaloyMoney/sqlxmq?rev=f03f73c#f03f73cc8d844feb936aa5636882746148d2fedf"
 dependencies = [
  "anymap2",
  "chrono",
@@ -3371,7 +3371,7 @@ dependencies = [
 [[package]]
 name = "sqlxmq_macros"
 version = "0.4.1"
-source = "git+https://github.com/Diggsey/sqlxmq?rev=658d584#658d58426114d569d45ab23d71db47fbd4665e47"
+source = "git+https://github.com/GaloyMoney/sqlxmq?rev=f03f73c#f03f73cc8d844feb936aa5636882746148d2fedf"
 dependencies = [
  "proc-macro2",
  "quote",

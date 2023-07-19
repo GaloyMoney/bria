@@ -20,7 +20,7 @@ serde = { version = "1.0.171", features = ["derive"] }
 serde_json = "1.0.102"
 serde_yaml = "0.9.22"
 sqlx = { version = "0.7.1", features = ["runtime-tokio-rustls", "postgres", "rust_decimal", "uuid", "chrono"] }
-sqlxmq = { git = "https://github.com/Diggsey/sqlxmq", rev = "658d584", default-features = false, features = ["runtime-tokio-rustls"] }
+sqlxmq = { git = "https://github.com/GaloyMoney/sqlxmq", rev = "f03f73c", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio = { version = "1.29", features = ["rt-multi-thread", "macros"] }
 tokio-stream = { version = "0.1.14", features = ["sync"] }
 tonic = "0.9"
