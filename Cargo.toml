@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = { git = "https://github.com/GaloyMoney/sqlx-ledger", branch = "main", features = ["otel"] }
+sqlx-ledger = { version = "0.9.0", features = ["otel"] }
 
 anyhow = "1.0.71"
 bitcoincore-rpc = "0.16.0"
