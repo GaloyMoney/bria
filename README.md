@@ -105,7 +105,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 
 * provide a database encryption key
   ```
-  export SIGNER_ENCRYPTION_KEY="00000000000000000000"
+  export SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
   ```
 
 * start the bria daemon with the [default configuration](tests/e2e/bria.local.yml)
