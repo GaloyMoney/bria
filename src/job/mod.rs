@@ -11,7 +11,7 @@ pub mod process_payout_queue;
 
 pub use config::*;
 
-use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, OwnedHandle};
+use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, JobRunnerHandle};
 use tracing::instrument;
 use uuid::{uuid, Uuid};
 
@@ -51,7 +51,7 @@ pub async fn start_job_runner(
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
     mempool_space_client: MempoolSpaceClient,
-) -> Result<OwnedHandle, JobError> {
+) -> Result<JobRunnerHandle, JobError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
         sync_wallet,
@@ -486,7 +486,7 @@ async fn spawn_batch_wallet_accounting(
         .set_json(&data)
         .expect("Couldn't set json")
         .set_channel_args(&format!("wallet_id:{}", data.wallet_id))
-        .spawn(&mut *tx)
+        .spawn(&mut **tx)
         .await
     {
         Err(e) => {
@@ -509,7 +509,7 @@ async fn spawn_batch_signing(
         .expect("Couldn't set json")
         .set_ordered(true)
         .set_channel_args(&format!("batch_id:{}", data.batch_id))
-        .spawn(&mut tx)
+        .spawn(&mut *tx)
         .await
     {
         Err(e) => {
@@ -536,7 +536,7 @@ pub async fn spawn_all_batch_signings(
             .expect("Couldn't set json")
             .set_ordered(true)
             .set_channel_args(&format!("batch_id:{}", data.batch_id))
-            .spawn(&mut tx)
+            .spawn(&mut *tx)
             .await?;
     }
     tx.commit().await?;
@@ -554,7 +554,7 @@ async fn spawn_batch_broadcasting(
         .set_json(&data)
         .expect("Couldn't set json")
         .set_channel_args(&format!("batch_id:{}", data.batch_id))
-        .spawn(&mut tx)
+        .spawn(&mut *tx)
         .await
     {
         Err(e) => {

@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n          SELECT income_detected_ledger_tx_id, tx_id, vout,\n            CASE WHEN income_settled_ledger_tx_id IS NOT NULL THEN value ELSE 0 END AS \"value!\"\n            FROM bria_utxos\n            WHERE spending_batch_id = $1 AND wallet_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "income_detected_ledger_tx_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "tx_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "vout",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "value!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "694b651b08f752d793df49d881cc619f7ca6a75ecf4e118506f094b7fab2c583"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n          SELECT batch_id\n          FROM bria_signing_sessions\n          WHERE account_id = $1 AND xpub_fingerprint = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "batch_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0c868d62166b7dff5ca4cfea668dac316185bbc80f77a98b2dbd9c27c91417fd"
+}

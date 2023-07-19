@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id, s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats, total_spent_sats, change_sats, change_address, change_vout, fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id\n            FROM bria_batch_wallet_summaries s\n            LEFT JOIN bria_batches b ON b.id = s.batch_id\n            WHERE s.batch_id = $1 AND b.account_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "payout_queue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "unsigned_psbt",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 2,
+        "name": "signed_tx",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 3,
+        "name": "bitcoin_tx_id",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 4,
+        "name": "batch_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "wallet_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "current_keychain_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "signing_keychains",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_in_sats",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "total_spent_sats",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "change_sats",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "change_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "change_vout",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "fee_sats",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "batch_created_ledger_tx_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 15,
+        "name": "batch_broadcast_ledger_tx_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "261d72b26bef231847a2a3ef8430cdaec087a4ce1ac98291b67704415436d4d7"
+}

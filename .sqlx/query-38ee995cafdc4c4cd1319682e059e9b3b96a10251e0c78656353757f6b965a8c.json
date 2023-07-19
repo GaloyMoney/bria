@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)\n                VALUES ($1, $2, $3, NOW(), NOW())\n                ON CONFLICT (id) DO UPDATE \n                SET cypher = $2, nonce = $3, modified_at = NOW()\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38ee995cafdc4c4cd1319682e059e9b3b96a10251e0c78656353757f6b965a8c"
+}
