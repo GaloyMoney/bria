@@ -20,7 +20,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 
 ## Key features
 - multi account / multi wallet / multi queue
-    - you can configure multiple wallets socped to an account
+    - you can configure multiple wallets scoped to an account
     - signing via multiple supported remote signers including feeding PSBTs manually
     - transaction batching via configurable payout queues (check the demo for details)
 
