@@ -1,3 +1,31 @@
+# [bria release v0.1.41](https://github.com/GaloyMoney/bria/releases/tag/0.1.41)
+
+
+### Bug Fixes
+
+- Demo link in README.md (#284)
+
+### Documentation
+
+- Use correct SIGNER_ENCRYPTION_KEY (#287)
+- Fix typos
+- Fix watch the video
+- Improve top level bullets
+- Extend readme
+- Attach demo
+
+### Miscellaneous Tasks
+
+- Bump serde_yaml from 0.9.22 to 0.9.24 (#281)
+- Bump uuid from 1.4.0 to 1.4.1 (#278)
+- Bump clap from 4.3.11 to 4.3.16 (#285)
+- Update sqlx to 0.7.1 (#283)
+- Add license
+
+### Refactor
+
+- Use expect instead of unwrap (#279)
+
 # [bria release v0.1.40](https://github.com/GaloyMoney/bria/releases/tag/0.1.40)
 
 
