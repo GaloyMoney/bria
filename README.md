@@ -200,13 +200,18 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 ## Setup
 ### Configuration
 * Connect to the dependencies following the example in the [docker-compose file](docker-compose.yml)
-  - postgres - to store the internal state
-  - bitcoind - to provide the chain state to the electrum server
-  - fulcrum - a performant electrum server
-  - bitcoind-signer - a potential signer
-  - lnd - a potential signer
-  - mempool - self-hostable backend used for fee estimations
-  - otel-agent: optional for observability
+- Database
+  - postgres - to store the internal state - run it locally
+- Blockhchain source
+  - electrum server - run locally or connect to a public server (e.g., `ssl://electrum.blockstream.info:50002` )
+- Signers
+  - bitcoind-signer
+  - lnd
+  - manual PSBT feeding is possible with others
+- Fee-estimation
+  - mempool.space API - self-hostable or use a public instance (e.g., `https://mempool.space` )
+- Telemetry
+  - otel-agent - optional for observability
 
 * Example [terraform provider configuration](https://github.com/GaloyMoney/terraform-provider-bria/blob/main/example/main.tf)
 * Provide the database connection parameters in environment variables
