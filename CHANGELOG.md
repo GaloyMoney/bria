@@ -1,3 +1,19 @@
+# [bria release v0.1.42](https://github.com/GaloyMoney/bria/releases/tag/0.1.42)
+
+
+### Miscellaneous Tasks
+
+- Bump tempfile from 3.6.0 to 3.7.0 (#297)
+- Bump thiserror from 1.0.43 to 1.0.44 (#296)
+- Bump async-trait from 0.1.71 to 0.1.72 (#295)
+- Bump serde from 1.0.171 to 1.0.175 (#293)
+- Bump serde_yaml from 0.9.24 to 0.9.25 (#294)
+- Update license to MPL
+- Bump anyhow from 1.0.71 to 1.0.72 (#288)
+- Bump clap from 4.3.16 to 4.3.17 (#289)
+- Bump serde_with from 3.0.0 to 3.1.0 (#290)
+- Fix typo (#292)
+
 # [bria release v0.1.41](https://github.com/GaloyMoney/bria/releases/tag/0.1.41)
 
 
