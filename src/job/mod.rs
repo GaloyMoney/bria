@@ -618,7 +618,7 @@ pub async fn next_attempt_of_queue(
 ) -> Result<Option<chrono::DateTime<chrono::Utc>>, JobError> {
     let result = sqlx::query!(
         "SELECT attempt_at FROM mq_msgs WHERE id = $1",
-        Uuid::from(id)
+        id as PayoutQueueId
     )
     .fetch_one(pool)
     .await?;
