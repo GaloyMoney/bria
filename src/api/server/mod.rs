@@ -390,32 +390,6 @@ impl BriaService for Bria {
         .await
     }
 
-    #[instrument(name = "bria.find_addresses_by_external_id", skip_all, fields(error, error.level, error.message), err)]
-    async fn find_address_by_external_id(
-        &self,
-        request: Request<FindAddressByExternalIdRequest>,
-    ) -> Result<Response<FindAddressByExternalIdResponse>, Status> {
-        crate::tracing::record_error(|| async move {
-            extract_tracing(&request);
-            let key = extract_api_token(&request)?;
-            let profile = self.app.authenticate(key).await?;
-            let request = request.into_inner();
-            let FindAddressByExternalIdRequest { external_id } = request;
-
-            let address = self
-                .app
-                .find_address_by_external_id(profile, external_id)
-                .await?;
-            let wallet_id = address.wallet_id.to_string();
-            let proto_address: proto::WalletAddress = proto::WalletAddress::from(address);
-            Ok(Response::new(FindAddressByExternalIdResponse {
-                wallet_id,
-                address: Some(proto_address),
-            }))
-        })
-        .await
-    }
-
     #[instrument(name = "bria.get_address", skip_all, fields(error, error.level, error.message), err)]
     async fn get_address(
         &self,
@@ -614,30 +588,6 @@ impl BriaService for Bria {
                 payouts: payout_messages,
             };
             Ok(Response::new(response))
-        })
-        .await
-    }
-
-    #[instrument(name = "bria.find_payout_by_external_id", skip_all, fields(error, error.level, error.message), err)]
-    async fn find_payout_by_external_id(
-        &self,
-        request: Request<FindPayoutByExternalIdRequest>,
-    ) -> Result<Response<FindPayoutByExternalIdResponse>, Status> {
-        crate::tracing::record_error(|| async move {
-            extract_tracing(&request);
-            let key = extract_api_token(&request)?;
-            let profile = self.app.authenticate(key).await?;
-            let request = request.into_inner();
-            let FindPayoutByExternalIdRequest { external_id } = request;
-
-            let payout = self
-                .app
-                .find_payout_by_external_id(profile, external_id)
-                .await?;
-            let proto_payout: proto::Payout = proto::Payout::from(payout);
-            Ok(Response::new(FindPayoutByExternalIdResponse {
-                payout: Some(proto_payout),
-            }))
         })
         .await
     }
