@@ -1,3 +1,15 @@
+# [bria release v0.1.44](https://github.com/GaloyMoney/bria/releases/tag/0.1.44)
+
+
+### Miscellaneous Tasks
+
+- Bump serde_json from 1.0.102 to 1.0.104 (#300)
+- Bump serde from 1.0.175 to 1.0.177 (#299)
+
+### Refactor
+
+- Remove deprecated queries (#302)
+
 # [bria release v0.1.43](https://github.com/GaloyMoney/bria/releases/tag/0.1.43)
 
 
