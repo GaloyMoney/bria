@@ -1027,7 +1027,7 @@ async fn run_cmd(
                 "".to_string(),
             );
 
-            let mut retries = 10;
+            let mut retries = 20;
             let delay = tokio::time::Duration::from_secs(1);
             while retries > 0 {
                 let dev_bootstrap_result = admin_client.dev_bootstrap().await;
@@ -1062,7 +1062,7 @@ async fn run_cmd(
                             xpub: xpub.clone(),
                             derivation_path: dev_derivation,
                         });
-                    retries = 10;
+                    retries = 20;
                     while retries > 0 {
                         match client
                             .create_wallet(
