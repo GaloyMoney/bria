@@ -233,7 +233,7 @@ pub async fn spawn_process_payout_queue(
     onto_account_main_channel(
         pool,
         data.account_id,
-        Uuid::new_v4(),
+        data.payout_queue_id,
         "process_payout_queue",
         data,
     )
@@ -609,6 +609,24 @@ pub async fn spawn_respawn_all_outbox_handlers(
         }
         Ok(_) => Ok(()),
     }
+}
+
+pub async fn next_attempt_of_queue(
+    pool: &sqlx::PgPool,
+    id: PayoutQueueId,
+    interval: std::time::Duration,
+) -> Result<Option<chrono::DateTime<chrono::Utc>>, JobError> {
+    let result = sqlx::query!(
+        "SELECT attempt_at FROM mq_msgs WHERE id = $1",
+        Uuid::from(id)
+    )
+    .fetch_one(pool)
+    .await?;
+    let duration = chrono::Duration::from_std(interval)?;
+    let next_attempt = result
+        .attempt_at
+        .map(|time| time + duration + chrono::Duration::seconds(1));
+    Ok(next_attempt)
 }
 
 fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {

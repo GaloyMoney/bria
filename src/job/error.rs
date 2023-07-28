@@ -57,6 +57,8 @@ pub enum JobError {
     PsbtMissingInSigningSessions,
     #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
+    #[error("Chrono Duration Overflow: The duration value exceeds the limits of the Chrono Duration type.")]
+    OutOfRangeError(#[from] chrono::OutOfRangeError),
 }
 
 impl JobExecutionError for JobError {}
