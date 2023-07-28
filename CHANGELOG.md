@@ -1,3 +1,16 @@
+# [bria release v0.1.43](https://github.com/GaloyMoney/bria/releases/tag/0.1.43)
+
+
+### Documentation
+
+- Add quickstart and video image to readme (#291)
+
+### Miscellaneous Tasks
+
+- Bump retries for dev deamon (again)
+- Bump retries for dev daemon
+- Bump clap from 4.3.17 to 4.3.19 (#301)
+
 # [bria release v0.1.42](https://github.com/GaloyMoney/bria/releases/tag/0.1.42)
 
 
