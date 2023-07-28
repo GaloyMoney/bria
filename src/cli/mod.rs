@@ -1027,7 +1027,7 @@ async fn run_cmd(
                 "".to_string(),
             );
 
-            let mut retries = 5;
+            let mut retries = 10;
             let delay = tokio::time::Duration::from_secs(1);
             while retries > 0 {
                 let dev_bootstrap_result = admin_client.dev_bootstrap().await;
