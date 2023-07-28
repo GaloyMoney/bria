@@ -740,7 +740,14 @@ impl App {
             )
             .await?;
         let expected_time = if let Some(interval) = payout_queue.spawn_in() {
-            job::next_attempt_of_queue(&self.pool, payout_queue.id, interval).await?
+            match job::next_attempt_of_queue(&self.pool, payout_queue.id).await {
+                Ok(Some(next_attempt)) => Some(next_attempt),
+                Ok(None) | Err(_) => Some(
+                    chrono::Utc::now()
+                        + chrono::Duration::from_std(interval)
+                            .expect("interval value will always be less than i64"),
+                ),
+            }
         } else {
             None
         };

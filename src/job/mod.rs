@@ -614,7 +614,6 @@ pub async fn spawn_respawn_all_outbox_handlers(
 pub async fn next_attempt_of_queue(
     pool: &sqlx::PgPool,
     id: PayoutQueueId,
-    interval: std::time::Duration,
 ) -> Result<Option<chrono::DateTime<chrono::Utc>>, JobError> {
     let result = sqlx::query!(
         "SELECT attempt_at FROM mq_msgs WHERE id = $1",
@@ -622,10 +621,9 @@ pub async fn next_attempt_of_queue(
     )
     .fetch_one(pool)
     .await?;
-    let duration = chrono::Duration::from_std(interval)?;
     let next_attempt = result
         .attempt_at
-        .map(|time| time + duration + chrono::Duration::seconds(1));
+        .map(|time| time + chrono::Duration::seconds(1));
     Ok(next_attempt)
 }
 
