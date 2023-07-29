@@ -56,7 +56,7 @@ impl Outbox {
         Ok(ret)
     }
 
-    #[instrument("outbox.handle_journal_event", skip(self, linked_span))]
+    #[instrument("outbox.handle_journal_event", skip(self, linked_span), err)]
     pub async fn handle_journal_event(
         &self,
         mut ledger_event: JournalEvent,
