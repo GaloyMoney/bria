@@ -233,7 +233,7 @@ pub async fn spawn_process_payout_queue(
     onto_account_main_channel(
         pool,
         data.account_id,
-        data.payout_queue_id,
+        Uuid::new_v4(),
         "process_payout_queue",
         data,
     )
