@@ -1,3 +1,14 @@
+# [bria release v0.1.45](https://github.com/GaloyMoney/bria/releases/tag/0.1.45)
+
+
+### Bug Fixes
+
+- Handle detected -> dropped -> detected cycle
+
+### Miscellaneous Tasks
+
+- Add err to handle_journal_event tracing
+
 # [bria release v0.1.44](https://github.com/GaloyMoney/bria/releases/tag/0.1.44)
 
 
