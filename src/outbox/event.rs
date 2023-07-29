@@ -57,6 +57,9 @@ pub enum OutboxEventPayload {
         address: bitcoin::Address,
         wallet_id: WalletId,
         keychain_id: KeychainId,
+        // This is to differentiate in the event of a
+        // detected -> dropped -> detected sequence
+        ledger_event_id: Option<SqlxLedgerEventId>,
     },
     UtxoSettled {
         tx_id: bitcoin::Txid,
@@ -74,6 +77,9 @@ pub enum OutboxEventPayload {
         address: bitcoin::Address,
         wallet_id: WalletId,
         keychain_id: KeychainId,
+        // This is to differentiate in the event of a
+        // detected -> dropped -> detected -> dropped sequence
+        ledger_event_id: Option<SqlxLedgerEventId>,
     },
     PayoutSubmitted {
         id: PayoutId,
@@ -134,13 +140,14 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
         use JournalEventMetadata::*;
         let mut res = Vec::new();
         match meta {
-            UtxoDetected(meta) => res.push(OutboxEventPayload::UtxoDetected {
+            UtxoDetected(meta, ledger_event_id) => res.push(OutboxEventPayload::UtxoDetected {
                 tx_id: meta.outpoint.txid,
                 vout: meta.outpoint.vout,
                 satoshis: meta.satoshis,
                 address: meta.address,
                 wallet_id: meta.wallet_id,
                 keychain_id: meta.keychain_id,
+                ledger_event_id: Some(ledger_event_id),
             }),
             UtxoSettled(meta) => res.push(OutboxEventPayload::UtxoSettled {
                 tx_id: meta.outpoint.txid,
@@ -151,13 +158,14 @@ impl From<JournalEventMetadata> for Vec<OutboxEventPayload> {
                 keychain_id: meta.keychain_id,
                 confirmation_time: meta.confirmation_time,
             }),
-            UtxoDropped(meta) => res.push(OutboxEventPayload::UtxoDropped {
+            UtxoDropped(meta, ledger_event_id) => res.push(OutboxEventPayload::UtxoDropped {
                 tx_id: meta.outpoint.txid,
                 vout: meta.outpoint.vout,
                 satoshis: meta.satoshis,
                 address: meta.address,
                 wallet_id: meta.wallet_id,
                 keychain_id: meta.keychain_id,
+                ledger_event_id: Some(ledger_event_id),
             }),
             PayoutSubmitted(meta) => res.push(OutboxEventPayload::PayoutSubmitted {
                 id: meta.payout_id,

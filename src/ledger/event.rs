@@ -16,9 +16,9 @@ pub struct JournalEvent {
 
 #[derive(Clone, Debug)]
 pub enum JournalEventMetadata {
-    UtxoDetected(UtxoDetectedMeta),
+    UtxoDetected(UtxoDetectedMeta, SqlxLedgerEventId),
     UtxoSettled(UtxoSettledMeta),
-    UtxoDropped(UtxoDroppedMeta),
+    UtxoDropped(UtxoDroppedMeta, SqlxLedgerEventId),
     SpendDetected(SpendDetectedMeta),
     SpendSettled(SpendSettledMeta),
     PayoutSubmitted(PayoutSubmittedMeta),
@@ -45,6 +45,7 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
                     UTXO_DETECTED_ID => JournalEventMetadata::UtxoDetected(
                         tx.metadata::<UtxoDetectedMeta>()?
                             .ok_or(LedgerError::MissingTxMetadata)?,
+                        event.id,
                     ),
                     UTXO_SETTLED_ID | SPENT_UTXO_SETTLED_ID => JournalEventMetadata::UtxoSettled(
                         tx.metadata::<UtxoSettledMeta>()?
@@ -53,6 +54,7 @@ impl TryFrom<SqlxLedgerEvent> for MaybeIgnored {
                     UTXO_DROPPED_ID => JournalEventMetadata::UtxoDropped(
                         tx.metadata::<UtxoDroppedMeta>()?
                             .ok_or(LedgerError::MissingTxMetadata)?,
+                        event.id,
                     ),
                     SPEND_DETECTED_ID => JournalEventMetadata::SpendDetected(
                         tx.metadata::<SpendDetectedMeta>()?
