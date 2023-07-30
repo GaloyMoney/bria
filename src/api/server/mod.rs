@@ -562,10 +562,10 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
-            let estimated_processing_time = estimated_time.map(|time| time.timestamp());
+            let batch_inclusion_estimated_at = estimated_time.map(|time| time.timestamp() as u32);
             Ok(Response::new(SubmitPayoutResponse {
                 id: id.to_string(),
-                estimated_processing_time,
+                batch_inclusion_estimated_at,
             }))
         })
         .await

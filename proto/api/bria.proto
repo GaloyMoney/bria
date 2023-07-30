@@ -348,7 +348,7 @@ message SubmitPayoutRequest {
 
 message SubmitPayoutResponse {
   string id = 1;
-  optional int64 estimated_processing_time = 2;
+  optional uint32 batch_inclusion_estimated_at = 2;
 }
 
 message ListPayoutsRequest {
