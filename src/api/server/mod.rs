@@ -547,7 +547,7 @@ impl BriaService for Bria {
                 metadata,
             } = request;
 
-            let id = self
+            let (id, estimated_time) = self
                 .app
                 .submit_payout(
                     profile,
@@ -562,7 +562,11 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
-            Ok(Response::new(SubmitPayoutResponse { id: id.to_string() }))
+            let batch_inclusion_estimated_at = estimated_time.map(|time| time.timestamp() as u32);
+            Ok(Response::new(SubmitPayoutResponse {
+                id: id.to_string(),
+                batch_inclusion_estimated_at,
+            }))
         })
         .await
     }

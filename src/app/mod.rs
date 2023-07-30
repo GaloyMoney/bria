@@ -690,7 +690,7 @@ impl App {
         sats: Satoshis,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<PayoutId, ApplicationError> {
+    ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -739,7 +739,19 @@ impl App {
                 },
             )
             .await?;
-        Ok(id)
+        let expected_time = if let Some(interval) = payout_queue.spawn_in() {
+            match job::next_attempt_of_queue(&self.pool, payout_queue.id).await {
+                Ok(Some(next_attempt)) => Some(next_attempt),
+                Ok(None) | Err(_) => Some(
+                    chrono::Utc::now()
+                        + chrono::Duration::from_std(interval)
+                            .expect("interval value will always be less than i64"),
+                ),
+            }
+        } else {
+            None
+        };
+        Ok((id, expected_time))
     }
 
     pub async fn cancel_payout(
