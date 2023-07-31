@@ -1,3 +1,10 @@
+# [bria release v0.1.46](https://github.com/GaloyMoney/bria/releases/tag/0.1.46)
+
+
+### Features
+
+- Add expected_time for SubmitPayoutResponse (#298)
+
 # [bria release v0.1.45](https://github.com/GaloyMoney/bria/releases/tag/0.1.45)
 
 
