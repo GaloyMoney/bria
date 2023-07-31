@@ -719,6 +719,7 @@ impl App {
             profile,
             wallet_name,
             queue_name,
+            PayoutId::new(),
             PayoutDestination::OnchainAddress { value: address },
             sats,
             external_id,
@@ -739,11 +740,12 @@ impl App {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        let payout_id = PayoutId::new();
         let (wallet_id, address) = self
             .new_address(
                 &profile,
                 destination_wallet_name.clone(),
-                external_id.clone(),
+                Some(external_id.clone().unwrap_or_else(|| payout_id.to_string())),
                 metadata.clone(),
             )
             .await?;
@@ -751,6 +753,7 @@ impl App {
             profile,
             wallet_name,
             queue_name,
+            payout_id,
             PayoutDestination::Wallet {
                 id: wallet_id,
                 address,
@@ -768,6 +771,7 @@ impl App {
         profile: Profile,
         wallet_name: String,
         queue_name: String,
+        id: PayoutId,
         destination: PayoutDestination,
         sats: Satoshis,
         external_id: Option<String>,
@@ -786,7 +790,7 @@ impl App {
             return Err(ApplicationError::DestinationBlocked(destination));
         }
 
-        let mut builder = NewPayout::builder();
+        let mut builder = NewPayout::builder(id);
         builder
             .account_id(profile.account_id)
             .profile_id(profile.id)
