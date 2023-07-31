@@ -532,7 +532,15 @@ impl BriaService for Bria {
                 Some(proto::estimate_payout_fee_request::Destination::DestinationWalletName(
                     name,
                 )) => {
-                    unimplemented!()
+                    self.app
+                        .estimate_payout_fee_to_wallet(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            name,
+                            Satoshis::from(satoshis),
+                        )
+                        .await?
                 }
                 None => {
                     return Err(tonic::Status::new(

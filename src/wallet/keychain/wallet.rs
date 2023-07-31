@@ -71,6 +71,14 @@ impl KeychainWallet {
         Ok(addr)
     }
 
+    #[instrument(name = "keychain_wallet.example_address", skip_all)]
+    pub async fn example_address(&self) -> Result<bdk::wallet::AddressInfo, BdkError> {
+        let addr = self
+            .with_wallet(|wallet| wallet.get_address(AddressIndex::Peek(0)))
+            .await??;
+        Ok(addr)
+    }
+
     #[instrument(name = "keychain_wallet.new_internal_address", skip_all)]
     pub async fn new_internal_address(&self) -> Result<bdk::wallet::AddressInfo, BdkError> {
         let addr = self

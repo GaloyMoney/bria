@@ -610,6 +610,33 @@ impl App {
         Ok(())
     }
 
+    #[instrument(name = "app.estimate_payout_fee_to_wallet", skip(self), ret, err)]
+    pub async fn estimate_payout_fee_to_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        destination_wallet_name: String,
+        sats: Satoshis,
+    ) -> Result<Satoshis, ApplicationError> {
+        let destination_wallet = self
+            .wallets
+            .find_by_name(profile.account_id, destination_wallet_name)
+            .await?;
+        let destination = destination_wallet
+            .current_keychain_wallet(&self.pool)
+            .example_address()
+            .await?;
+        self.estimate_payout_fee_to_address(
+            profile,
+            wallet_name,
+            queue_name,
+            destination.address,
+            sats,
+        )
+        .await
+    }
+
     #[instrument(name = "app.estimate_payout_fee_to_address", skip(self), ret, err)]
     pub async fn estimate_payout_fee_to_address(
         &self,
