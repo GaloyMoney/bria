@@ -1,7 +1,10 @@
 use anyhow::Context;
 use url::Url;
 
-use crate::{api::proto, primitives::TxPriority};
+use crate::{
+    api::proto,
+    primitives::{bitcoin, TxPriority},
+};
 type ProtoClient = proto::bria_service_client::BriaServiceClient<tonic::transport::Channel>;
 
 use super::token_store;
@@ -354,12 +357,15 @@ impl ApiClient {
         on_chain_address: String,
         satoshis: u64,
     ) -> anyhow::Result<()> {
+        let destination = if let Ok(addr) = on_chain_address.parse::<bitcoin::Address>() {
+            proto::estimate_payout_fee_request::Destination::OnchainAddress(addr.to_string())
+        } else {
+            proto::estimate_payout_fee_request::Destination::DestinationWalletName(on_chain_address)
+        };
         let request = tonic::Request::new(proto::EstimatePayoutFeeRequest {
             wallet_name,
             payout_queue_name,
-            destination: Some(
-                proto::estimate_payout_fee_request::Destination::OnchainAddress(on_chain_address),
-            ),
+            destination: Some(destination),
             satoshis,
         });
         let response = self
@@ -379,12 +385,15 @@ impl ApiClient {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
+        let destination = if let Ok(addr) = on_chain_address.parse::<bitcoin::Address>() {
+            proto::submit_payout_request::Destination::OnchainAddress(addr.to_string())
+        } else {
+            proto::submit_payout_request::Destination::DestinationWalletName(on_chain_address)
+        };
         let request = tonic::Request::new(proto::SubmitPayoutRequest {
             wallet_name,
             payout_queue_name,
-            destination: Some(proto::submit_payout_request::Destination::OnchainAddress(
-                on_chain_address,
-            )),
+            destination: Some(destination),
             satoshis,
             external_id,
             metadata: metadata.map(serde_json::from_value).transpose()?,
