@@ -450,11 +450,11 @@ impl App {
     #[instrument(name = "app.new_address", skip(self), err)]
     pub async fn new_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<String, ApplicationError> {
+    ) -> Result<(WalletId, bitcoin::Address), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -478,7 +478,7 @@ impl App {
         let new_address = builder.build().expect("Couldn't build NewAddress");
         self.addresses.persist_new_address(new_address).await?;
 
-        Ok(addr.to_string())
+        Ok((wallet.id, addr.address))
     }
 
     #[instrument(name = "app.update_address", skip(self), err)]
@@ -693,6 +693,41 @@ impl App {
             wallet_name,
             queue_name,
             PayoutDestination::OnchainAddress { value: address },
+            sats,
+            external_id,
+            metadata,
+        )
+        .await
+    }
+
+    #[instrument(name = "app.submit_payout_to_wallet", skip(self), err)]
+    #[allow(clippy::too_many_arguments)]
+    pub async fn submit_payout_to_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        destination_wallet_name: String,
+        sats: Satoshis,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        let (wallet_id, address) = self
+            .new_address(
+                &profile,
+                destination_wallet_name.clone(),
+                external_id.clone(),
+                metadata.clone(),
+            )
+            .await?;
+        self.submit_payout(
+            profile,
+            wallet_name,
+            queue_name,
+            PayoutDestination::Wallet {
+                id: wallet_id,
+                address,
+            },
             sats,
             external_id,
             metadata,

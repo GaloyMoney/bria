@@ -312,10 +312,10 @@ impl BriaService for Bria {
                 metadata,
             } = request;
 
-            let address = self
+            let (_, address) = self
                 .app
                 .new_address(
-                    profile,
+                    &profile,
                     wallet_name,
                     external_id,
                     metadata
@@ -324,7 +324,9 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
-            Ok(Response::new(NewAddressResponse { address }))
+            Ok(Response::new(NewAddressResponse {
+                address: address.to_string(),
+            }))
         })
         .await
     }
@@ -589,7 +591,20 @@ impl BriaService for Bria {
                         .await?
                 }
                 Some(proto::submit_payout_request::Destination::DestinationWalletName(name)) => {
-                    unimplemented!()
+                    self.app
+                        .submit_payout_to_wallet(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            name,
+                            Satoshis::from(satoshis),
+                            external_id,
+                            metadata
+                                .map(serde_json::to_value)
+                                .transpose()
+                                .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
+                        )
+                        .await?
                 }
                 None => {
                     return Err(tonic::Status::new(

@@ -47,7 +47,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
     let external_id = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let addr = app
         .new_address(
-            profile.clone(),
+            &profile,
             wallet_name.clone(),
             Some(external_id.clone()),
             None,
@@ -55,7 +55,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
         .await;
     assert!(matches!(addr, Ok(_)));
     let addr = app
-        .new_address(profile, wallet_name, Some(external_id), None)
+        .new_address(&profile, wallet_name, Some(external_id), None)
         .await;
     assert!(matches!(
         addr,
@@ -105,7 +105,7 @@ async fn wallet_name_not_found() -> anyhow::Result<()> {
     let profile = helpers::create_test_account(&pool).await?;
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test".to_string();
-    let err = app.new_address(profile, wallet_name, None, None).await;
+    let err = app.new_address(&profile, wallet_name, None, None).await;
     assert!(matches!(
         err,
         Err(ApplicationError::WalletError(
