@@ -57,56 +57,6 @@ impl TryFrom<Option<proto::set_signer_config_request::Config>> for SignerConfig 
     }
 }
 
-impl TryFrom<Option<proto::estimate_payout_fee_request::Destination>> for PayoutDestination {
-    type Error = tonic::Status;
-
-    fn try_from(
-        destination: Option<proto::estimate_payout_fee_request::Destination>,
-    ) -> Result<Self, Self::Error> {
-        match destination {
-            Some(proto::estimate_payout_fee_request::Destination::OnchainAddress(destination)) => {
-                Ok(PayoutDestination::OnchainAddress {
-                    value: destination.parse().map_err(|_| {
-                        tonic::Status::new(
-                            tonic::Code::InvalidArgument,
-                            "on chain address couldn't be parsed",
-                        )
-                    })?,
-                })
-            }
-            None => Err(tonic::Status::new(
-                tonic::Code::InvalidArgument,
-                "missing destination",
-            )),
-        }
-    }
-}
-
-impl TryFrom<Option<proto::submit_payout_request::Destination>> for PayoutDestination {
-    type Error = tonic::Status;
-
-    fn try_from(
-        destination: Option<proto::submit_payout_request::Destination>,
-    ) -> Result<Self, Self::Error> {
-        match destination {
-            Some(proto::submit_payout_request::Destination::OnchainAddress(destination)) => {
-                Ok(PayoutDestination::OnchainAddress {
-                    value: destination.parse().map_err(|_| {
-                        tonic::Status::new(
-                            tonic::Code::InvalidArgument,
-                            "on chain address couldn't be parsed",
-                        )
-                    })?,
-                })
-            }
-            None => Err(tonic::Status::new(
-                tonic::Code::InvalidArgument,
-                "missing destination",
-            )),
-        }
-    }
-}
-
 impl From<WalletAddress> for proto::WalletAddress {
     fn from(addr: WalletAddress) -> Self {
         Self {
@@ -186,6 +136,12 @@ impl From<Payout> for proto::Payout {
         let destination = match payout.destination {
             PayoutDestination::OnchainAddress { value } => {
                 proto::payout::Destination::OnchainAddress(value.to_string())
+            }
+            PayoutDestination::Wallet { id, address } => {
+                proto::payout::Destination::Wallet(proto::BriaWalletDestination {
+                    wallet_id: id.to_string(),
+                    address: address.to_string(),
+                })
             }
         };
 
@@ -333,6 +289,14 @@ impl From<(WalletSummary, Vec<Payout>)> for proto::BatchWalletSummary {
                         PayoutDestination::OnchainAddress { value } => {
                             proto::payout_summary::Destination::OnchainAddress(value.to_string())
                         }
+                        PayoutDestination::Wallet { id, address } => {
+                            proto::payout_summary::Destination::Wallet(
+                                proto::BriaWalletDestination {
+                                    wallet_id: id.to_string(),
+                                    address: address.to_string(),
+                                },
+                            )
+                        }
                     };
                     proto::PayoutSummary {
                         id: payout.id.to_string(),
@@ -448,16 +412,26 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id,
                 payout_queue_id,
                 satoshis,
-                destination: PayoutDestination::OnchainAddress { value: destination },
+                destination,
                 ..
             } => proto::bria_event::Payload::PayoutSubmitted(proto::PayoutSubmitted {
                 id: id.to_string(),
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_submitted::Destination::OnchainAddress(
-                    destination.to_string(),
-                )),
+                destination: Some(match destination {
+                    PayoutDestination::OnchainAddress { value: destination } => {
+                        proto::payout_submitted::Destination::OnchainAddress(
+                            destination.to_string(),
+                        )
+                    }
+                    PayoutDestination::Wallet { id, address } => {
+                        proto::payout_submitted::Destination::Wallet(proto::BriaWalletDestination {
+                            wallet_id: id.to_string(),
+                            address: address.to_string(),
+                        })
+                    }
+                }),
             }),
             OutboxEventPayload::PayoutCancelled {
                 id,
@@ -471,9 +445,19 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_cancelled::Destination::OnchainAddress(
-                    destination.to_string(),
-                )),
+                destination: Some(match destination {
+                    PayoutDestination::OnchainAddress { value: destination } => {
+                        proto::payout_cancelled::Destination::OnchainAddress(
+                            destination.to_string(),
+                        )
+                    }
+                    PayoutDestination::Wallet { id, address } => {
+                        proto::payout_cancelled::Destination::Wallet(proto::BriaWalletDestination {
+                            wallet_id: id.to_string(),
+                            address: address.to_string(),
+                        })
+                    }
+                }),
             }),
             OutboxEventPayload::PayoutCommitted {
                 id,
@@ -482,7 +466,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id,
                 payout_queue_id,
                 satoshis,
-                destination: PayoutDestination::OnchainAddress { value: destination },
+                destination,
                 proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutCommitted(proto::PayoutCommitted {
@@ -492,9 +476,19 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_committed::Destination::OnchainAddress(
-                    destination.to_string(),
-                )),
+                destination: Some(match destination {
+                    PayoutDestination::OnchainAddress { value: destination } => {
+                        proto::payout_committed::Destination::OnchainAddress(
+                            destination.to_string(),
+                        )
+                    }
+                    PayoutDestination::Wallet { id, address } => {
+                        proto::payout_committed::Destination::Wallet(proto::BriaWalletDestination {
+                            wallet_id: id.to_string(),
+                            address: address.to_string(),
+                        })
+                    }
+                }),
                 proportional_fee_sats: u64::from(proportional_fee),
             }),
             OutboxEventPayload::PayoutBroadcast {
@@ -504,7 +498,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id,
                 payout_queue_id,
                 satoshis,
-                destination: PayoutDestination::OnchainAddress { value: destination },
+                destination,
                 proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutBroadcast(proto::PayoutBroadcast {
@@ -514,9 +508,19 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_broadcast::Destination::OnchainAddress(
-                    destination.to_string(),
-                )),
+                destination: Some(match destination {
+                    PayoutDestination::OnchainAddress { value: destination } => {
+                        proto::payout_broadcast::Destination::OnchainAddress(
+                            destination.to_string(),
+                        )
+                    }
+                    PayoutDestination::Wallet { id, address } => {
+                        proto::payout_broadcast::Destination::Wallet(proto::BriaWalletDestination {
+                            wallet_id: id.to_string(),
+                            address: address.to_string(),
+                        })
+                    }
+                }),
                 proportional_fee_sats: u64::from(proportional_fee),
             }),
             OutboxEventPayload::PayoutSettled {
@@ -526,7 +530,7 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id,
                 payout_queue_id,
                 satoshis,
-                destination: PayoutDestination::OnchainAddress { value: destination },
+                destination,
                 proportional_fee,
                 ..
             } => proto::bria_event::Payload::PayoutSettled(proto::PayoutSettled {
@@ -536,9 +540,17 @@ impl From<OutboxEvent<Augmentation>> for proto::BriaEvent {
                 wallet_id: wallet_id.to_string(),
                 payout_queue_id: payout_queue_id.to_string(),
                 satoshis: u64::from(satoshis),
-                destination: Some(proto::payout_settled::Destination::OnchainAddress(
-                    destination.to_string(),
-                )),
+                destination: Some(match destination {
+                    PayoutDestination::OnchainAddress { value: destination } => {
+                        proto::payout_settled::Destination::OnchainAddress(destination.to_string())
+                    }
+                    PayoutDestination::Wallet { id, address } => {
+                        proto::payout_settled::Destination::Wallet(proto::BriaWalletDestination {
+                            wallet_id: id.to_string(),
+                            address: address.to_string(),
+                        })
+                    }
+                }),
                 proportional_fee_sats: u64::from(proportional_fee),
             }),
         };

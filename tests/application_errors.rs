@@ -131,10 +131,9 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
         .await?;
     let address = Address::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string()).unwrap();
     let queue_name = "test".to_string();
-    let destination = PayoutDestination::OnchainAddress { value: address };
     let sats = Satoshis::from(10000);
     let err = app
-        .estimate_payout_fee(profile, wallet_name, queue_name, destination, sats)
+        .estimate_payout_fee_to_address(profile, wallet_name, queue_name, address, sats)
         .await;
     assert!(matches!(
         err,

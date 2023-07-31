@@ -610,13 +610,13 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.estimate_payout_fee", skip(self), ret, err)]
-    pub async fn estimate_payout_fee(
+    #[instrument(name = "app.estimate_payout_fee_to_address", skip(self), ret, err)]
+    pub async fn estimate_payout_fee_to_address(
         &self,
         profile: Profile,
         wallet_name: String,
         queue_name: String,
-        destination: PayoutDestination,
+        destination: bitcoin::Address,
         sats: Satoshis,
     ) -> Result<Satoshis, ApplicationError> {
         let wallet = self
@@ -632,9 +632,6 @@ impl App {
             .list_unbatched(profile.account_id, payout_queue.id)
             .await?;
         let payout_id = uuid::Uuid::new_v4();
-        let destination = destination
-            .onchain_address()
-            .expect("Destination is not onchain");
         unbatched_payouts
             .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
 
@@ -679,9 +676,32 @@ impl App {
         ))
     }
 
-    #[instrument(name = "app.submit_payout", skip(self), err)]
+    #[instrument(name = "app.submit_payout_to_address", skip(self), err)]
     #[allow(clippy::too_many_arguments)]
-    pub async fn submit_payout(
+    pub async fn submit_payout_to_address(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        address: bitcoin::Address,
+        sats: Satoshis,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        self.submit_payout(
+            profile,
+            wallet_name,
+            queue_name,
+            PayoutDestination::OnchainAddress { value: address },
+            sats,
+            external_id,
+            metadata,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn submit_payout(
         &self,
         profile: Profile,
         wallet_name: String,
