@@ -32,15 +32,19 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
     app.create_wpkh_wallet(profile.clone(), name.clone(), id.to_string(), None)
         .await?;
 
-    let addr = app
-        .new_address(profile.clone(), name.clone(), None, None)
-        .await?;
-    assert_eq!(addr, "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0");
+    let (_, addr) = app.new_address(&profile, name.clone(), None, None).await?;
+    assert_eq!(
+        addr.to_string(),
+        "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0"
+    );
     let metadata = json!({ "foo": "bar" });
-    let addr = app
-        .new_address(profile, name, Some(external_id), Some(metadata))
+    let (_, addr) = app
+        .new_address(&profile, name, Some(external_id), Some(metadata))
         .await?;
-    assert_eq!(addr, "bcrt1q6q79yce8vutqzpnwkxr5x8p5kxw5rc0hqqzwym");
+    assert_eq!(
+        addr.to_string(),
+        "bcrt1q6q79yce8vutqzpnwkxr5x8p5kxw5rc0hqqzwym"
+    );
 
     Ok(())
 }

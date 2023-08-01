@@ -312,10 +312,10 @@ impl BriaService for Bria {
                 metadata,
             } = request;
 
-            let address = self
+            let (_, address) = self
                 .app
                 .new_address(
-                    profile,
+                    &profile,
                     wallet_name,
                     external_id,
                     metadata
@@ -324,7 +324,9 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
                 )
                 .await?;
-            Ok(Response::new(NewAddressResponse { address }))
+            Ok(Response::new(NewAddressResponse {
+                address: address.to_string(),
+            }))
         })
         .await
     }
@@ -510,16 +512,43 @@ impl BriaService for Bria {
                 satoshis,
             } = request;
 
-            let sats = self
-                .app
-                .estimate_payout_fee(
-                    profile,
-                    wallet_name,
-                    payout_queue_name,
-                    destination.try_into()?,
-                    Satoshis::from(satoshis),
-                )
-                .await?;
+            let sats = match destination {
+                Some(proto::estimate_payout_fee_request::Destination::OnchainAddress(address)) => {
+                    self.app
+                        .estimate_payout_fee_to_address(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            address.parse().map_err(|_| {
+                                tonic::Status::new(
+                                    tonic::Code::InvalidArgument,
+                                    "on chain address couldn't be parsed",
+                                )
+                            })?,
+                            Satoshis::from(satoshis),
+                        )
+                        .await?
+                }
+                Some(proto::estimate_payout_fee_request::Destination::DestinationWalletName(
+                    name,
+                )) => {
+                    self.app
+                        .estimate_payout_fee_to_wallet(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            name,
+                            Satoshis::from(satoshis),
+                        )
+                        .await?
+                }
+                None => {
+                    return Err(tonic::Status::new(
+                        tonic::Code::InvalidArgument,
+                        "missing destination",
+                    ))
+                }
+            };
             Ok(Response::new(EstimatePayoutFeeResponse {
                 satoshis: u64::from(sats),
             }))
@@ -547,21 +576,51 @@ impl BriaService for Bria {
                 metadata,
             } = request;
 
-            let (id, estimated_time) = self
-                .app
-                .submit_payout(
-                    profile,
-                    wallet_name,
-                    payout_queue_name,
-                    destination.try_into()?,
-                    Satoshis::from(satoshis),
-                    external_id,
-                    metadata
-                        .map(serde_json::to_value)
-                        .transpose()
-                        .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
-                )
-                .await?;
+            let (id, estimated_time) = match destination {
+                Some(proto::submit_payout_request::Destination::OnchainAddress(address)) => {
+                    self.app
+                        .submit_payout_to_address(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            address.parse().map_err(|_| {
+                                tonic::Status::new(
+                                    tonic::Code::InvalidArgument,
+                                    "on chain address couldn't be parsed",
+                                )
+                            })?,
+                            Satoshis::from(satoshis),
+                            external_id,
+                            metadata
+                                .map(serde_json::to_value)
+                                .transpose()
+                                .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
+                        )
+                        .await?
+                }
+                Some(proto::submit_payout_request::Destination::DestinationWalletName(name)) => {
+                    self.app
+                        .submit_payout_to_wallet(
+                            profile,
+                            wallet_name,
+                            payout_queue_name,
+                            name,
+                            Satoshis::from(satoshis),
+                            external_id,
+                            metadata
+                                .map(serde_json::to_value)
+                                .transpose()
+                                .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
+                        )
+                        .await?
+                }
+                None => {
+                    return Err(tonic::Status::new(
+                        tonic::Code::InvalidArgument,
+                        "missing destination",
+                    ))
+                }
+            };
             let batch_inclusion_estimated_at = estimated_time.map(|time| time.timestamp() as u32);
             Ok(Response::new(SubmitPayoutResponse {
                 id: id.to_string(),

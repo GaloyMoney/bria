@@ -86,9 +86,8 @@ pub struct NewPayout {
 }
 
 impl NewPayout {
-    pub fn builder() -> NewPayoutBuilder {
+    pub fn builder(id: PayoutId) -> NewPayoutBuilder {
         let mut builder = NewPayoutBuilder::default();
-        let id = PayoutId::new();
         builder.external_id(id.to_string()).id(id);
         builder
     }

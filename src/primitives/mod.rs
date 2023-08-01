@@ -142,13 +142,20 @@ pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {
-    OnchainAddress { value: bitcoin::Address },
+    OnchainAddress {
+        value: bitcoin::Address,
+    },
+    Wallet {
+        id: WalletId,
+        address: bitcoin::Address,
+    },
 }
 
 impl PayoutDestination {
     pub fn onchain_address(&self) -> Option<bitcoin::Address> {
         match self {
             Self::OnchainAddress { value } => Some(value.clone()),
+            Self::Wallet { address, .. } => Some(address.clone()),
         }
     }
 }
@@ -157,8 +164,9 @@ impl std::fmt::Display for PayoutDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         match self {
             PayoutDestination::OnchainAddress { value } => {
-                write!(f, "{}", value)
+                write!(f, "{value}")
             }
+            PayoutDestination::Wallet { id, address } => write!(f, "wallet:{id}:{address}"),
         }
     }
 }

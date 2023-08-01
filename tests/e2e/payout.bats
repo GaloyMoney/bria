@@ -184,3 +184,20 @@ teardown_file() {
   done
   [[ $(cached_pending_income) == 0 ]] || exit 1;
 }
+
+@test "payout: Can send to another wallet" {
+    local key="tpubDEPCxBfMFRNdfJaUeoTmepLJ6ZQmeTiU1Sko2sdx1R3tmPpZemRUjdAHqtmLfaVrBg1NBx2Yx3cVrsZ2FTyBuhiH9mPSL5ozkaTh1iZUTZx"
+
+    bria_cmd import-xpub -x "${key}" -n other -d m/48h/1h/0h/2h
+    bria_cmd create-wallet -n other wpkh -x other
+
+  bria_cmd submit-payout -w default \
+    --queue-name high \
+    --destination other \
+    --amount 75000000 \
+    --metadata '{"transfer":true}' | jq -r '.id'
+
+  transfer_metadata=$(bria_cmd list-addresses -w other | jq -r '.addresses[0].metadata.transfer')
+
+  [[ "${transfer_metadata}" == "true" ]] || exit 1
+}

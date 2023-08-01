@@ -35,15 +35,13 @@ async fn test_payout() -> anyhow::Result<()> {
         .create_payout_queue(profile.clone(), group_name.clone(), None, None)
         .await?;
 
-    let destination = PayoutDestination::OnchainAddress {
-        value: "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap(),
-    };
+    let address = "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU".parse().unwrap();
     let _ = app
-        .submit_payout(
+        .submit_payout_to_address(
             profile,
             wallet_name,
             group_name,
-            destination,
+            address,
             Satoshis::from(10000),
             None,
             None,

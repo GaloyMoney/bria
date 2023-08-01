@@ -47,7 +47,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
     let external_id = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
     let addr = app
         .new_address(
-            profile.clone(),
+            &profile,
             wallet_name.clone(),
             Some(external_id.clone()),
             None,
@@ -55,7 +55,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
         .await;
     assert!(matches!(addr, Ok(_)));
     let addr = app
-        .new_address(profile, wallet_name, Some(external_id), None)
+        .new_address(&profile, wallet_name, Some(external_id), None)
         .await;
     assert!(matches!(
         addr,
@@ -105,7 +105,7 @@ async fn wallet_name_not_found() -> anyhow::Result<()> {
     let profile = helpers::create_test_account(&pool).await?;
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test".to_string();
-    let err = app.new_address(profile, wallet_name, None, None).await;
+    let err = app.new_address(&profile, wallet_name, None, None).await;
     assert!(matches!(
         err,
         Err(ApplicationError::WalletError(
@@ -131,10 +131,9 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
         .await?;
     let address = Address::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string()).unwrap();
     let queue_name = "test".to_string();
-    let destination = PayoutDestination::OnchainAddress { value: address };
     let sats = Satoshis::from(10000);
     let err = app
-        .estimate_payout_fee(profile, wallet_name, queue_name, destination, sats)
+        .estimate_payout_fee_to_address(profile, wallet_name, queue_name, address, sats)
         .await;
     assert!(matches!(
         err,

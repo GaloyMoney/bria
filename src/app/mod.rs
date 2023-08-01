@@ -450,11 +450,11 @@ impl App {
     #[instrument(name = "app.new_address", skip(self), err)]
     pub async fn new_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<String, ApplicationError> {
+    ) -> Result<(WalletId, bitcoin::Address), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -478,7 +478,7 @@ impl App {
         let new_address = builder.build().expect("Couldn't build NewAddress");
         self.addresses.persist_new_address(new_address).await?;
 
-        Ok(addr.to_string())
+        Ok((wallet.id, addr.address))
     }
 
     #[instrument(name = "app.update_address", skip(self), err)]
@@ -610,13 +610,40 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.estimate_payout_fee", skip(self), ret, err)]
-    pub async fn estimate_payout_fee(
+    #[instrument(name = "app.estimate_payout_fee_to_wallet", skip(self), ret, err)]
+    pub async fn estimate_payout_fee_to_wallet(
         &self,
         profile: Profile,
         wallet_name: String,
         queue_name: String,
-        destination: PayoutDestination,
+        destination_wallet_name: String,
+        sats: Satoshis,
+    ) -> Result<Satoshis, ApplicationError> {
+        let destination_wallet = self
+            .wallets
+            .find_by_name(profile.account_id, destination_wallet_name)
+            .await?;
+        let destination = destination_wallet
+            .current_keychain_wallet(&self.pool)
+            .example_address()
+            .await?;
+        self.estimate_payout_fee_to_address(
+            profile,
+            wallet_name,
+            queue_name,
+            destination.address,
+            sats,
+        )
+        .await
+    }
+
+    #[instrument(name = "app.estimate_payout_fee_to_address", skip(self), ret, err)]
+    pub async fn estimate_payout_fee_to_address(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        destination: bitcoin::Address,
         sats: Satoshis,
     ) -> Result<Satoshis, ApplicationError> {
         let wallet = self
@@ -632,9 +659,6 @@ impl App {
             .list_unbatched(profile.account_id, payout_queue.id)
             .await?;
         let payout_id = uuid::Uuid::new_v4();
-        let destination = destination
-            .onchain_address()
-            .expect("Destination is not onchain");
         unbatched_payouts
             .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
 
@@ -679,13 +703,75 @@ impl App {
         ))
     }
 
-    #[instrument(name = "app.submit_payout", skip(self), err)]
+    #[instrument(name = "app.submit_payout_to_address", skip(self), err)]
     #[allow(clippy::too_many_arguments)]
-    pub async fn submit_payout(
+    pub async fn submit_payout_to_address(
         &self,
         profile: Profile,
         wallet_name: String,
         queue_name: String,
+        address: bitcoin::Address,
+        sats: Satoshis,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        self.submit_payout(
+            profile,
+            wallet_name,
+            queue_name,
+            PayoutId::new(),
+            PayoutDestination::OnchainAddress { value: address },
+            sats,
+            external_id,
+            metadata,
+        )
+        .await
+    }
+
+    #[instrument(name = "app.submit_payout_to_wallet", skip(self), err)]
+    #[allow(clippy::too_many_arguments)]
+    pub async fn submit_payout_to_wallet(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        destination_wallet_name: String,
+        sats: Satoshis,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        let payout_id = PayoutId::new();
+        let (wallet_id, address) = self
+            .new_address(
+                &profile,
+                destination_wallet_name.clone(),
+                Some(external_id.clone().unwrap_or_else(|| payout_id.to_string())),
+                metadata.clone(),
+            )
+            .await?;
+        self.submit_payout(
+            profile,
+            wallet_name,
+            queue_name,
+            payout_id,
+            PayoutDestination::Wallet {
+                id: wallet_id,
+                address,
+            },
+            sats,
+            external_id,
+            metadata,
+        )
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn submit_payout(
+        &self,
+        profile: Profile,
+        wallet_name: String,
+        queue_name: String,
+        id: PayoutId,
         destination: PayoutDestination,
         sats: Satoshis,
         external_id: Option<String>,
@@ -704,7 +790,7 @@ impl App {
             return Err(ApplicationError::DestinationBlocked(destination));
         }
 
-        let mut builder = NewPayout::builder();
+        let mut builder = NewPayout::builder(id);
         builder
             .account_id(profile.account_id)
             .profile_id(profile.id)
