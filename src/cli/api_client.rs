@@ -354,13 +354,13 @@ impl ApiClient {
         &self,
         wallet_name: String,
         payout_queue_name: String,
-        on_chain_address: String,
+        destination: String,
         satoshis: u64,
     ) -> anyhow::Result<()> {
-        let destination = if let Ok(addr) = on_chain_address.parse::<bitcoin::Address>() {
+        let destination = if let Ok(addr) = destination.parse::<bitcoin::Address>() {
             proto::estimate_payout_fee_request::Destination::OnchainAddress(addr.to_string())
         } else {
-            proto::estimate_payout_fee_request::Destination::DestinationWalletName(on_chain_address)
+            proto::estimate_payout_fee_request::Destination::DestinationWalletName(destination)
         };
         let request = tonic::Request::new(proto::EstimatePayoutFeeRequest {
             wallet_name,
@@ -380,15 +380,15 @@ impl ApiClient {
         &self,
         wallet_name: String,
         payout_queue_name: String,
-        on_chain_address: String,
+        destination: String,
         satoshis: u64,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
-        let destination = if let Ok(addr) = on_chain_address.parse::<bitcoin::Address>() {
+        let destination = if let Ok(addr) = destination.parse::<bitcoin::Address>() {
             proto::submit_payout_request::Destination::OnchainAddress(addr.to_string())
         } else {
-            proto::submit_payout_request::Destination::DestinationWalletName(on_chain_address)
+            proto::submit_payout_request::Destination::DestinationWalletName(destination)
         };
         let request = tonic::Request::new(proto::SubmitPayoutRequest {
             wallet_name,
