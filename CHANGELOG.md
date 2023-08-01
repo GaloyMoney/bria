@@ -1,3 +1,10 @@
+# [bria release v0.1.47](https://github.com/GaloyMoney/bria/releases/tag/0.1.47)
+
+
+### Features
+
+- Submit payout to wallet destination (#306)
+
 # [bria release v0.1.46](https://github.com/GaloyMoney/bria/releases/tag/0.1.46)
 
 
