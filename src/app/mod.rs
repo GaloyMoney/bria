@@ -715,10 +715,18 @@ impl App {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
+        let payout_queue = self
+            .payout_queues
+            .find_by_name(profile.account_id, queue_name)
+            .await?;
         self.submit_payout(
             profile,
-            wallet_name,
-            queue_name,
+            wallet,
+            payout_queue,
             PayoutId::new(),
             PayoutDestination::OnchainAddress { value: address },
             sats,
@@ -740,6 +748,14 @@ impl App {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
+        let payout_queue = self
+            .payout_queues
+            .find_by_name(profile.account_id, queue_name)
+            .await?;
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
             .new_address(
@@ -751,8 +767,8 @@ impl App {
             .await?;
         self.submit_payout(
             profile,
-            wallet_name,
-            queue_name,
+            wallet,
+            payout_queue,
             payout_id,
             PayoutDestination::Wallet {
                 id: wallet_id,
@@ -769,23 +785,14 @@ impl App {
     async fn submit_payout(
         &self,
         profile: Profile,
-        wallet_name: String,
-        queue_name: String,
+        wallet: Wallet,
+        payout_queue: PayoutQueue,
         id: PayoutId,
         destination: PayoutDestination,
         sats: Satoshis,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
-        let wallet = self
-            .wallets
-            .find_by_name(profile.account_id, wallet_name)
-            .await?;
-        let payout_queue = self
-            .payout_queues
-            .find_by_name(profile.account_id, queue_name)
-            .await?;
-
         if self.config.security.is_blocked(&destination) {
             return Err(ApplicationError::DestinationBlocked(destination));
         }
