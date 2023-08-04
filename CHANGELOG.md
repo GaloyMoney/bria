@@ -1,3 +1,15 @@
+# [bria release v0.1.48](https://github.com/GaloyMoney/bria/releases/tag/0.1.48)
+
+
+### Bug Fixes
+
+- Validate queue / wallet before submitting payout
+
+### Miscellaneous Tasks
+
+- Bump rust_decimal from 1.30.0 to 1.31.0 (#304)
+- Remove whitespace
+
 # [bria release v0.1.47](https://github.com/GaloyMoney/bria/releases/tag/0.1.47)
 
 
