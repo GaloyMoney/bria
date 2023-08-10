@@ -8,14 +8,14 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = { version = "0.9.0", features = ["otel"] }
+sqlx-ledger = { version = "0.10.0", features = ["otel"] }
 
 anyhow = "1.0.72"
 bitcoincore-rpc = "0.16.0"
 clap = { version = "4.3", features = ["derive", "env"] }
 chrono = { version = "0.4.26", features = ["clock", "serde"], default-features = false }
 derive_builder = "0.12.0"
-opentelemetry-jaeger = { version = "0.18.0", features = ["rt-tokio"] }
+opentelemetry-jaeger = { version = "0.19.0", features = ["rt-tokio"] }
 serde = { version = "1.0.181", features = ["derive"] }
 serde_json = "1.0.104"
 serde_yaml = "0.9.25"
@@ -27,7 +27,7 @@ tonic = "0.9"
 tonic-health = "0.9"
 rust_decimal = "1.31"
 tracing = "0.1.37"
-tracing-opentelemetry = "0.19.0"
+tracing-opentelemetry = "0.20.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 prost = "0.11"
 prost-wkt-types = { version = "0.4.2", features = ["vendored-protoc"]}
@@ -40,7 +40,7 @@ url = "2.4.0"
 rand = "0.8.5"
 bdk = "0.28.1"
 lazy_static = "1.4.0"
-opentelemetry = "0.19.0"
+opentelemetry = "0.20.0"
 serde_with = "3.1.0"
 electrum-client = "0.12.0"
 reqwest = { version = "0.11.18", default-features = false, features = ["json", "rustls-tls"] }
