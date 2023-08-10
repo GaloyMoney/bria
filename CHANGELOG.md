@@ -1,3 +1,10 @@
+# [bria release v0.1.50](https://github.com/GaloyMoney/bria/releases/tag/0.1.50)
+
+
+### Miscellaneous Tasks
+
+- Update opentelemetry, tracing-opentelemetry, sqlx-ledger and opentelemetry-jaeger (#313)
+
 # [bria release v0.1.49](https://github.com/GaloyMoney/bria/releases/tag/0.1.49)
 
 
