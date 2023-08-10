@@ -1,3 +1,15 @@
+# [bria release v0.1.49](https://github.com/GaloyMoney/bria/releases/tag/0.1.49)
+
+
+### Miscellaneous Tasks
+
+- Bump regex from 1.9.1 to 1.9.3 (#308)
+- Bump serde from 1.0.177 to 1.0.181 (#307)
+
+### Refactor
+
+- Create dev entities inline (#312)
+
 # [bria release v0.1.48](https://github.com/GaloyMoney/bria/releases/tag/0.1.48)
 
 
