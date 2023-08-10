@@ -22,6 +22,8 @@ pub enum AdminApiError {
     ProfileError(#[from] ProfileError),
     #[error("{0}")]
     LedgerError(#[from] LedgerError),
+    #[error("AdminApiError - DevBootstrapError: {0}")]
+    DevBootstrapError(#[from] anyhow::Error),
 }
 
 impl From<ApplicationError> for AdminApiError {

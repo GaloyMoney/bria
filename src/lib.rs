@@ -21,6 +21,7 @@ pub mod payout_queue;
 pub mod primitives;
 pub mod profile;
 pub mod signing_session;
+mod token_store;
 mod tracing;
 pub mod utxo;
 pub mod wallet;

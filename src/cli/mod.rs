@@ -4,7 +4,6 @@ mod api_client;
 mod config;
 mod db;
 mod gen;
-mod token_store;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
@@ -13,9 +12,9 @@ use std::path::PathBuf;
 use url::Url;
 
 use crate::{
-    api::proto,
     dev_constants,
     primitives::{bitcoin, TxPriority},
+    token_store,
 };
 use config::*;
 
@@ -987,11 +986,12 @@ async fn run_cmd(
         app,
     }: Config,
     dev: bool,
-    dev_xub: Option<(String, String)>,
+    dev_xpub: Option<(String, String)>,
     dev_derivation: Option<String>,
 ) -> anyhow::Result<()> {
     crate::tracing::init_tracer(tracing)?;
     token_store::store_daemon_pid(bria_home, std::process::id())?;
+    let bria_home = bria_home.to_string();
     println!("Starting server processes");
     let (send, mut receive) = tokio::sync::mpsc::channel(1);
     let mut handles = Vec::new();
@@ -1001,137 +1001,28 @@ async fn run_cmd(
     let admin_pool = pool.clone();
     let network = app.blockchain.network;
     handles.push(tokio::spawn(async move {
-        let _ = admin_send.try_send(
+        let _ = admin_send.try_send(if dev {
+            super::admin::run_dev(admin_pool, admin, network, bria_home)
+                .await
+                .context("Admin server error")
+        } else {
             super::admin::run(admin_pool, admin, network)
                 .await
-                .context("Admin server error"),
-        );
+                .context("Admin server error")
+        });
     }));
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
-        let _ = api_send.try_send(
+        let _ = api_send.try_send(if dev {
+            super::api::run_dev(pool, api, app, dev_xpub, dev_derivation)
+                .await
+                .context("Api server error")
+        } else {
             super::api::run(pool, api, app)
                 .await
-                .context("Api server error"),
-        );
-    }));
-
-    if dev {
-        let mut profile_key = None;
-
-        let bria_home_string = bria_home.to_string();
-        tokio::spawn(async move {
-            let admin_client = admin_client::AdminApiClient::new(
-                bria_home_string.clone(),
-                admin_client::AdminApiClientConfig::default(),
-                "".to_string(),
-            );
-
-            let mut retries = 20;
-            let delay = tokio::time::Duration::from_secs(1);
-            while retries > 0 {
-                let dev_bootstrap_result = admin_client.dev_bootstrap().await;
-                match dev_bootstrap_result {
-                    Ok(key) => {
-                        profile_key = Some(key);
-                        println!("Dev bootstrap completed successfully");
-                        break;
-                    }
-                    Err(e) => {
-                        eprintln!("Dev bootstrap failed: {:?}.\nRetrying...", e);
-                        retries -= 1;
-                        if retries > 0 {
-                            tokio::time::sleep(delay).await;
-                        } else {
-                            eprintln!("Dev bootstrap failed after retries: {:?}", e);
-                        }
-                    }
-                }
-            }
-
-            if let Some(key) = profile_key {
-                if let Some((xpub, signer_endpoint)) = dev_xub {
-                    let client = api_client(
-                        bria_home_string.clone(),
-                        Some(api_client::ApiClientConfig::default().url),
-                        key.key.clone(),
-                    );
-
-                    let command =
-                        proto::keychain_config::Config::Wpkh(proto::keychain_config::Wpkh {
-                            xpub: xpub.clone(),
-                            derivation_path: dev_derivation,
-                        });
-                    retries = 20;
-                    while retries > 0 {
-                        match client
-                            .create_wallet(
-                                dev_constants::DEV_WALLET_NAME.to_string(),
-                                command.clone(),
-                            )
-                            .await
-                        {
-                            Ok(_) => {
-                                println!("Successfully created wallet");
-                                break;
-                            }
-                            Err(e) => {
-                                eprintln!("Failed to create wallet: {:?}", e);
-                                retries -= 1;
-                                if retries > 0 {
-                                    tokio::time::sleep(delay).await;
-                                } else {
-                                    eprintln!("Failed to create wallet after retries: {:?}", e);
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    let xpub_id = xpub
-                        .parse::<bitcoin::ExtendedPubKey>()
-                        .unwrap()
-                        .fingerprint();
-                    match client
-                        .set_signer_config(
-                            xpub_id.to_string(),
-                            SetSignerConfigCommand::Bitcoind {
-                                endpoint: signer_endpoint,
-                                rpc_user: dev_constants::DEFAULT_BITCOIND_RPC_USER.to_string(),
-                                rpc_password: dev_constants::DEFAULT_BITCOIND_RPC_PASSWORD
-                                    .to_string(),
-                            },
-                        )
-                        .await
-                    {
-                        Ok(_) => {
-                            println!("Successfully set signer config");
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to set signer config: {:?}", e);
-                        }
-                    }
-                    match client
-                        .create_payout_queue(
-                            dev_constants::DEV_QUEUE_NAME.to_string(),
-                            None,
-                            TxPriority::NextBlock,
-                            true,
-                            Some(5),
-                            None,
-                        )
-                        .await
-                    {
-                        Ok(_) => {
-                            println!("Successfully created dev payout queue");
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to create dev payout queue: {:?}", e);
-                        }
-                    }
-                }
-            }
+                .context("Api server error")
         });
-    }
+    }));
 
     let reason = receive.recv().await.expect("Didn't receive msg");
     for handle in handles {
