@@ -1,3 +1,12 @@
+# [bria release v0.1.51](https://github.com/GaloyMoney/bria/releases/tag/0.1.51)
+
+
+### Miscellaneous Tasks
+
+- Bump serde from 1.0.181 to 1.0.183 (#316)
+- Bump tokio from 1.29.1 to 1.30.0 (#315)
+- Bump serde_with from 3.1.0 to 3.2.0 (#314)
+
 # [bria release v0.1.50](https://github.com/GaloyMoney/bria/releases/tag/0.1.50)
 
 
