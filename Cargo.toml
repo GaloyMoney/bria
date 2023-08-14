@@ -38,7 +38,7 @@ uuid = { version = "1.4.1", features = ["serde", "v4"] }
 futures = "0.3.27"
 url = "2.4.0"
 rand = "0.8.5"
-bdk = "0.28.1"
+bdk = "0.28.2"
 lazy_static = "1.4.0"
 opentelemetry = "0.20.0"
 serde_with = "3.2.0"
