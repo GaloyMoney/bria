@@ -47,6 +47,7 @@
             cargo-watch
             docker-compose
             bats
+            jq
           ];
           shellHook = ''
             export DATABASE_URL=postgres://user:password@127.0.0.1:5432/pg
