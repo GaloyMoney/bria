@@ -29,7 +29,7 @@ clean-deps:
 	docker compose down
 
 start-deps:
-	docker compose up -d integration-deps
+	docker compose up -d integration-deps && sleep 2
 
 reset-deps: clean-deps start-deps setup-db
 
