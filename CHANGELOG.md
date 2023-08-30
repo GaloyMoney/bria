@@ -1,3 +1,28 @@
+# [bria release v0.1.52](https://github.com/GaloyMoney/bria/releases/tag/0.1.52)
+
+
+### Bug Fixes
+
+- >> for osx crosscompile
+- Add targets to rust-toolchain.toml
+
+### Miscellaneous Tasks
+
+- Bump via cargo update (#338)
+- Bump tempfile from 3.7.1 to 3.8.0 (#329)
+- Bump clap from 4.3.19 to 4.4.1 (#336)
+- Add flake (#337)
+- Bump tokio from 1.30.0 to 1.32.0
+- Bump serde_with from 3.2.0 to 3.3.0 (#327)
+- Bump anyhow from 1.0.72 to 1.0.75 (#326)
+- Bump serde from 1.0.183 to 1.0.185 (#324)
+- Bump thiserror from 1.0.44 to 1.0.47 (#325)
+- Bump serde_json from 1.0.104 to 1.0.105 (#320)
+- Bump async-trait from 0.1.72 to 0.1.73 (#322)
+- Bump rust_decimal_macros from 1.30.0 to 1.31.0 (#317)
+- Bump bdk from 0.28.1 to 0.28.2 (#318)
+- Bump tempfile from 3.7.0 to 3.7.1 (#319)
+
 # [bria release v0.1.51](https://github.com/GaloyMoney/bria/releases/tag/0.1.51)
 
 
