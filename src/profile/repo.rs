@@ -90,7 +90,7 @@ impl Profiles {
         .fetch_all(&self.pool)
         .await?;
 
-        if rows.len() > 0 {
+        if !rows.is_empty() {
             let mut events = EntityEvents::new();
             for row in rows {
                 events.load_event(row.sequence as usize, row.event)?;

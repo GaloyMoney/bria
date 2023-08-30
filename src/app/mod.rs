@@ -319,7 +319,7 @@ impl App {
         internal: String,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let keychain = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
-        self.create_wallet(&profile, wallet_name, keychain).await
+        self.create_wallet(profile, wallet_name, keychain).await
     }
 
     #[instrument(name = "app.create_sorted_multisig_wallet", skip(self), err)]
@@ -345,7 +345,7 @@ impl App {
         .collect();
 
         let keychain = KeychainConfig::sorted_multisig(xpub_values, threshold);
-        self.create_wallet(&profile, wallet_name, keychain).await
+        self.create_wallet(profile, wallet_name, keychain).await
     }
 
     async fn create_wallet(
@@ -765,7 +765,7 @@ impl App {
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
             .new_address(
-                &profile,
+                profile,
                 destination_wallet_name.clone(),
                 Some(external_id.clone().unwrap_or_else(|| payout_id.to_string())),
                 metadata.clone(),
