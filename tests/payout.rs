@@ -130,7 +130,7 @@ async fn spending_policy() -> anyhow::Result<()> {
         .await;
     assert!(matches!(
         res,
-        Err(ApplicationError::PayoutAddressNotAllowed(_))
+        Err(ApplicationError::DestinationNotAllowed(_))
     ));
 
     Ok(())

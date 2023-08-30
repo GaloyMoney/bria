@@ -660,7 +660,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::DestinationBlocked(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }
-            ApplicationError::PayoutAddressNotAllowed(_) => {
+            ApplicationError::DestinationNotAllowed(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {

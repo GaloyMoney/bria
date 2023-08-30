@@ -152,10 +152,10 @@ pub enum PayoutDestination {
 }
 
 impl PayoutDestination {
-    pub fn onchain_address(&self) -> bitcoin::Address {
+    pub fn onchain_address(&self) -> &bitcoin::Address {
         match self {
-            Self::OnchainAddress { value } => value.clone(),
-            Self::Wallet { address, .. } => address.clone(),
+            Self::OnchainAddress { value } => value,
+            Self::Wallet { address, .. } => address,
         }
     }
 }

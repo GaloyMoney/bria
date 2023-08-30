@@ -71,7 +71,7 @@ pub struct SecurityConfig {
 impl SecurityConfig {
     pub fn is_blocked(&self, destination: &PayoutDestination) -> bool {
         self.blocked_addresses
-            .contains(&destination.onchain_address())
+            .contains(destination.onchain_address())
     }
 }
 

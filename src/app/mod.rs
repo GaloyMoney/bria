@@ -804,12 +804,8 @@ impl App {
         if self.config.security.is_blocked(&destination) {
             return Err(ApplicationError::DestinationBlocked(destination));
         }
-        if let Some(policy) = profile.spending_policy.as_ref() {
-            if !policy.is_destination_allowed(&destination.onchain_address()) {
-                return Err(ApplicationError::PayoutAddressNotAllowed(
-                    destination.onchain_address(),
-                ));
-            }
+        if !profile.is_destination_allowed(&destination) {
+            return Err(ApplicationError::DestinationNotAllowed(destination));
         }
 
         let mut builder = NewPayout::builder(id);

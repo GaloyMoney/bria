@@ -28,14 +28,24 @@ pub struct Profile {
     pub spending_policy: Option<SpendingPolicy>,
 }
 
+impl Profile {
+    pub fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
+        self.spending_policy
+            .as_ref()
+            .map(|sp| sp.is_destination_allowed(destination))
+            .unwrap_or(true)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendingPolicy {
     pub allowed_destinations: Vec<bitcoin::Address>,
 }
 
 impl SpendingPolicy {
-    pub fn is_destination_allowed(&self, address: &bitcoin::Address) -> bool {
-        self.allowed_destinations.contains(address)
+    fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
+        self.allowed_destinations
+            .contains(destination.onchain_address())
     }
 }
 
