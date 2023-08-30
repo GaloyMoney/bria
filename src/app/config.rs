@@ -70,11 +70,8 @@ pub struct SecurityConfig {
 
 impl SecurityConfig {
     pub fn is_blocked(&self, destination: &PayoutDestination) -> bool {
-        if let Some(addr) = destination.onchain_address() {
-            self.blocked_addresses.contains(&addr)
-        } else {
-            false
-        }
+        self.blocked_addresses
+            .contains(&destination.onchain_address())
     }
 }
 

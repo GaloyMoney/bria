@@ -127,11 +127,13 @@ impl App {
         &self,
         profile: &Profile,
         name: String,
+        spending_policy: Option<SpendingPolicy>,
     ) -> Result<Profile, ApplicationError> {
         let mut tx = self.pool.begin().await?;
         let new_profile = NewProfile::builder()
             .account_id(profile.account_id)
             .name(name)
+            .spending_policy(spending_policy)
             .build()
             .expect("Couldn't build NewProfile");
         let new_profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
@@ -801,6 +803,13 @@ impl App {
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
         if self.config.security.is_blocked(&destination) {
             return Err(ApplicationError::DestinationBlocked(destination));
+        }
+        if let Some(policy) = profile.spending_policy.as_ref() {
+            if !policy.is_destination_allowed(&destination.onchain_address()) {
+                return Err(ApplicationError::PayoutAddressNotAllowed(
+                    destination.onchain_address(),
+                ));
+            }
         }
 
         let mut builder = NewPayout::builder(id);

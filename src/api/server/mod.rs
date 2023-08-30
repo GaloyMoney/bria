@@ -21,6 +21,7 @@ use crate::{
     app::{error::ApplicationError, *},
     payout_queue,
     primitives::*,
+    profile,
 };
 
 pub const PROFILE_API_KEY_HEADER: &str = "x-bria-api-key";
@@ -42,7 +43,14 @@ impl BriaService for Bria {
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
             let request = request.into_inner();
-            let profile = self.app.create_profile(&profile, request.name).await?;
+            let spending_policy = request
+                .spending_policy
+                .map(profile::SpendingPolicy::try_from)
+                .transpose()?;
+            let profile = self
+                .app
+                .create_profile(&profile, request.name, spending_policy)
+                .await?;
             Ok(Response::new(CreateProfileResponse {
                 id: profile.id.to_string(),
             }))

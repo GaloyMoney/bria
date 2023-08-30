@@ -33,6 +33,12 @@ pub struct SpendingPolicy {
     pub allowed_destinations: Vec<bitcoin::Address>,
 }
 
+impl SpendingPolicy {
+    pub fn is_destination_allowed(&self, address: &bitcoin::Address) -> bool {
+        self.allowed_destinations.contains(address)
+    }
+}
+
 pub struct ProfileApiKey {
     pub key: String,
     pub id: ProfileApiKeyId,
@@ -48,7 +54,7 @@ pub struct NewProfile {
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
-    #[builder(default, setter(strip_option))]
+    #[builder(default)]
     pub(super) spending_policy: Option<SpendingPolicy>,
 }
 

@@ -136,10 +136,7 @@ impl From<&UnbatchedPayout> for TxPayout {
     fn from(payout: &UnbatchedPayout) -> Self {
         (
             uuid::Uuid::from(payout.id),
-            payout
-                .destination
-                .onchain_address()
-                .expect("onchain_address"),
+            payout.destination.onchain_address(),
             payout.satoshis,
         )
     }

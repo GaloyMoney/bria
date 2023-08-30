@@ -72,6 +72,8 @@ pub enum ApplicationError {
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Payout already committed to a batch")]
     PayoutAlreadyCommitted,
+    #[error("Payout address not allowed for profile: {0}")]
+    PayoutAddressNotAllowed(bitcoin::Address),
     #[error("Hex decode error: {0}")]
     HexDecodeError(#[from] hex::FromHexError),
     #[error("Could not decrypt the encrypted key: {0}")]
