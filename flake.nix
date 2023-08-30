@@ -26,7 +26,7 @@
       };
       rustVersion = pkgs.pkgsBuildHost.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       rustToolchain = rustVersion.override {
-        extensions = ["rust-analyzer"];
+        extensions = ["rust-analyzer" "rust-src"];
       };
       nativeBuildInputs = with pkgs;
         [
