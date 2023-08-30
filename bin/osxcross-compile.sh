@@ -10,9 +10,10 @@ echo
 export LIBZ_SYS_STATIC=1
 
 # For cross compiling ring https://github.com/briansmith/ring/blob/main/BUILDING.md#cross-compiling
-export TARGET_CC=/workspace/osxcross/target/bin/x86_64h-apple-darwin22.4-cc
-export TARGET_AR=/workspace/osxcross/target/bin/x86_64h-apple-darwin22.4-ar
+export TARGET_CC=/workspace/osxcross/target/bin/x86_64h-apple-darwin21.4-cc
+export TARGET_AR=/workspace/osxcross/target/bin/x86_64h-apple-darwin21.4-ar
 
+echo 'targets = ["x86_64-apple-darwin"]' > rust-toolchain.toml
 SQLX_OFFLINE=true cargo build --release --target "${MACOS_TARGET}" --all-features
 
 echo

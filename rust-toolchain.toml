@@ -1,4 +1,3 @@
 [toolchain]
 channel = "stable"
-targets = ["x86_64-apple-darwin"]
 profile = "default"
