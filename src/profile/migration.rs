@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres};
 
-use super::{entity::*, error::ProfileError, repo::*};
+use super::{entity::*, error::ProfileError};
 
 pub async fn profile_event_migration(pool: &Pool<Postgres>) -> Result<(), ProfileError> {
     let res = sqlx::query!("SELECT count(*) FROM bria_profile_events")
@@ -13,7 +13,6 @@ pub async fn profile_event_migration(pool: &Pool<Postgres>) -> Result<(), Profil
             .await?;
 
         let mut tx = pool.begin().await?;
-        let profiles = Profiles::new(pool);
         for record in records.into_iter() {
             let new_profile = NewProfile::builder()
                 .id(record.id)
@@ -21,7 +20,13 @@ pub async fn profile_event_migration(pool: &Pool<Postgres>) -> Result<(), Profil
                 .name(record.name)
                 .build()
                 .expect("Failed to build profile");
-            profiles.create_in_tx(&mut tx, new_profile).await?;
+            let id = new_profile.id;
+            crate::entity::EntityEvents::<ProfileEvent>::persist(
+                "bria_profile_events",
+                &mut tx,
+                new_profile.initial_events().new_serialized_events(id),
+            )
+            .await?;
         }
         tx.commit().await?;
     }
