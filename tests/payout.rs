@@ -96,7 +96,7 @@ async fn spending_policy() -> anyhow::Result<()> {
             &profile,
             wallet_name.clone(),
             Some(SpendingPolicy {
-                allowed_destinations: vec![address.clone()],
+                allowed_payout_addresses: vec![address.clone()],
             }),
         )
         .await?;

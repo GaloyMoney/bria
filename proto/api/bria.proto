@@ -52,7 +52,7 @@ message CreateProfileRequest {
 }
 
 message SpendingPolicy {
-  repeated string allowed_destinations = 1;
+  repeated string allowed_payout_addresses = 1;
 }
 
 message CreateProfileResponse {

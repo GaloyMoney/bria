@@ -39,12 +39,12 @@ impl Profile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendingPolicy {
-    pub allowed_destinations: Vec<bitcoin::Address>,
+    pub allowed_payout_addresses: Vec<bitcoin::Address>,
 }
 
 impl SpendingPolicy {
     fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
-        self.allowed_destinations
+        self.allowed_payout_addresses
             .contains(destination.onchain_address())
     }
 }

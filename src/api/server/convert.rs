@@ -32,8 +32,8 @@ impl From<Profile> for proto::Profile {
 impl From<SpendingPolicy> for proto::SpendingPolicy {
     fn from(sp: SpendingPolicy) -> Self {
         Self {
-            allowed_destinations: sp
-                .allowed_destinations
+            allowed_payout_addresses: sp
+                .allowed_payout_addresses
                 .into_iter()
                 .map(|addr| addr.to_string())
                 .collect(),
@@ -45,15 +45,15 @@ impl TryFrom<proto::SpendingPolicy> for SpendingPolicy {
     type Error = tonic::Status;
 
     fn try_from(sp: proto::SpendingPolicy) -> Result<Self, Self::Error> {
-        let mut allowed_destinations = Vec::new();
-        for dest in sp.allowed_destinations {
+        let mut allowed_payout_addresses = Vec::new();
+        for dest in sp.allowed_payout_addresses {
             let addr = dest
                 .parse::<bitcoin::Address>()
                 .map_err(|err| tonic::Status::invalid_argument(err.to_string()))?;
-            allowed_destinations.push(addr);
+            allowed_payout_addresses.push(addr);
         }
         Ok(Self {
-            allowed_destinations,
+            allowed_payout_addresses,
         })
     }
 }
