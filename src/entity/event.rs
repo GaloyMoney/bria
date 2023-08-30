@@ -32,6 +32,10 @@ impl<T: DeserializeOwned + Serialize + 'static> EntityEvents<T> {
         self.events.iter()
     }
 
+    pub fn into_iter(self) -> impl DoubleEndedIterator<Item = T> {
+        self.events.into_iter()
+    }
+
     pub fn load_event(
         &mut self,
         sequence: usize,

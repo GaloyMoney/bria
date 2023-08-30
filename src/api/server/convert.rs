@@ -24,6 +24,7 @@ impl From<Profile> for proto::Profile {
         Self {
             id: p.id.to_string(),
             name: p.name,
+            spending_policy: None,
         }
     }
 }

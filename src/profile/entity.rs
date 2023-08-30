@@ -13,13 +13,24 @@ pub enum ProfileEvent {
     NameUpdated {
         name: String,
     },
+    SpendingPolicyUpdated {
+        spending_policy: SpendingPolicy,
+    },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct Profile {
     pub id: ProfileId,
     pub account_id: AccountId,
     pub name: String,
+    #[builder(default, setter(strip_option))]
+    pub spending_policy: Option<SpendingPolicy>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpendingPolicy {
+    pub allowed_destinations: Vec<bitcoin::Address>,
 }
 
 pub struct ProfileApiKey {
@@ -37,6 +48,8 @@ pub struct NewProfile {
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
+    #[builder(default, setter(strip_option))]
+    pub(super) spending_policy: Option<SpendingPolicy>,
 }
 
 impl NewProfile {
@@ -47,12 +60,40 @@ impl NewProfile {
     }
 
     pub(super) fn initial_events(self) -> EntityEvents<ProfileEvent> {
-        EntityEvents::init([
+        let mut events = EntityEvents::init([
             ProfileEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
             },
             ProfileEvent::NameUpdated { name: self.name },
-        ])
+        ]);
+        if self.spending_policy.is_some() {
+            events.push(ProfileEvent::SpendingPolicyUpdated {
+                spending_policy: self.spending_policy.unwrap(),
+            });
+        }
+        events
+    }
+}
+
+impl TryFrom<EntityEvents<ProfileEvent>> for Profile {
+    type Error = EntityError;
+
+    fn try_from(events: EntityEvents<ProfileEvent>) -> Result<Self, Self::Error> {
+        let mut builder = ProfileBuilder::default();
+        for event in events.into_iter() {
+            match event {
+                ProfileEvent::Initialized { id, account_id } => {
+                    builder = builder.id(id).account_id(account_id)
+                }
+                ProfileEvent::NameUpdated { name } => {
+                    builder = builder.name(name);
+                }
+                ProfileEvent::SpendingPolicyUpdated { spending_policy } => {
+                    builder = builder.spending_policy(spending_policy);
+                }
+            }
+        }
+        builder.build()
     }
 }

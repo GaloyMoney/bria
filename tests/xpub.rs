@@ -31,12 +31,12 @@ async fn rotate_encryption_key() -> anyhow::Result<()> {
     let profile = helpers::create_test_account(&pool).await?;
     let app = App::run(pool.clone(), AppConfig::default()).await?;
     let repo = XPubs::new(&pool);
-    app.import_xpub(profile.clone(), "test".to_string(), "tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4".to_string(), Some("m/84h/0h/0h".to_string())).await?;
+    app.import_xpub(&profile, "test".to_string(), "tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4".to_string(), Some("m/84h/0h/0h".to_string())).await?;
     let xpub = repo
         .find_from_ref(profile.account_id, XPubRef::Name("test".to_string()))
         .await?;
     app.set_signer_config(
-        profile,
+        &profile,
         "test".to_string(),
         SignerConfig::Bitcoind(BitcoindSignerConfig {
             endpoint: "https://localhost:18543".to_string(),

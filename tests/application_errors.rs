@@ -18,7 +18,7 @@ async fn external_id_does_not_exist() -> anyhow::Result<()> {
 
     let app = App::run(pool, AppConfig::default()).await?;
     let err = app
-        .find_address_by_external_id(profile, "external_id".to_string())
+        .find_address_by_external_id(&profile, "external_id".to_string())
         .await;
 
     assert!(matches!(
@@ -41,7 +41,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test_import_descriptor".to_owned();
     let _ = app
-        .create_descriptors_wallet(profile.clone(), wallet_name.clone(), external, internal)
+        .create_descriptors_wallet(&profile, wallet_name.clone(), external, internal)
         .await?;
 
     let external_id = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
@@ -88,7 +88,7 @@ async fn payout_queue_id_not_found() -> anyhow::Result<()> {
     let app = App::run(pool, AppConfig::default()).await?;
     let payout_queue_id = PayoutQueueId::new();
     let err = app
-        .update_payout_queue(profile, payout_queue_id, None, None)
+        .update_payout_queue(&profile, payout_queue_id, None, None)
         .await;
     assert!(matches!(
         err,
@@ -127,13 +127,13 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test_wallet".to_owned();
     let _ = app
-        .create_descriptors_wallet(profile.clone(), wallet_name.clone(), external, internal)
+        .create_descriptors_wallet(&profile, wallet_name.clone(), external, internal)
         .await?;
     let address = Address::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string()).unwrap();
     let queue_name = "test".to_string();
     let sats = Satoshis::from(10000);
     let err = app
-        .estimate_payout_fee_to_address(profile, wallet_name, queue_name, address, sats)
+        .estimate_payout_fee_to_address(&profile, wallet_name, queue_name, address, sats)
         .await;
     assert!(matches!(
         err,
@@ -151,7 +151,7 @@ async fn profile_name_not_found() -> anyhow::Result<()> {
     let profile = helpers::create_test_account(&pool).await?;
     let app = App::run(pool, AppConfig::default()).await?;
     let err = app
-        .create_profile_api_key(profile, "test".to_string())
+        .create_profile_api_key(&profile, "test".to_string())
         .await;
     assert!(matches!(
         err,

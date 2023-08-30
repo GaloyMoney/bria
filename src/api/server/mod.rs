@@ -42,7 +42,7 @@ impl BriaService for Bria {
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
             let request = request.into_inner();
-            let profile = self.app.create_profile(profile, request.name).await?;
+            let profile = self.app.create_profile(&profile, request.name).await?;
             Ok(Response::new(CreateProfileResponse {
                 id: profile.id.to_string(),
             }))
@@ -60,7 +60,7 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let profiles = self.app.list_profiles(profile).await?;
+            let profiles = self.app.list_profiles(&profile).await?;
             let profile_messages: Vec<proto::Profile> =
                 profiles.into_iter().map(proto::Profile::from).collect();
             let response = ListProfilesResponse {
@@ -84,7 +84,7 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let key = self
                 .app
-                .create_profile_api_key(profile, request.profile_name)
+                .create_profile_api_key(&profile, request.profile_name)
                 .await?;
             Ok(Response::new(CreateProfileApiKeyResponse {
                 id: key.id.to_string(),
@@ -116,7 +116,7 @@ impl BriaService for Bria {
             };
             let id = self
                 .app
-                .import_xpub(profile, name, xpub, derivation)
+                .import_xpub(&profile, name, xpub, derivation)
                 .await?;
             Ok(Response::new(ImportXpubResponse { id: id.to_string() }))
         })
@@ -133,7 +133,7 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let xpubs = self.app.list_xpubs(profile).await?;
+            let xpubs = self.app.list_xpubs(&profile).await?;
             let xpub_messages: Vec<proto::Xpub> =
                 xpubs.into_iter().map(proto::Xpub::from).collect();
             let response = ListXpubsResponse {
@@ -156,7 +156,7 @@ impl BriaService for Bria {
             let profile = self.app.authenticate(key).await?;
             let SetSignerConfigRequest { xpub_ref, config } = request.into_inner();
             self.app
-                .set_signer_config(profile, xpub_ref, config.try_into()?)
+                .set_signer_config(&profile, xpub_ref, config.try_into()?)
                 .await?;
             Ok(Response::new(SetSignerConfigResponse {}))
         })
@@ -180,7 +180,7 @@ impl BriaService for Bria {
             } = request;
             self.app
                 .submit_signed_psbt(
-                    profile,
+                    &profile,
                     batch_id
                         .parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
@@ -218,7 +218,7 @@ impl BriaService for Bria {
                         })),
                 }) => {
                     self.app
-                        .create_wpkh_wallet(profile, name, xpub, derivation_path)
+                        .create_wpkh_wallet(&profile, name, xpub, derivation_path)
                         .await?
                 }
                 Some(KeychainConfig {
@@ -229,7 +229,7 @@ impl BriaService for Bria {
                         })),
                 }) => {
                     self.app
-                        .create_descriptors_wallet(profile, name, external, internal)
+                        .create_descriptors_wallet(&profile, name, external, internal)
                         .await?
                 }
                 Some(KeychainConfig {
@@ -240,7 +240,7 @@ impl BriaService for Bria {
                                 threshold,
                             })),
                 }) => {
-                    self.app.create_sorted_multisig_wallet(profile, name, xpubs, threshold).await?
+                    self.app.create_sorted_multisig_wallet(&profile, name, xpubs, threshold).await?
                 }
                 _ => {
                     return Err(Status::invalid_argument("invalid keychain config"));
@@ -267,7 +267,7 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let balance = self
                 .app
-                .get_wallet_balance_summary(profile, request.wallet_name)
+                .get_wallet_balance_summary(&profile, request.wallet_name)
                 .await?;
 
             Ok(Response::new(GetWalletBalanceSummaryResponse::from(
@@ -287,7 +287,7 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let balance = self.app.get_account_balance_summary(profile).await?;
+            let balance = self.app.get_account_balance_summary(&profile).await?;
             Ok(Response::new(GetAccountBalanceSummaryResponse::from(
                 balance,
             )))
@@ -350,7 +350,7 @@ impl BriaService for Bria {
 
             self.app
                 .update_address(
-                    profile,
+                    &profile,
                     address,
                     new_external_id,
                     new_metadata
@@ -378,7 +378,7 @@ impl BriaService for Bria {
 
             let (wallet_id, addresses) = self
                 .app
-                .list_external_addresses(profile, wallet_name)
+                .list_external_addresses(&profile, wallet_name)
                 .await?;
             let proto_addresses: Vec<proto::WalletAddress> = addresses
                 .into_iter()
@@ -404,11 +404,11 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let addr = match request.identifier {
                 Some(get_address_request::Identifier::Address(address)) => {
-                    self.app.find_address(profile, address).await?
+                    self.app.find_address(&profile, address).await?
                 }
                 Some(get_address_request::Identifier::ExternalId(external_id)) => {
                     self.app
-                        .find_address_by_external_id(profile, external_id)
+                        .find_address_by_external_id(&profile, external_id)
                         .await?
                 }
                 _ => {
@@ -435,7 +435,7 @@ impl BriaService for Bria {
             let profile = self.app.authenticate(key).await?;
             let request = request.into_inner();
             let (wallet_id, keychain_utxos) =
-                self.app.list_utxos(profile, request.wallet_name).await?;
+                self.app.list_utxos(&profile, request.wallet_name).await?;
 
             let proto_keychains: Vec<proto::KeychainUtxos> = keychain_utxos
                 .into_iter()
@@ -464,7 +464,7 @@ impl BriaService for Bria {
             let id = self
                 .app
                 .create_payout_queue(
-                    profile,
+                    &profile,
                     request.name,
                     request.description,
                     request.config.map(payout_queue::PayoutQueueConfig::from),
@@ -488,7 +488,7 @@ impl BriaService for Bria {
             let profile = self.app.authenticate(key).await?;
             let request = request.into_inner();
             let TriggerPayoutQueueRequest { name } = request;
-            self.app.trigger_payout_queue(profile, name).await?;
+            self.app.trigger_payout_queue(&profile, name).await?;
             Ok(Response::new(TriggerPayoutQueueResponse {}))
         })
         .await
@@ -516,7 +516,7 @@ impl BriaService for Bria {
                 Some(proto::estimate_payout_fee_request::Destination::OnchainAddress(address)) => {
                     self.app
                         .estimate_payout_fee_to_address(
-                            profile,
+                            &profile,
                             wallet_name,
                             payout_queue_name,
                             address.parse().map_err(|_| {
@@ -534,7 +534,7 @@ impl BriaService for Bria {
                 )) => {
                     self.app
                         .estimate_payout_fee_to_wallet(
-                            profile,
+                            &profile,
                             wallet_name,
                             payout_queue_name,
                             name,
@@ -580,7 +580,7 @@ impl BriaService for Bria {
                 Some(proto::submit_payout_request::Destination::OnchainAddress(address)) => {
                     self.app
                         .submit_payout_to_address(
-                            profile,
+                            &profile,
                             wallet_name,
                             payout_queue_name,
                             address.parse().map_err(|_| {
@@ -601,7 +601,7 @@ impl BriaService for Bria {
                 Some(proto::submit_payout_request::Destination::DestinationWalletName(name)) => {
                     self.app
                         .submit_payout_to_wallet(
-                            profile,
+                            &profile,
                             wallet_name,
                             payout_queue_name,
                             name,
@@ -642,7 +642,7 @@ impl BriaService for Bria {
             let profile = self.app.authenticate(key).await?;
             let payouts = self
                 .app
-                .list_payouts(profile, request.into_inner().wallet_name)
+                .list_payouts(&profile, request.into_inner().wallet_name)
                 .await?;
 
             let payout_messages: Vec<proto::Payout> =
@@ -669,14 +669,14 @@ impl BriaService for Bria {
             let payout = match request.identifier {
                 Some(get_payout_request::Identifier::Id(id)) => {
                     if let Ok(payout_id) = PayoutId::from_str(id.as_str()) {
-                        self.app.find_payout(profile, payout_id).await?
+                        self.app.find_payout(&profile, payout_id).await?
                     } else {
                         return Err(Status::invalid_argument("could not parse the payout_id"));
                     }
                 }
                 Some(get_payout_request::Identifier::ExternalId(external_id)) => {
                     self.app
-                        .find_payout_by_external_id(profile, external_id)
+                        .find_payout_by_external_id(&profile, external_id)
                         .await?
                 }
                 _ => {
@@ -706,7 +706,7 @@ impl BriaService for Bria {
             let CancelPayoutRequest { id } = request;
             self.app
                 .cancel_payout(
-                    profile,
+                    &profile,
                     id.parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                 )
@@ -726,7 +726,7 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let wallets = self.app.list_wallets(profile).await?;
+            let wallets = self.app.list_wallets(&profile).await?;
             let wallet_messages: Vec<proto::Wallet> =
                 wallets.into_iter().map(proto::Wallet::from).collect();
             let response = ListWalletsResponse {
@@ -747,7 +747,7 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
-            let payout_queues = self.app.list_payout_queues(profile).await?;
+            let payout_queues = self.app.list_payout_queues(&profile).await?;
             let payout_queue_messages: Vec<proto::PayoutQueue> = payout_queues
                 .into_iter()
                 .map(proto::PayoutQueue::from)
@@ -779,7 +779,7 @@ impl BriaService for Bria {
 
             self.app
                 .update_payout_queue(
-                    profile,
+                    &profile,
                     id.parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                     new_description,
@@ -806,7 +806,7 @@ impl BriaService for Bria {
             let (batch, mut payouts, sessions) = self
                 .app
                 .get_batch(
-                    profile,
+                    &profile,
                     batch_id
                         .parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
@@ -862,7 +862,7 @@ impl BriaService for Bria {
 
         let outbox_listener = self
             .app
-            .subscribe_all(profile, after_sequence, augment.unwrap_or(false))
+            .subscribe_all(&profile, after_sequence, augment.unwrap_or(false))
             .await?;
         Ok(Response::new(Box::pin(
             outbox_listener

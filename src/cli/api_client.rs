@@ -66,7 +66,10 @@ impl ApiClient {
     }
 
     pub async fn create_profile(&self, name: String) -> anyhow::Result<()> {
-        let request = tonic::Request::new(proto::CreateProfileRequest { name });
+        let request = tonic::Request::new(proto::CreateProfileRequest {
+            name,
+            spending_policy: None,
+        });
         let response = self
             .connect()
             .await?

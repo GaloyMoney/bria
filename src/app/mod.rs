@@ -125,7 +125,7 @@ impl App {
     #[instrument(name = "app.create_profile", skip(self), err)]
     pub async fn create_profile(
         &self,
-        profile: Profile,
+        profile: &Profile,
         name: String,
     ) -> Result<Profile, ApplicationError> {
         let mut tx = self.pool.begin().await?;
@@ -140,7 +140,7 @@ impl App {
     }
 
     #[instrument(name = "app.list_profiles", skip(self), err)]
-    pub async fn list_profiles(&self, profile: Profile) -> Result<Vec<Profile>, ApplicationError> {
+    pub async fn list_profiles(&self, profile: &Profile) -> Result<Vec<Profile>, ApplicationError> {
         let profiles = self.profiles.list_for_account(profile.account_id).await?;
         Ok(profiles)
     }
@@ -148,7 +148,7 @@ impl App {
     #[instrument(name = "app.create_profile_api_key", skip(self), err)]
     pub async fn create_profile_api_key(
         &self,
-        profile: Profile,
+        profile: &Profile,
         profile_name: String,
     ) -> Result<ProfileApiKey, ApplicationError> {
         let found_profile = self
@@ -167,7 +167,7 @@ impl App {
     #[instrument(name = "app.import_xpub", skip(self), err)]
     pub async fn import_xpub(
         &self,
-        profile: Profile,
+        profile: &Profile,
         key_name: String,
         xpub: String,
         derivation: Option<String>,
@@ -187,7 +187,7 @@ impl App {
     #[instrument(name = "app.set_signer_config", skip(self), err)]
     pub async fn set_signer_config(
         &self,
-        profile: Profile,
+        profile: &Profile,
         xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), ApplicationError> {
@@ -244,7 +244,7 @@ impl App {
     #[instrument(name = "app.submit_signed_psbt", skip(self), err)]
     pub async fn submit_signed_psbt(
         &self,
-        profile: Profile,
+        profile: &Profile,
         batch_id: BatchId,
         xpub_ref: String,
         signed_psbt: bitcoin::psbt::PartiallySignedTransaction,
@@ -288,7 +288,7 @@ impl App {
     #[instrument(name = "app.create_wpkh_wallet", skip(self), err)]
     pub async fn create_wpkh_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         xpub: String,
         derivation: Option<String>,
@@ -313,19 +313,19 @@ impl App {
     #[instrument(name = "app.create_descriptors_wallet", skip(self), err)]
     pub async fn create_descriptors_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         external: String,
         internal: String,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
         let keychain = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
-        self.create_wallet(profile, wallet_name, keychain).await
+        self.create_wallet(&profile, wallet_name, keychain).await
     }
 
     #[instrument(name = "app.create_sorted_multisig_wallet", skip(self), err)]
     pub async fn create_sorted_multisig_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         xpubs: Vec<String>,
         threshold: u32,
@@ -345,12 +345,12 @@ impl App {
         .collect();
 
         let keychain = KeychainConfig::sorted_multisig(xpub_values, threshold);
-        self.create_wallet(profile, wallet_name, keychain).await
+        self.create_wallet(&profile, wallet_name, keychain).await
     }
 
     async fn create_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         keychain: KeychainConfig,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
@@ -421,7 +421,7 @@ impl App {
     #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]
     pub async fn get_wallet_balance_summary(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
     ) -> Result<WalletBalanceSummary, ApplicationError> {
         let wallet = self
@@ -440,7 +440,7 @@ impl App {
     #[instrument(name = "app.get_account_balance_summary", skip(self), err)]
     pub async fn get_account_balance_summary(
         &self,
-        profile: Profile,
+        profile: &Profile,
     ) -> Result<AccountBalanceSummary, ApplicationError> {
         let account_ledger_account_balances = self
             .ledger
@@ -487,7 +487,7 @@ impl App {
     #[instrument(name = "app.update_address", skip(self), err)]
     pub async fn update_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         address: String,
         new_external_id: Option<String>,
         new_metadata: Option<serde_json::Value>,
@@ -509,7 +509,7 @@ impl App {
     #[instrument(name = "app.list_addresses", skip(self), err)]
     pub async fn list_external_addresses(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
     ) -> Result<(WalletId, Vec<WalletAddress>), ApplicationError> {
         let wallet = self
@@ -527,7 +527,7 @@ impl App {
     #[instrument(name = "app.get_address_by_external_id", skip(self), err)]
     pub async fn find_address_by_external_id(
         &self,
-        profile: Profile,
+        profile: &Profile,
         external_id: String,
     ) -> Result<WalletAddress, ApplicationError> {
         let address = self
@@ -540,7 +540,7 @@ impl App {
     #[instrument(name = "app.get_address_by_external_id", skip(self), err)]
     pub async fn find_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         address: String,
     ) -> Result<WalletAddress, ApplicationError> {
         let address = self
@@ -551,7 +551,10 @@ impl App {
     }
 
     #[instrument(name = "app.list_xpubs", skip(self), err)]
-    pub async fn list_xpubs(&self, profile: Profile) -> Result<Vec<AccountXPub>, ApplicationError> {
+    pub async fn list_xpubs(
+        &self,
+        profile: &Profile,
+    ) -> Result<Vec<AccountXPub>, ApplicationError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
         Ok(xpubs)
     }
@@ -559,7 +562,7 @@ impl App {
     #[instrument(name = "app.list_utxos", skip(self), err)]
     pub async fn list_utxos(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
     ) -> Result<(WalletId, Vec<KeychainUtxos>), ApplicationError> {
         let wallet = self
@@ -580,7 +583,7 @@ impl App {
     #[instrument(name = "app.create_payout_queue", skip(self), err)]
     pub async fn create_payout_queue(
         &self,
-        profile: Profile,
+        profile: &Profile,
         payout_queue_name: String,
         description: Option<String>,
         config: Option<PayoutQueueConfig>,
@@ -601,7 +604,7 @@ impl App {
     #[instrument(name = "app.trigger_payout_queue", skip(self), err)]
     pub async fn trigger_payout_queue(
         &self,
-        profile: Profile,
+        profile: &Profile,
         name: String,
     ) -> Result<(), ApplicationError> {
         let payout_queue = self
@@ -616,7 +619,7 @@ impl App {
     #[instrument(name = "app.estimate_payout_fee_to_wallet", skip(self), ret, err)]
     pub async fn estimate_payout_fee_to_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         queue_name: String,
         destination_wallet_name: String,
@@ -643,7 +646,7 @@ impl App {
     #[instrument(name = "app.estimate_payout_fee_to_address", skip(self), ret, err)]
     pub async fn estimate_payout_fee_to_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         queue_name: String,
         destination: bitcoin::Address,
@@ -710,7 +713,7 @@ impl App {
     #[allow(clippy::too_many_arguments)]
     pub async fn submit_payout_to_address(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         queue_name: String,
         address: bitcoin::Address,
@@ -743,7 +746,7 @@ impl App {
     #[allow(clippy::too_many_arguments)]
     pub async fn submit_payout_to_wallet(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
         queue_name: String,
         destination_wallet_name: String,
@@ -787,7 +790,7 @@ impl App {
     #[allow(clippy::too_many_arguments)]
     async fn submit_payout(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet: Wallet,
         payout_queue: PayoutQueue,
         id: PayoutId,
@@ -852,7 +855,7 @@ impl App {
 
     pub async fn cancel_payout(
         &self,
-        profile: Profile,
+        profile: &Profile,
         id: PayoutId,
     ) -> Result<(), ApplicationError> {
         let mut tx = self.pool.begin().await?;
@@ -875,14 +878,14 @@ impl App {
     }
 
     #[instrument(name = "app.list_wallets", skip_all, err)]
-    pub async fn list_wallets(&self, profile: Profile) -> Result<Vec<Wallet>, ApplicationError> {
+    pub async fn list_wallets(&self, profile: &Profile) -> Result<Vec<Wallet>, ApplicationError> {
         Ok(self.wallets.list_by_account_id(profile.account_id).await?)
     }
 
     #[instrument(name = "app.find_payout_by_external_id", skip_all, err)]
     pub async fn find_payout_by_external_id(
         &self,
-        profile: Profile,
+        profile: &Profile,
         external_id: String,
     ) -> Result<Payout, ApplicationError> {
         Ok(self
@@ -894,7 +897,7 @@ impl App {
     #[instrument(name = "app.find_payout", skip_all, err)]
     pub async fn find_payout(
         &self,
-        profile: Profile,
+        profile: &Profile,
         id: PayoutId,
     ) -> Result<Payout, ApplicationError> {
         Ok(self.payouts.find_by_id(profile.account_id, id).await?)
@@ -903,7 +906,7 @@ impl App {
     #[instrument(name = "app.list_payouts", skip_all, err)]
     pub async fn list_payouts(
         &self,
-        profile: Profile,
+        profile: &Profile,
         wallet_name: String,
     ) -> Result<Vec<Payout>, ApplicationError> {
         let wallet = self
@@ -919,7 +922,7 @@ impl App {
     #[instrument(name = "app.list_payout_queues", skip_all, err)]
     pub async fn list_payout_queues(
         &self,
-        profile: Profile,
+        profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
         let payout_queues = self
             .payout_queues
@@ -931,7 +934,7 @@ impl App {
     #[instrument(name = "app.update_payout_queue", skip(self), err)]
     pub async fn update_payout_queue(
         &self,
-        profile: Profile,
+        profile: &Profile,
         id: PayoutQueueId,
         new_description: Option<String>,
         new_config: Option<PayoutQueueConfig>,
@@ -954,7 +957,7 @@ impl App {
     #[instrument(name = "app.get_batch", skip_all, err)]
     pub async fn get_batch(
         &self,
-        profile: Profile,
+        profile: &Profile,
         batch_id: BatchId,
     ) -> Result<
         (
@@ -982,7 +985,7 @@ impl App {
     #[instrument(name = "app.subscribe_all", skip(self), err)]
     pub async fn subscribe_all(
         &self,
-        profile: Profile,
+        profile: &Profile,
         start_after: Option<u64>,
         augment: bool,
     ) -> Result<OutboxListener, ApplicationError> {

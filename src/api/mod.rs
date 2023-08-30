@@ -28,14 +28,14 @@ pub async fn run_dev(
             .await?;
         let (_, xpubs) = app
             .create_wpkh_wallet(
-                profile.clone(),
+                &profile,
                 dev_constants::DEV_WALLET_NAME.to_string(),
                 xpub,
                 derivation_path,
             )
             .await?;
         app.set_signer_config(
-            profile.clone(),
+            &profile,
             xpubs[0].to_string(),
             SignerConfig::Bitcoind(BitcoindSignerConfig {
                 endpoint: signer_endpoint,
@@ -45,7 +45,7 @@ pub async fn run_dev(
         )
         .await?;
         app.create_payout_queue(
-            profile,
+            &profile,
             dev_constants::DEV_QUEUE_NAME.to_string(),
             None,
             Some(PayoutQueueConfig {
