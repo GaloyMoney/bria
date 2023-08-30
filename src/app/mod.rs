@@ -108,6 +108,7 @@ impl App {
             config,
             _runner: runner,
         };
+        crate::profile::migration::profile_event_migration(&app.pool).await?;
         if let Some(deprecrated_encryption_key) = app.config.deprecated_encryption_key.as_ref() {
             app.rotate_encryption_key(deprecrated_encryption_key)
                 .await?;

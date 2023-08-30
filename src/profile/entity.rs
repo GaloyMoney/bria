@@ -31,7 +31,9 @@ pub struct ProfileApiKey {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewProfile {
+    #[builder(setter(into))]
     pub(super) id: ProfileId,
+    #[builder(setter(into))]
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
