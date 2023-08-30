@@ -45,12 +45,17 @@
             cargo-nextest
             cargo-audit
             cargo-watch
+            postgresql
             docker-compose
             bats
             jq
           ];
           shellHook = ''
             export DATABASE_URL=postgres://user:password@127.0.0.1:5432/pg
+            export PGDATABASE=pg
+            export PGUSER=user
+            export PGPASSWORD=password
+            export PGHOST=127.0.0.1
           '';
         };
 

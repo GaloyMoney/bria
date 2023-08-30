@@ -3,7 +3,7 @@ use sqlx::{Pool, Postgres, Transaction};
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
-use crate::{dev_constants, primitives::*};
+use crate::{dev_constants, entity::*, primitives::*};
 
 pub struct Profiles {
     pool: Pool<Postgres>,
@@ -17,25 +17,29 @@ impl Profiles {
     pub async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        account_id: AccountId,
-        profile_name: String,
+        profile: NewProfile,
     ) -> Result<Profile, ProfileError> {
-        let id = Uuid::new_v4();
-        let record = sqlx::query!(
+        sqlx::query!(
             r#"INSERT INTO bria_profiles (id, account_id, name)
-            VALUES ($1, $2, $3)
-            RETURNING (id)"#,
-            id,
-            Uuid::from(account_id),
-            profile_name,
+            VALUES ($1, $2, $3)"#,
+            profile.id as ProfileId,
+            profile.account_id as AccountId,
+            profile.name,
         )
-        .fetch_one(&mut **tx)
+        .execute(&mut **tx)
         .await?;
-        Ok(Profile {
-            id: ProfileId::from(record.id),
-            account_id,
-            name: profile_name,
-        })
+        let res = Profile {
+            id: profile.id,
+            account_id: profile.account_id,
+            name: profile.name.clone(),
+        };
+        EntityEvents::<ProfileEvent>::persist(
+            "bria_profile_events",
+            &mut *tx,
+            profile.initial_events().new_serialized_events(res.id),
+        )
+        .await?;
+        Ok(res)
     }
 
     pub async fn list_for_account(

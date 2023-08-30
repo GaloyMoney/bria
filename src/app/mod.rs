@@ -128,10 +128,12 @@ impl App {
         name: String,
     ) -> Result<Profile, ApplicationError> {
         let mut tx = self.pool.begin().await?;
-        let new_profile = self
-            .profiles
-            .create_in_tx(&mut tx, profile.account_id, name)
-            .await?;
+        let new_profile = NewProfile::builder()
+            .account_id(profile.account_id)
+            .name(name)
+            .build()
+            .expect("Couldn't build NewProfile");
+        let new_profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
         tx.commit().await?;
         Ok(new_profile)
     }
