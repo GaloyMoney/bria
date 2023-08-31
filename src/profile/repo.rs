@@ -1,9 +1,10 @@
 use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{Pool, Postgres, Transaction};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
-use crate::{dev_constants, primitives::*};
+use crate::{dev_constants, entity::*, primitives::*};
 
 pub struct Profiles {
     pool: Pool<Postgres>,
@@ -17,46 +18,57 @@ impl Profiles {
     pub async fn create_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        account_id: AccountId,
-        profile_name: String,
+        profile: NewProfile,
     ) -> Result<Profile, ProfileError> {
-        let id = Uuid::new_v4();
-        let record = sqlx::query!(
+        sqlx::query!(
             r#"INSERT INTO bria_profiles (id, account_id, name)
-            VALUES ($1, $2, $3)
-            RETURNING (id)"#,
-            id,
-            Uuid::from(account_id),
-            profile_name,
+            VALUES ($1, $2, $3)"#,
+            profile.id as ProfileId,
+            profile.account_id as AccountId,
+            profile.name,
         )
-        .fetch_one(&mut **tx)
+        .execute(&mut **tx)
         .await?;
-        Ok(Profile {
-            id: ProfileId::from(record.id),
-            account_id,
-            name: profile_name,
-        })
+        let res = Profile {
+            id: profile.id,
+            account_id: profile.account_id,
+            name: profile.name.clone(),
+            spending_policy: profile.spending_policy.clone(),
+        };
+        EntityEvents::<ProfileEvent>::persist(
+            "bria_profile_events",
+            &mut *tx,
+            profile.initial_events().new_serialized_events(res.id),
+        )
+        .await?;
+        Ok(res)
     }
 
     pub async fn list_for_account(
         &self,
         account_id: AccountId,
     ) -> Result<Vec<Profile>, ProfileError> {
-        let records = sqlx::query!(
-            r#"SELECT id, name FROM bria_profiles WHERE account_id = $1"#,
+        let rows = sqlx::query!(
+            r#"SELECT p.id, e.sequence, e.event_type, e.event
+               FROM bria_profiles p
+               JOIN bria_profile_events e ON p.id = e.id
+               WHERE p.account_id = $1
+               ORDER BY p.id, sequence"#,
             account_id as AccountId
         )
         .fetch_all(&self.pool)
         .await?;
-
-        let profiles = records
-            .into_iter()
-            .map(|record| Profile {
-                id: ProfileId::from(record.id),
-                account_id,
-                name: record.name,
-            })
-            .collect();
+        let mut entity_events = HashMap::new();
+        for row in rows {
+            let id = SigningSessionId::from(row.id);
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
+        }
+        let mut profiles = Vec::new();
+        for (_, events) in entity_events {
+            let profile = Profile::try_from(events)?;
+            profiles.push(profile);
+        }
 
         Ok(profiles)
     }
@@ -66,21 +78,27 @@ impl Profiles {
         account_id: AccountId,
         name: String,
     ) -> Result<Profile, ProfileError> {
-        let record = sqlx::query!(
-            r#"SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2"#,
-            Uuid::from(account_id),
+        let rows = sqlx::query!(
+            r#"SELECT p.id, e.sequence, e.event_type, e.event
+               FROM bria_profiles p
+               JOIN bria_profile_events e ON p.id = e.id
+               WHERE p.account_id = $1 AND p.name = $2
+               ORDER BY p.id, sequence"#,
+            account_id as AccountId,
             name
         )
-        .fetch_optional(&self.pool)
+        .fetch_all(&self.pool)
         .await?;
 
-        record
-            .map(|row| Profile {
-                id: ProfileId::from(row.id),
-                account_id,
-                name: row.name,
-            })
-            .ok_or(ProfileError::ProfileNameNotFound(name))
+        if !rows.is_empty() {
+            let mut events = EntityEvents::new();
+            for row in rows {
+                events.load_event(row.sequence as usize, row.event)?;
+            }
+            Ok(Profile::try_from(events)?)
+        } else {
+            Err(ProfileError::ProfileNameNotFound(name))
+        }
     }
 
     pub async fn create_key_for_profile_in_tx(
@@ -101,8 +119,8 @@ impl Profiles {
             key,
             Uuid::from(profile.id),
         )
-        .fetch_one(&mut **tx)
-        .await?;
+            .fetch_one(&mut **tx)
+            .await?;
         Ok(ProfileApiKey {
             key,
             id: ProfileApiKeyId::from(record.id),
@@ -112,6 +130,8 @@ impl Profiles {
     }
 
     pub async fn find_by_key(&self, key: &str) -> Result<Profile, ProfileError> {
+        let mut tx = self.pool.begin().await?;
+
         let record = sqlx::query!(
             r#"SELECT p.id, p.account_id, p.name
                FROM bria_profiles p
@@ -119,15 +139,23 @@ impl Profiles {
                WHERE k.active = true AND k.encrypted_key = crypt($1, encrypted_key)"#,
             key
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
 
         if let Some(record) = record {
-            Ok(Profile {
-                id: ProfileId::from(record.id),
-                account_id: AccountId::from(record.account_id),
-                name: record.name,
-            })
+            let rows = sqlx::query!(
+                r#"SELECT sequence, event_type, event FROM bria_profile_events
+               WHERE id = $1
+               ORDER BY sequence"#,
+                record.id
+            )
+            .fetch_all(&mut *tx)
+            .await?;
+            let mut events = EntityEvents::new();
+            for row in rows {
+                events.load_event(row.sequence as usize, row.event)?;
+            }
+            Ok(Profile::try_from(events)?)
         } else {
             Err(ProfileError::ProfileKeyNotFound)
         }

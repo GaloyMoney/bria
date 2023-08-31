@@ -43,10 +43,12 @@ impl AdminApp {
         self.ledger
             .create_journal_for_account(&mut tx, account.id, account.name.clone())
             .await?;
-        let profile = self
-            .profiles
-            .create_in_tx(&mut tx, account.id, account.name)
-            .await?;
+        let new_profile = NewProfile::builder()
+            .account_id(account.id)
+            .name(account.name)
+            .build()
+            .expect("Couldn't build NewProfile");
+        let profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
         let profile_key = self
             .profiles
             .create_key_for_profile_in_tx(&mut tx, profile, true)
@@ -79,10 +81,12 @@ impl AdminApp {
         self.ledger
             .create_journal_for_account(&mut tx, account.id, account.name.clone())
             .await?;
-        let profile = self
-            .profiles
-            .create_in_tx(&mut tx, account.id, account.name)
-            .await?;
+        let new_profile = NewProfile::builder()
+            .account_id(account.id)
+            .name(account.name)
+            .build()
+            .expect("Couldn't build NewProfile");
+        let profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
         let key = self
             .profiles
             .create_key_for_profile_in_tx(&mut tx, profile, false)

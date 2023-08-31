@@ -64,6 +64,8 @@ pub enum ApplicationError {
     CouldNotParseIncomingUuid(uuid::Error),
     #[error("DestinationBlocked - sending to '{0}' is prohibited")]
     DestinationBlocked(PayoutDestination),
+    #[error("DestinationNotAllowed - profile is not allowed to send to '{0}'")]
+    DestinationNotAllowed(PayoutDestination),
     #[error("Signing Session not found for batch id: {0}")]
     SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
     #[error("Signing Session not found for xpub id: {0}")]

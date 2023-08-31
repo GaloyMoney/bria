@@ -29,7 +29,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
         .await?;
 
     let app = App::run(pool, AppConfig::default()).await?;
-    app.create_wpkh_wallet(profile.clone(), name.clone(), id.to_string(), None)
+    app.create_wpkh_wallet(&profile, name.clone(), id.to_string(), None)
         .await?;
 
     let (_, addr) = app.new_address(&profile, name.clone(), None, None).await?;
@@ -59,7 +59,7 @@ async fn create_descriptors_wallet() -> anyhow::Result<()> {
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test_import_descriptor".to_owned();
     let (_, xpub_ids) = app
-        .create_descriptors_wallet(profile, wallet_name, external, internal)
+        .create_descriptors_wallet(&profile, wallet_name, external, internal)
         .await?;
     assert_eq!(xpub_ids.len(), 1);
     assert_eq!(xpub_ids[0].to_string(), "2f18f2f7");

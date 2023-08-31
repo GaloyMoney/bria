@@ -39,6 +39,7 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
         id: profile_key.profile_id,
         account_id: profile_key.account_id,
         name,
+        spending_policy: None,
     })
 }
 

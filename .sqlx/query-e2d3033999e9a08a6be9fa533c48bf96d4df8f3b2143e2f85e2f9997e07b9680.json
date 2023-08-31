@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name FROM bria_profiles WHERE account_id = $1 AND name = $2",
+  "query": "SELECT id, account_id, name FROM bria_profiles",
   "describe": {
     "columns": [
       {
@@ -10,20 +10,23 @@
       },
       {
         "ordinal": 1,
+        "name": "account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
         "name": "name",
         "type_info": "Varchar"
       }
     ],
     "parameters": {
-      "Left": [
-        "Uuid",
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
+      false,
       false,
       false
     ]
   },
-  "hash": "e1dfebd338910bea5b6c89fc03acc042b3a380bb12de33426383279d51e5a902"
+  "hash": "e2d3033999e9a08a6be9fa533c48bf96d4df8f3b2143e2f85e2f9997e07b9680"
 }

@@ -24,7 +24,37 @@ impl From<Profile> for proto::Profile {
         Self {
             id: p.id.to_string(),
             name: p.name,
+            spending_policy: p.spending_policy.map(proto::SpendingPolicy::from),
         }
+    }
+}
+
+impl From<SpendingPolicy> for proto::SpendingPolicy {
+    fn from(sp: SpendingPolicy) -> Self {
+        Self {
+            allowed_payout_addresses: sp
+                .allowed_payout_addresses
+                .into_iter()
+                .map(|addr| addr.to_string())
+                .collect(),
+        }
+    }
+}
+
+impl TryFrom<proto::SpendingPolicy> for SpendingPolicy {
+    type Error = tonic::Status;
+
+    fn try_from(sp: proto::SpendingPolicy) -> Result<Self, Self::Error> {
+        let mut allowed_payout_addresses = Vec::new();
+        for dest in sp.allowed_payout_addresses {
+            let addr = dest
+                .parse::<bitcoin::Address>()
+                .map_err(|err| tonic::Status::invalid_argument(err.to_string()))?;
+            allowed_payout_addresses.push(addr);
+        }
+        Ok(Self {
+            allowed_payout_addresses,
+        })
     }
 }
 
@@ -628,6 +658,9 @@ impl From<ApplicationError> for tonic::Status {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::DestinationBlocked(_) => {
+                tonic::Status::permission_denied(err.to_string())
+            }
+            ApplicationError::DestinationNotAllowed(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {
