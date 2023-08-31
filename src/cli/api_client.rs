@@ -202,6 +202,7 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
+
     pub async fn new_address(
         &self,
         wallet: String,
@@ -469,6 +470,7 @@ impl ApiClient {
             .await?;
         output_json(response)
     }
+
     pub async fn list_payout_queues(&self) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListPayoutQueuesRequest {});
         let response = self
