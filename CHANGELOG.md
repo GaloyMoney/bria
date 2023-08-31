@@ -1,3 +1,10 @@
+# [bria release v0.1.53](https://github.com/GaloyMoney/bria/releases/tag/0.1.53)
+
+
+### Features
+
+- Profile spending policy (#339)
+
 # [bria release v0.1.52](https://github.com/GaloyMoney/bria/releases/tag/0.1.52)
 
 
