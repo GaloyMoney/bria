@@ -4,3 +4,4 @@
 .e2e-logs
 -
 .direnv
+.env
