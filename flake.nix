@@ -35,30 +35,31 @@
         ++ lib.optionals pkgs.stdenv.isDarwin [
           darwin.apple_sdk.frameworks.SystemConfiguration
         ];
+      devEnvVars = rec {
+        PGDATABASE = "pg";
+        PGUSER = "user";
+        PGPASSWORD = "password";
+        PGHOST = "127.0.0.1";
+        DATABASE_URL = "postgres://${PGUSER}:${PGPASSWORD}@${PGHOST}:5432/pg";
+        PG_CON = "${DATABASE_URL}";
+      };
     in
       with pkgs; {
-        devShells.default = mkShell {
-          inherit nativeBuildInputs;
-          packages = [
-            alejandra
-            sqlx-cli
-            cargo-nextest
-            cargo-audit
-            cargo-watch
-            postgresql
-            docker-compose
-            bats
-            jq
-          ];
-          shellHook = ''
-            export PGDATABASE=pg
-            export PGUSER=user
-            export PGPASSWORD=password
-            export PGHOST=127.0.0.1
-            export DATABASE_URL=postgres://''${PGUSER}:''${PGPASSWORD}@''${PGHOST}:5432/pg
-            export PG_CON=''${DATABASE_URL}
-          '';
-        };
+        devShells.default = mkShell (devEnvVars
+          // {
+            inherit nativeBuildInputs;
+            packages = [
+              alejandra
+              sqlx-cli
+              cargo-nextest
+              cargo-audit
+              cargo-watch
+              postgresql
+              docker-compose
+              bats
+              jq
+            ];
+          });
 
         formatter = alejandra;
       });
