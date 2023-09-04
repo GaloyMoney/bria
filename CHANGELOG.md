@@ -1,3 +1,17 @@
+# [bria release v0.1.54](https://github.com/GaloyMoney/bria/releases/tag/0.1.54)
+
+
+### Miscellaneous Tasks
+
+- Bump chrono from 0.4.27 to 0.4.28 (#342)
+- Bump clap from 4.4.1 to 4.4.2 (#343)
+- Specify devEnvVars
+- Gitignore .env
+
+### Styling
+
+- Consistent style across api_client (#341)
+
 # [bria release v0.1.53](https://github.com/GaloyMoney/bria/releases/tag/0.1.53)
 
 
