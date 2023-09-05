@@ -33,7 +33,7 @@ prost = "0.11"
 prost-wkt-types = { version = "0.4.2", features = ["vendored-protoc"]}
 rust_decimal_macros = "1.32"
 rusty-money = "0.4.1"
-thiserror = "1.0.47"
+thiserror = "1.0.48"
 uuid = { version = "1.4.1", features = ["serde", "v4"] }
 futures = "0.3.27"
 url = "2.4.0"
