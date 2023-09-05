@@ -24,7 +24,7 @@ sqlxmq = { git = "https://github.com/GaloyMoney/sqlxmq", rev = "f03f73c", defaul
 tokio = { version = "1.32", features = ["rt-multi-thread", "macros"] }
 tokio-stream = { version = "0.1.14", features = ["sync"] }
 tonic = "0.9"
-tonic-health = "0.9"
+tonic-health = "0.10"
 rust_decimal = "1.32"
 tracing = "0.1.37"
 tracing-opentelemetry = "0.20.0"
