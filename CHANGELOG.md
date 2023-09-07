@@ -1,3 +1,10 @@
+# [bria release v0.1.55](https://github.com/GaloyMoney/bria/releases/tag/0.1.55)
+
+
+### Miscellaneous Tasks
+
+- Bump thiserror from 1.0.47 to 1.0.48 (#345)
+
 # [bria release v0.1.54](https://github.com/GaloyMoney/bria/releases/tag/0.1.54)
 
 
