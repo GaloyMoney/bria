@@ -1,3 +1,11 @@
+# [bria release v0.1.56](https://github.com/GaloyMoney/bria/releases/tag/0.1.56)
+
+
+### Miscellaneous Tasks
+
+- Use otel instead of jaeger (#347)
+- Bump flake
+
 # [bria release v0.1.55](https://github.com/GaloyMoney/bria/releases/tag/0.1.55)
 
 
