@@ -1,4 +1,9 @@
-use opentelemetry::{propagation::TextMapPropagator, sdk::propagation::TraceContextPropagator};
+use opentelemetry::{
+    propagation::TextMapPropagator,
+    sdk::{propagation::TraceContextPropagator, trace::Sampler},
+    KeyValue,
+};
+use opentelemetry_otlp::WithExportConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::Span;
@@ -20,19 +25,31 @@ impl Default for TracingConfig {
     fn default() -> Self {
         Self {
             host: "localhost".to_string(),
-            port: 6831,
+            port: 4318,
             service_name: "bria-dev".to_string(),
         }
     }
 }
 
 pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
-    let tracing_endpoint = format!("{}:{}", config.host, config.port);
+    let tracing_endpoint = format!("http://{}:{}/v1/traces", config.host, config.port);
     println!("Sending traces to {tracing_endpoint}");
-    let tracer = opentelemetry_jaeger::new_agent_pipeline()
-        .with_endpoint(tracing_endpoint)
-        .with_service_name(config.service_name)
-        .install_simple()?;
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(
+            opentelemetry_otlp::new_exporter()
+                .http()
+                .with_endpoint(tracing_endpoint),
+        )
+        .with_trace_config(
+            opentelemetry::sdk::trace::config()
+                .with_sampler(Sampler::AlwaysOn)
+                .with_resource(opentelemetry::sdk::Resource::new(vec![KeyValue::new(
+                    "service.name",
+                    config.service_name,
+                )])),
+        )
+        .install_batch(opentelemetry::runtime::Tokio)?;
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let fmt_layer = fmt::layer().json();
