@@ -23,7 +23,7 @@ sqlx = { version = "0.7.1", features = ["runtime-tokio-rustls", "postgres", "rus
 sqlxmq = { git = "https://github.com/GaloyMoney/sqlxmq", rev = "f03f73c", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio = { version = "1.32", features = ["rt-multi-thread", "macros"] }
 tokio-stream = { version = "0.1.14", features = ["sync"] }
-tonic = "0.9"
+tonic = "0.10"
 tonic-health = "0.9"
 rust_decimal = "1.32"
 tracing = "0.1.37"
