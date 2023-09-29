@@ -54,4 +54,4 @@ regex = "1.9.3"
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
-tonic-build = { version = "0.9", features = ["prost"] }
+tonic-build = { version = "0.10", features = ["prost"] }
