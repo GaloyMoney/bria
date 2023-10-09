@@ -194,7 +194,7 @@ impl From<Payout> for proto::Payout {
 impl From<Wallet> for proto::Wallet {
     fn from(wallet: Wallet) -> Self {
         let id = wallet.id.to_string();
-        let name = wallet.name as String;
+        let name = wallet.name;
         let config: proto::WalletConfig = proto::WalletConfig::from(wallet.config);
         proto::Wallet {
             id,
@@ -265,7 +265,7 @@ impl From<SigningSession> for proto::SigningSession {
 impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
     fn from(proto_config: proto::PayoutQueueConfig) -> Self {
         let tx_priority =
-            proto::TxPriority::from_i32(proto_config.tx_priority).map(TxPriority::from);
+            proto::TxPriority::try_from(proto_config.tx_priority).map(TxPriority::from);
         let consolidate_deprecated_keychains = proto_config.consolidate_deprecated_keychains;
 
         let trigger = match proto_config.trigger {
@@ -288,7 +288,7 @@ impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
         if let Some(trigger) = trigger {
             ret.trigger = trigger;
         }
-        if let Some(tx_priority) = tx_priority {
+        if let Ok(tx_priority) = tx_priority {
             ret.tx_priority = tx_priority;
         }
         ret
