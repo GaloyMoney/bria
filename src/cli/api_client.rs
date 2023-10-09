@@ -484,7 +484,7 @@ impl ApiClient {
             .into_iter()
             .map(|bg| {
                 let tx_priority = TxPriority::from(
-                    proto::TxPriority::from_i32(bg.config.as_ref().unwrap().tx_priority).unwrap(),
+                    proto::TxPriority::try_from(bg.config.as_ref().unwrap().tx_priority).unwrap(),
                 );
                 let mut json = serde_json::to_value(bg).unwrap();
                 json.as_object_mut()
