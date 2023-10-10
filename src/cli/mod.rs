@@ -972,7 +972,7 @@ fn api_client(bria_home: String, url: Option<Url>, api_key: String) -> api_clien
     api_client::ApiClient::new(
         bria_home,
         url.map(|url| api_client::ApiClientConfig { url })
-            .unwrap_or_else(api_client::ApiClientConfig::default),
+            .unwrap_or_default(),
         api_key,
     )
 }

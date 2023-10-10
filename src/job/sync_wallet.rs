@@ -319,7 +319,7 @@ pub async fn execute(
                                 HashMap::new(),
                                 |mut m, u| {
                                     m.entry(u.utxo_detected_ledger_tx_id)
-                                        .or_insert_with(Vec::new)
+                                        .or_default()
                                         .push(u.outpoint);
                                     m
                                 },
