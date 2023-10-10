@@ -1,3 +1,15 @@
+# [bria release v0.1.57](https://github.com/GaloyMoney/bria/releases/tag/0.1.57)
+
+
+### Bug Fixes
+
+- Check-code error on concourse (#356)
+
+### Miscellaneous Tasks
+
+- Upgrade tonic and prost (#355)
+- Bump tracing-opentelemetry from 0.20.0 to 0.21.0 (#340)
+
 # [bria release v0.1.56](https://github.com/GaloyMoney/bria/releases/tag/0.1.56)
 
 
