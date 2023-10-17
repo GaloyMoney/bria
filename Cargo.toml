@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = { version = "0.10.0", features = ["otel"] }
+sqlx-ledger = { version = "0.11.0", features = ["otel"] }
 
 anyhow = "1.0.75"
 bitcoincore-rpc = "0.16.0"
