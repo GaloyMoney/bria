@@ -3379,8 +3379,9 @@ dependencies = [
 
 [[package]]
 name = "sqlxmq"
-version = "0.4.1"
-source = "git+https://github.com/GaloyMoney/sqlxmq?rev=f03f73c#f03f73cc8d844feb936aa5636882746148d2fedf"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e914521071581f0413516de0e7931086ebe4a22d719c1100de29eb339c712311"
 dependencies = [
  "anymap2",
  "chrono",
@@ -3396,8 +3397,9 @@ dependencies = [
 
 [[package]]
 name = "sqlxmq_macros"
-version = "0.4.1"
-source = "git+https://github.com/GaloyMoney/sqlxmq?rev=f03f73c#f03f73cc8d844feb936aa5636882746148d2fedf"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd00667edb120f18e14e2b4a71cddb308dc3605171ed7afda3056129d08b9f4f"
 dependencies = [
  "proc-macro2",
  "quote",
