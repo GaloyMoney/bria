@@ -1,3 +1,20 @@
+# [bria release v0.1.58](https://github.com/GaloyMoney/bria/releases/tag/0.1.58)
+
+
+### Miscellaneous Tasks
+
+- Bump serde from 1.0.188 to 1.0.190 (#369)
+- Bump tracing from 0.1.37 to 0.1.40 (#367)
+- Bump base64 from 0.21.4 to 0.21.5 (#368)
+- Bump sqlx from 0.7.1 to 0.7.2 (#364)
+- Bump sqlx-ledger from 0.10.0 to 0.11.1 (#366)
+- Bump regex from 1.10.1 to 1.10.2 (#365)
+- Bump sqlxmq to 0.5 (#362)
+- Bump regex from 1.9.4 to 1.10.1 (#361)
+- Bump base64 from 0.21.3 to 0.21.4 (#360)
+- Bump serde_json from 1.0.105 to 1.0.107 (#358)
+- Bump tokio from 1.32.0 to 1.33.0 (#357)
+
 # [bria release v0.1.57](https://github.com/GaloyMoney/bria/releases/tag/0.1.57)
 
 
