@@ -875,10 +875,10 @@ impl App {
             return Ok(());
         }
         payout.cancel_payout(profile.id);
+        self.payouts.update(&mut tx, payout).await?;
         self.ledger
-            .payout_cancelled(tx, LedgerTransactionId::new(), payout.id)
+            .payout_cancelled(tx, LedgerTransactionId::new(), id)
             .await?;
-        self.payouts.update(payout).await?;
         Ok(())
     }
 
