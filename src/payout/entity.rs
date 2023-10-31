@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{entity::*, primitives::*};
 
+use super::error::PayoutError;
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutEvent {
@@ -50,10 +52,17 @@ pub struct Payout {
 }
 
 impl Payout {
-    pub fn cancel_payout(&mut self, profile_id: ProfileId) {
+    pub fn cancel_payout(&mut self, profile_id: ProfileId) -> Result<(), PayoutError> {
+        if self.is_cancelled() {
+            return Err(PayoutError::PayoutAlreadyCancelled);
+        }
+        if self.is_already_committed() {
+            return Err(PayoutError::PayoutAlreadyCommitted);
+        }
         self.events.push(PayoutEvent::Cancelled {
             executed_by: profile_id,
-        })
+        });
+        Ok(())
     }
 
     pub fn is_cancelled(&self) -> bool {
@@ -63,6 +72,10 @@ impl Payout {
             }
         }
         false
+    }
+
+    fn is_already_committed(&self) -> bool {
+        self.batch_id.is_some()
     }
 }
 
@@ -151,5 +164,72 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
             }
         }
         builder.events(events).build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rust_decimal::Decimal;
+
+    use super::*;
+
+    fn init_events() -> EntityEvents<PayoutEvent> {
+        EntityEvents::init([
+            PayoutEvent::Initialized {
+                id: PayoutId::new(),
+                wallet_id: WalletId::new(),
+                profile_id: ProfileId::new(),
+                payout_queue_id: PayoutQueueId::new(),
+                destination: PayoutDestination::OnchainAddress {
+                    value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+                        .parse()
+                        .unwrap(),
+                },
+                satoshis: Satoshis::from(Decimal::from(21)),
+            },
+            PayoutEvent::ExternalIdUpdated {
+                external_id: "external_id".to_string(),
+            },
+        ])
+    }
+
+    #[test]
+    fn cancel_payout() {
+        let mut payout = Payout::try_from(init_events()).unwrap();
+        assert!(payout.cancel_payout(payout.profile_id).is_ok());
+        assert!(matches!(
+            payout.events.last(1)[0],
+            PayoutEvent::Cancelled { .. }
+        ));
+    }
+
+    #[test]
+    fn can_only_cancel_payout_one_time() {
+        let mut events = init_events();
+        events.push(PayoutEvent::Cancelled {
+            executed_by: ProfileId::new(),
+        });
+        let mut payout = Payout::try_from(events).unwrap();
+        let result = payout.cancel_payout(payout.profile_id);
+        assert!(matches!(result, Err(PayoutError::PayoutAlreadyCancelled)));
+    }
+
+    #[test]
+    fn errors_when_payout_already_committed() {
+        let mut events = init_events();
+        events.push(PayoutEvent::CommittedToBatch {
+            batch_id: BatchId::new(),
+            outpoint: bitcoin::OutPoint {
+                txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                    .parse()
+                    .unwrap(),
+                vout: 0,
+            },
+        });
+
+        let mut payout = Payout::try_from(events).unwrap();
+
+        let result = payout.cancel_payout(payout.profile_id);
+        assert!(matches!(result, Err(PayoutError::PayoutAlreadyCommitted)));
     }
 }
