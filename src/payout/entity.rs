@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{entity::*, primitives::*};
 
+use super::error::PayoutError;
+
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutEvent {
@@ -50,10 +52,17 @@ pub struct Payout {
 }
 
 impl Payout {
-    pub fn cancel_payout(&mut self, profile_id: ProfileId) {
+    pub fn cancel_payout(&mut self, profile_id: ProfileId) -> Result<(), PayoutError> {
+        if self.is_cancelled() {
+            return Err(PayoutError::PayoutAlreadyCancelled);
+        }
+        if self.is_already_committed() {
+            return Err(PayoutError::PayoutAlreadyCommitted);
+        }
         self.events.push(PayoutEvent::Cancelled {
             executed_by: profile_id,
-        })
+        });
+        Ok(())
     }
 
     pub fn is_cancelled(&self) -> bool {
@@ -63,6 +72,10 @@ impl Payout {
             }
         }
         false
+    }
+
+    fn is_already_committed(&self) -> bool {
+        self.batch_id.is_some()
     }
 }
 

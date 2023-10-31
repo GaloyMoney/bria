@@ -678,7 +678,10 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseIncomingPsbt(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
-            ApplicationError::PayoutAlreadyCommitted => {
+            ApplicationError::PayoutError(PayoutError::PayoutAlreadyCommitted) => {
+                tonic::Status::failed_precondition(err.to_string())
+            }
+            ApplicationError::PayoutError(PayoutError::PayoutAlreadyCancelled) => {
                 tonic::Status::failed_precondition(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),

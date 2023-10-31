@@ -868,13 +868,7 @@ impl App {
             .payouts
             .find_by_id_for_cancellation(&mut tx, profile.account_id, id)
             .await?;
-        if payout.batch_id.is_some() {
-            return Err(ApplicationError::PayoutAlreadyCommitted);
-        }
-        if payout.is_cancelled() {
-            return Ok(());
-        }
-        payout.cancel_payout(profile.id);
+        payout.cancel_payout(profile.id)?;
         self.payouts.update(&mut tx, payout).await?;
         self.ledger
             .payout_cancelled(tx, LedgerTransactionId::new(), id)

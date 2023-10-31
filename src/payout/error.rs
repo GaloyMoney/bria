@@ -10,4 +10,8 @@ pub enum PayoutError {
     PayoutIdNotFound(String),
     #[error("PayoutError - External Id does not exists")]
     ExternalIdNotFound,
+    #[error("PayoutError - Payout is already committed to batch")]
+    PayoutAlreadyCommitted,
+    #[error("PayoutError - Payout is already cancelled")]
+    PayoutAlreadyCancelled,
 }
