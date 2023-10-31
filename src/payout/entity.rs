@@ -166,3 +166,58 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
         builder.events(events).build()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rust_decimal::Decimal;
+
+    use super::*;
+
+    fn mock_payout() -> Payout {
+        Payout {
+            id: uuid::Uuid::new_v4().into(),
+            wallet_id: uuid::Uuid::new_v4().into(),
+            profile_id: uuid::Uuid::new_v4().into(),
+            payout_queue_id: uuid::Uuid::new_v4().into(),
+            batch_id: None,
+            outpoint: None,
+            satoshis: Satoshis::from(Decimal::from(21)),
+            destination: PayoutDestination::OnchainAddress {
+                value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+                    .parse()
+                    .unwrap(),
+            },
+            external_id: String::from("test_external_id"),
+            metadata: None,
+            events: EntityEvents::new(),
+        }
+    }
+
+    #[test]
+    fn errors_when_payout_already_cancelled() {
+        let mut payout = mock_payout();
+        payout.events.push(PayoutEvent::Cancelled {
+            executed_by: payout.profile_id,
+        });
+
+        let result = payout.cancel_payout(payout.profile_id);
+        assert!(matches!(result, Err(PayoutError::PayoutAlreadyCancelled)));
+    }
+
+    #[test]
+    fn errors_when_payout_already_committed() {
+        let mut payout = mock_payout();
+        payout.batch_id = Some(uuid::Uuid::new_v4().into());
+
+        let result = payout.cancel_payout(payout.profile_id);
+        assert!(matches!(result, Err(PayoutError::PayoutAlreadyCommitted)));
+    }
+
+    #[test]
+    fn cancel_payout_success() {
+        let mut payout = mock_payout();
+
+        let result = payout.cancel_payout(payout.profile_id);
+        assert!(result.is_ok());
+    }
+}
