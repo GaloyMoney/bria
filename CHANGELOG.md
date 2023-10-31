@@ -1,3 +1,11 @@
+# [bria release v0.1.59](https://github.com/GaloyMoney/bria/releases/tag/0.1.59)
+
+
+### Bug Fixes
+
+- Make validation checks on payout entity (#374)
+- Make cancel payout atomic (#373)
+
 # [bria release v0.1.58](https://github.com/GaloyMoney/bria/releases/tag/0.1.58)
 
 
