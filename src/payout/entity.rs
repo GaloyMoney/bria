@@ -173,51 +173,63 @@ mod tests {
 
     use super::*;
 
-    fn mock_payout() -> Payout {
-        Payout {
-            id: uuid::Uuid::new_v4().into(),
-            wallet_id: uuid::Uuid::new_v4().into(),
-            profile_id: uuid::Uuid::new_v4().into(),
-            payout_queue_id: uuid::Uuid::new_v4().into(),
-            batch_id: None,
-            outpoint: None,
-            satoshis: Satoshis::from(Decimal::from(21)),
-            destination: PayoutDestination::OnchainAddress {
-                value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
-                    .parse()
-                    .unwrap(),
+    fn init_events() -> EntityEvents<PayoutEvent> {
+        EntityEvents::init([
+            PayoutEvent::Initialized {
+                id: PayoutId::new(),
+                wallet_id: WalletId::new(),
+                profile_id: ProfileId::new(),
+                payout_queue_id: PayoutQueueId::new(),
+                destination: PayoutDestination::OnchainAddress {
+                    value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+                        .parse()
+                        .unwrap(),
+                },
+                satoshis: Satoshis::from(Decimal::from(21)),
             },
-            external_id: String::from("test_external_id"),
-            metadata: None,
-            events: EntityEvents::new(),
-        }
+            PayoutEvent::ExternalIdUpdated {
+                external_id: "external_id".to_string(),
+            },
+        ])
     }
 
     #[test]
-    fn errors_when_payout_already_cancelled() {
-        let mut payout = mock_payout();
-        payout.events.push(PayoutEvent::Cancelled {
-            executed_by: payout.profile_id,
-        });
+    fn cancel_payout() {
+        let mut payout = Payout::try_from(init_events()).unwrap();
+        assert!(payout.cancel_payout(payout.profile_id).is_ok());
+        assert!(matches!(
+            payout.events.last(1)[0],
+            PayoutEvent::Cancelled { .. }
+        ));
+    }
 
+    #[test]
+    fn can_only_cancel_payout_one_time() {
+        let mut events = init_events();
+        events.push(PayoutEvent::Cancelled {
+            executed_by: ProfileId::new(),
+        });
+        let mut payout = Payout::try_from(events).unwrap();
         let result = payout.cancel_payout(payout.profile_id);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCancelled)));
     }
 
     #[test]
     fn errors_when_payout_already_committed() {
-        let mut payout = mock_payout();
-        payout.batch_id = Some(uuid::Uuid::new_v4().into());
+        let mut events = init_events();
+        events.push(PayoutEvent::CommittedToBatch {
+            batch_id: BatchId::new(),
+            outpoint: bitcoin::OutPoint {
+                txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                    .parse()
+                    .unwrap(),
+                vout: 0,
+            },
+        });
+
+        let mut payout = Payout::try_from(events).unwrap();
 
         let result = payout.cancel_payout(payout.profile_id);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCommitted)));
-    }
-
-    #[test]
-    fn cancel_payout_success() {
-        let mut payout = mock_payout();
-
-        let result = payout.cancel_payout(payout.profile_id);
-        assert!(result.is_ok());
     }
 }
