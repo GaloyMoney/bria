@@ -1,3 +1,19 @@
+# [bria release v0.1.60](https://github.com/GaloyMoney/bria/releases/tag/0.1.60)
+
+
+### Miscellaneous Tasks
+
+- Add timeout to call to mempool (#386)
+- Bump serde_yaml from 0.9.25 to 0.9.27 (#382)
+- Bump async-trait from 0.1.73 to 0.1.74 (#383)
+- Bump serde_json from 1.0.107 to 1.0.108 (#380)
+- Bump clap from 4.4.2 to 4.4.7 (#381)
+- Bump chrono from 0.4.28 to 0.4.31 (#376)
+- Bump uuid from 1.4.1 to 1.5.0 (#377)
+- Remove dead code
+- Bump futures from 0.3.28 to 0.3.29 (#371)
+- Bump thiserror from 1.0.48 to 1.0.50 (#370)
+
 # [bria release v0.1.59](https://github.com/GaloyMoney/bria/releases/tag/0.1.59)
 
 
