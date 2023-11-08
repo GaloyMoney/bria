@@ -3,5 +3,5 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum FeeEstimationError {
     #[error("FeeEstimationError - FeeEstimation: {0}")]
-    FeeEstimation(reqwest::Error),
+    FeeEstimation(#[from] reqwest::Error),
 }

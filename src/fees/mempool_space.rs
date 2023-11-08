@@ -16,23 +16,24 @@ struct RecommendedFeesResponse {
 
 #[derive(Clone, Debug)]
 pub struct MempoolSpaceClient {
-    url: String,
+    config: MempoolSpaceConfig,
 }
 
 impl MempoolSpaceClient {
     pub fn new(config: MempoolSpaceConfig) -> Self {
-        Self { url: config.url }
+        Self { config }
     }
 
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, FeeEstimationError> {
-        let url = format!("{}{}", self.url, "/api/v1/fees/recommended");
-        let resp = reqwest::get(url)
-            .await
-            .map_err(FeeEstimationError::FeeEstimation)?;
-        let fee_estimations: RecommendedFeesResponse = resp
-            .json()
-            .await
-            .map_err(FeeEstimationError::FeeEstimation)?;
+        let client = reqwest::Client::builder()
+            .timeout(self.config.timeout)
+            .build()
+            .expect("Could not build reqwest client");
+
+        let url = format!("{}{}", self.config.url, "/api/v1/fees/recommended");
+        let resp = client.get(&url).send().await?;
+        let fee_estimations: RecommendedFeesResponse = resp.json().await?;
+
         match priority {
             TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(
                 fee_estimations.half_hour_fee as f32,
@@ -46,17 +47,28 @@ impl MempoolSpaceClient {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde_with::serde_as]
 pub struct MempoolSpaceConfig {
     #[serde(default = "default_url")]
     pub url: String,
+    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
+    #[serde(default = "default_timeout")]
+    pub timeout: std::time::Duration,
 }
 
 impl Default for MempoolSpaceConfig {
     fn default() -> Self {
-        Self { url: default_url() }
+        Self {
+            url: default_url(),
+            timeout: default_timeout(),
+        }
     }
 }
 
 fn default_url() -> String {
     "https://mempool.space".to_string()
+}
+
+fn default_timeout() -> std::time::Duration {
+    std::time::Duration::from_secs(10)
 }
