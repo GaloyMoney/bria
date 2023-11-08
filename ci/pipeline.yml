@@ -275,6 +275,7 @@ jobs:
       - name: pipeline-tasks
       - name: latest-image
       - name: charts-repo
+      - name: repo
       params:
         GH_APP_ID: #@ data.values.github_app_id
         GH_APP_PRIVATE_KEY: #@ data.values.github_app_private_key
