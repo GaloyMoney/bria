@@ -1,9 +1,6 @@
-use opentelemetry::{
-    propagation::TextMapPropagator,
-    sdk::{propagation::TraceContextPropagator, trace::Sampler},
-    KeyValue,
-};
+use opentelemetry::{propagation::TextMapPropagator, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Sampler};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::Span;
@@ -42,14 +39,14 @@ pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
                 .with_endpoint(tracing_endpoint),
         )
         .with_trace_config(
-            opentelemetry::sdk::trace::config()
+            opentelemetry_sdk::trace::config()
                 .with_sampler(Sampler::AlwaysOn)
-                .with_resource(opentelemetry::sdk::Resource::new(vec![KeyValue::new(
+                .with_resource(opentelemetry_sdk::Resource::new(vec![KeyValue::new(
                     "service.name",
                     config.service_name,
                 )])),
         )
-        .install_batch(opentelemetry::runtime::Tokio)?;
+        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let fmt_layer = fmt::layer().json();

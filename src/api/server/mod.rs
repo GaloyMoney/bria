@@ -6,10 +6,8 @@ pub mod proto {
 }
 
 use futures::StreamExt;
-use opentelemetry::{
-    propagation::{Extractor, TextMapPropagator},
-    sdk::propagation::TraceContextPropagator,
-};
+use opentelemetry::propagation::{Extractor, TextMapPropagator};
+use opentelemetry_sdk::propagation::TraceContextPropagator;
 use tonic::{transport::Server, Request, Response, Status};
 use tracing::instrument;
 use tracing_opentelemetry::OpenTelemetrySpanExt;
