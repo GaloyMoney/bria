@@ -5,7 +5,7 @@ services:
     - "5432:5432"
   otel-agent:
     ports:
-      - "4318:4318" # OpenTelemetry receiver
+      - "4317:4317" # OpenTelemetry receiver
   bitcoind:
     ports:
       - "18443:18443"

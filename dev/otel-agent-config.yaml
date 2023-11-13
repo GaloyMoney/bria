@@ -6,6 +6,7 @@ receivers:
   otlp:
     protocols:
       http:
+      grpc:
 
 
 exporters:

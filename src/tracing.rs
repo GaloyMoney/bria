@@ -22,20 +22,20 @@ impl Default for TracingConfig {
     fn default() -> Self {
         Self {
             host: "localhost".to_string(),
-            port: 4318,
+            port: 4317,
             service_name: "bria-dev".to_string(),
         }
     }
 }
 
 pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
-    let tracing_endpoint = format!("http://{}:{}/v1/traces", config.host, config.port);
+    let tracing_endpoint = format!("http://{}:{}", config.host, config.port);
     println!("Sending traces to {tracing_endpoint}");
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(
             opentelemetry_otlp::new_exporter()
-                .http()
+                .tonic()
                 .with_endpoint(tracing_endpoint),
         )
         .with_trace_config(
