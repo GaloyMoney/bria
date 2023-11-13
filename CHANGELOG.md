@@ -1,3 +1,10 @@
+# [bria release v0.1.62](https://github.com/GaloyMoney/bria/releases/tag/0.1.62)
+
+
+### Miscellaneous Tasks
+
+- Use grpc instead of http in otel (#390)
+
 # [bria release v0.1.61](https://github.com/GaloyMoney/bria/releases/tag/0.1.61)
 
 
