@@ -1,3 +1,12 @@
+# [bria release v0.1.61](https://github.com/GaloyMoney/bria/releases/tag/0.1.61)
+
+
+### Miscellaneous Tasks
+
+- Bump serde from 1.0.190 to 1.0.192 (#389)
+- Bump opentelemetry-otlp from 0.13.0 to 0.14.0 (#387)
+- Bump tempfile from 3.8.0 to 3.8.1 (#388)
+
 # [bria release v0.1.60](https://github.com/GaloyMoney/bria/releases/tag/0.1.60)
 
 
