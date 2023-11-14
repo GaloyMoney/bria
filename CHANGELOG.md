@@ -1,3 +1,15 @@
+# [bria release v0.1.63](https://github.com/GaloyMoney/bria/releases/tag/0.1.63)
+
+
+### Bug Fixes
+
+- No error when change utxo dropped
+
+### Miscellaneous Tasks
+
+- Bump tokio from 1.33.0 to 1.34.0 (#392)
+- Bump reqwest from 0.11.20 to 0.11.22 (#391)
+
 # [bria release v0.1.62](https://github.com/GaloyMoney/bria/releases/tag/0.1.62)
 
 
