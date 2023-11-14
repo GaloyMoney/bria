@@ -16,7 +16,7 @@ use std::collections::HashMap;
 
 use crate::{account::balance::*, primitives::*};
 use constants::*;
-use error::LedgerError;
+pub use error::LedgerError;
 pub use event::*;
 pub use templates::*;
 pub use wallet_accounts::*;
@@ -107,7 +107,7 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.utxo_dropped", skip(self, tx))]
+    #[instrument(name = "ledger.utxo_dropped", skip(self, tx), err)]
     pub async fn utxo_dropped(
         &self,
         tx: Transaction<'_, Postgres>,
@@ -131,7 +131,10 @@ impl Ledger {
             address,
             encumbered_spending_fees,
             confirmation_time,
-        } = txn.metadata()?.ok_or(LedgerError::MissingTxMetadata)?;
+        } = txn
+            .metadata()
+            .map_err(LedgerError::MissmatchedTxMetadata)?
+            .ok_or(LedgerError::MissingTxMetadata)?;
         let entries = self
             .inner
             .entries()

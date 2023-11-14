@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bdk_utxos SET deleted_at = NULL\n                 WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "605435a743c00f21fd5cd2164c587ab4dcb856849d56e27a21ab3c9de09d060c"
+}

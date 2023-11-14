@@ -502,9 +502,17 @@ pub async fn execute(
                     .bria_utxos
                     .delete_utxo(&mut tx, outpoint, keychain_id)
                     .await?;
-                deps.ledger
+                match deps
+                    .ledger
                     .utxo_dropped(tx, LedgerTransactionId::new(), detected_txn_id)
-                    .await?;
+                    .await
+                {
+                    Ok(_) => (),
+                    Err(LedgerError::MissmatchedTxMetadata(_)) => {
+                        bdk_utxos.undelete(outpoint).await?
+                    }
+                    Err(e) => return Err(e.into()),
+                }
             } else {
                 break;
             }

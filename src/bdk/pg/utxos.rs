@@ -72,6 +72,20 @@ impl Utxos {
         }))
     }
 
+    pub async fn undelete(&self, outpoint: bitcoin::OutPoint) -> Result<(), BdkError> {
+        sqlx::query!(
+            r#"UPDATE bdk_utxos SET deleted_at = NULL
+                 WHERE keychain_id = $1 AND tx_id = $2 AND vout = $3"#,
+            self.keychain_id as KeychainId,
+            outpoint.txid.to_string(),
+            outpoint.vout as i32,
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1 AND deleted_at IS NULL"#,
