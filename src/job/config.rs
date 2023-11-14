@@ -13,6 +13,9 @@ pub struct JobsConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_respawn_all_outbox_handlers_delay")]
     pub respawn_all_outbox_handlers_delay: Duration,
+    #[serde_as(as = "serde_with::DurationSeconds<u64>")]
+    #[serde(default = "default_import_mempool_delay")]
+    pub import_mempool_delay: Duration,
     #[serde(default)]
     pub signing: SigningJobConfig,
 }
@@ -35,6 +38,7 @@ impl Default for JobsConfig {
             sync_all_wallets_delay: default_sync_all_wallets_delay(),
             process_all_payout_queues_delay: default_process_all_payout_queues_delay(),
             respawn_all_outbox_handlers_delay: default_respawn_all_outbox_handlers_delay(),
+            import_mempool_delay: default_import_mempool_delay(),
             signing: SigningJobConfig::default(),
         }
     }
@@ -59,6 +63,10 @@ fn default_process_all_payout_queues_delay() -> Duration {
 }
 
 fn default_respawn_all_outbox_handlers_delay() -> Duration {
+    Duration::from_secs(5)
+}
+
+fn default_import_mempool_delay() -> Duration {
     Duration::from_secs(5)
 }
 

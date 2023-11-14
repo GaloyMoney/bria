@@ -1,4 +1,5 @@
 mod batch_broadcasting;
+mod import_mempool;
 mod batch_signing;
 mod batch_wallet_accounting;
 mod config;
@@ -33,6 +34,7 @@ use sync_wallet::SyncWalletData;
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 const PROCESS_ALL_PAYOUT_QUEUES_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 const RESPAWN_ALL_OUTBOX_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
+const IMPORT_MEMPOOL_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000004");
 
 #[allow(clippy::too_many_arguments)]
 pub async fn start_job_runner(
@@ -63,6 +65,7 @@ pub async fn start_job_runner(
         batch_broadcasting,
         respawn_all_outbox_handlers,
         populate_outbox,
+        import_mempool,
     ]);
     registry.set_context(config);
     registry.set_context(blockchain_cfg);
@@ -591,6 +594,7 @@ pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Resu
         Ok(_) => Ok(()),
     }
 }
+
 #[instrument(name = "job.spawn_respawn_all_outbox_handlers", skip_all, fields(error, error.level, error.message), err)]
 pub async fn spawn_respawn_all_outbox_handlers(
     pool: &sqlx::PgPool,
@@ -598,6 +602,42 @@ pub async fn spawn_respawn_all_outbox_handlers(
 ) -> Result<(), JobError> {
     match JobBuilder::new_with_id(RESPAWN_ALL_OUTBOX_ID, "respawn_all_outbox_handlers")
         .set_channel_name("respawn_all_outbox_handlers")
+        .set_delay(duration)
+        .spawn(pool)
+        .await
+    {
+        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(()),
+        Err(e) => {
+            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+            Err(e.into())
+        }
+        Ok(_) => Ok(()),
+    }
+}
+
+#[job(name = "import_mempool")]
+async fn import_mempool(
+    mut current_job: CurrentJob,
+) -> Result<(), JobError> {
+    JobExecutor::builder(&mut current_job)
+        .max_retry_delay(std::time::Duration::from_secs(20))
+        .build()
+        .expect("couldn't build JobExecutor")
+        .execute(|data| async move {
+            import_mempool::execute().await?;
+            Ok::<_, JobError>(())
+        })
+        .await?;
+    Ok(())
+}
+
+#[instrument(name = "job.spawn_mempool_importer", skip_all, fields(error, error.level, error.message), err)]
+pub async fn spawn_mempool_importer(
+    pool: &sqlx::PgPool,
+    duration: std::time::Duration,
+) -> Result<(), JobError> {
+    match JobBuilder::new_with_id(IMPORT_MEMPOOL_ID, "import_mempool")
+        .set_channel_name("import_mempool")
         .set_delay(duration)
         .spawn(pool)
         .await

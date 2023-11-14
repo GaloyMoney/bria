@@ -90,6 +90,11 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
+        Self::spawn_mempool_importer(
+            pool.clone(),
+            config.jobs.import_mempool_delay,
+        )
+        .await?;
         let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
@@ -1037,6 +1042,24 @@ impl App {
         tokio::spawn(async move {
             loop {
                 let _ = job::spawn_respawn_all_outbox_handlers(
+                    &pool,
+                    std::time::Duration::from_secs(1),
+                )
+                .await;
+                tokio::time::sleep(delay).await;
+            }
+        });
+        Ok(())
+    }
+
+    #[instrument(name = "app.spawn_mempool_importer", skip_all, err)]
+    async fn spawn_mempool_importer(
+        pool: sqlx::PgPool,
+        delay: std::time::Duration,
+    ) -> Result<(), ApplicationError> {
+        tokio::spawn(async move {
+            loop {
+                let _ = job::spawn_mempool_importer(
                     &pool,
                     std::time::Duration::from_secs(1),
                 )
