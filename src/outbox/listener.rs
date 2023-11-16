@@ -88,6 +88,9 @@ impl OutboxListener {
                     if let Some(handle) = self.next_page_handle.take() {
                         handle.abort();
                     }
+                    if let Some(handle) = self.augmentation_handle.take() {
+                        handle.abort();
+                    }
                     return Poll::Ready(None);
                 }
                 Poll::Ready(Some(Ok(event))) => {
@@ -114,6 +117,7 @@ impl OutboxListener {
                 return Poll::Ready(Some(OutboxEvent::<Augmentation>::from(event)));
             }
             self.cache.insert(seq, event);
+            break;
         }
 
         if self.next_page_handle.is_none() && self.last_sequence < self.latest_known {

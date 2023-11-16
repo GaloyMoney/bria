@@ -35,39 +35,11 @@ impl Augmenter {
         match payload {
             OutboxEventPayload::UtxoDetected {
                 address, wallet_id, ..
-            } => {
-                let address_info = self
-                    .addresses
-                    .find_by_address(account_id, address.to_string())
-                    .await?;
-                Ok(Augmentation {
-                    address: Some(AddressAugmentation {
-                        address,
-                        wallet_id,
-                        metadata: address_info.metadata().cloned(),
-                        external_id: address_info.external_id,
-                    }),
-                    payout: None,
-                })
             }
-            OutboxEventPayload::UtxoSettled {
+            | OutboxEventPayload::UtxoSettled {
                 address, wallet_id, ..
-            } => {
-                let address_info = self
-                    .addresses
-                    .find_by_address(account_id, address.to_string())
-                    .await?;
-                Ok(Augmentation {
-                    address: Some(AddressAugmentation {
-                        address,
-                        wallet_id,
-                        metadata: address_info.metadata().cloned(),
-                        external_id: address_info.external_id,
-                    }),
-                    payout: None,
-                })
             }
-            OutboxEventPayload::UtxoDropped {
+            | OutboxEventPayload::UtxoDropped {
                 address, wallet_id, ..
             } => {
                 let address_info = self
