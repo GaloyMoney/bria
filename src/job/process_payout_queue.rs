@@ -172,7 +172,11 @@ pub async fn construct_psbt(
     let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
 
     let reserved_utxos = utxos
-        .outpoints_bdk_should_not_select(tx, keychain_ids)
+        .outpoints_bdk_should_not_select(
+            tx,
+            keychain_ids,
+            queue_cfg.select_unconfirmed_utxos.is_never(),
+        )
         .await?;
     span.record(
         "n_reserved_utxos",

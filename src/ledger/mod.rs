@@ -133,7 +133,7 @@ impl Ledger {
             confirmation_time,
         } = txn
             .metadata()
-            .map_err(LedgerError::MissmatchedTxMetadata)?
+            .map_err(LedgerError::MismatchedTxMetadata)?
             .ok_or(LedgerError::MissingTxMetadata)?;
         let entries = self
             .inner

@@ -10,8 +10,8 @@ pub enum LedgerError {
     EventStreamError(#[from] tokio_stream::wrappers::errors::BroadcastStreamRecvError),
     #[error("LedgerError - MissingTxMetadata")]
     MissingTxMetadata,
-    #[error("LedgerError - MissmatchedTxMetadata: {0}")]
-    MissmatchedTxMetadata(serde_json::Error),
+    #[error("LedgerError - MismatchedTxMetadata: {0}")]
+    MismatchedTxMetadata(serde_json::Error),
     #[error("LedgerError - NotFound: {0}")]
     ExpectedEntryNotFoundInTx(&'static str),
     #[error("LedgerError - Transaction not found")]
