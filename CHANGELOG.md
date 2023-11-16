@@ -1,3 +1,14 @@
+# [bria release v0.1.64](https://github.com/GaloyMoney/bria/releases/tag/0.1.64)
+
+
+### Features
+
+- Queue_config.select_unconfirmed_utxos (#396)
+
+### Refactor
+
+- Small cleanups to outbox listener
+
 # [bria release v0.1.63](https://github.com/GaloyMoney/bria/releases/tag/0.1.63)
 
 
