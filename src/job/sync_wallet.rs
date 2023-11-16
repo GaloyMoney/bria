@@ -508,7 +508,7 @@ pub async fn execute(
                     .await
                 {
                     Ok(_) => (),
-                    Err(LedgerError::MissmatchedTxMetadata(_)) => {
+                    Err(LedgerError::MismatchedTxMetadata(_)) => {
                         bdk_utxos.undelete(outpoint).await?
                     }
                     Err(e) => return Err(e.into()),
