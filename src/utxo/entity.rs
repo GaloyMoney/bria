@@ -1,5 +1,8 @@
-use crate::primitives::{bitcoin::*, *};
 use derive_builder::Builder;
+
+use std::collections::HashSet;
+
+use crate::primitives::{bitcoin::*, *};
 
 pub struct WalletUtxo {
     pub wallet_id: WalletId,
@@ -51,7 +54,10 @@ pub struct NewUtxo {
     pub(super) value: Satoshis,
     pub(super) address: String,
     pub(super) script_hex: String,
-    pub(super) sats_per_vbyte_when_created: f32,
+    pub(super) origin_tx_vbytes: u64,
+    pub(super) origin_tx_fee: Satoshis,
+    #[builder(default)]
+    pub(super) origin_tx_inputs: Option<HashSet<Txid>>,
     pub(super) self_pay: bool,
     pub(super) bdk_spent: bool,
     pub(super) utxo_detected_ledger_tx_id: LedgerTransactionId,

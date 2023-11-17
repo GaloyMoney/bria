@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bria_utxos\n               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent, origin_tx_vbytes, origin_tx_fee, trusted_origin_tx_input_tx_ids)\n               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)\n               ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Int4",
+        "Float4",
+        "Bool",
+        {
+          "Custom": {
+            "name": "keychainkind",
+            "kind": {
+              "Enum": [
+                "external",
+                "internal"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Numeric",
+        "Varchar",
+        "Varchar",
+        "Uuid",
+        "Bool",
+        "Int4",
+        "Int4",
+        "VarcharArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "15bbaf211f68eac6c260a20575e2a700c4144a51fece860c21b12342fdaa843d"
+}

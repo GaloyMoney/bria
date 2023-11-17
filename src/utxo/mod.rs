@@ -37,7 +37,8 @@ impl Utxos {
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
-        sats_per_vbyte_when_created: f32,
+        origin_tx_fee: Satoshis,
+        origin_tx_vbytes: u64,
         self_pay: bool,
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
@@ -51,7 +52,8 @@ impl Utxos {
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .bdk_spent(utxo.is_spent)
-            .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
+            .origin_tx_fee(origin_tx_fee)
+            .origin_tx_vbytes(origin_tx_vbytes)
             .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
@@ -86,7 +88,8 @@ impl Utxos {
         tx_id: LedgerTransactionId,
         inputs: impl Iterator<Item = &OutPoint>,
         change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
-        sats_per_vbyte: f32,
+        tx_fee: Satoshis,
+        tx_vbytes: u64,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
         for (utxo, address) in change_utxos.iter() {
             let new_utxo = NewUtxo::builder()
@@ -101,7 +104,8 @@ impl Utxos {
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .bdk_spent(utxo.is_spent)
-                .sats_per_vbyte_when_created(sats_per_vbyte)
+                .origin_tx_vbytes(tx_vbytes)
+                .origin_tx_fee(tx_fee)
                 .self_pay(true)
                 .build()
                 .expect("Could not build NewUtxo");
