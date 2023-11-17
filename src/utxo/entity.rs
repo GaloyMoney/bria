@@ -54,7 +54,6 @@ pub struct NewUtxo<'a> {
     pub(super) script_hex: String,
     pub(super) origin_tx_vbytes: u64,
     pub(super) origin_tx_fee: Satoshis,
-    #[builder(default)]
     pub(super) origin_tx_trusted_input_tx_ids: Option<&'a [String]>,
     pub(super) self_pay: bool,
     pub(super) bdk_spent: bool,
