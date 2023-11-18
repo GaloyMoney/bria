@@ -37,7 +37,8 @@ impl Utxos {
         keychain_id: KeychainId,
         address: &AddressInfo,
         utxo: &LocalUtxo,
-        sats_per_vbyte_when_created: f32,
+        origin_tx_fee: Satoshis,
+        origin_tx_vbytes: u64,
         self_pay: bool,
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
@@ -51,7 +52,8 @@ impl Utxos {
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .bdk_spent(utxo.is_spent)
-            .sats_per_vbyte_when_created(sats_per_vbyte_when_created)
+            .origin_tx_fee(origin_tx_fee)
+            .origin_tx_vbytes(origin_tx_vbytes)
             .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
@@ -74,7 +76,7 @@ impl Utxos {
             .await
     }
 
-    #[instrument(name = "utxos.spend_detected", skip(self, inputs), err)]
+    #[instrument(name = "utxos.spend_detected", skip(self, inputs_iter), err)]
     #[allow(clippy::type_complexity)]
     #[allow(clippy::too_many_arguments)]
     pub async fn spend_detected(
@@ -84,10 +86,19 @@ impl Utxos {
         wallet_id: WalletId,
         keychain_id: KeychainId,
         tx_id: LedgerTransactionId,
-        inputs: impl Iterator<Item = &OutPoint>,
+        inputs_iter: impl Iterator<Item = &OutPoint>,
         change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
-        sats_per_vbyte: f32,
+        tx_fee: Satoshis,
+        tx_vbytes: u64,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
+        let mut inputs = Vec::new();
+        let mut input_tx_ids = Vec::new();
+
+        for input in inputs_iter {
+            input_tx_ids.push(input.txid.to_string());
+            inputs.push(input);
+        }
+
         for (utxo, address) in change_utxos.iter() {
             let new_utxo = NewUtxo::builder()
                 .account_id(account_id)
@@ -101,8 +112,10 @@ impl Utxos {
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .bdk_spent(utxo.is_spent)
-                .sats_per_vbyte_when_created(sats_per_vbyte)
+                .origin_tx_vbytes(tx_vbytes)
+                .origin_tx_fee(tx_fee)
                 .self_pay(true)
+                .origin_tx_trusted_input_tx_ids(Some(&input_tx_ids))
                 .build()
                 .expect("Could not build NewUtxo");
             let res = self.utxos.persist_utxo(tx, new_utxo).await?;
@@ -112,7 +125,7 @@ impl Utxos {
         }
         let utxos = self
             .utxos
-            .mark_spent(tx, keychain_id, inputs, tx_id)
+            .mark_spent(tx, keychain_id, inputs.into_iter(), tx_id)
             .await?;
         if utxos.is_empty() {
             return Ok(None);

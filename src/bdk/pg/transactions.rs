@@ -8,7 +8,7 @@ use crate::{bdk::error::BdkError, primitives::*};
 pub struct UnsyncedTransaction {
     pub tx_id: bitcoin::Txid,
     pub confirmation_time: Option<bitcoin::BlockTime>,
-    pub sats_per_vbyte_when_created: f32,
+    pub vsize: u64,
     pub total_utxo_in_sats: Satoshis,
     pub fee_sats: Satoshis,
     pub inputs: Vec<(LocalUtxo, u32)>,
@@ -148,7 +148,7 @@ impl Transactions {
         let mut outputs = Vec::new();
         let mut tx_id = None;
         let mut confirmation_time = None;
-        let mut sats_per_vbyte_when_created = 0.0;
+        let mut vsize = 0;
 
         let mut total_utxo_in_sats = Satoshis::ZERO;
         let mut fee_sats = Satoshis::ZERO;
@@ -165,8 +165,7 @@ impl Transactions {
                 let details: TransactionDetails = serde_json::from_value(row.details_json)?;
                 total_utxo_in_sats = Satoshis::from(details.sent);
                 fee_sats = Satoshis::from(details.fee.expect("Fee"));
-                sats_per_vbyte_when_created = details.fee.expect("Fee") as f32
-                    / details.transaction.expect("transaction").vsize() as f32;
+                vsize = details.transaction.expect("transaction").vsize() as u64;
                 confirmation_time = details.confirmation_time;
             }
         }
@@ -175,7 +174,7 @@ impl Transactions {
             total_utxo_in_sats,
             fee_sats,
             confirmation_time,
-            sats_per_vbyte_when_created,
+            vsize,
             inputs,
             outputs,
         }))

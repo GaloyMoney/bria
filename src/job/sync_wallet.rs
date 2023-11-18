@@ -166,7 +166,8 @@ pub async fn execute(
                         keychain_id,
                         &address_info,
                         &local_utxo,
-                        unsynced_tx.sats_per_vbyte_when_created,
+                        unsynced_tx.fee_sats,
+                        unsynced_tx.vsize,
                         spend_tx,
                     )
                     .await?
@@ -298,7 +299,8 @@ pub async fn execute(
                             .iter()
                             .map(|WalletUtxo { outpoint, .. }| outpoint),
                         &change_utxos,
-                        unsynced_tx.sats_per_vbyte_when_created,
+                        unsynced_tx.fee_sats,
+                        unsynced_tx.vsize,
                     )
                     .await?
                 {

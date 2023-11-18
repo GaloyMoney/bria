@@ -24,22 +24,23 @@ impl UtxoRepo {
         Self { pool }
     }
 
-    pub async fn persist_utxo(
+    pub async fn persist_utxo<'a>(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        utxo: NewUtxo,
+        utxo: NewUtxo<'a>,
     ) -> Result<Option<LedgerTransactionId>, UtxoError> {
+        let sats_per_vbyte = u64::from(utxo.origin_tx_fee) as f32 / utxo.origin_tx_vbytes as f32;
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent, origin_tx_vbytes, origin_tx_fee, trusted_origin_tx_input_tx_ids)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           utxo.account_id as AccountId,
           utxo.wallet_id as WalletId,
           utxo.keychain_id as KeychainId,
           utxo.outpoint.txid.to_string(),
           utxo.outpoint.vout as i32,
-          utxo.sats_per_vbyte_when_created,
+          sats_per_vbyte,
           utxo.self_pay,
           pg::PgKeychainKind::from(utxo.kind) as pg::PgKeychainKind,
           utxo.address_idx as i32,
@@ -48,6 +49,9 @@ impl UtxoRepo {
           utxo.script_hex,
           utxo.utxo_detected_ledger_tx_id as LedgerTransactionId,
           utxo.bdk_spent,
+          utxo.origin_tx_vbytes as i64,
+          u64::from(utxo.origin_tx_fee) as i64,
+          utxo.origin_tx_trusted_input_tx_ids,
         )
         .execute(&mut **tx)
         .await?;

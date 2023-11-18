@@ -1,5 +1,6 @@
-use crate::primitives::{bitcoin::*, *};
 use derive_builder::Builder;
+
+use crate::primitives::{bitcoin::*, *};
 
 pub struct WalletUtxo {
     pub wallet_id: WalletId,
@@ -40,7 +41,7 @@ pub struct KeychainUtxos {
 }
 
 #[derive(Builder)]
-pub struct NewUtxo {
+pub struct NewUtxo<'a> {
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
     pub(super) keychain_id: KeychainId,
@@ -51,14 +52,17 @@ pub struct NewUtxo {
     pub(super) value: Satoshis,
     pub(super) address: String,
     pub(super) script_hex: String,
-    pub(super) sats_per_vbyte_when_created: f32,
+    pub(super) origin_tx_vbytes: u64,
+    pub(super) origin_tx_fee: Satoshis,
+    #[builder(default)]
+    pub(super) origin_tx_trusted_input_tx_ids: Option<&'a [String]>,
     pub(super) self_pay: bool,
     pub(super) bdk_spent: bool,
     pub(super) utxo_detected_ledger_tx_id: LedgerTransactionId,
 }
 
-impl NewUtxo {
-    pub fn builder() -> NewUtxoBuilder {
+impl<'a> NewUtxo<'a> {
+    pub fn builder() -> NewUtxoBuilder<'a> {
         let mut builder = NewUtxoBuilder::default();
         builder.utxo_detected_ledger_tx_id(LedgerTransactionId::new());
         builder
