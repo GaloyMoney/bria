@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres, QueryBuilder, Row, Transaction};
 use uuid::Uuid;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{entity::*, error::UtxoError};
 use crate::primitives::{bitcoin::*, *};
@@ -12,6 +12,16 @@ pub struct ReservableUtxo {
     pub outpoint: OutPoint,
     pub spending_batch_id: Option<BatchId>,
     pub utxo_settled_ledger_tx_id: Option<LedgerTransactionId>,
+}
+
+#[derive(Hash, PartialEq, Eq)]
+pub(super) struct CpfpCandidate {
+    pub utxo_history_tip: bool,
+    pub keychain_id: KeychainId,
+    pub outpoint: OutPoint,
+    pub ancestor_tx_id: Option<Txid>,
+    pub origin_tx_vbytes: u64,
+    pub origin_tx_fee: Satoshis,
 }
 
 #[derive(Clone)]
@@ -468,5 +478,88 @@ impl UtxoRepo {
             Some(_) => Err(UtxoError::UtxoAlreadySettledError),
             None => Err(UtxoError::UtxoDoesNotExistError),
         }
+    }
+
+    pub async fn find_cpfp_candidates(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: impl Iterator<Item = KeychainId>,
+        payout_queue_id: PayoutQueueId,
+        min_age: std::time::Duration,
+    ) -> Result<HashSet<CpfpCandidate>, UtxoError> {
+        let keychain_ids: Vec<Uuid> = ids.map(Uuid::from).collect();
+        let min_age_timestamp = chrono::Utc::now() - min_age;
+
+        let rows = sqlx::query!(
+            r#"
+          WITH RECURSIVE unconfirmed_spends AS (
+              SELECT
+                  u1.keychain_id,
+                  u1.tx_id,
+                  u1.vout,
+                  COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
+                  u1.origin_tx_vbytes,
+                  u1.origin_tx_fee,
+                  TRUE AS utxo_history_tip
+              FROM bria_utxos u1
+              LEFT JOIN
+                  LATERAL UNNEST(u1.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
+              WHERE
+                  u1.spending_batch_id IS NULL
+                  AND u1.created_at <= $1
+                  AND u1.keychain_id = ANY($2)
+                  AND u1.spending_payout_queue_id = $3
+              UNION ALL
+              SELECT
+                  u2.keychain_id,
+                  u2.tx_id,
+                  u2.vout,
+                  COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
+                  u2.origin_tx_vbytes,
+                  u2.origin_tx_fee,
+                  FALSE AS utxo_history_tip
+              FROM bria_utxos u2
+              LEFT JOIN
+                  LATERAL UNNEST(u2.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
+              JOIN
+                  unconfirmed_spends ua ON ua.ancestor_id = u2.tx_id
+              WHERE 
+                  u2.spend_settled_ledger_tx_id IS NULL
+                  AND u2.keychain_id = ANY($2)
+          )
+          SELECT DISTINCT
+            keychain_id AS "keychain_id!", tx_id AS "tx_id!", vout AS "vout!", ancestor_id,
+            origin_tx_vbytes as "origin_tx_vbytes!", origin_tx_fee as "origin_tx_fee!", utxo_history_tip as "utxo_history_tip!"
+          FROM unconfirmed_spends
+          WHERE origin_tx_vbytes IS NOT NULL AND origin_tx_fee IS NOT NULL"#,
+            min_age_timestamp,
+            &keychain_ids,
+            payout_queue_id as PayoutQueueId,
+        )
+        .fetch_all(&mut **tx)
+        .await?;
+        let mut candidates = HashSet::new();
+
+        for row in rows {
+            let outpoint = OutPoint {
+                txid: row.tx_id.parse().expect("couldn't parse txid"),
+                vout: row.vout as u32,
+            };
+
+            let candidate = CpfpCandidate {
+                utxo_history_tip: row.utxo_history_tip,
+                keychain_id: KeychainId::from(row.keychain_id),
+                outpoint,
+                ancestor_tx_id: row
+                    .ancestor_id
+                    .map(|a_id| a_id.parse().expect("couldn't parse ancestor txid")),
+                origin_tx_vbytes: row.origin_tx_vbytes as u64,
+                origin_tx_fee: Satoshis::from(row.origin_tx_fee as u64),
+            };
+
+            candidates.insert(candidate);
+        }
+
+        Ok(candidates)
     }
 }
