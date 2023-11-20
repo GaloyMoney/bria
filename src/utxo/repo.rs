@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use std::collections::{HashMap, HashSet};
 
-use super::{entity::*, error::UtxoError};
+use super::{cpfp::CpfpCandidate, entity::*, error::UtxoError};
 use crate::primitives::{bitcoin::*, *};
 
 pub struct ReservableUtxo {
@@ -12,16 +12,6 @@ pub struct ReservableUtxo {
     pub outpoint: OutPoint,
     pub spending_batch_id: Option<BatchId>,
     pub utxo_settled_ledger_tx_id: Option<LedgerTransactionId>,
-}
-
-#[derive(Hash, PartialEq, Eq)]
-pub(super) struct CpfpCandidate {
-    pub utxo_history_tip: bool,
-    pub keychain_id: KeychainId,
-    pub outpoint: OutPoint,
-    pub ancestor_tx_id: Option<Txid>,
-    pub origin_tx_vbytes: u64,
-    pub origin_tx_fee: Satoshis,
 }
 
 #[derive(Clone)]

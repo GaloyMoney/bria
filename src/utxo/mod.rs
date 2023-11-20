@@ -1,3 +1,4 @@
+mod cpfp;
 mod effective_allocation;
 mod entity;
 pub mod error;
@@ -10,6 +11,7 @@ use tracing::instrument;
 use std::collections::HashMap;
 
 use crate::primitives::{bitcoin::OutPoint, *};
+pub use cpfp::*;
 pub use entity::*;
 use error::UtxoError;
 use repo::*;
@@ -174,6 +176,21 @@ impl Utxos {
         keychain_ids: impl Iterator<Item = KeychainId>,
     ) -> Result<HashMap<KeychainId, KeychainUtxos>, UtxoError> {
         self.utxos.find_keychain_utxos(keychain_ids).await
+    }
+
+    #[instrument(name = "utxos.find_cpfp_utxos", skip_all, err)]
+    pub async fn find_cpfp_utxos(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: impl Iterator<Item = KeychainId>,
+        payout_queue_id: PayoutQueueId,
+        min_age: std::time::Duration,
+    ) -> Result<HashMap<KeychainId, Vec<CpfpUtxo>>, UtxoError> {
+        let candidates = self
+            .utxos
+            .find_cpfp_candidates(tx, ids, payout_queue_id, min_age)
+            .await?;
+        Ok(extract_cpfp_utxos(candidates))
     }
 
     #[instrument(name = "utxos.outpoints_bdk_should_not_select", skip_all, err)]
