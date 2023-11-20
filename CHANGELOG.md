@@ -1,3 +1,10 @@
+# [bria release v0.1.65](https://github.com/GaloyMoney/bria/releases/tag/0.1.65)
+
+
+### Miscellaneous Tasks
+
+- Add vbyte / fee to utxos (#397)
+
 # [bria release v0.1.64](https://github.com/GaloyMoney/bria/releases/tag/0.1.64)
 
 
