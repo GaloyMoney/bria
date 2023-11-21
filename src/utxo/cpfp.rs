@@ -6,6 +6,7 @@ use crate::primitives::{bitcoin::*, *};
 pub(super) struct CpfpCandidate {
     pub utxo_history_tip: bool,
     pub keychain_id: KeychainId,
+    pub batch_id: Option<BatchId>,
     pub outpoint: OutPoint,
     pub ancestor_tx_id: Option<Txid>,
     pub origin_tx_vbytes: u64,
@@ -20,9 +21,17 @@ pub(super) fn extract_cpfp_utxos(
         let utxo_history_tip = candidates.iter().find(|c| c.utxo_history_tip).cloned();
         if let Some(tip) = utxo_history_tip {
             candidates.retain(|c| c.outpoint.txid != tip.outpoint.txid);
-            let mut additional_vbytes = tip.origin_tx_vbytes;
-            let mut included_fees = tip.origin_tx_fee;
             let mut next_ancestor = tip.ancestor_tx_id;
+            let mut attributions = HashMap::new();
+            attributions.insert(
+                tip.outpoint.txid,
+                FeeWeightAttribution {
+                    batch_id: tip.batch_id,
+                    tx_id: tip.outpoint.txid,
+                    fee: tip.origin_tx_fee,
+                    vbytes: tip.origin_tx_vbytes,
+                },
+            );
             loop {
                 if let Some(next_tx_id) = next_ancestor {
                     let ancestor = candidates
@@ -31,8 +40,14 @@ pub(super) fn extract_cpfp_utxos(
                         .cloned();
                     if let Some(ancestor) = ancestor {
                         candidates.retain(|c| c.outpoint.txid != ancestor.outpoint.txid);
-                        additional_vbytes += ancestor.origin_tx_vbytes;
-                        included_fees += ancestor.origin_tx_fee;
+                        let attribution = FeeWeightAttribution {
+                            batch_id: ancestor.batch_id,
+                            tx_id: ancestor.outpoint.txid,
+                            fee: ancestor.origin_tx_fee,
+                            vbytes: ancestor.origin_tx_vbytes,
+                        };
+
+                        attributions.insert(ancestor.outpoint.txid, attribution);
                         next_ancestor = ancestor.ancestor_tx_id;
                         continue;
                     }
@@ -40,16 +55,12 @@ pub(super) fn extract_cpfp_utxos(
                 break;
             }
             let utxos: &mut Vec<_> = result.entry(tip.keychain_id).or_default();
-            utxos.push(
-                CpfpUtxo {
-                    keychain_id: tip.keychain_id,
-                    outpoint: tip.outpoint,
-                    value: tip.origin_tx_fee,
-                    additional_vbytes,
-                    included_fees,
-                }
-                .into(),
-            );
+            utxos.push(CpfpUtxo {
+                keychain_id: tip.keychain_id,
+                outpoint: tip.outpoint,
+                value: tip.origin_tx_fee,
+                attributions,
+            });
             continue;
         }
         break;
@@ -70,6 +81,7 @@ mod tests {
             .unwrap();
         let candidate1 = CpfpCandidate {
             keychain_id: keychain_id1,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint { txid, vout: 0 },
             ancestor_tx_id: None,
@@ -81,6 +93,7 @@ mod tests {
             .unwrap();
         let candidate2 = CpfpCandidate {
             keychain_id: keychain_id2,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint { txid, vout: 0 },
             ancestor_tx_id: None,
@@ -93,6 +106,7 @@ mod tests {
         let candidate3 = CpfpCandidate {
             keychain_id: keychain_id2,
             utxo_history_tip: true,
+            batch_id: None,
             outpoint: OutPoint { txid, vout: 0 },
             ancestor_tx_id: None,
             origin_tx_vbytes: 42,
@@ -126,14 +140,17 @@ mod tests {
         // Candidate with 1 unconfirmed ancestor
         let candidate1 = CpfpCandidate {
             keychain_id,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint { txid, vout: 0 },
             ancestor_tx_id: Some(ancestor_id),
             origin_tx_vbytes: 42,
             origin_tx_fee: Satoshis::from(42),
         };
+        let ancestor_batch_id = BatchId::new();
         let ancestor1 = CpfpCandidate {
             keychain_id,
+            batch_id: Some(ancestor_batch_id),
             utxo_history_tip: false,
             outpoint: OutPoint {
                 txid: ancestor_id,
@@ -147,6 +164,7 @@ mod tests {
         // Candidate in same tx as candidate1 (should be ignored)
         let candidate2 = CpfpCandidate {
             keychain_id,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint { txid, vout: 1 },
             ancestor_tx_id: Some(ancestor_id),
@@ -157,6 +175,7 @@ mod tests {
         // Candidate with same ancestor as candidate 1 (should be included but not rolled up)
         let candidate3 = CpfpCandidate {
             keychain_id,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint {
                 txid: txid2,
@@ -170,6 +189,7 @@ mod tests {
         // Ancestor in same tx as ancestor 1 (should be ignored)
         let ancestor2 = CpfpCandidate {
             keychain_id,
+            batch_id: Some(ancestor_batch_id),
             utxo_history_tip: false,
             outpoint: OutPoint {
                 txid: ancestor_id,
@@ -187,14 +207,14 @@ mod tests {
         );
         let utxos = res.get(&keychain_id).unwrap();
         assert_eq!(utxos.len(), 2);
-        let accumilated = utxos.iter().find(|u| u.additional_vbytes == 42).unwrap();
-        assert_eq!(accumilated.included_fees, Satoshis::from(42));
-        let accumilated = utxos.iter().find(|u| u.additional_vbytes == 84).unwrap();
-        assert_eq!(accumilated.included_fees, Satoshis::from(84));
+        let accumilated = utxos.iter().find(|u| u.additional_vbytes() == 42).unwrap();
+        assert_eq!(accumilated.included_fees(), Satoshis::from(42));
+        let accumilated = utxos.iter().find(|u| u.additional_vbytes() == 84).unwrap();
+        assert_eq!(accumilated.included_fees(), Satoshis::from(84));
     }
 
     #[test]
-    fn accumalates_long_ancestor_chane() {
+    fn accumalates_long_ancestor_chain() {
         let keychain_id = KeychainId::new();
         let txid = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -208,6 +228,7 @@ mod tests {
 
         let candidate1 = CpfpCandidate {
             keychain_id,
+            batch_id: None,
             utxo_history_tip: true,
             outpoint: OutPoint { txid, vout: 0 },
             ancestor_tx_id: Some(ancestor_id1),
@@ -216,6 +237,7 @@ mod tests {
         };
         let ancestor1 = CpfpCandidate {
             keychain_id,
+            batch_id: Some(BatchId::new()),
             utxo_history_tip: false,
             outpoint: OutPoint {
                 txid: ancestor_id1,
@@ -227,6 +249,7 @@ mod tests {
         };
         let ancestor2 = CpfpCandidate {
             keychain_id,
+            batch_id: Some(BatchId::new()),
             utxo_history_tip: false,
             outpoint: OutPoint {
                 txid: ancestor_id2,
@@ -239,8 +262,9 @@ mod tests {
 
         let res = extract_cpfp_utxos(vec![candidate1, ancestor1, ancestor2].into_iter().collect());
         let utxos = res.get(&keychain_id).unwrap();
+        dbg!(utxos);
         assert_eq!(utxos.len(), 1);
-        assert_eq!(utxos[0].additional_vbytes, 126);
-        assert_eq!(utxos[0].included_fees, Satoshis::from(126));
+        assert_eq!(utxos[0].additional_vbytes(), 126);
+        assert_eq!(utxos[0].included_fees(), Satoshis::from(126));
     }
 }

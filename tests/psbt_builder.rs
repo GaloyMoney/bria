@@ -243,12 +243,21 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
 
     let blockchain = helpers::electrum_blockchain().await?;
     domain_current_keychain.sync(blockchain).await?;
+    let attributions = std::iter::once((
+        tx_id,
+        FeeWeightAttribution {
+            batch_id: Some(BatchId::new()),
+            tx_id,
+            fee: fees,
+            vbytes,
+        },
+    ))
+    .collect();
     let cpfp_utxos = vec![CpfpUtxo {
         keychain_id: domain_current_keychain_id.into(),
         outpoint,
         value: fee_bump_funding_sats,
-        additional_vbytes: vbytes,
-        included_fees: fees,
+        attributions,
     }];
     let fee = FeeRate::from_sat_per_vb(100.0);
     let builder = PsbtBuilder::new()

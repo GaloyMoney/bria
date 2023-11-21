@@ -490,7 +490,8 @@ impl UtxoRepo {
                   COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
                   u1.origin_tx_vbytes,
                   u1.origin_tx_fee,
-                  TRUE AS utxo_history_tip
+                  TRUE AS utxo_history_tip,
+                  u1.spending_batch_id
               FROM bria_utxos u1
               LEFT JOIN
                   LATERAL UNNEST(u1.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
@@ -507,7 +508,8 @@ impl UtxoRepo {
                   COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
                   u2.origin_tx_vbytes,
                   u2.origin_tx_fee,
-                  FALSE AS utxo_history_tip
+                  FALSE AS utxo_history_tip,
+                  u2.spending_batch_id
               FROM bria_utxos u2
               LEFT JOIN
                   LATERAL UNNEST(u2.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
@@ -519,7 +521,7 @@ impl UtxoRepo {
           )
           SELECT DISTINCT
             keychain_id AS "keychain_id!", tx_id AS "tx_id!", vout AS "vout!", ancestor_id,
-            origin_tx_vbytes as "origin_tx_vbytes!", origin_tx_fee as "origin_tx_fee!", utxo_history_tip as "utxo_history_tip!"
+            origin_tx_vbytes as "origin_tx_vbytes!", origin_tx_fee as "origin_tx_fee!", utxo_history_tip as "utxo_history_tip!", spending_batch_id
           FROM unconfirmed_spends
           WHERE origin_tx_vbytes IS NOT NULL AND origin_tx_fee IS NOT NULL"#,
             min_age_timestamp,
@@ -539,6 +541,7 @@ impl UtxoRepo {
             let candidate = CpfpCandidate {
                 utxo_history_tip: row.utxo_history_tip,
                 keychain_id: KeychainId::from(row.keychain_id),
+                batch_id: row.spending_batch_id.map(BatchId::from),
                 outpoint,
                 ancestor_tx_id: row
                     .ancestor_id
