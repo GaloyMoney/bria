@@ -304,6 +304,7 @@ impl ApiClient {
         consolidate_deprecated_keychains: bool,
         interval_trigger: Option<u32>,
         manual_trigger: Option<bool>,
+        cpfp_payouts_after_mins: Option<u32>,
     ) -> anyhow::Result<()> {
         let tx_priority = match tx_priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
@@ -327,6 +328,7 @@ impl ApiClient {
             tx_priority,
             consolidate_deprecated_keychains,
             trigger,
+            cpfp_payouts_after_mins,
         };
 
         let request = tonic::Request::new(proto::CreatePayoutQueueRequest {
@@ -515,6 +517,7 @@ impl ApiClient {
         tx_priority: Option<TxPriority>,
         consolidate_deprecated_keychains: Option<bool>,
         interval_trigger: Option<u32>,
+        cpfp_payouts_after_mins: Option<u32>,
     ) -> anyhow::Result<()> {
         let tx_priority = tx_priority.map(|priority| match priority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
@@ -531,6 +534,7 @@ impl ApiClient {
                 tx_priority,
                 consolidate_deprecated_keychains,
                 trigger,
+                cpfp_payouts_after_mins,
             })
         } else {
             None

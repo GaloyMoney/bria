@@ -7,25 +7,15 @@ use crate::primitives::TxPriority;
 pub struct PayoutQueueConfig {
     pub tx_priority: TxPriority,
     #[serde(default)]
-    pub select_unconfirmed_utxos: UnconfirmedUtxoSelection,
+    pub cpfp_payouts_after_mins: Option<u32>,
     pub consolidate_deprecated_keychains: bool,
     pub trigger: PayoutQueueTrigger,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum UnconfirmedUtxoSelection {
-    Never,
-    Trusted,
-}
-impl UnconfirmedUtxoSelection {
-    pub fn is_never(&self) -> bool {
-        matches!(self, Self::Never)
-    }
-}
-impl Default for UnconfirmedUtxoSelection {
-    fn default() -> Self {
-        Self::Never
+impl PayoutQueueConfig {
+    pub fn cpfp_payouts_after(&self) -> Option<Duration> {
+        self.cpfp_payouts_after_mins
+            .map(|mins| Duration::from_secs(mins as u64 * 60))
     }
 }
 
@@ -49,7 +39,7 @@ impl Default for PayoutQueueConfig {
             trigger: PayoutQueueTrigger::Interval {
                 seconds: default_interval(),
             },
-            select_unconfirmed_utxos: UnconfirmedUtxoSelection::Never,
+            cpfp_payouts_after_mins: None,
         }
     }
 }

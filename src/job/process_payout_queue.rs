@@ -24,6 +24,7 @@ pub struct ProcessPayoutQueueData {
         n_unbatched_payouts,
         payout_queue_name,
         n_reserved_utxos,
+        n_cpfp_utxos,
         txid,
         psbt,
         batch_id,
