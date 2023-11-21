@@ -40,7 +40,7 @@ pub fn validate_psbt(
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     #[test]
