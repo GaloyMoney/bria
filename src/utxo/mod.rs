@@ -11,7 +11,7 @@ use tracing::instrument;
 use std::collections::HashMap;
 
 use crate::primitives::{bitcoin::OutPoint, *};
-pub use cpfp::*;
+use cpfp::*;
 pub use entity::*;
 use error::UtxoError;
 use repo::*;
@@ -198,7 +198,6 @@ impl Utxos {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
-        filter_unconfirmed_change: bool,
     ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, UtxoError> {
         // Here we list all Utxos that bdk might want to use and lock them (FOR UPDATE)
         // This ensures that we don't have 2 concurrent psbt constructions get in the way
@@ -212,7 +211,6 @@ impl Utxos {
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
             if utxo.spending_batch_id.is_some()
                 || (utxo.income_address && utxo.utxo_settled_ledger_tx_id.is_none())
-                || (filter_unconfirmed_change && utxo.utxo_settled_ledger_tx_id.is_none())
             {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {

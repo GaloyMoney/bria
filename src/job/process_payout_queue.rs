@@ -170,18 +170,30 @@ pub async fn construct_psbt(
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
     let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;
-    let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-
-    let reserved_utxos = utxos
-        .outpoints_bdk_should_not_select(
-            tx,
-            keychain_ids,
-            queue_cfg.select_unconfirmed_utxos.is_never(),
-        )
-        .await?;
+    let reserved_utxos = {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        utxos
+            .outpoints_bdk_should_not_select(tx, keychain_ids)
+            .await?
+    };
     span.record(
         "n_reserved_utxos",
         reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
+    );
+
+    let mandatory_cpfp_utxos = if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        utxos
+            .find_cpfp_utxos(tx, keychain_ids, queue_id, min_age)
+            .await?
+    } else {
+        HashMap::new()
+    };
+    span.record(
+        "n_cpfp_utxos",
+        mandatory_cpfp_utxos
+            .values()
+            .fold(0, |acc, v| acc + v.len()),
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
@@ -191,6 +203,7 @@ pub async fn construct_psbt(
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
         reserved_utxos,
+        mandatory_cpfp_utxos,
         tx_payouts,
         wallets,
     )

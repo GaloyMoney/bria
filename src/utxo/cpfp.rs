@@ -2,14 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use crate::primitives::{bitcoin::*, *};
 
-pub struct CpfpUtxo {
-    pub keychain_id: KeychainId,
-    pub outpoint: OutPoint,
-    pub value: Satoshis,
-    pub additional_vbytes: u64,
-    pub included_fees: Satoshis,
-}
-
 #[derive(Hash, PartialEq, Eq, Clone)]
 pub(super) struct CpfpCandidate {
     pub utxo_history_tip: bool,

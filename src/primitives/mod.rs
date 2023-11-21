@@ -138,6 +138,13 @@ impl TxPriority {
 }
 
 pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
+pub struct CpfpUtxo {
+    pub keychain_id: KeychainId,
+    pub outpoint: bitcoin::OutPoint,
+    pub value: Satoshis,
+    pub additional_vbytes: u64,
+    pub included_fees: Satoshis,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
