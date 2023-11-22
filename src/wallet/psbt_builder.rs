@@ -1,7 +1,6 @@
 use bdk::{
     database::BatchDatabase,
-    wallet::tx_builder::TxOrdering,
-    wallet::{AddressIndex, AddressInfo},
+    wallet::{tx_builder::TxOrdering, AddressIndex, AddressInfo},
     FeeRate, Wallet,
 };
 use std::{
@@ -36,6 +35,7 @@ pub struct FinishedPsbtBuild {
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
+    pub cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     pub fee_satoshis: Satoshis,
     pub tx_id: Option<bitcoin::Txid>,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
@@ -194,6 +194,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                 included_payouts: HashMap::new(),
                 included_utxos: HashMap::new(),
                 included_wallet_keychains: HashMap::new(),
+                cpfp_allocations: HashMap::new(),
                 wallet_totals: HashMap::new(),
                 fee_satoshis: Satoshis::from(0),
                 tx_id: None,
@@ -354,20 +355,25 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         current_keychain_id: KeychainId,
         wallet: &Wallet<D>,
     ) -> Result<Self, BdkError> {
+        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
             .max_satisfaction_weight()
             .expect("Unsupported descriptor");
-        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
-
         let mut max_payout = 0;
-        while max_payout < self.current_payouts.len()
-            && self.try_build_current_wallet_psbt(
+        let mut absolute_fee = 0;
+        while max_payout < self.current_payouts.len() {
+            let (fee, success) = self.try_build_current_wallet_psbt(
                 current_keychain_id,
                 &self.current_payouts[..=max_payout],
                 wallet,
-            )?
-        {
+                &change_address,
+                keychain_satisfaction_weight,
+            )?;
+            if !success {
+                break;
+            }
+            absolute_fee = fee;
             max_payout += 1;
         }
         if max_payout == 0 {
@@ -384,9 +390,25 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 builder.add_unspendable(*out);
             }
         }
-        builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+        builder.fee_absolute(absolute_fee);
         builder.drain_to(change_address.script_pubkey());
         builder.sighash(DEFAULT_SIGHASH_TYPE.into());
+
+        if let Some(cpfp) = self
+            .cpfp_utxos
+            .as_ref()
+            .map(|m| m.get(&current_keychain_id))
+            .flatten()
+        {
+            for utxo in cpfp {
+                builder.add_utxo(utxo.outpoint)?;
+                for k in utxo.attributions.keys() {
+                    self.result
+                        .cpfp_allocations
+                        .insert(*k, self.missing_cpfp_fees.remove(k).expect("cpfp fees"));
+                }
+            }
+        }
 
         let mut total_output_satoshis = Satoshis::from(0);
         for (payout_id, destination, satoshis) in self.current_payouts.drain(..max_payout) {
@@ -534,9 +556,12 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         keychain_id: KeychainId,
         payouts: &[TxPayout],
         wallet: &Wallet<D>,
-    ) -> Result<bool, BdkError> {
+        change_address: &AddressInfo,
+        keychain_satisfaction_weight: usize,
+    ) -> Result<(u64, bool), BdkError> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+        builder.drain_to(change_address.script_pubkey());
 
         for (_, destination, satoshis) in payouts.iter() {
             builder.add_recipient(destination.script_pubkey(), u64::from(*satoshis));
@@ -550,6 +575,23 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             for out in reserved_utxos {
                 builder.add_unspendable(*out);
             }
+        }
+
+        let mut cpfp_fees = 0;
+        if let Some(cpfp) = self
+            .cpfp_utxos
+            .as_ref()
+            .map(|m| m.get(&keychain_id))
+            .flatten()
+        {
+            for utxo in cpfp {
+                for k in utxo.attributions.keys() {
+                    cpfp_fees +=
+                        u64::from(self.missing_cpfp_fees.get(k).expect("missing cpfp fees").1);
+                }
+                builder.add_utxo(utxo.outpoint)?;
+            }
+            builder.add_recipient(change_address.script_pubkey(), cpfp_fees);
         }
 
         for (_, psbt) in self.current_wallet_psbts.iter() {
@@ -566,8 +608,26 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         }
 
         match builder.finish() {
-            Ok(_) => Ok(true),
-            Err(bdk::Error::InsufficientFunds { .. }) => Ok(false),
+            Ok((psbt, details)) => {
+                let n_change_outputs = psbt
+                    .unsigned_tx
+                    .output
+                    .iter()
+                    .filter(|out| out.script_pubkey == change_address.script_pubkey())
+                    .count();
+                let subtract_fee = if n_change_outputs > 1 {
+                    self.fee_rate
+                        .expect("fee rate must be set")
+                        .fee_wu(keychain_satisfaction_weight)
+                } else {
+                    0
+                };
+                Ok((
+                    details.fee.expect("fee must be present") + cpfp_fees - subtract_fee,
+                    true,
+                ))
+            }
+            Err(bdk::Error::InsufficientFunds { .. }) => Ok((0, false)),
             Err(e) => Err(e.into()),
         }
     }

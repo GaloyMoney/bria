@@ -1,4 +1,4 @@
-use bdk::{LocalUtxo, TransactionDetails};
+use bdk::{bitcoin::blockdata::transaction::OutPoint, LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 use uuid::Uuid;
@@ -84,6 +84,28 @@ impl Utxos {
         .await?;
 
         Ok(())
+    }
+
+    pub async fn find(&self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
+        let utxo = sqlx::query!(
+            r#"
+            SELECT utxo_json
+            FROM bdk_utxos
+            WHERE keychain_id = $1
+            AND deleted_at IS NULL
+            AND tx_id = $2
+            AND vout = $3"#,
+            self.keychain_id as KeychainId,
+            outpoint.txid.to_string(),
+            outpoint.vout as i32,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+
+        Ok(utxo.map(|utxo| {
+            serde_json::from_value(utxo.utxo_json).expect("Could not deserialize utxo")
+        }))
     }
 
     pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {

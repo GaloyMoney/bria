@@ -115,14 +115,17 @@ mod tests {
     fn extract_without_ancestors() {
         let keychain_id1 = KeychainId::new();
         let keychain_id2 = KeychainId::new();
-        let txid = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+        let txid1 = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
             .unwrap();
         let candidate1 = CpfpCandidate {
             keychain_id: keychain_id1,
             origin_tx_batch_id: None,
             utxo_history_tip: true,
-            outpoint: OutPoint { txid, vout: 0 },
+            outpoint: OutPoint {
+                txid: txid1,
+                vout: 0,
+            },
             ancestor_tx_id: None,
             origin_tx_vbytes: 42,
             origin_tx_fee: Satoshis::from(42),
@@ -159,6 +162,15 @@ mod tests {
         );
         let utxo = res.get(&keychain_id1).unwrap();
         assert_eq!(utxo.len(), 1);
+        assert_eq!(utxo[0].attributions.len(), 1);
+        assert_eq!(
+            utxo[0]
+                .attributions
+                .get(&txid1)
+                .expect("missing attribution")
+                .fee,
+            Satoshis::from(42)
+        );
         let utxo = res.get(&keychain_id2).unwrap();
         assert_eq!(utxo.len(), 2);
     }

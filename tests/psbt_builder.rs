@@ -238,18 +238,16 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     let fee_bump_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(fee_bump_funding));
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, fee_bump_funding)?;
-    let (outpoint, fees, vbytes) =
+    let (outpoint, cpfp_tx_fee, cpfp_tx_vsize) =
         helpers::lookup_tx_info(&bitcoind, tx_id, u64::from(fee_bump_funding_sats))?;
 
-    let blockchain = helpers::electrum_blockchain().await?;
-    domain_current_keychain.sync(blockchain).await?;
     let attributions = std::iter::once((
         tx_id,
         FeeWeightAttribution {
             batch_id: Some(BatchId::new()),
             tx_id,
-            fee: fees,
-            vbytes,
+            fee: cpfp_tx_fee,
+            vbytes: cpfp_tx_vsize,
         },
     ))
     .collect();
@@ -259,7 +257,8 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         value: fee_bump_funding_sats,
         attributions,
     }];
-    let fee = FeeRate::from_sat_per_vb(100.0);
+    let sats_per_vbyte: f64 = 100.0;
+    let fee = FeeRate::from_sat_per_vb(sats_per_vbyte as f32);
     let builder = PsbtBuilder::new()
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
@@ -278,6 +277,8 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)
         .accept_current_keychain();
+    let blockchain = helpers::electrum_blockchain().await?;
+    domain_current_keychain.sync(blockchain).await?;
     let builder = domain_current_keychain
         .dispatch_bdk_wallet(builder)
         .await?
@@ -287,6 +288,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         included_payouts,
         wallet_totals,
         fee_satoshis,
+        cpfp_allocations,
         ..
     } = builder.finish();
     assert_eq!(
@@ -296,6 +298,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
             .len(),
         1
     );
+    assert_eq!(cpfp_allocations.len(), 1);
     assert_eq!(wallet_totals.len(), 1);
     let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
     // assert_eq!(domain_wallet_total.input_satoshis, wallet_funding_sats);
@@ -324,8 +327,32 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         .values()
         .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
     assert_eq!(total_summary_fees, fee_satoshis);
-    // assert_eq!(unsigned_psbt.inputs.len(), 1);
+    assert_eq!(unsigned_psbt.inputs.len(), 2);
     assert_eq!(unsigned_psbt.outputs.len(), 2);
+
+    let mut lnd_client = helpers::lnd_signing_client().await?;
+    let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
+    let tx = domain_current_keychain
+        .finalize_psbt(signed_psbt)
+        .await?
+        .expect("Finalize should have completed")
+        .extract_tx();
+    let size = tx.vsize();
+    let cpfp_fees = cpfp_allocations
+        .values()
+        .map(|(_, s)| u64::from(*s) as f64)
+        .sum::<f64>();
+    let actual_sats_per_vbyte = u64::from(fee_satoshis) as f64 / size as f64;
+    assert!(actual_sats_per_vbyte > sats_per_vbyte);
+    let combined_rate =
+        u64::from(cpfp_tx_fee + fee_satoshis) as f64 / (size as f64 + cpfp_tx_vsize as f64);
+    assert!(combined_rate > sats_per_vbyte);
+    assert!(combined_rate < sats_per_vbyte * 1.02);
+    let sats_per_vbyte_without_cpfp_fees =
+        (u64::from(fee_satoshis) as f64 - cpfp_fees) / size as f64;
+
+    assert!(sats_per_vbyte_without_cpfp_fees > sats_per_vbyte);
+    assert!(sats_per_vbyte_without_cpfp_fees < sats_per_vbyte * 1.02);
 
     Ok(())
 }

@@ -207,8 +207,12 @@ impl Database for SqlxWalletDb {
                 .map(|(kind, path)| (kind.into(), path)))
         })
     }
-    fn get_utxo(&self, _: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
-        unimplemented!()
+    fn get_utxo(&self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
+        self.rt.block_on(async {
+            Utxos::new(self.keychain_id, self.pool.clone())
+                .find(outpoint)
+                .await
+        })
     }
     fn get_raw_tx(&self, tx_id: &Txid) -> Result<Option<Transaction>, bdk::Error> {
         self.rt.block_on(async {
