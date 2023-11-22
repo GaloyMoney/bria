@@ -3,7 +3,7 @@ mod helpers;
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
 
-use bria::{primitives::*, wallet::*, xpub::*};
+use bria::{primitives::*, utxo::*, wallet::*, xpub::*};
 
 #[tokio::test]
 async fn build_psbt() -> anyhow::Result<()> {

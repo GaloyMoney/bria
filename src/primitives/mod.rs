@@ -139,33 +139,6 @@ impl TxPriority {
 
 pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
 
-#[derive(Debug)]
-pub struct FeeWeightAttribution {
-    pub batch_id: Option<BatchId>,
-    pub tx_id: bitcoin::Txid,
-    pub fee: Satoshis,
-    pub vbytes: u64,
-}
-#[derive(Debug)]
-pub struct CpfpUtxo {
-    pub keychain_id: KeychainId,
-    pub outpoint: bitcoin::OutPoint,
-    pub value: Satoshis,
-    pub attributions: std::collections::HashMap<bitcoin::Txid, FeeWeightAttribution>,
-}
-
-impl CpfpUtxo {
-    pub fn additional_vbytes(&self) -> u64 {
-        self.attributions.values().fold(0, |acc, a| acc + a.vbytes)
-    }
-
-    pub fn included_fees(&self) -> Satoshis {
-        self.attributions
-            .values()
-            .fold(Satoshis::ZERO, |acc, a| acc + a.fee)
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {

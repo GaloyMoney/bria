@@ -13,6 +13,49 @@ pub(super) struct CpfpCandidate {
     pub ancestor_tx_id: Option<Txid>,
 }
 
+#[derive(Debug)]
+pub struct FeeWeightAttribution {
+    pub batch_id: Option<BatchId>,
+    pub tx_id: bitcoin::Txid,
+    pub fee: Satoshis,
+    pub vbytes: u64,
+}
+#[derive(Debug)]
+pub struct CpfpUtxo {
+    pub keychain_id: KeychainId,
+    pub outpoint: bitcoin::OutPoint,
+    pub value: Satoshis,
+    pub attributions: std::collections::HashMap<bitcoin::Txid, FeeWeightAttribution>,
+}
+
+impl CpfpUtxo {
+    pub fn additional_vbytes(&self) -> u64 {
+        self.attributions.values().fold(0, |acc, a| acc + a.vbytes)
+    }
+
+    pub fn included_fees(&self) -> Satoshis {
+        self.attributions
+            .values()
+            .fold(Satoshis::ZERO, |acc, a| acc + a.fee)
+    }
+
+    pub fn missing_fees(
+        &self,
+        fee_rate: &bdk::FeeRate,
+    ) -> HashMap<Txid, (Option<BatchId>, Satoshis)> {
+        self.attributions
+            .iter()
+            .fold(HashMap::new(), |mut ret, (tx_id, attr)| {
+                let required_fee = fee_rate.fee_vb(attr.vbytes as usize);
+                let diff_sats = Satoshis::from(required_fee) - attr.fee;
+                if diff_sats > Satoshis::ZERO {
+                    ret.insert(*tx_id, (attr.batch_id, diff_sats));
+                }
+                ret
+            })
+    }
+}
+
 pub(super) fn extract_cpfp_utxos(
     mut candidates: HashSet<CpfpCandidate>,
 ) -> HashMap<KeychainId, Vec<CpfpUtxo>> {

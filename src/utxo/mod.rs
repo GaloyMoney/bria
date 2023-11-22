@@ -11,7 +11,7 @@ use tracing::instrument;
 use std::collections::HashMap;
 
 use crate::primitives::{bitcoin::OutPoint, *};
-use cpfp::*;
+pub use cpfp::*;
 pub use entity::*;
 use error::UtxoError;
 use repo::*;

@@ -13,6 +13,7 @@ use super::{keychain::*, Wallet as WalletEntity};
 use crate::{
     bdk::error::BdkError,
     primitives::{bitcoin::*, *},
+    utxo::CpfpUtxo,
 };
 
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
@@ -62,6 +63,7 @@ pub struct PsbtBuilder<T> {
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
     cpfp_utxos: Option<HashMap<KeychainId, Vec<CpfpUtxo>>>,
+    missing_cpfp_fees: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     current_wallet: Option<WalletId>,
     current_payouts: Vec<TxPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
@@ -181,6 +183,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             consolidate_deprecated_keychains: None,
             fee_rate: None,
             reserved_utxos: None,
+            missing_cpfp_fees: HashMap::new(),
             cpfp_utxos: None,
             current_wallet: None,
             current_payouts: vec![],
@@ -223,11 +226,20 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         self
     }
 
-    pub fn accept_wallets(self) -> PsbtBuilder<AcceptingWalletState> {
+    pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
+        assert!(self.fee_rate.is_some());
+        let fee_rate = self.fee_rate.as_ref().unwrap();
+        if let Some(utxos) = self.cpfp_utxos.as_ref() {
+            for utxo in utxos.iter().flat_map(|(_, v)| v.iter()) {
+                self.missing_cpfp_fees.extend(utxo.missing_fees(fee_rate));
+            }
+        };
+
         PsbtBuilder::<AcceptingWalletState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
             cpfp_utxos: self.cpfp_utxos,
             current_wallet: None,
             current_payouts: vec![],
@@ -251,6 +263,7 @@ impl PsbtBuilder<AcceptingWalletState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
             cpfp_utxos: self.cpfp_utxos,
             current_wallet: Some(wallet_id),
             current_payouts: payouts,
@@ -322,6 +335,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
             cpfp_utxos: self.cpfp_utxos,
             current_wallet: self.current_wallet,
             current_payouts: self.current_payouts,
@@ -499,6 +513,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
             cpfp_utxos: self.cpfp_utxos,
             current_wallet: None,
             current_payouts: vec![],
