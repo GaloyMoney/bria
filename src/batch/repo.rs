@@ -7,6 +7,12 @@ use std::{collections::HashMap, str::FromStr};
 use super::{entity::*, error::BatchError};
 use crate::primitives::{bitcoin::*, *};
 
+pub struct BatchInfo {
+    pub id: BatchId,
+    pub payout_queue_id: PayoutQueueId,
+    pub created_ledger_tx_id: LedgerTxId,
+}
+
 #[derive(Debug, Clone)]
 pub struct Batches {
     pool: PgPool,
@@ -188,14 +194,14 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(Transaction<'_, Postgres>, LedgerTxId, LedgerTxId)>, BatchError> {
+    ) -> Result<Option<(Transaction<'_, Postgres>, BatchInfo, LedgerTxId)>, BatchError> {
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (
-                 SELECT id FROM bria_batches
+                 SELECT id, payout_queue_id FROM bria_batches
                  WHERE bitcoin_tx_id = $1
                )
-               SELECT b.id, s.batch_broadcast_ledger_tx_id as "ledger_id?", s.batch_created_ledger_tx_id
+               SELECT b.id, b. payout_queue_id, s.batch_broadcast_ledger_tx_id as "ledger_id?", s.batch_created_ledger_tx_id
                FROM b
                LEFT JOIN (
                    SELECT batch_id, batch_broadcast_ledger_tx_id, batch_created_ledger_tx_id
@@ -213,12 +219,17 @@ impl Batches {
             return Ok(None);
         }
         let row = row.unwrap();
-        let batch_created_ledger_tx_id = LedgerTxId::from(row.batch_created_ledger_tx_id.unwrap());
-        let batch_id = row.id;
+        let created_ledger_tx_id = LedgerTxId::from(row.batch_created_ledger_tx_id.unwrap());
+        let batch_id = BatchId::from(row.id);
+        let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
         if row.ledger_id.is_some() {
             return Ok(Some((
                 tx,
-                batch_created_ledger_tx_id,
+                BatchInfo {
+                    id: batch_id,
+                    payout_queue_id,
+                    created_ledger_tx_id,
+                },
                 LedgerTxId::from(row.ledger_id.unwrap()),
             )));
         }
@@ -229,7 +240,7 @@ impl Batches {
                WHERE bria_batch_wallet_summaries.batch_id = $2
                  AND bria_batch_wallet_summaries.wallet_id = $3"#,
             ledger_transaction_id as LedgerTxId,
-            batch_id,
+            batch_id as BatchId,
             wallet_id as WalletId,
         )
         .execute(&mut *tx)
@@ -237,7 +248,11 @@ impl Batches {
 
         Ok(Some((
             tx,
-            batch_created_ledger_tx_id,
+            BatchInfo {
+                id: batch_id,
+                payout_queue_id,
+                created_ledger_tx_id,
+            },
             ledger_transaction_id,
         )))
     }

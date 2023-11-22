@@ -256,15 +256,14 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let (mut tx, create_batch_tx_id, tx_id) =
-                    if let Some((tx, create_batch_tx_id, tx_id)) = batches
-                        .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
-                        .await?
-                    {
-                        (tx, Some(create_batch_tx_id), tx_id)
-                    } else {
-                        (pool.begin().await?, None, LedgerTransactionId::new())
-                    };
+                let (mut tx, batch_info, tx_id) = if let Some((tx, create_batch, tx_id)) = batches
+                    .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
+                    .await?
+                {
+                    (tx, Some(create_batch), tx_id)
+                } else {
+                    (pool.begin().await?, None, LedgerTransactionId::new())
+                };
 
                 let mut change_utxos = Vec::new();
                 for (utxo, path) in change.iter() {
@@ -299,16 +298,23 @@ pub async fn execute(
                             .iter()
                             .map(|WalletUtxo { outpoint, .. }| outpoint),
                         &change_utxos,
+                        batch_info
+                            .as_ref()
+                            .map(|info| (info.id, info.payout_queue_id)),
                         unsynced_tx.fee_sats,
                         unsynced_tx.vsize,
                     )
                     .await?
                 {
-                    if let Some(create_batch_tx_id) = create_batch_tx_id {
+                    if let Some(BatchInfo {
+                        created_ledger_tx_id,
+                        ..
+                    }) = batch_info
+                    {
                         deps.ledger
                             .batch_broadcast(
                                 tx,
-                                create_batch_tx_id,
+                                created_ledger_tx_id,
                                 tx_id,
                                 fees_to_encumber,
                                 wallet.ledger_account_ids,

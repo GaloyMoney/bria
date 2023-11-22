@@ -90,6 +90,7 @@ impl Utxos {
         tx_id: LedgerTransactionId,
         inputs_iter: impl Iterator<Item = &OutPoint>,
         change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
+        batch: Option<(BatchId, PayoutQueueId)>,
         tx_fee: Satoshis,
         tx_vbytes: u64,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
@@ -102,7 +103,7 @@ impl Utxos {
         }
 
         for (utxo, address) in change_utxos.iter() {
-            let new_utxo = NewUtxo::builder()
+            let mut new_utxo = NewUtxo::builder()
                 .account_id(account_id)
                 .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
@@ -117,10 +118,17 @@ impl Utxos {
                 .origin_tx_vbytes(tx_vbytes)
                 .origin_tx_fee(tx_fee)
                 .self_pay(true)
-                .origin_tx_trusted_input_tx_ids(Some(&input_tx_ids))
-                .build()
-                .expect("Could not build NewUtxo");
-            let res = self.utxos.persist_utxo(tx, new_utxo).await?;
+                .origin_tx_trusted_input_tx_ids(Some(&input_tx_ids));
+            if let Some((batch_id, payout_queue_id)) = batch {
+                new_utxo = new_utxo
+                    .origin_tx_batch_id(batch_id)
+                    .origin_tx_payout_queue_id(payout_queue_id);
+            }
+
+            let res = self
+                .utxos
+                .persist_utxo(tx, new_utxo.build().expect("Could not build NewUtxo"))
+                .await?;
             if res.is_none() {
                 return Ok(None);
             }

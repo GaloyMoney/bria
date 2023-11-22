@@ -32,8 +32,8 @@ impl UtxoRepo {
         let sats_per_vbyte = u64::from(utxo.origin_tx_fee) as f32 / utxo.origin_tx_vbytes as f32;
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent, origin_tx_vbytes, origin_tx_fee, trusted_origin_tx_input_tx_ids)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent, origin_tx_batch_id, origin_tx_payout_queue_id, origin_tx_vbytes, origin_tx_fee, trusted_origin_tx_input_tx_ids)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           utxo.account_id as AccountId,
           utxo.wallet_id as WalletId,
@@ -49,6 +49,8 @@ impl UtxoRepo {
           utxo.script_hex,
           utxo.utxo_detected_ledger_tx_id as LedgerTransactionId,
           utxo.bdk_spent,
+          utxo.origin_tx_batch_id as Option<BatchId>,
+          utxo.origin_tx_payout_queue_id as Option<PayoutQueueId>,
           utxo.origin_tx_vbytes as i64,
           u64::from(utxo.origin_tx_fee) as i64,
           utxo.origin_tx_trusted_input_tx_ids,
@@ -483,23 +485,29 @@ impl UtxoRepo {
         let rows = sqlx::query!(
             r#"
           WITH RECURSIVE unconfirmed_spends AS (
-              SELECT
-                  u1.keychain_id,
-                  u1.tx_id,
-                  u1.vout,
-                  COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
-                  u1.origin_tx_vbytes,
-                  u1.origin_tx_fee,
-                  TRUE AS utxo_history_tip,
-                  u1.spending_batch_id
-              FROM bria_utxos u1
-              LEFT JOIN
-                  LATERAL UNNEST(u1.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
-              WHERE
-                  u1.spending_batch_id IS NULL
-                  AND u1.created_at <= $1
-                  AND u1.keychain_id = ANY($2)
-                  AND u1.spending_payout_queue_id = $3
+              SELECT * FROM
+                  (SELECT
+                      u1.keychain_id,
+                      u1.tx_id,
+                      u1.vout,
+                      COALESCE(unnested.ancestor_id, NULL) as ancestor_id,
+                      u1.origin_tx_vbytes,
+                      u1.origin_tx_fee,
+                      TRUE AS utxo_history_tip,
+                      u1.origin_tx_batch_id
+                  FROM bria_utxos u1
+                  LEFT JOIN
+                      LATERAL UNNEST(u1.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
+                  WHERE
+                      u1.origin_tx_payout_queue_id = $1
+                      AND u1.keychain_id = ANY($2)
+                      AND u1.created_at <= $3
+                      AND bdk_spent IS FALSE
+                      AND spend_detected_ledger_tx_id IS NULL
+                      AND u1.trusted_origin_tx_input_tx_ids IS NOT NULL
+                      AND array_length(u1.trusted_origin_tx_input_tx_ids, 1) > 0
+                  FOR UPDATE
+                  ) AS utxo_history_tips
               UNION ALL
               SELECT
                   u2.keychain_id,
@@ -509,7 +517,7 @@ impl UtxoRepo {
                   u2.origin_tx_vbytes,
                   u2.origin_tx_fee,
                   FALSE AS utxo_history_tip,
-                  u2.spending_batch_id
+                  u2.origin_tx_batch_id
               FROM bria_utxos u2
               LEFT JOIN
                   LATERAL UNNEST(u2.trusted_origin_tx_input_tx_ids) AS unnested(ancestor_id) ON true
@@ -517,16 +525,15 @@ impl UtxoRepo {
                   unconfirmed_spends ua ON ua.ancestor_id = u2.tx_id
               WHERE 
                   u2.spend_settled_ledger_tx_id IS NULL
-                  AND u2.keychain_id = ANY($2)
           )
           SELECT DISTINCT
             keychain_id AS "keychain_id!", tx_id AS "tx_id!", vout AS "vout!", ancestor_id,
-            origin_tx_vbytes as "origin_tx_vbytes!", origin_tx_fee as "origin_tx_fee!", utxo_history_tip as "utxo_history_tip!", spending_batch_id
+            origin_tx_vbytes as "origin_tx_vbytes!", origin_tx_fee as "origin_tx_fee!", utxo_history_tip as "utxo_history_tip!", origin_tx_batch_id
           FROM unconfirmed_spends
           WHERE origin_tx_vbytes IS NOT NULL AND origin_tx_fee IS NOT NULL"#,
-            min_age_timestamp,
-            &keychain_ids,
             payout_queue_id as PayoutQueueId,
+            &keychain_ids,
+            min_age_timestamp,
         )
         .fetch_all(&mut **tx)
         .await?;
@@ -541,11 +548,11 @@ impl UtxoRepo {
             let candidate = CpfpCandidate {
                 utxo_history_tip: row.utxo_history_tip,
                 keychain_id: KeychainId::from(row.keychain_id),
-                batch_id: row.spending_batch_id.map(BatchId::from),
                 outpoint,
                 ancestor_tx_id: row
                     .ancestor_id
                     .map(|a_id| a_id.parse().expect("couldn't parse ancestor txid")),
+                origin_tx_batch_id: row.origin_tx_batch_id.map(BatchId::from),
                 origin_tx_vbytes: row.origin_tx_vbytes as u64,
                 origin_tx_fee: Satoshis::from(row.origin_tx_fee as u64),
             };
