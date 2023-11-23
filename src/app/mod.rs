@@ -684,6 +684,7 @@ impl App {
                 &self.wallets,
                 payout_queue,
                 fee_rate,
+                false,
             )
             .await?
         };

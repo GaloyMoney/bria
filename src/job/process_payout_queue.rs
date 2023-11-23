@@ -75,6 +75,7 @@ pub(super) async fn execute<'a>(
         &wallets,
         payout_queue,
         fee_rate,
+        true,
     )
     .await?;
 
@@ -149,6 +150,7 @@ pub(super) async fn execute<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn construct_psbt(
     pool: &sqlx::Pool<sqlx::Postgres>,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -157,6 +159,7 @@ pub async fn construct_psbt(
     wallets: &Wallets,
     payout_queue: PayoutQueue,
     fee_rate: bitcoin::FeeRate,
+    include_cpfp: bool,
 ) -> Result<FinishedPsbtBuild, JobError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -181,14 +184,15 @@ pub async fn construct_psbt(
         reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
     );
 
-    let mandatory_cpfp_utxos = if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
-        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-        utxos
-            .find_cpfp_utxos(tx, keychain_ids, queue_id, min_age)
-            .await?
-    } else {
-        HashMap::new()
-    };
+    let mut mandatory_cpfp_utxos = HashMap::new();
+    if include_cpfp {
+        if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
+            let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+            mandatory_cpfp_utxos = utxos
+                .find_cpfp_utxos(tx, keychain_ids, queue_id, min_age)
+                .await?;
+        }
+    }
     span.record(
         "n_cpfp_utxos",
         mandatory_cpfp_utxos
