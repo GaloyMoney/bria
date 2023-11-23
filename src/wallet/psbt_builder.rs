@@ -82,6 +82,10 @@ pub struct AcceptingDeprecatedKeychainState;
 pub struct AcceptingCurrentKeychainState;
 
 impl<T> PsbtBuilder<T> {
+    fn fee_rate_inner(&self) -> &FeeRate {
+        self.fee_rate.as_ref().expect("fee rate must be set")
+    }
+
     fn finish_inner(self) -> FinishedPsbtBuild {
         let mut ret = self.result;
         let mut outpoints = HashSet::new();
@@ -232,10 +236,10 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
 
     pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
         assert!(self.fee_rate.is_some());
-        let fee_rate = self.fee_rate.as_ref().unwrap();
         if let Some(utxos) = self.cpfp_utxos.as_ref() {
             for utxo in utxos.iter().flat_map(|(_, v)| v.iter()) {
-                self.missing_cpfp_fees.extend(utxo.missing_fees(fee_rate));
+                self.missing_cpfp_fees
+                    .extend(utxo.missing_fees(self.fee_rate_inner()));
             }
         };
 
@@ -315,7 +319,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
             }
         }
         builder
-            .fee_rate(self.fee_rate.expect("fee rate must be set"))
+            .fee_rate(*self.fee_rate_inner())
             .sighash(DEFAULT_SIGHASH_TYPE.into())
             .drain_wallet()
             .drain_to(drain_address.script_pubkey());
@@ -390,7 +394,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 
         let mut builder = wallet.build_tx();
         if self.result.fee_satoshis == Satoshis::ZERO {
-            builder.fee_absolute(absolute_fee + self.fee_rate.unwrap().fee_vb(HEADER_VBYTES));
+            builder.fee_absolute(absolute_fee + self.fee_rate_inner().fee_vb(HEADER_VBYTES));
         } else {
             builder.fee_absolute(absolute_fee + u64::from(self.result.fee_satoshis));
         }
@@ -577,7 +581,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         change_address: &AddressInfo,
     ) -> Result<(u64, Vec<OutPoint>, bool), BdkError> {
         let mut builder = wallet.build_tx();
-        builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+        builder.fee_rate(*self.fee_rate_inner());
         builder.drain_to(change_address.script_pubkey());
 
         for (_, destination, satoshis) in payouts.iter() {
@@ -631,12 +635,10 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                     .filter(|out| out.script_pubkey == script_pubkey)
                     .count();
                 let subtract_fee = if n_change_outputs > 1 {
-                    crate::fees::output_fee(&self.fee_rate.as_ref().unwrap(), script_pubkey)
-                        + self.fee_rate.unwrap().fee_vb(HEADER_VBYTES)
+                    crate::fees::output_fee(&self.fee_rate_inner(), script_pubkey)
+                        + self.fee_rate_inner().fee_vb(HEADER_VBYTES)
                 } else {
-                    self.fee_rate
-                        .expect("fee rate must be set")
-                        .fee_vb(HEADER_VBYTES)
+                    self.fee_rate_inner().fee_vb(HEADER_VBYTES)
                 };
                 let inputs = psbt
                     .unsigned_tx
