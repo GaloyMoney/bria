@@ -106,6 +106,14 @@ pub fn allocate_proportional_fees(
     proportional_fees
 }
 
+pub fn output_fee(fee_rate: &bitcoin::FeeRate, script_pubkey: bitcoin::Script) -> u64 {
+    let output_size = (8 + // value
+                        bdk::bitcoin::consensus::encode::VarInt(script_pubkey.len() as u64).len() +
+                        script_pubkey.len())
+        * bdk::bitcoin::blockdata::constants::WITNESS_SCALE_FACTOR;
+    fee_rate.fee_wu(output_size)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -376,7 +376,6 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 &self.current_payouts[..=max_payout],
                 wallet,
                 &change_address,
-                keychain_satisfaction_weight,
             )?;
             if !success {
                 break;
@@ -576,7 +575,6 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         payouts: &[TxPayout],
         wallet: &Wallet<D>,
         change_address: &AddressInfo,
-        keychain_satisfaction_weight: usize,
     ) -> Result<(u64, Vec<OutPoint>, bool), BdkError> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
@@ -625,16 +623,15 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
 
         match builder.finish() {
             Ok((psbt, details)) => {
+                let script_pubkey = change_address.script_pubkey();
                 let n_change_outputs = psbt
                     .unsigned_tx
                     .output
                     .iter()
-                    .filter(|out| out.script_pubkey == change_address.script_pubkey())
+                    .filter(|out| out.script_pubkey == script_pubkey)
                     .count();
                 let subtract_fee = if n_change_outputs > 1 {
-                    self.fee_rate
-                        .expect("fee rate must be set")
-                        .fee_wu(keychain_satisfaction_weight)
+                    crate::fees::output_fee(&self.fee_rate.as_ref().unwrap(), script_pubkey)
                         + self.fee_rate.unwrap().fee_vb(HEADER_VBYTES)
                 } else {
                     self.fee_rate
