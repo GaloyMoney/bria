@@ -176,7 +176,7 @@ mod tests {
     }
 
     #[test]
-    fn accumalates_ancestors() {
+    fn accumulates_ancestors() {
         let keychain_id = KeychainId::new();
         let txid = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -258,14 +258,14 @@ mod tests {
         );
         let utxos = res.get(&keychain_id).unwrap();
         assert_eq!(utxos.len(), 2);
-        let accumilated = utxos.iter().find(|u| u.additional_vbytes() == 42).unwrap();
-        assert_eq!(accumilated.included_fees(), Satoshis::from(42));
-        let accumilated = utxos.iter().find(|u| u.additional_vbytes() == 84).unwrap();
-        assert_eq!(accumilated.included_fees(), Satoshis::from(84));
+        let accumulated = utxos.iter().find(|u| u.additional_vbytes() == 42).unwrap();
+        assert_eq!(accumulated.included_fees(), Satoshis::from(42));
+        let accumulated = utxos.iter().find(|u| u.additional_vbytes() == 84).unwrap();
+        assert_eq!(accumulated.included_fees(), Satoshis::from(84));
     }
 
     #[test]
-    fn accumalates_long_ancestor_chain() {
+    fn accumulates_long_ancestor_chain() {
         let keychain_id = KeychainId::new();
         let txid = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
