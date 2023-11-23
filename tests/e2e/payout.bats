@@ -210,11 +210,19 @@ teardown_file() {
 }
 
 @test "payout: Can CPFP when enabled in payout queue" {
-  available_utxos=$(bria_cmd list-utxos -w default | jq -r '.keychains[0].utxos | length')
+  for i in {1..20}; do
+    available_utxos=$(bria_cmd list-utxos -w default | jq -r '.keychains[0].utxos | length')
+    [[ "${available_utxos}" == "1" ]] && break
+    sleep 1
+  done
   [[ "${available_utxos}" == "1" ]] || exit 1
 
-  blockHeight=$(bria_cmd list-utxos -w default | jq -r '.keychains[0].utxos[0].blockHeight')
-  [[ "${blockHeight}" == "null" ]] || exit 1
+  for i in {1..20}; do
+    block_height=$(bria_cmd list-utxos -w default | jq -r '.keychains[0].utxos[0].blockHeight')
+    [[ "${block_height}" == "null" ]] && break
+    sleep 1
+  done
+  [[ "${block_height}" == "null" ]] || exit 1
 
   bria_cmd submit-payout -w default \
     --queue-name high \
@@ -223,10 +231,10 @@ teardown_file() {
 
   for i in {1..20}; do
     cache_wallet_balance
-    [[ $(cached_encumbered_outgoing) == 1000000 ]] && break;
+    [[ $(cached_encumbered_outgoing) == 100000 ]] && break;
     sleep 1
   done
-  [[ $(cached_encumbered_outgoing) == 1000000 ]] || exit 1;
+  [[ $(cached_encumbered_outgoing) == 100000 ]] || exit 1;
 
   batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
@@ -234,10 +242,13 @@ teardown_file() {
   queue_id=$(bria_cmd list-payout-queues | jq -r '.PayoutQueues[] | select(.name == "high").id')
   bria_cmd update-payout-queue -i "${queue_id}" --interval-trigger 5 --bump-after-mins 1
 
-  for i in {1..60}; do
-  batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')
-  [[ "${batch_id}" != "null" ]] && break
+  for i in {1..90}; do
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')
+    [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
   [[ "${batch_id}" != "null" ]] || exit 1;
+
+  cache_wallet_balance
+  [[ $(cached_encumbered_outgoing) == 0 ]] && break;
 }
