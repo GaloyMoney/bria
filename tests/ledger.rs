@@ -371,6 +371,8 @@ async fn create_batch() -> anyhow::Result<()> {
                         batch_id,
                         payout_queue_id: PayoutQueueId::new(),
                         included_payouts: Vec::new(),
+                        cpfp_fee_sats: Satoshis::ZERO,
+                        cpfp_details: HashMap::new(),
                     },
                     tx_summary: WalletTransactionSummary {
                         account_id,
