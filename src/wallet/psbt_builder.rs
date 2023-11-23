@@ -642,7 +642,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                     .filter(|out| out.script_pubkey == script_pubkey)
                     .count();
                 let subtract_fee = if n_change_outputs > 1 {
-                    crate::fees::output_fee(&self.fee_rate_inner(), script_pubkey)
+                    crate::fees::output_fee(self.fee_rate_inner(), script_pubkey)
                         + self.fee_rate_inner().fee_vb(HEADER_VBYTES)
                 } else {
                     self.fee_rate_inner().fee_vb(HEADER_VBYTES)
