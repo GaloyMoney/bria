@@ -24,7 +24,9 @@ pub struct WalletTotals {
     pub keychains_with_inputs: Vec<KeychainId>,
     pub input_satoshis: Satoshis,
     pub output_satoshis: Satoshis,
-    pub fee_satoshis: Satoshis,
+    pub total_fee_satoshis: Satoshis,
+    pub cpfp_fee_satoshis: Satoshis,
+    pub cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     pub change_satoshis: Satoshis,
     pub change_address: AddressInfo,
     pub change_outpoint: Option<OutPoint>,
@@ -35,7 +37,6 @@ pub struct FinishedPsbtBuild {
     pub included_utxos: HashMap<WalletId, HashMap<KeychainId, Vec<bitcoin::OutPoint>>>,
     pub included_wallet_keychains: HashMap<KeychainId, WalletId>,
     pub wallet_totals: HashMap<WalletId, WalletTotals>,
-    pub cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     pub fee_satoshis: Satoshis,
     pub tx_id: Option<bitcoin::Txid>,
     pub psbt: Option<psbt::PartiallySignedTransaction>,
@@ -49,7 +50,7 @@ impl FinishedPsbtBuild {
     ) -> Option<Satoshis> {
         self.wallet_totals.get(wallet_id).map(|total| {
             let proportion = payout_amount.into_inner() / total.output_satoshis.into_inner();
-            let proportional_fee = total.fee_satoshis.into_inner() * proportion;
+            let proportional_fee = total.total_fee_satoshis.into_inner() * proportion;
             Satoshis::from(
                 proportional_fee
                     .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero),
@@ -67,6 +68,7 @@ pub struct PsbtBuilder<T> {
     current_wallet: Option<WalletId>,
     current_payouts: Vec<TxPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
+    current_wallet_cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
     all_included_utxos: HashSet<OutPoint>,
@@ -188,13 +190,13 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: vec![],
+            current_wallet_cpfp_allocations: HashMap::new(),
             all_included_utxos: HashSet::new(),
             input_weights: HashMap::new(),
             result: FinishedPsbtBuild {
                 included_payouts: HashMap::new(),
                 included_utxos: HashMap::new(),
                 included_wallet_keychains: HashMap::new(),
-                cpfp_allocations: HashMap::new(),
                 wallet_totals: HashMap::new(),
                 fee_satoshis: Satoshis::from(0),
                 tx_id: None,
@@ -245,6 +247,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -260,6 +263,7 @@ impl PsbtBuilder<AcceptingWalletState> {
         payouts: Vec<TxPayout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
+        assert!(self.current_wallet_cpfp_allocations.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
@@ -269,6 +273,7 @@ impl PsbtBuilder<AcceptingWalletState> {
             current_wallet: Some(wallet_id),
             current_payouts: payouts,
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -341,6 +346,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             current_wallet: self.current_wallet,
             current_payouts: self.current_payouts,
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -397,8 +403,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         {
             for utxo in cpfp {
                 for k in utxo.attributions.keys() {
-                    self.result
-                        .cpfp_allocations
+                    self.current_wallet_cpfp_allocations
                         .insert(*k, self.missing_cpfp_fees.remove(k).expect("cpfp fees"));
                 }
             }
@@ -476,6 +481,12 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                         .map(|out| out.value)
                         .unwrap_or(0),
                 );
+                let mut cpfp_allocations = HashMap::new();
+                std::mem::swap(
+                    &mut cpfp_allocations,
+                    &mut self.current_wallet_cpfp_allocations,
+                );
+                let cpfp_fee_satoshis = cpfp_allocations.values().map(|(_, s)| s).sum::<Satoshis>();
                 self.result.wallet_totals.insert(
                     wallet_id,
                     WalletTotals {
@@ -485,7 +496,9 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                             + current_wallet_fee
                             + change_satoshis,
                         output_satoshis: total_output_satoshis,
-                        fee_satoshis: current_wallet_fee,
+                        total_fee_satoshis: current_wallet_fee,
+                        cpfp_fee_satoshis,
+                        cpfp_allocations,
                         change_satoshis,
                         change_address,
                         change_keychain_id: current_keychain_id,
@@ -534,6 +547,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,

@@ -88,7 +88,7 @@ pub async fn execute(
                             account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
                             current_keychain_id: wallet_summary.current_keychain_id,
-                            fee_sats: wallet_summary.fee_sats,
+                            fee_sats: wallet_summary.total_fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: settled_sats,

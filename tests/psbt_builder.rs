@@ -1,6 +1,7 @@
 mod helpers;
 
 use rand::Rng;
+use serial_test::serial;
 
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
@@ -8,6 +9,7 @@ use uuid::Uuid;
 use bria::{primitives::*, utxo::*, wallet::*, xpub::*};
 
 #[tokio::test]
+#[serial]
 async fn build_psbt() -> anyhow::Result<()> {
     // ChatGPT description of this test:
     //
@@ -166,14 +168,14 @@ async fn build_psbt() -> anyhow::Result<()> {
     assert_eq!(domain_wallet_total.change_satoshis, Satoshis::ZERO);
     assert!(domain_wallet_total.change_outpoint.is_none());
     assert_eq!(
-        domain_wallet_total.output_satoshis + domain_wallet_total.fee_satoshis,
+        domain_wallet_total.output_satoshis + domain_wallet_total.total_fee_satoshis,
         domain_wallet_total.input_satoshis
     );
 
     let other_wallet_total = wallet_totals.get(&other_wallet_id).unwrap();
     assert_eq!(other_wallet_total.input_satoshis, wallet_funding_sats);
     assert_eq!(other_wallet_total.change_address, other_change_address);
-    assert_eq!(other_wallet_total.fee_satoshis, Satoshis::from(193));
+    assert_eq!(other_wallet_total.total_fee_satoshis, Satoshis::from(193));
     assert_eq!(
         other_wallet_total
             .change_outpoint
@@ -197,7 +199,9 @@ async fn build_psbt() -> anyhow::Result<()> {
     assert_eq!(total_tx_outs, u64::from(total_summary_outs));
     let total_summary_fees = wallet_totals
         .values()
-        .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
+        .fold(Satoshis::from(0), |acc, total| {
+            acc + total.total_fee_satoshis
+        });
     assert_eq!(total_summary_fees, fee_satoshis);
     assert!(unsigned_psbt.inputs.len() >= 3);
     assert_eq!(unsigned_psbt.outputs.len(), 4);
@@ -217,6 +221,7 @@ async fn build_psbt() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+#[serial]
 async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 
@@ -292,7 +297,6 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         included_payouts,
         wallet_totals,
         fee_satoshis,
-        cpfp_allocations,
         ..
     } = builder.finish();
     assert_eq!(
@@ -302,16 +306,17 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
             .len(),
         1
     );
-    assert_eq!(cpfp_allocations.len(), 1);
     assert_eq!(wallet_totals.len(), 1);
     let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
     assert_eq!(domain_wallet_total.output_satoshis, domain_send_amount);
     assert_eq!(
         domain_wallet_total.output_satoshis
-            + domain_wallet_total.fee_satoshis
+            + domain_wallet_total.total_fee_satoshis
             + domain_wallet_total.change_satoshis,
         domain_wallet_total.input_satoshis
     );
+    let cpfp_allocations = &domain_wallet_total.cpfp_allocations;
+    assert_eq!(cpfp_allocations.len(), 1);
 
     let unsigned_psbt = unsigned_psbt.expect("unsigned psbt");
     let total_tx_outs = unsigned_psbt
@@ -328,7 +333,9 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     assert_eq!(total_tx_outs, u64::from(total_summary_outs));
     let total_summary_fees = wallet_totals
         .values()
-        .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
+        .fold(Satoshis::from(0), |acc, total| {
+            acc + total.total_fee_satoshis
+        });
     assert_eq!(total_summary_fees, fee_satoshis);
     assert!(unsigned_psbt.inputs.len() >= 2);
     assert_eq!(unsigned_psbt.outputs.len(), 2);
@@ -350,12 +357,8 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     assert!(combined_rate >= sats_per_vbyte);
     assert!(combined_rate < sats_per_vbyte * 1.02);
 
-    let cpfp_fees = cpfp_allocations
-        .values()
-        .map(|(_, s)| u64::from(*s) as f64)
-        .sum::<f64>();
     let sats_per_vbyte_without_cpfp_fees =
-        (u64::from(fee_satoshis) as f64 - cpfp_fees) / size as f64;
+        (u64::from(fee_satoshis - domain_wallet_total.cpfp_fee_satoshis) as f64) / size as f64;
     assert!(sats_per_vbyte_without_cpfp_fees >= sats_per_vbyte);
     assert!(sats_per_vbyte_without_cpfp_fees < sats_per_vbyte * 1.02);
 
