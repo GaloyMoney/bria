@@ -364,6 +364,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     assert!(sats_per_vbyte_without_cpfp_fees >= sats_per_vbyte);
     assert!(sats_per_vbyte_without_cpfp_fees < sats_per_vbyte * 1.02);
 
+    helpers::electrum_blockchain().await?.broadcast(&tx)?;
     Ok(())
 }
 
