@@ -404,8 +404,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         if let Some(cpfp) = self
             .cpfp_utxos
             .as_ref()
-            .map(|m| m.get(&current_keychain_id))
-            .flatten()
+            .and_then(|m| m.get(&current_keychain_id))
         {
             for utxo in cpfp {
                 for k in utxo.attributions.keys() {
@@ -592,12 +591,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         }
 
         let mut cpfp_fees = 0;
-        if let Some(cpfp) = self
-            .cpfp_utxos
-            .as_ref()
-            .map(|m| m.get(&keychain_id))
-            .flatten()
-        {
+        if let Some(cpfp) = self.cpfp_utxos.as_ref().and_then(|m| m.get(&keychain_id)) {
             for utxo in cpfp {
                 for k in utxo.attributions.keys() {
                     cpfp_fees +=
