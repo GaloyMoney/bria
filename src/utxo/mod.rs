@@ -214,12 +214,10 @@ impl Utxos {
 
         // We need to tell bdk which utxos not to select.
         // If we have included it in a batch OR
-        // it is an income address and not recorded as settled yet
+        // it isn't confirmed / settled yet
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
-            if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.utxo_settled_ledger_tx_id.is_none())
-            {
+            if utxo.spending_batch_id.is_some() || utxo.utxo_settled_ledger_tx_id.is_none() {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
                 None
