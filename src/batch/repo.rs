@@ -44,7 +44,7 @@ impl Batches {
             r#"INSERT INTO bria_batch_wallet_summaries (
                    batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats,
                    total_spent_sats, change_sats, change_address, change_vout, total_fee_sats,
-                   cpfp_fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
+                   cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
                )"#,
         );
         query_builder.push_values(
@@ -67,6 +67,7 @@ impl Batches {
                 builder.push_bind(summary.change_outpoint.map(|out| out.vout as i32));
                 builder.push_bind(i64::from(summary.total_fee_sats));
                 builder.push_bind(i64::from(summary.cpfp_fee_sats));
+                builder.push_bind(serde_json::to_value(summary.cpfp_details).unwrap());
                 builder.push_bind(summary.batch_created_ledger_tx_id);
                 builder.push_bind(summary.batch_broadcast_ledger_tx_id);
             },
@@ -88,7 +89,7 @@ impl Batches {
                     payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id,
                     s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats,
                     total_spent_sats, change_sats, change_address, change_vout, s.total_fee_sats,
-                    cpfp_fee_sats, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
+                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
             FROM bria_batch_wallet_summaries s
             LEFT JOIN bria_batches b ON b.id = s.batch_id
             WHERE s.batch_id = $1 AND b.account_id = $2"#,
@@ -110,7 +111,9 @@ impl Batches {
             .as_ref()
             .map(|tx| bitcoin::consensus::deserialize(tx))
             .transpose()?;
-        for row in rows.iter() {
+        let payout_queue_id = PayoutQueueId::from(rows[0].payout_queue_id);
+
+        for row in rows.into_iter() {
             let wallet_id = WalletId::from(row.wallet_id);
             wallet_summaries.insert(
                 wallet_id,
@@ -125,6 +128,8 @@ impl Batches {
                     total_spent_sats: Satoshis::from(row.total_spent_sats),
                     total_fee_sats: Satoshis::from(row.total_fee_sats),
                     cpfp_fee_sats: Satoshis::from(row.cpfp_fee_sats),
+                    cpfp_details: serde_json::from_value(row.cpfp_details)
+                        .expect("parse cpfp details"),
                     change_sats: Satoshis::from(row.change_sats),
                     change_address: row
                         .change_address
@@ -148,7 +153,7 @@ impl Batches {
         Ok(Batch {
             id,
             account_id,
-            payout_queue_id: PayoutQueueId::from(rows[0].payout_queue_id),
+            payout_queue_id,
             bitcoin_tx_id,
             unsigned_psbt,
             signed_tx,

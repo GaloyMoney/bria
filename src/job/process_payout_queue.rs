@@ -222,6 +222,27 @@ fn queue_drain_error(n_not_batched: usize) {
 
 impl From<WalletTotals> for WalletSummary {
     fn from(wt: WalletTotals) -> Self {
+        let cpfp_details = wt
+            .cpfp_allocations
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k,
+                    v.into_iter()
+                        .map(|(tx_id, (batch_id, bump_fee))| {
+                            (
+                                tx_id,
+                                CpfpDetails {
+                                    tx_id,
+                                    batch_id,
+                                    bump_fee,
+                                },
+                            )
+                        })
+                        .collect::<HashMap<bitcoin::Txid, CpfpDetails>>(),
+                )
+            })
+            .collect();
         Self {
             wallet_id: wt.wallet_id,
             signing_keychains: wt.keychains_with_inputs,
@@ -229,6 +250,7 @@ impl From<WalletTotals> for WalletSummary {
             total_spent_sats: wt.output_satoshis,
             total_fee_sats: wt.total_fee_satoshis,
             cpfp_fee_sats: wt.cpfp_fee_satoshis,
+            cpfp_details,
             change_sats: wt.change_satoshis,
             change_address: wt.change_outpoint.map(|_| wt.change_address.address),
             change_outpoint: wt.change_outpoint,

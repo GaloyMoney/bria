@@ -27,7 +27,7 @@ pub struct WalletTotals {
     pub output_satoshis: Satoshis,
     pub total_fee_satoshis: Satoshis,
     pub cpfp_fee_satoshis: Satoshis,
-    pub cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
+    pub cpfp_allocations: HashMap<OutPoint, HashMap<Txid, (Option<BatchId>, Satoshis)>>,
     pub change_satoshis: Satoshis,
     pub change_address: AddressInfo,
     pub change_outpoint: Option<OutPoint>,
@@ -69,7 +69,7 @@ pub struct PsbtBuilder<T> {
     current_wallet: Option<WalletId>,
     current_payouts: Vec<TxPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
-    current_wallet_cpfp_allocations: HashMap<Txid, (Option<BatchId>, Satoshis)>,
+    current_wallet_cpfp_allocations: HashMap<OutPoint, HashMap<Txid, (Option<BatchId>, Satoshis)>>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
     all_included_utxos: HashSet<OutPoint>,
@@ -407,10 +407,12 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             .and_then(|m| m.get(&current_keychain_id))
         {
             for utxo in cpfp {
+                let mut tx_allocations = HashMap::new();
                 for k in utxo.attributions.keys() {
-                    self.current_wallet_cpfp_allocations
-                        .insert(*k, self.missing_cpfp_fees.remove(k).expect("cpfp fees"));
+                    tx_allocations.insert(*k, self.missing_cpfp_fees.remove(k).expect("cpfp fees"));
                 }
+                self.current_wallet_cpfp_allocations
+                    .insert(utxo.outpoint, tx_allocations);
             }
         }
 
@@ -491,7 +493,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                     &mut cpfp_allocations,
                     &mut self.current_wallet_cpfp_allocations,
                 );
-                let cpfp_fee_satoshis = cpfp_allocations.values().map(|(_, s)| s).sum::<Satoshis>();
+                let cpfp_fee_satoshis = cpfp_allocations
+                    .values()
+                    .flat_map(|tx_allocations| tx_allocations.values())
+                    .map(|(_, fee)| fee)
+                    .sum::<Satoshis>();
                 self.result.wallet_totals.insert(
                     wallet_id,
                     WalletTotals {

@@ -2,7 +2,7 @@ ALTER TABLE bria_batch_wallet_summaries
 RENAME COLUMN fee_sats TO total_fee_sats;
 
 ALTER TABLE bria_batch_wallet_summaries
-ADD COLUMN cpfp_fee_sats BIGINT NOT NULL;
+ADD COLUMN cpfp_fee_sats BIGINT NOT NULL DEFAULT 0;
 
 ALTER TABLE bria_batch_wallet_summaries
-ADD COLUMN cpfp_details JSONB NOT NULL;
+ADD COLUMN cpfp_details JSONB NOT NULL DEFAULT '{}';
