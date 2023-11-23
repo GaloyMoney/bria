@@ -412,7 +412,9 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             for utxo in cpfp {
                 let mut tx_allocations = HashMap::new();
                 for k in utxo.attributions.keys() {
-                    tx_allocations.insert(*k, self.missing_cpfp_fees.remove(k).expect("cpfp fees"));
+                    if let Some(fee) = self.missing_cpfp_fees.remove(k) {
+                        tx_allocations.insert(*k, fee);
+                    }
                 }
                 self.current_wallet_cpfp_allocations
                     .insert(utxo.outpoint, tx_allocations);
@@ -602,12 +604,17 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         if let Some(cpfp) = self.cpfp_utxos.as_ref().and_then(|m| m.get(&keychain_id)) {
             for utxo in cpfp {
                 for k in utxo.attributions.keys() {
-                    cpfp_fees +=
-                        u64::from(self.missing_cpfp_fees.get(k).expect("missing cpfp fees").1);
+                    if let Some((_, fee)) = self.missing_cpfp_fees.get(k) {
+                        cpfp_fees += u64::from(*fee);
+                    }
                 }
                 builder.add_utxo(utxo.outpoint)?;
             }
-            builder.add_recipient(change_address.script_pubkey(), cpfp_fees);
+
+            if cpfp_fees > 0 {
+                builder.allow_dust(true);
+                builder.add_recipient(change_address.script_pubkey(), cpfp_fees);
+            }
         }
 
         let mut foreign_utxos = HashSet::new();
