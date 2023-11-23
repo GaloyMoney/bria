@@ -362,8 +362,9 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             .expect("Unsupported descriptor");
         let mut max_payout = 0;
         let mut absolute_fee = 0;
+        let mut inputs = Vec::new();
         while max_payout < self.current_payouts.len() {
-            let (fee, success) = self.try_build_current_wallet_psbt(
+            let (fee, ins, success) = self.try_build_current_wallet_psbt(
                 current_keychain_id,
                 &self.current_payouts[..=max_payout],
                 wallet,
@@ -375,24 +376,18 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             }
             absolute_fee = fee;
             max_payout += 1;
+            inputs = ins;
         }
         if max_payout == 0 {
             return Ok(self);
         }
 
         let mut builder = wallet.build_tx();
-        if let Some(reserved_utxos) = self
-            .reserved_utxos
-            .as_ref()
-            .and_then(|m| m.get(&current_keychain_id))
-        {
-            for out in reserved_utxos {
-                builder.add_unspendable(*out);
-            }
-        }
         builder.fee_absolute(absolute_fee);
         builder.drain_to(change_address.script_pubkey());
         builder.sighash(DEFAULT_SIGHASH_TYPE.into());
+        builder.manually_selected_only();
+        builder.add_utxos(&inputs)?;
 
         if let Some(cpfp) = self
             .cpfp_utxos
@@ -401,7 +396,6 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             .flatten()
         {
             for utxo in cpfp {
-                builder.add_utxo(utxo.outpoint)?;
                 for k in utxo.attributions.keys() {
                     self.result
                         .cpfp_allocations
@@ -558,7 +552,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         wallet: &Wallet<D>,
         change_address: &AddressInfo,
         keychain_satisfaction_weight: usize,
-    ) -> Result<(u64, bool), BdkError> {
+    ) -> Result<(u64, Vec<OutPoint>, bool), BdkError> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
         builder.drain_to(change_address.script_pubkey());
@@ -622,12 +616,19 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                 } else {
                     0
                 };
+                let inputs = psbt
+                    .unsigned_tx
+                    .input
+                    .into_iter()
+                    .map(|i| i.previous_output)
+                    .collect();
                 Ok((
                     details.fee.expect("fee must be present") + cpfp_fees - subtract_fee,
+                    inputs,
                     true,
                 ))
             }
-            Err(bdk::Error::InsufficientFunds { .. }) => Ok((0, false)),
+            Err(bdk::Error::InsufficientFunds { .. }) => Ok((0, Vec::new(), false)),
             Err(e) => Err(e.into()),
         }
     }

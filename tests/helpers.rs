@@ -105,13 +105,13 @@ pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
 pub fn fund_addr(
     bitcoind: &BitcoindClient,
     addr: &Address,
-    amount: u32,
+    amount: u64,
 ) -> anyhow::Result<bitcoin::Txid> {
     let fund = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(6, &fund)?;
     let tx_id = bitcoind.send_to_address(
         addr,
-        Amount::from_btc(amount as f64).unwrap(),
+        Amount::from_sat(amount),
         None,
         None,
         None,

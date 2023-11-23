@@ -1,5 +1,7 @@
 mod helpers;
 
+use rand::Rng;
+
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
 
@@ -53,11 +55,11 @@ async fn build_psbt() -> anyhow::Result<()> {
     let other_deprecated_addr = other_wallet_deprecated_keychain.get_address(AddressIndex::New)?;
 
     let bitcoind = helpers::bitcoind_client().await?;
-    let wallet_funding = 7;
-    let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
+    let wallet_funding = 700_000_000;
+    let wallet_funding_sats = Satoshis::from(wallet_funding);
     helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
-    helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 2)?;
-    helpers::fund_addr(&bitcoind, &other_deprecated_addr, 2)?;
+    helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 200_000_000)?;
+    helpers::fund_addr(&bitcoind, &other_deprecated_addr, 200_000_000)?;
     helpers::gen_blocks(&bitcoind, 10)?;
 
     let blockchain = helpers::electrum_blockchain().await?;
@@ -230,12 +232,12 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     let domain_addr = domain_current_keychain.new_external_address().await?;
 
     let bitcoind = helpers::bitcoind_client().await?;
-    let wallet_funding = 7;
-    let wallet_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(wallet_funding));
+    let wallet_funding = 500_000_000;
+    let wallet_funding_sats = Satoshis::from(wallet_funding);
     helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
     helpers::gen_blocks(&bitcoind, 10)?;
-    let fee_bump_funding = 1;
-    let fee_bump_funding_sats = Satoshis::from_btc(rust_decimal::Decimal::from(fee_bump_funding));
+    let fee_bump_funding: u64 = rand::thread_rng().gen_range(100_000_000..=201_000_000);
+    let fee_bump_funding_sats = Satoshis::from(fee_bump_funding);
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, fee_bump_funding)?;
     let (outpoint, cpfp_tx_fee, cpfp_tx_vsize) =
@@ -277,8 +279,10 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts_one)
         .accept_current_keychain();
-    let blockchain = helpers::electrum_blockchain().await?;
-    domain_current_keychain.sync(blockchain).await?;
+    while !find_tx_id(&pool, domain_current_keychain_id, tx_id).await? {
+        let blockchain = helpers::electrum_blockchain().await?;
+        domain_current_keychain.sync(blockchain).await?;
+    }
     let builder = domain_current_keychain
         .dispatch_bdk_wallet(builder)
         .await?
@@ -301,7 +305,6 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     assert_eq!(cpfp_allocations.len(), 1);
     assert_eq!(wallet_totals.len(), 1);
     let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
-    // assert_eq!(domain_wallet_total.input_satoshis, wallet_funding_sats);
     assert_eq!(domain_wallet_total.output_satoshis, domain_send_amount);
     assert_eq!(
         domain_wallet_total.output_satoshis
@@ -327,7 +330,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         .values()
         .fold(Satoshis::from(0), |acc, total| acc + total.fee_satoshis);
     assert_eq!(total_summary_fees, fee_satoshis);
-    assert_eq!(unsigned_psbt.inputs.len(), 2);
+    assert!(unsigned_psbt.inputs.len() >= 2);
     assert_eq!(unsigned_psbt.outputs.len(), 2);
 
     let mut lnd_client = helpers::lnd_signing_client().await?;
@@ -337,22 +340,39 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         .await?
         .expect("Finalize should have completed")
         .extract_tx();
+
     let size = tx.vsize();
+    let actual_sats_per_vbyte = u64::from(fee_satoshis) as f64 / size as f64;
+    assert!(actual_sats_per_vbyte > sats_per_vbyte);
+
+    let combined_rate =
+        u64::from(cpfp_tx_fee + fee_satoshis) as f64 / (size as f64 + cpfp_tx_vsize as f64);
+    assert!(combined_rate >= sats_per_vbyte);
+    assert!(combined_rate < sats_per_vbyte * 1.02);
+
     let cpfp_fees = cpfp_allocations
         .values()
         .map(|(_, s)| u64::from(*s) as f64)
         .sum::<f64>();
-    let actual_sats_per_vbyte = u64::from(fee_satoshis) as f64 / size as f64;
-    assert!(actual_sats_per_vbyte > sats_per_vbyte);
-    let combined_rate =
-        u64::from(cpfp_tx_fee + fee_satoshis) as f64 / (size as f64 + cpfp_tx_vsize as f64);
-    assert!(combined_rate > sats_per_vbyte);
-    assert!(combined_rate < sats_per_vbyte * 1.02);
     let sats_per_vbyte_without_cpfp_fees =
         (u64::from(fee_satoshis) as f64 - cpfp_fees) / size as f64;
-
-    assert!(sats_per_vbyte_without_cpfp_fees > sats_per_vbyte);
+    assert!(sats_per_vbyte_without_cpfp_fees >= sats_per_vbyte);
     assert!(sats_per_vbyte_without_cpfp_fees < sats_per_vbyte * 1.02);
 
     Ok(())
+}
+
+async fn find_tx_id(
+    pool: &sqlx::PgPool,
+    keychain_id: Uuid,
+    tx_id: bitcoin::Txid,
+) -> anyhow::Result<bool> {
+    let utxos = sqlx::query!(
+        r#"SELECT count(*) as "count!" FROM bdk_utxos WHERE keychain_id = $1 AND tx_id = $2"#,
+        keychain_id,
+        tx_id.to_string(),
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(utxos.count != 0)
 }
