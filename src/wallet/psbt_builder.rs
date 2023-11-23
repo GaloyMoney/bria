@@ -17,6 +17,7 @@ use crate::{
 
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;
+const HEADER_VBYTES: usize = 53;
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -389,7 +390,12 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         }
 
         let mut builder = wallet.build_tx();
-        builder.fee_absolute(absolute_fee);
+        if self.result.fee_satoshis == Satoshis::ZERO {
+            builder.fee_absolute(absolute_fee + self.fee_rate.unwrap().fee_vb(HEADER_VBYTES));
+        } else {
+            builder.fee_absolute(absolute_fee + u64::from(self.result.fee_satoshis));
+        }
+
         builder.drain_to(change_address.script_pubkey());
         builder.sighash(DEFAULT_SIGHASH_TYPE.into());
         builder.manually_selected_only();
@@ -602,8 +608,10 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             builder.add_recipient(change_address.script_pubkey(), cpfp_fees);
         }
 
+        let mut foreign_utxos = HashSet::new();
         for (_, psbt) in self.current_wallet_psbts.iter() {
             for (input, psbt_input) in psbt.unsigned_tx.input.iter().zip(psbt.inputs.iter()) {
+                foreign_utxos.insert(input.previous_output);
                 builder.add_foreign_utxo(
                     input.previous_output,
                     psbt_input.clone(),
@@ -627,14 +635,23 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                     self.fee_rate
                         .expect("fee rate must be set")
                         .fee_wu(keychain_satisfaction_weight)
+                        + self.fee_rate.unwrap().fee_vb(HEADER_VBYTES)
                 } else {
-                    0
+                    self.fee_rate
+                        .expect("fee rate must be set")
+                        .fee_vb(HEADER_VBYTES)
                 };
                 let inputs = psbt
                     .unsigned_tx
                     .input
                     .into_iter()
-                    .map(|i| i.previous_output)
+                    .filter_map(|i| {
+                        if foreign_utxos.contains(&i.previous_output) {
+                            None
+                        } else {
+                            Some(i.previous_output)
+                        }
+                    })
                     .collect();
                 Ok((
                     details.fee.expect("fee must be present") + cpfp_fees - subtract_fee,

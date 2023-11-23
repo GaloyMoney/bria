@@ -59,7 +59,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     let bitcoind = helpers::bitcoind_client().await?;
     let wallet_funding = 700_000_000;
     let wallet_funding_sats = Satoshis::from(wallet_funding);
-    helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
+    let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
     helpers::fund_addr(&bitcoind, &other_current_addr, wallet_funding - 200_000_000)?;
     helpers::fund_addr(&bitcoind, &other_deprecated_addr, 200_000_000)?;
     helpers::gen_blocks(&bitcoind, 10)?;
@@ -78,7 +78,10 @@ async fn build_psbt() -> anyhow::Result<()> {
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
-    domain_current_keychain.sync(blockchain).await?;
+    while !find_tx_id(&pool, domain_current_keychain_id, tx_id).await? {
+        let blockchain = helpers::electrum_blockchain().await?;
+        domain_current_keychain.sync(blockchain).await?;
+    }
 
     let fee = FeeRate::from_sat_per_vb(1.0);
     let builder = PsbtBuilder::new()
@@ -171,7 +174,6 @@ async fn build_psbt() -> anyhow::Result<()> {
         domain_wallet_total.output_satoshis + domain_wallet_total.total_fee_satoshis,
         domain_wallet_total.input_satoshis
     );
-
     let other_wallet_total = wallet_totals.get(&other_wallet_id).unwrap();
     assert_eq!(other_wallet_total.input_satoshis, wallet_funding_sats);
     assert_eq!(other_wallet_total.change_address, other_change_address);
