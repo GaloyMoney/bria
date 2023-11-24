@@ -1,3 +1,14 @@
+# [bria release v0.1.69](https://github.com/GaloyMoney/bria/releases/tag/0.1.69)
+
+
+### Bug Fixes
+
+- Alse use income_settled_ledger_tx_id in recursion
+
+### Miscellaneous Tasks
+
+- Use flake (#401)
+
 # [bria release v0.1.68](https://github.com/GaloyMoney/bria/releases/tag/0.1.68)
 
 
