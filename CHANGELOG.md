@@ -1,3 +1,10 @@
+# [bria release v0.1.70](https://github.com/GaloyMoney/bria/releases/tag/0.1.70)
+
+
+### Bug Fixes
+
+- Clippy
+
 # [bria release v0.1.69](https://github.com/GaloyMoney/bria/releases/tag/0.1.69)
 
 
