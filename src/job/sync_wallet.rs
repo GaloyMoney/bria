@@ -169,6 +169,7 @@ pub async fn execute(
                         unsynced_tx.fee_sats,
                         unsynced_tx.vsize,
                         spend_tx,
+                        current_height,
                     )
                     .await?
                 {
@@ -303,6 +304,7 @@ pub async fn execute(
                             .map(|info| (info.id, info.payout_queue_id)),
                         unsynced_tx.fee_sats,
                         unsynced_tx.vsize,
+                        current_height,
                     )
                     .await?
                 {

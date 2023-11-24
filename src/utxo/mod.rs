@@ -42,6 +42,7 @@ impl Utxos {
         origin_tx_fee: Satoshis,
         origin_tx_vbytes: u64,
         self_pay: bool,
+        current_block_height: u32,
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
             .account_id(account_id)
@@ -54,6 +55,7 @@ impl Utxos {
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .bdk_spent(utxo.is_spent)
+            .detected_block_height(current_block_height)
             .origin_tx_fee(origin_tx_fee)
             .origin_tx_vbytes(origin_tx_vbytes)
             .self_pay(self_pay)
@@ -93,6 +95,7 @@ impl Utxos {
         batch: Option<(BatchId, PayoutQueueId)>,
         tx_fee: Satoshis,
         tx_vbytes: u64,
+        current_block_height: u32,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
         let mut inputs = Vec::new();
         let mut input_tx_ids = Vec::new();
@@ -115,6 +118,7 @@ impl Utxos {
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .bdk_spent(utxo.is_spent)
+                .detected_block_height(current_block_height)
                 .origin_tx_vbytes(tx_vbytes)
                 .origin_tx_fee(tx_fee)
                 .self_pay(true)

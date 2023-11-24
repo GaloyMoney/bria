@@ -32,8 +32,12 @@ impl UtxoRepo {
         let sats_per_vbyte = u64::from(utxo.origin_tx_fee) as f32 / utxo.origin_tx_vbytes as f32;
         let result = sqlx::query!(
             r#"INSERT INTO bria_utxos
-               (account_id, wallet_id, keychain_id, tx_id, vout, sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address, script_hex, income_detected_ledger_tx_id, bdk_spent, origin_tx_batch_id, origin_tx_payout_queue_id, origin_tx_vbytes, origin_tx_fee, trusted_origin_tx_input_tx_ids)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+               (account_id, wallet_id, keychain_id, tx_id, vout,
+               sats_per_vbyte_when_created, self_pay, kind, address_idx, value, address,
+               script_hex, income_detected_ledger_tx_id, bdk_spent, detected_block_height,
+               origin_tx_batch_id, origin_tx_payout_queue_id, origin_tx_vbytes,
+               origin_tx_fee, trusted_origin_tx_input_tx_ids)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
                ON CONFLICT (keychain_id, tx_id, vout) DO NOTHING"#,
           utxo.account_id as AccountId,
           utxo.wallet_id as WalletId,
@@ -49,6 +53,7 @@ impl UtxoRepo {
           utxo.script_hex,
           utxo.utxo_detected_ledger_tx_id as LedgerTransactionId,
           utxo.bdk_spent,
+          utxo.detected_block_height as i32,
           utxo.origin_tx_batch_id as Option<BatchId>,
           utxo.origin_tx_payout_queue_id as Option<PayoutQueueId>,
           utxo.origin_tx_vbytes as i64,

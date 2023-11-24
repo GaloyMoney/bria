@@ -53,6 +53,7 @@ pub struct NewUtxo<'a> {
     pub(super) value: Satoshis,
     pub(super) address: String,
     pub(super) script_hex: String,
+    pub(super) detected_block_height: u32,
     pub(super) origin_tx_vbytes: u64,
     pub(super) origin_tx_fee: Satoshis,
     #[builder(default)]
