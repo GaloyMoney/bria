@@ -156,6 +156,7 @@ impl Default for PsbtBuilder<InitialPsbtBuilderState> {
 
 impl PsbtBuilder<InitialPsbtBuilderState> {
     #[instrument(name = "psbt_builder.construct_psbt", skip_all)]
+    #[allow(clippy::too_many_arguments)]
     pub async fn construct_psbt(
         pool: &sqlx::PgPool,
         consolidate_deprecated_keychains: bool,
