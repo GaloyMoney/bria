@@ -482,10 +482,10 @@ impl UtxoRepo {
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
         payout_queue_id: PayoutQueueId,
-        min_age: std::time::Duration,
+        older_than: chrono::DateTime<chrono::Utc>,
+        older_than_block: u32,
     ) -> Result<HashSet<CpfpCandidate>, UtxoError> {
         let keychain_ids: Vec<Uuid> = ids.map(Uuid::from).collect();
-        let min_age_timestamp = chrono::Utc::now() - min_age;
 
         let rows = sqlx::query!(
             r#"
@@ -506,7 +506,8 @@ impl UtxoRepo {
                   WHERE
                       u1.origin_tx_payout_queue_id = $1
                       AND u1.keychain_id = ANY($2)
-                      AND u1.created_at <= $3
+                      AND u1.created_at < $3
+                      AND u1.detected_block_height < $4
                       AND bdk_spent IS FALSE
                       AND spend_detected_ledger_tx_id IS NULL
                       AND income_settled_ledger_tx_id IS NULL
@@ -539,7 +540,8 @@ impl UtxoRepo {
           WHERE origin_tx_vbytes IS NOT NULL AND origin_tx_fee IS NOT NULL"#,
             payout_queue_id as PayoutQueueId,
             &keychain_ids,
-            min_age_timestamp,
+            older_than,
+            older_than_block as i32,
         )
         .fetch_all(&mut **tx)
         .await?;

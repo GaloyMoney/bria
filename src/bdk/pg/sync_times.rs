@@ -2,7 +2,7 @@ use bdk::database::SyncTime;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::primitives::*;
+use crate::{bdk::error::BdkError, primitives::*};
 
 pub struct SyncTimes {
     keychain_id: KeychainId,
@@ -43,5 +43,13 @@ impl SyncTimes {
                 timestamp: time.timestamp as u64,
             },
         }))
+    }
+
+    pub async fn last_sync_time(pool: &PgPool) -> Result<u32, BdkError> {
+        let sync_time =
+            sqlx::query!(r#"SELECT COALESCE(MAX(height), 0) as "height!" FROM bdk_sync_times"#,)
+                .fetch_one(pool)
+                .await?;
+        Ok(sync_time.height as u32)
     }
 }

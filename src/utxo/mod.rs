@@ -196,11 +196,12 @@ impl Utxos {
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
         payout_queue_id: PayoutQueueId,
-        min_age: std::time::Duration,
+        older_than: chrono::DateTime<chrono::Utc>,
+        older_than_block: u32,
     ) -> Result<HashMap<KeychainId, Vec<CpfpUtxo>>, UtxoError> {
         let candidates = self
             .utxos
-            .find_cpfp_candidates(tx, ids, payout_queue_id, min_age)
+            .find_cpfp_candidates(tx, ids, payout_queue_id, older_than, older_than_block)
             .await?;
         Ok(extract_cpfp_utxos(candidates))
     }

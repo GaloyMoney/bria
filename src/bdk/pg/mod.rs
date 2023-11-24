@@ -19,7 +19,7 @@ use convert::BdkKeychainKind;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
-use sync_times::SyncTimes;
+pub(super) use sync_times::SyncTimes;
 pub use transactions::*;
 pub use utxos::*;
 

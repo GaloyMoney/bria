@@ -185,13 +185,18 @@ pub async fn construct_psbt(
     );
 
     let mut mandatory_cpfp_utxos = HashMap::new();
-    if !for_estimation {
-        if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
-            let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-            mandatory_cpfp_utxos = utxos
-                .find_cpfp_utxos(tx, keychain_ids, queue_id, min_age)
-                .await?;
-        }
+    if !for_estimation && queue_cfg.should_cpfp() {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        mandatory_cpfp_utxos = utxos
+            .find_cpfp_utxos(
+                tx,
+                keychain_ids,
+                queue_id,
+                queue_cfg.cpfp_payouts_detected_before(),
+                queue_cfg
+                    .cpfp_payouts_detected_before_block(crate::bdk::last_sync_time(pool).await?),
+            )
+            .await?;
     }
     span.record(
         "n_cpfp_utxos",
