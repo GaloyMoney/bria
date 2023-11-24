@@ -237,7 +237,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
     pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
         assert!(self.fee_rate.is_some());
 
-        let fee_rate = self.fee_rate_inner().clone();
+        let fee_rate = *self.fee_rate_inner();
         if let Some(utxos) = self.cpfp_utxos.as_mut() {
             let mut non_cpfp_utxos = HashSet::new();
             for (keychain, utxos) in utxos.iter_mut() {
