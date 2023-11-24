@@ -237,14 +237,18 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
     pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
         assert!(self.fee_rate.is_some());
 
-        if let Some(utxos) = self.cpfp_utxos.as_ref() {
-            for (keychain, utxos) in utxos.iter() {
+        let fee_rate = self.fee_rate_inner().clone();
+        if let Some(utxos) = self.cpfp_utxos.as_mut() {
+            let mut non_cpfp_utxos = HashSet::new();
+            for (keychain, utxos) in utxos.iter_mut() {
+                non_cpfp_utxos.clear();
                 for utxo in utxos.iter() {
-                    let missing_fees = utxo.missing_fees(self.fee_rate_inner());
+                    let missing_fees = utxo.missing_fees(&fee_rate);
                     // If we don't actually need additional fees to bump we will
                     // let BDK choose the UTXO it if it wants
                     // => remove from reserved_utxos
                     if missing_fees.is_empty() {
+                        non_cpfp_utxos.insert(utxo.outpoint);
                         if let Some(reserved) = self.reserved_utxos.as_mut() {
                             if let Some(reserved) = reserved.get_mut(keychain) {
                                 reserved.retain(|out| out != &utxo.outpoint);
@@ -254,6 +258,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                         self.missing_cpfp_fees.extend(missing_fees);
                     }
                 }
+                utxos.retain(|utxo| !non_cpfp_utxos.contains(&utxo.outpoint));
             }
         };
 
