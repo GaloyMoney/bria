@@ -504,6 +504,7 @@ impl UtxoRepo {
                       AND u1.created_at <= $3
                       AND bdk_spent IS FALSE
                       AND spend_detected_ledger_tx_id IS NULL
+                      AND income_settled_ledger_tx_id IS NULL
                       AND u1.trusted_origin_tx_input_tx_ids IS NOT NULL
                       AND array_length(u1.trusted_origin_tx_input_tx_ids, 1) > 0
                   FOR UPDATE
