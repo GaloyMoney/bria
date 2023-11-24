@@ -7,6 +7,7 @@ use std::{
     collections::{HashMap, HashSet},
     marker::PhantomData,
 };
+use tracing::instrument;
 
 use super::{keychain::*, Wallet as WalletEntity};
 use crate::{
@@ -73,6 +74,7 @@ pub struct PsbtBuilder<T> {
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
     all_included_utxos: HashSet<OutPoint>,
+    for_estimation: bool,
     _phantom: PhantomData<T>,
 }
 
@@ -153,6 +155,7 @@ impl Default for PsbtBuilder<InitialPsbtBuilderState> {
 }
 
 impl PsbtBuilder<InitialPsbtBuilderState> {
+    #[instrument(name = "psbt_builder.construct_psbt", skip_all)]
     pub async fn construct_psbt(
         pool: &sqlx::PgPool,
         consolidate_deprecated_keychains: bool,
@@ -161,12 +164,14 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>,
         unbatched_payouts: HashMap<WalletId, Vec<TxPayout>>,
         mut wallets: HashMap<WalletId, WalletEntity>,
+        for_estimation: bool,
     ) -> Result<FinishedPsbtBuild, BdkError> {
         let mut outer_builder = PsbtBuilder::new()
             .consolidate_deprecated_keychains(consolidate_deprecated_keychains)
             .fee_rate(fee_rate)
             .reserved_utxos(reserved_utxos)
             .cpfp_utxos(cpfp_utxos)
+            .for_estimation(for_estimation)
             .accept_wallets();
 
         for (wallet_id, payouts) in unbatched_payouts {
@@ -207,6 +212,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                 tx_id: None,
                 psbt: None,
             },
+            for_estimation: false,
             _phantom: PhantomData,
         }
     }
@@ -226,6 +232,11 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
 
     pub fn cpfp_utxos(mut self, cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>) -> Self {
         self.cpfp_utxos = Some(cpfp_utxos);
+        self
+    }
+
+    pub fn for_estimation(mut self, for_estimation: bool) -> Self {
+        self.for_estimation = for_estimation;
         self
     }
 
@@ -275,6 +286,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
+            for_estimation: self.for_estimation,
             _phantom: PhantomData,
         }
     }
@@ -301,6 +313,7 @@ impl PsbtBuilder<AcceptingWalletState> {
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
+            for_estimation: self.for_estimation,
             _phantom: PhantomData,
         }
     }
@@ -325,7 +338,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
             .max_satisfaction_weight()
             .expect("Unsupported descriptor");
 
-        let drain_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
+        let drain_address = if self.for_estimation {
+            wallet.get_internal_address(AddressIndex::Peek(0))?
+        } else {
+            wallet.get_internal_address(AddressIndex::LastUnused)?
+        };
 
         let mut builder = wallet.build_tx();
         if let Some(reserved_utxos) = self
@@ -374,6 +391,7 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
+            for_estimation: self.for_estimation,
             _phantom: PhantomData,
         }
     }
@@ -385,7 +403,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         current_keychain_id: KeychainId,
         wallet: &Wallet<D>,
     ) -> Result<Self, BdkError> {
-        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
+        let change_address = if self.for_estimation {
+            wallet.get_internal_address(AddressIndex::Peek(0))?
+        } else {
+            wallet.get_internal_address(AddressIndex::LastUnused)?
+        };
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
             .max_satisfaction_weight()
@@ -586,6 +608,7 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
+            for_estimation: self.for_estimation,
             _phantom: PhantomData,
         }
     }

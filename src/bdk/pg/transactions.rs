@@ -94,6 +94,7 @@ impl Transactions {
         Ok(tx.map(|tx| serde_json::from_value(tx.details_json).unwrap()))
     }
 
+    #[instrument(name = "bdk_transactions.list", skip(self), fields(n_rows))]
     pub async fn list(&self) -> Result<Vec<TransactionDetails>, bdk::Error> {
         let txs = sqlx::query!(
             r#"
@@ -103,6 +104,7 @@ impl Transactions {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        tracing::Span::current().record("n_rows", txs.len());
         Ok(txs
             .into_iter()
             .map(|tx| serde_json::from_value(tx.details_json).unwrap())

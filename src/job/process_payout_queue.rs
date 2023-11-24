@@ -75,7 +75,7 @@ pub(super) async fn execute<'a>(
         &wallets,
         payout_queue,
         fee_rate,
-        true,
+        false,
     )
     .await?;
 
@@ -159,7 +159,7 @@ pub async fn construct_psbt(
     wallets: &Wallets,
     payout_queue: PayoutQueue,
     fee_rate: bitcoin::FeeRate,
-    include_cpfp: bool,
+    for_estimation: bool,
 ) -> Result<FinishedPsbtBuild, JobError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -185,7 +185,7 @@ pub async fn construct_psbt(
     );
 
     let mut mandatory_cpfp_utxos = HashMap::new();
-    if include_cpfp {
+    if !for_estimation {
         if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
             let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
             mandatory_cpfp_utxos = utxos
@@ -210,6 +210,7 @@ pub async fn construct_psbt(
         mandatory_cpfp_utxos,
         tx_payouts,
         wallets,
+        for_estimation,
     )
     .await?)
 }
