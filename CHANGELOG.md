@@ -1,3 +1,14 @@
+# [bria release v0.1.66](https://github.com/GaloyMoney/bria/releases/tag/0.1.66)
+
+
+### Features
+
+- Cpfp (#399)
+
+### Miscellaneous Tasks
+
+- Bump rust_decimal from 1.32.0 to 1.33.1 (#398)
+
 # [bria release v0.1.65](https://github.com/GaloyMoney/bria/releases/tag/0.1.65)
 
 
