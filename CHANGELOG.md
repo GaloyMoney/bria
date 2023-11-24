@@ -1,3 +1,10 @@
+# [bria release v0.1.68](https://github.com/GaloyMoney/bria/releases/tag/0.1.68)
+
+
+### Bug Fixes
+
+- Add income_settled_ledger_tx_id as cpfp condition
+
 # [bria release v0.1.67](https://github.com/GaloyMoney/bria/releases/tag/0.1.67)
 
 
