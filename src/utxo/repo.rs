@@ -525,7 +525,7 @@ impl UtxoRepo {
               JOIN
                   unconfirmed_spends ua ON ua.ancestor_id = u2.tx_id
               WHERE 
-                  u2.spend_settled_ledger_tx_id IS NULL
+                  u2.income_settled_ledger_tx_id IS NULL
           )
           SELECT DISTINCT
             keychain_id AS "keychain_id!", tx_id AS "tx_id!", vout AS "vout!", ancestor_id,
