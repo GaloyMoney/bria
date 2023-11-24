@@ -178,6 +178,12 @@ pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 )]
 pub struct Satoshis(Decimal);
 
+impl Default for Satoshis {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 impl Satoshis {
     pub const ZERO: Self = Self(Decimal::ZERO);
     pub const ONE: Self = Self(Decimal::ONE);

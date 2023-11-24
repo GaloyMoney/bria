@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT utxo_json\n            FROM bdk_utxos\n            WHERE keychain_id = $1\n            AND deleted_at IS NULL\n            AND tx_id = $2\n            AND vout = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "utxo_json",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6188bd921fd161b45e1a37a61e2e68aca98e7b681ba436e69a24654c801d5f53"
+}

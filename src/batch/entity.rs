@@ -39,6 +39,13 @@ impl NewBatch {
     }
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct CpfpDetails {
+    pub tx_id: bitcoin::Txid,
+    pub batch_id: Option<BatchId>,
+    pub bump_fee: Satoshis,
+}
+
 #[derive(Clone)]
 pub struct WalletSummary {
     pub wallet_id: WalletId,
@@ -46,7 +53,9 @@ pub struct WalletSummary {
     pub signing_keychains: Vec<KeychainId>,
     pub total_in_sats: Satoshis,
     pub total_spent_sats: Satoshis,
-    pub fee_sats: Satoshis,
+    pub total_fee_sats: Satoshis,
+    pub cpfp_fee_sats: Satoshis,
+    pub cpfp_details: HashMap<bitcoin::OutPoint, HashMap<bitcoin::Txid, CpfpDetails>>,
     pub change_sats: Satoshis,
     pub change_address: Option<bitcoin::Address>,
     pub change_outpoint: Option<bitcoin::OutPoint>,

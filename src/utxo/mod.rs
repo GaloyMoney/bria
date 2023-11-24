@@ -1,3 +1,4 @@
+mod cpfp;
 mod effective_allocation;
 mod entity;
 pub mod error;
@@ -10,6 +11,7 @@ use tracing::instrument;
 use std::collections::HashMap;
 
 use crate::primitives::{bitcoin::OutPoint, *};
+pub use cpfp::*;
 pub use entity::*;
 use error::UtxoError;
 use repo::*;
@@ -88,6 +90,7 @@ impl Utxos {
         tx_id: LedgerTransactionId,
         inputs_iter: impl Iterator<Item = &OutPoint>,
         change_utxos: &Vec<(&LocalUtxo, AddressInfo)>,
+        batch: Option<(BatchId, PayoutQueueId)>,
         tx_fee: Satoshis,
         tx_vbytes: u64,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
@@ -100,7 +103,7 @@ impl Utxos {
         }
 
         for (utxo, address) in change_utxos.iter() {
-            let new_utxo = NewUtxo::builder()
+            let mut new_utxo = NewUtxo::builder()
                 .account_id(account_id)
                 .wallet_id(wallet_id)
                 .keychain_id(keychain_id)
@@ -115,10 +118,17 @@ impl Utxos {
                 .origin_tx_vbytes(tx_vbytes)
                 .origin_tx_fee(tx_fee)
                 .self_pay(true)
-                .origin_tx_trusted_input_tx_ids(Some(&input_tx_ids))
-                .build()
-                .expect("Could not build NewUtxo");
-            let res = self.utxos.persist_utxo(tx, new_utxo).await?;
+                .origin_tx_trusted_input_tx_ids(Some(&input_tx_ids));
+            if let Some((batch_id, payout_queue_id)) = batch {
+                new_utxo = new_utxo
+                    .origin_tx_batch_id(batch_id)
+                    .origin_tx_payout_queue_id(payout_queue_id);
+            }
+
+            let res = self
+                .utxos
+                .persist_utxo(tx, new_utxo.build().expect("Could not build NewUtxo"))
+                .await?;
             if res.is_none() {
                 return Ok(None);
             }
@@ -176,12 +186,26 @@ impl Utxos {
         self.utxos.find_keychain_utxos(keychain_ids).await
     }
 
+    #[instrument(name = "utxos.find_cpfp_utxos", skip_all, err)]
+    pub async fn find_cpfp_utxos(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ids: impl Iterator<Item = KeychainId>,
+        payout_queue_id: PayoutQueueId,
+        min_age: std::time::Duration,
+    ) -> Result<HashMap<KeychainId, Vec<CpfpUtxo>>, UtxoError> {
+        let candidates = self
+            .utxos
+            .find_cpfp_candidates(tx, ids, payout_queue_id, min_age)
+            .await?;
+        Ok(extract_cpfp_utxos(candidates))
+    }
+
     #[instrument(name = "utxos.outpoints_bdk_should_not_select", skip_all, err)]
     pub async fn outpoints_bdk_should_not_select(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
-        filter_unconfirmed_change: bool,
     ) -> Result<HashMap<KeychainId, Vec<OutPoint>>, UtxoError> {
         // Here we list all Utxos that bdk might want to use and lock them (FOR UPDATE)
         // This ensures that we don't have 2 concurrent psbt constructions get in the way
@@ -190,13 +214,10 @@ impl Utxos {
 
         // We need to tell bdk which utxos not to select.
         // If we have included it in a batch OR
-        // it is an income address and not recorded as settled yet
+        // it isn't confirmed / settled yet
         // we need to flag it to bdk
         let filtered_utxos = reservable_utxos.into_iter().filter_map(|utxo| {
-            if utxo.spending_batch_id.is_some()
-                || (utxo.income_address && utxo.utxo_settled_ledger_tx_id.is_none())
-                || (filter_unconfirmed_change && utxo.utxo_settled_ledger_tx_id.is_none())
-            {
+            if utxo.spending_batch_id.is_some() || utxo.utxo_settled_ledger_tx_id.is_none() {
                 Some((utxo.keychain_id, utxo.outpoint))
             } else {
                 None

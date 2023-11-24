@@ -83,12 +83,25 @@ pub async fn execute(
                             batch_id: id,
                             payout_queue_id,
                             included_payouts: payouts.into_iter().map(PayoutInfo::from).collect(),
+                            cpfp_fee_sats: wallet_summary.cpfp_fee_sats,
+                            cpfp_details: wallet_summary
+                                .cpfp_details
+                                .into_iter()
+                                .map(|(k, v)| {
+                                    (
+                                        k,
+                                        v.into_iter()
+                                            .map(|(k, v)| (k, CpfpInfo::from(v)))
+                                            .collect(),
+                                    )
+                                })
+                                .collect(),
                         },
                         tx_summary: WalletTransactionSummary {
                             account_id: data.account_id,
                             wallet_id: wallet_summary.wallet_id,
                             current_keychain_id: wallet_summary.current_keychain_id,
-                            fee_sats: wallet_summary.fee_sats,
+                            fee_sats: wallet_summary.total_fee_sats,
                             bitcoin_tx_id,
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: settled_sats,
@@ -110,6 +123,16 @@ impl From<Payout> for PayoutInfo {
             satoshis: payout.satoshis,
             destination: payout.destination,
             vout_in_tx: payout.outpoint.expect("payout outpoint not found").vout,
+        }
+    }
+}
+
+impl From<CpfpDetails> for CpfpInfo {
+    fn from(cpfp: CpfpDetails) -> Self {
+        Self {
+            tx_id: cpfp.tx_id,
+            batch_id: cpfp.batch_id,
+            bump_fee: cpfp.bump_fee,
         }
     }
 }

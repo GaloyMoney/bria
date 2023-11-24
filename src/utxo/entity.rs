@@ -41,6 +41,7 @@ pub struct KeychainUtxos {
 }
 
 #[derive(Builder)]
+#[builder(pattern = "owned")]
 pub struct NewUtxo<'a> {
     pub(super) account_id: AccountId,
     pub(super) wallet_id: WalletId,
@@ -56,6 +57,10 @@ pub struct NewUtxo<'a> {
     pub(super) origin_tx_fee: Satoshis,
     #[builder(default)]
     pub(super) origin_tx_trusted_input_tx_ids: Option<&'a [String]>,
+    #[builder(default, setter(into))]
+    pub(super) origin_tx_batch_id: Option<BatchId>,
+    #[builder(default, setter(into))]
+    pub(super) origin_tx_payout_queue_id: Option<PayoutQueueId>,
     pub(super) self_pay: bool,
     pub(super) bdk_spent: bool,
     pub(super) utxo_detected_ledger_tx_id: LedgerTransactionId,
@@ -63,8 +68,7 @@ pub struct NewUtxo<'a> {
 
 impl<'a> NewUtxo<'a> {
     pub fn builder() -> NewUtxoBuilder<'a> {
-        let mut builder = NewUtxoBuilder::default();
-        builder.utxo_detected_ledger_tx_id(LedgerTransactionId::new());
-        builder
+        let builder = NewUtxoBuilder::default();
+        builder.utxo_detected_ledger_tx_id(LedgerTransactionId::new())
     }
 }

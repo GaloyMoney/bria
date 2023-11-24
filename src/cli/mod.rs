@@ -341,6 +341,8 @@ enum Command {
         interval_trigger: Option<u32>,
         #[clap(short = 'm', long = "manual")]
         manual_trigger: Option<bool>,
+        #[clap(short = 'b', long = "bump-after-mins")]
+        cpfp_payouts_after_mins: Option<u32>,
     },
     /// Trigger Payout Queue
     TriggerPayoutQueue {
@@ -468,7 +470,7 @@ enum Command {
         #[clap(env = "BRIA_API_KEY", default_value = "")]
         api_key: String,
     },
-    /// Update Payout Group
+    /// Update Payout Queue
     UpdatePayoutQueue {
         #[clap(
             short,
@@ -492,6 +494,8 @@ enum Command {
         consolidate_deprecated_keychains: Option<bool>,
         #[clap(long = "interval-trigger")]
         interval_trigger: Option<u32>,
+        #[clap(short = 'b', long = "bump-after-mins")]
+        cpfp_payouts_after_mins: Option<u32>,
     },
     /// Get Batch details
     GetBatch {
@@ -841,6 +845,7 @@ pub async fn run() -> anyhow::Result<()> {
             consolidate_deprecated_keychains,
             interval_trigger,
             manual_trigger,
+            cpfp_payouts_after_mins,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
@@ -851,6 +856,7 @@ pub async fn run() -> anyhow::Result<()> {
                     consolidate_deprecated_keychains,
                     interval_trigger,
                     manual_trigger,
+                    cpfp_payouts_after_mins,
                 )
                 .await?;
         }
@@ -930,6 +936,7 @@ pub async fn run() -> anyhow::Result<()> {
             tx_priority,
             consolidate_deprecated_keychains,
             interval_trigger,
+            cpfp_payouts_after_mins,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
@@ -939,6 +946,7 @@ pub async fn run() -> anyhow::Result<()> {
                     tx_priority,
                     consolidate_deprecated_keychains,
                     interval_trigger,
+                    cpfp_payouts_after_mins,
                 )
                 .await?;
         }

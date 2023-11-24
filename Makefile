@@ -42,7 +42,7 @@ integration-tests-in-container:
 
 test-in-ci: start-deps
 	DATABASE_URL=postgres://user:password@127.0.0.1:5432/pg cargo sqlx migrate run
-	SQLX_OFFLINE=true cargo nextest run --verbose --locked
+	DATABASE_URL=postgres://user:password@127.0.0.1:5432/pg cargo nextest run --verbose --locked
 
 e2e-tests-in-container:
 	git config --global --add safe.directory /repo # otherwise bats complains

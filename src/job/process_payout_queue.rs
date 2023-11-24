@@ -24,6 +24,7 @@ pub struct ProcessPayoutQueueData {
         n_unbatched_payouts,
         payout_queue_name,
         n_reserved_utxos,
+        n_cpfp_utxos,
         txid,
         psbt,
         batch_id,
@@ -74,6 +75,7 @@ pub(super) async fn execute<'a>(
         &wallets,
         payout_queue,
         fee_rate,
+        true,
     )
     .await?;
 
@@ -148,6 +150,7 @@ pub(super) async fn execute<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn construct_psbt(
     pool: &sqlx::Pool<sqlx::Postgres>,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -156,6 +159,7 @@ pub async fn construct_psbt(
     wallets: &Wallets,
     payout_queue: PayoutQueue,
     fee_rate: bitcoin::FeeRate,
+    include_cpfp: bool,
 ) -> Result<FinishedPsbtBuild, JobError> {
     let span = tracing::Span::current();
     let PayoutQueue {
@@ -169,18 +173,31 @@ pub async fn construct_psbt(
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
     let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;
-    let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-
-    let reserved_utxos = utxos
-        .outpoints_bdk_should_not_select(
-            tx,
-            keychain_ids,
-            queue_cfg.select_unconfirmed_utxos.is_never(),
-        )
-        .await?;
+    let reserved_utxos = {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        utxos
+            .outpoints_bdk_should_not_select(tx, keychain_ids)
+            .await?
+    };
     span.record(
         "n_reserved_utxos",
         reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
+    );
+
+    let mut mandatory_cpfp_utxos = HashMap::new();
+    if include_cpfp {
+        if let Some(min_age) = queue_cfg.cpfp_payouts_after() {
+            let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+            mandatory_cpfp_utxos = utxos
+                .find_cpfp_utxos(tx, keychain_ids, queue_id, min_age)
+                .await?;
+        }
+    }
+    span.record(
+        "n_cpfp_utxos",
+        mandatory_cpfp_utxos
+            .values()
+            .fold(0, |acc, v| acc + v.len()),
     );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
@@ -190,6 +207,7 @@ pub async fn construct_psbt(
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
         reserved_utxos,
+        mandatory_cpfp_utxos,
         tx_payouts,
         wallets,
     )
@@ -208,12 +226,35 @@ fn queue_drain_error(n_not_batched: usize) {
 
 impl From<WalletTotals> for WalletSummary {
     fn from(wt: WalletTotals) -> Self {
+        let cpfp_details = wt
+            .cpfp_allocations
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k,
+                    v.into_iter()
+                        .map(|(tx_id, (batch_id, bump_fee))| {
+                            (
+                                tx_id,
+                                CpfpDetails {
+                                    tx_id,
+                                    batch_id,
+                                    bump_fee,
+                                },
+                            )
+                        })
+                        .collect::<HashMap<bitcoin::Txid, CpfpDetails>>(),
+                )
+            })
+            .collect();
         Self {
             wallet_id: wt.wallet_id,
             signing_keychains: wt.keychains_with_inputs,
             total_in_sats: wt.input_satoshis,
             total_spent_sats: wt.output_satoshis,
-            fee_sats: wt.fee_satoshis,
+            total_fee_sats: wt.total_fee_satoshis,
+            cpfp_fee_sats: wt.cpfp_fee_satoshis,
+            cpfp_details,
             change_sats: wt.change_satoshis,
             change_address: wt.change_outpoint.map(|_| wt.change_address.address),
             change_outpoint: wt.change_outpoint,

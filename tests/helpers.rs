@@ -102,12 +102,16 @@ pub async fn lnd_signing_client() -> anyhow::Result<LndRemoteSigner> {
     Ok(LndRemoteSigner::connect(&cfg).await?)
 }
 
-pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyhow::Result<()> {
+pub fn fund_addr(
+    bitcoind: &BitcoindClient,
+    addr: &Address,
+    amount: u64,
+) -> anyhow::Result<bitcoin::Txid> {
     let fund = bitcoind.get_new_address(None, None)?;
     bitcoind.generate_to_address(6, &fund)?;
-    bitcoind.send_to_address(
+    let tx_id = bitcoind.send_to_address(
         addr,
-        Amount::from_btc(amount as f64).unwrap(),
+        Amount::from_sat(amount),
         None,
         None,
         None,
@@ -115,7 +119,28 @@ pub fn fund_addr(bitcoind: &BitcoindClient, addr: &Address, amount: u32) -> anyh
         None,
         None,
     )?;
-    Ok(())
+    Ok(tx_id)
+}
+
+pub fn lookup_tx_info(
+    bitcoind: &BitcoindClient,
+    tx_id: bitcoin::Txid,
+    amount_in_sats: u64,
+) -> anyhow::Result<(bitcoin::OutPoint, Satoshis, u64)> {
+    let info = bitcoind.get_transaction(&tx_id, None)?;
+    let tx: bitcoin::Transaction = bitcoin::consensus::deserialize(&info.hex)?;
+    let vout = tx
+        .output
+        .iter()
+        .enumerate()
+        .find(|(_, o)| o.value == amount_in_sats)
+        .ok_or(anyhow::anyhow!("vout not found"))?
+        .0 as u32;
+    Ok((
+        bitcoin::OutPoint { txid: tx_id, vout },
+        Satoshis::from(info.fee.ok_or(anyhow::anyhow!("fee not found"))?.to_sat() * -1),
+        tx.vsize() as u64,
+    ))
 }
 
 pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {

@@ -1,7 +1,6 @@
 use bdk::{
     database::BatchDatabase,
-    wallet::tx_builder::TxOrdering,
-    wallet::{AddressIndex, AddressInfo},
+    wallet::{tx_builder::TxOrdering, AddressIndex, AddressInfo},
     FeeRate, Wallet,
 };
 use std::{
@@ -13,10 +12,12 @@ use super::{keychain::*, Wallet as WalletEntity};
 use crate::{
     bdk::error::BdkError,
     primitives::{bitcoin::*, *},
+    utxo::CpfpUtxo,
 };
 
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
     bdk::bitcoin::EcdsaSighashType::All;
+const HEADER_VBYTES: usize = 53;
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -24,7 +25,9 @@ pub struct WalletTotals {
     pub keychains_with_inputs: Vec<KeychainId>,
     pub input_satoshis: Satoshis,
     pub output_satoshis: Satoshis,
-    pub fee_satoshis: Satoshis,
+    pub total_fee_satoshis: Satoshis,
+    pub cpfp_fee_satoshis: Satoshis,
+    pub cpfp_allocations: HashMap<OutPoint, HashMap<Txid, (Option<BatchId>, Satoshis)>>,
     pub change_satoshis: Satoshis,
     pub change_address: AddressInfo,
     pub change_outpoint: Option<OutPoint>,
@@ -48,7 +51,7 @@ impl FinishedPsbtBuild {
     ) -> Option<Satoshis> {
         self.wallet_totals.get(wallet_id).map(|total| {
             let proportion = payout_amount.into_inner() / total.output_satoshis.into_inner();
-            let proportional_fee = total.fee_satoshis.into_inner() * proportion;
+            let proportional_fee = total.total_fee_satoshis.into_inner() * proportion;
             Satoshis::from(
                 proportional_fee
                     .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero),
@@ -61,9 +64,12 @@ pub struct PsbtBuilder<T> {
     consolidate_deprecated_keychains: Option<bool>,
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
+    cpfp_utxos: Option<HashMap<KeychainId, Vec<CpfpUtxo>>>,
+    missing_cpfp_fees: HashMap<Txid, (Option<BatchId>, Satoshis)>,
     current_wallet: Option<WalletId>,
     current_payouts: Vec<TxPayout>,
     current_wallet_psbts: Vec<(KeychainId, psbt::PartiallySignedTransaction)>,
+    current_wallet_cpfp_allocations: HashMap<OutPoint, HashMap<Txid, (Option<BatchId>, Satoshis)>>,
     result: FinishedPsbtBuild,
     input_weights: HashMap<OutPoint, usize>,
     all_included_utxos: HashSet<OutPoint>,
@@ -76,6 +82,10 @@ pub struct AcceptingDeprecatedKeychainState;
 pub struct AcceptingCurrentKeychainState;
 
 impl<T> PsbtBuilder<T> {
+    fn fee_rate_inner(&self) -> &FeeRate {
+        self.fee_rate.as_ref().expect("fee rate must be set")
+    }
+
     fn finish_inner(self) -> FinishedPsbtBuild {
         let mut ret = self.result;
         let mut outpoints = HashSet::new();
@@ -148,6 +158,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         consolidate_deprecated_keychains: bool,
         fee_rate: FeeRate,
         reserved_utxos: HashMap<KeychainId, Vec<bitcoin::OutPoint>>,
+        cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>,
         unbatched_payouts: HashMap<WalletId, Vec<TxPayout>>,
         mut wallets: HashMap<WalletId, WalletEntity>,
     ) -> Result<FinishedPsbtBuild, BdkError> {
@@ -155,6 +166,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             .consolidate_deprecated_keychains(consolidate_deprecated_keychains)
             .fee_rate(fee_rate)
             .reserved_utxos(reserved_utxos)
+            .cpfp_utxos(cpfp_utxos)
             .accept_wallets();
 
         for (wallet_id, payouts) in unbatched_payouts {
@@ -178,9 +190,12 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
             consolidate_deprecated_keychains: None,
             fee_rate: None,
             reserved_utxos: None,
+            missing_cpfp_fees: HashMap::new(),
+            cpfp_utxos: None,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: vec![],
+            current_wallet_cpfp_allocations: HashMap::new(),
             all_included_utxos: HashSet::new(),
             input_weights: HashMap::new(),
             result: FinishedPsbtBuild {
@@ -209,19 +224,35 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         self
     }
 
+    pub fn cpfp_utxos(mut self, cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>) -> Self {
+        self.cpfp_utxos = Some(cpfp_utxos);
+        self
+    }
+
     pub fn fee_rate(mut self, fee_rate: FeeRate) -> Self {
         self.fee_rate = Some(fee_rate);
         self
     }
 
-    pub fn accept_wallets(self) -> PsbtBuilder<AcceptingWalletState> {
+    pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
+        assert!(self.fee_rate.is_some());
+        if let Some(utxos) = self.cpfp_utxos.as_ref() {
+            for utxo in utxos.iter().flat_map(|(_, v)| v.iter()) {
+                self.missing_cpfp_fees
+                    .extend(utxo.missing_fees(self.fee_rate_inner()));
+            }
+        };
+
         PsbtBuilder::<AcceptingWalletState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
+            cpfp_utxos: self.cpfp_utxos,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -237,13 +268,17 @@ impl PsbtBuilder<AcceptingWalletState> {
         payouts: Vec<TxPayout>,
     ) -> PsbtBuilder<AcceptingDeprecatedKeychainState> {
         assert!(self.current_wallet_psbts.is_empty());
+        assert!(self.current_wallet_cpfp_allocations.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
+            cpfp_utxos: self.cpfp_utxos,
             current_wallet: Some(wallet_id),
             current_payouts: payouts,
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -284,7 +319,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
             }
         }
         builder
-            .fee_rate(self.fee_rate.expect("fee rate must be set"))
+            .fee_rate(*self.fee_rate_inner())
             .sighash(DEFAULT_SIGHASH_TYPE.into())
             .drain_wallet()
             .drain_to(drain_address.script_pubkey());
@@ -311,9 +346,12 @@ impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
+            cpfp_utxos: self.cpfp_utxos,
             current_wallet: self.current_wallet,
             current_payouts: self.current_payouts,
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -328,39 +366,60 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         current_keychain_id: KeychainId,
         wallet: &Wallet<D>,
     ) -> Result<Self, BdkError> {
+        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
             .max_satisfaction_weight()
             .expect("Unsupported descriptor");
-        let change_address = wallet.get_internal_address(AddressIndex::LastUnused)?;
-
         let mut max_payout = 0;
-        while max_payout < self.current_payouts.len()
-            && self.try_build_current_wallet_psbt(
+        let mut absolute_fee = 0;
+        let mut inputs = Vec::new();
+        while max_payout < self.current_payouts.len() {
+            let (fee, ins, success) = self.try_build_current_wallet_psbt(
                 current_keychain_id,
                 &self.current_payouts[..=max_payout],
                 wallet,
-            )?
-        {
+                &change_address,
+            )?;
+            if !success {
+                break;
+            }
+            absolute_fee = fee;
             max_payout += 1;
+            inputs = ins;
         }
         if max_payout == 0 {
             return Ok(self);
         }
 
         let mut builder = wallet.build_tx();
-        if let Some(reserved_utxos) = self
-            .reserved_utxos
+        if self.result.fee_satoshis == Satoshis::ZERO {
+            builder.fee_absolute(absolute_fee + self.fee_rate_inner().fee_vb(HEADER_VBYTES));
+        } else {
+            builder.fee_absolute(absolute_fee + u64::from(self.result.fee_satoshis));
+        }
+
+        builder.drain_to(change_address.script_pubkey());
+        builder.sighash(DEFAULT_SIGHASH_TYPE.into());
+        builder.manually_selected_only();
+        builder.add_utxos(&inputs)?;
+
+        if let Some(cpfp) = self
+            .cpfp_utxos
             .as_ref()
             .and_then(|m| m.get(&current_keychain_id))
         {
-            for out in reserved_utxos {
-                builder.add_unspendable(*out);
+            for utxo in cpfp {
+                let mut tx_allocations = HashMap::new();
+                for k in utxo.attributions.keys() {
+                    if let Some(fee) = self.missing_cpfp_fees.remove(k) {
+                        tx_allocations.insert(*k, fee);
+                    }
+                }
+                self.current_wallet_cpfp_allocations
+                    .insert(utxo.outpoint, tx_allocations);
             }
         }
-        builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
-        builder.drain_to(change_address.script_pubkey());
-        builder.sighash(DEFAULT_SIGHASH_TYPE.into());
 
         let mut total_output_satoshis = Satoshis::from(0);
         for (payout_id, destination, satoshis) in self.current_payouts.drain(..max_payout) {
@@ -434,6 +493,16 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                         .map(|out| out.value)
                         .unwrap_or(0),
                 );
+                let mut cpfp_allocations = HashMap::new();
+                std::mem::swap(
+                    &mut cpfp_allocations,
+                    &mut self.current_wallet_cpfp_allocations,
+                );
+                let cpfp_fee_satoshis = cpfp_allocations
+                    .values()
+                    .flat_map(|tx_allocations| tx_allocations.values())
+                    .map(|(_, fee)| fee)
+                    .sum::<Satoshis>();
                 self.result.wallet_totals.insert(
                     wallet_id,
                     WalletTotals {
@@ -443,7 +512,9 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                             + current_wallet_fee
                             + change_satoshis,
                         output_satoshis: total_output_satoshis,
-                        fee_satoshis: current_wallet_fee,
+                        total_fee_satoshis: current_wallet_fee,
+                        cpfp_fee_satoshis,
+                        cpfp_allocations,
                         change_satoshis,
                         change_address,
                         change_keychain_id: current_keychain_id,
@@ -487,9 +558,12 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
+            missing_cpfp_fees: self.missing_cpfp_fees,
+            cpfp_utxos: self.cpfp_utxos,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: self.current_wallet_psbts,
+            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
             all_included_utxos: self.all_included_utxos,
             input_weights: self.input_weights,
             result: self.result,
@@ -506,9 +580,11 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         keychain_id: KeychainId,
         payouts: &[TxPayout],
         wallet: &Wallet<D>,
-    ) -> Result<bool, BdkError> {
+        change_address: &AddressInfo,
+    ) -> Result<(u64, Vec<OutPoint>, bool), BdkError> {
         let mut builder = wallet.build_tx();
-        builder.fee_rate(self.fee_rate.expect("fee rate must be set"));
+        builder.fee_rate(*self.fee_rate_inner());
+        builder.drain_to(change_address.script_pubkey());
 
         for (_, destination, satoshis) in payouts.iter() {
             builder.add_recipient(destination.script_pubkey(), u64::from(*satoshis));
@@ -524,8 +600,27 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             }
         }
 
+        let mut cpfp_fees = 0;
+        if let Some(cpfp) = self.cpfp_utxos.as_ref().and_then(|m| m.get(&keychain_id)) {
+            for utxo in cpfp {
+                for k in utxo.attributions.keys() {
+                    if let Some((_, fee)) = self.missing_cpfp_fees.get(k) {
+                        cpfp_fees += u64::from(*fee);
+                    }
+                }
+                builder.add_utxo(utxo.outpoint)?;
+            }
+
+            if cpfp_fees > 0 {
+                builder.allow_dust(true);
+                builder.add_recipient(change_address.script_pubkey(), cpfp_fees);
+            }
+        }
+
+        let mut foreign_utxos = HashSet::new();
         for (_, psbt) in self.current_wallet_psbts.iter() {
             for (input, psbt_input) in psbt.unsigned_tx.input.iter().zip(psbt.inputs.iter()) {
+                foreign_utxos.insert(input.previous_output);
                 builder.add_foreign_utxo(
                     input.previous_output,
                     psbt_input.clone(),
@@ -538,8 +633,39 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         }
 
         match builder.finish() {
-            Ok(_) => Ok(true),
-            Err(bdk::Error::InsufficientFunds { .. }) => Ok(false),
+            Ok((psbt, details)) => {
+                let script_pubkey = change_address.script_pubkey();
+                let n_change_outputs = psbt
+                    .unsigned_tx
+                    .output
+                    .iter()
+                    .filter(|out| out.script_pubkey == script_pubkey)
+                    .count();
+                let subtract_fee = if n_change_outputs > 1 {
+                    crate::fees::output_fee(self.fee_rate_inner(), script_pubkey)
+                        + self.fee_rate_inner().fee_vb(HEADER_VBYTES)
+                } else {
+                    self.fee_rate_inner().fee_vb(HEADER_VBYTES)
+                };
+                let inputs = psbt
+                    .unsigned_tx
+                    .input
+                    .into_iter()
+                    .filter_map(|i| {
+                        if foreign_utxos.contains(&i.previous_output) {
+                            None
+                        } else {
+                            Some(i.previous_output)
+                        }
+                    })
+                    .collect();
+                Ok((
+                    details.fee.expect("fee must be present") + cpfp_fees - subtract_fee,
+                    inputs,
+                    true,
+                ))
+            }
+            Err(bdk::Error::InsufficientFunds { .. }) => Ok((0, Vec::new(), false)),
             Err(e) => Err(e.into()),
         }
     }
