@@ -246,9 +246,9 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                     // => remove from reserved_utxos
                     if missing_fees.is_empty() {
                         if let Some(reserved) = self.reserved_utxos.as_mut() {
-                            reserved.get_mut(keychain).map(|reserved| {
+                            if let Some(reserved) = reserved.get_mut(keychain) {
                                 reserved.retain(|out| out != &utxo.outpoint);
-                            });
+                            }
                         }
                     } else {
                         self.missing_cpfp_fees.extend(missing_fees);
