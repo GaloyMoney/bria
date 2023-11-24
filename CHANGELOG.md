@@ -1,3 +1,16 @@
+# [bria release v0.1.67](https://github.com/GaloyMoney/bria/releases/tag/0.1.67)
+
+
+### Bug Fixes
+
+- Clippy
+- Remove utxo from cpfp if no fee bump needed
+- Clippy
+
+### Refactor
+
+- Let BDK choose unconfirmed UTXOs not needing extra fees
+
 # [bria release v0.1.66](https://github.com/GaloyMoney/bria/releases/tag/0.1.66)
 
 
