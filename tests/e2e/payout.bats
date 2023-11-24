@@ -240,7 +240,7 @@ teardown_file() {
   [[ "${batch_id}" == "null" ]] || exit 1
 
   queue_id=$(bria_cmd list-payout-queues | jq -r '.PayoutQueues[] | select(.name == "high").id')
-  bria_cmd update-payout-queue -i "${queue_id}" --interval-trigger 5 --bump-after-mins 0
+  bria_cmd update-payout-queue -i "${queue_id}" --interval-trigger 5 --cpfp-after-mins 0
 
   for i in {1..90}; do
     batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')

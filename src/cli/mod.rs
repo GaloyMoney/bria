@@ -341,9 +341,9 @@ enum Command {
         interval_trigger: Option<u32>,
         #[clap(short = 'm', long = "manual")]
         manual_trigger: Option<bool>,
-        #[clap(short = 'b', long = "bump-after-mins")]
+        #[clap(long = "cpfp-after-mins")]
         cpfp_payouts_after_mins: Option<u32>,
-        #[clap(short = 'h', long = "bump-after-blocks")]
+        #[clap(long = "cpfp-after-blocks")]
         cpfp_payouts_after_blocks: Option<u32>,
     },
     /// Trigger Payout Queue
@@ -496,9 +496,9 @@ enum Command {
         consolidate_deprecated_keychains: Option<bool>,
         #[clap(long = "interval-trigger")]
         interval_trigger: Option<u32>,
-        #[clap(short = 'b', long = "bump-after-mins")]
+        #[clap(long = "cpfp-after-mins")]
         cpfp_payouts_after_mins: Option<u32>,
-        #[clap(short = 'h', long = "bump-after-blocks")]
+        #[clap(long = "cpfp-after-blocks")]
         cpfp_payouts_after_blocks: Option<u32>,
     },
     /// Get Batch details
