@@ -230,6 +230,7 @@ impl From<PayoutQueue> for proto::PayoutQueue {
             tx_priority: tx_priority as i32,
             consolidate_deprecated_keychains: payout_queue.config.consolidate_deprecated_keychains,
             cpfp_payouts_after_mins: payout_queue.config.cpfp_payouts_after_mins,
+            cpfp_payouts_after_blocks: payout_queue.config.cpfp_payouts_after_blocks,
         });
         proto::PayoutQueue {
             id,
@@ -282,6 +283,7 @@ impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
         let mut ret = Self {
             consolidate_deprecated_keychains: proto_config.consolidate_deprecated_keychains,
             cpfp_payouts_after_mins: proto_config.cpfp_payouts_after_mins,
+            cpfp_payouts_after_blocks: proto_config.cpfp_payouts_after_blocks,
             ..Self::default()
         };
 

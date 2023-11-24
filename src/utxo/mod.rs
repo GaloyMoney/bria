@@ -42,6 +42,7 @@ impl Utxos {
         origin_tx_fee: Satoshis,
         origin_tx_vbytes: u64,
         self_pay: bool,
+        current_block_height: u32,
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
             .account_id(account_id)
@@ -54,6 +55,7 @@ impl Utxos {
             .script_hex(format!("{:x}", utxo.txout.script_pubkey))
             .value(utxo.txout.value)
             .bdk_spent(utxo.is_spent)
+            .detected_block_height(current_block_height)
             .origin_tx_fee(origin_tx_fee)
             .origin_tx_vbytes(origin_tx_vbytes)
             .self_pay(self_pay)
@@ -93,6 +95,7 @@ impl Utxos {
         batch: Option<(BatchId, PayoutQueueId)>,
         tx_fee: Satoshis,
         tx_vbytes: u64,
+        current_block_height: u32,
     ) -> Result<Option<(Satoshis, HashMap<bitcoin::OutPoint, Satoshis>)>, UtxoError> {
         let mut inputs = Vec::new();
         let mut input_tx_ids = Vec::new();
@@ -115,6 +118,7 @@ impl Utxos {
                 .script_hex(format!("{:x}", utxo.txout.script_pubkey))
                 .value(utxo.txout.value)
                 .bdk_spent(utxo.is_spent)
+                .detected_block_height(current_block_height)
                 .origin_tx_vbytes(tx_vbytes)
                 .origin_tx_fee(tx_fee)
                 .self_pay(true)
@@ -192,11 +196,12 @@ impl Utxos {
         tx: &mut Transaction<'_, Postgres>,
         ids: impl Iterator<Item = KeychainId>,
         payout_queue_id: PayoutQueueId,
-        min_age: std::time::Duration,
+        older_than: chrono::DateTime<chrono::Utc>,
+        older_than_block: u32,
     ) -> Result<HashMap<KeychainId, Vec<CpfpUtxo>>, UtxoError> {
         let candidates = self
             .utxos
-            .find_cpfp_candidates(tx, ids, payout_queue_id, min_age)
+            .find_cpfp_candidates(tx, ids, payout_queue_id, older_than, older_than_block)
             .await?;
         Ok(extract_cpfp_utxos(candidates))
     }

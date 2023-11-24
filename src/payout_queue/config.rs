@@ -8,14 +8,28 @@ pub struct PayoutQueueConfig {
     pub tx_priority: TxPriority,
     #[serde(default)]
     pub cpfp_payouts_after_mins: Option<u32>,
+    #[serde(default)]
+    pub cpfp_payouts_after_blocks: Option<u32>,
     pub consolidate_deprecated_keychains: bool,
     pub trigger: PayoutQueueTrigger,
 }
 
 impl PayoutQueueConfig {
-    pub fn cpfp_payouts_after(&self) -> Option<Duration> {
+    pub fn cpfp_payouts_detected_before(&self) -> chrono::DateTime<chrono::Utc> {
+        let now = chrono::Utc::now();
         self.cpfp_payouts_after_mins
-            .map(|mins| Duration::from_secs(mins as u64 * 60))
+            .map(|mins| now - Duration::from_secs(mins as u64 * 60))
+            .unwrap_or(now)
+    }
+
+    pub fn cpfp_payouts_detected_before_block(&self, current_height: u32) -> u32 {
+        self.cpfp_payouts_after_blocks
+            .map(|blocks| (current_height + 1).max(blocks) - blocks)
+            .unwrap_or(current_height + 1)
+    }
+
+    pub fn should_cpfp(&self) -> bool {
+        self.cpfp_payouts_after_mins.is_some() || self.cpfp_payouts_after_blocks.is_some()
     }
 }
 
@@ -40,6 +54,7 @@ impl Default for PayoutQueueConfig {
                 seconds: default_interval(),
             },
             cpfp_payouts_after_mins: None,
+            cpfp_payouts_after_blocks: None,
         }
     }
 }
