@@ -1,3 +1,14 @@
+# [bria release v0.1.71](https://github.com/GaloyMoney/bria/releases/tag/0.1.71)
+
+
+### Features
+
+- Cpfp detected before block height (#402)
+
+### Miscellaneous Tasks
+
+- Bump url from 2.4.1 to 2.5.0 (#400)
+
 # [bria release v0.1.70](https://github.com/GaloyMoney/bria/releases/tag/0.1.70)
 
 
