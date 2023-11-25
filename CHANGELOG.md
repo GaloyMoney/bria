@@ -1,3 +1,10 @@
+# [bria release v0.1.72](https://github.com/GaloyMoney/bria/releases/tag/0.1.72)
+
+
+### Miscellaneous Tasks
+
+- Add fees to batch tracing
+
 # [bria release v0.1.71](https://github.com/GaloyMoney/bria/releases/tag/0.1.71)
 
 
