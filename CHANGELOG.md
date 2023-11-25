@@ -1,3 +1,10 @@
+# [bria release v0.1.73](https://github.com/GaloyMoney/bria/releases/tag/0.1.73)
+
+
+### Miscellaneous Tasks
+
+- Connect batch_broadcasting span
+
 # [bria release v0.1.72](https://github.com/GaloyMoney/bria/releases/tag/0.1.72)
 
 
