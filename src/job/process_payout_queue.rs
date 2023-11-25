@@ -25,7 +25,9 @@ pub struct ProcessPayoutQueueData {
         payout_queue_name,
         n_reserved_utxos,
         n_cpfp_utxos,
-        txid,
+        tx_id,
+        total_fee_sats,
+        cpfp_fee_sats,
         psbt,
         batch_id,
         payout_queue_id
@@ -81,11 +83,20 @@ pub(super) async fn execute<'a>(
 
     let span = tracing::Span::current();
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
-        span.record("txid", &tracing::field::display(tx_id));
+        span.record("tx_id", &tracing::field::display(tx_id));
         span.record("psbt", &tracing::field::display(&psbt));
 
         let wallet_ids = wallet_totals.keys().copied().collect();
         span.record("batch_id", &tracing::field::display(data.batch_id));
+        span.record("total_fee_sats", &tracing::field::display(fee_satoshis));
+        span.record(
+            "cpfp_fee_sats",
+            &tracing::field::display(
+                wallet_totals
+                    .values()
+                    .fold(Satoshis::ZERO, |acc, v| acc + v.cpfp_fee_satoshis),
+            ),
+        );
         let batch = NewBatch::builder()
             .account_id(data.account_id)
             .id(data.batch_id)

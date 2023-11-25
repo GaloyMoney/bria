@@ -178,6 +178,12 @@ pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 )]
 pub struct Satoshis(Decimal);
 
+impl std::fmt::Display for Satoshis {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl Default for Satoshis {
     fn default() -> Self {
         Self::ZERO
