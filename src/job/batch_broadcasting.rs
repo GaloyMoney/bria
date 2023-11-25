@@ -3,6 +3,8 @@ use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
+use std::collections::HashMap;
+
 use super::error::JobError;
 use crate::{app::BlockchainConfig, batch::*, bdk::error::BdkError, primitives::*};
 
@@ -10,6 +12,8 @@ use crate::{app::BlockchainConfig, batch::*, bdk::error::BdkError, primitives::*
 pub struct BatchBroadcastingData {
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
+    #[serde(flatten)]
+    pub(super) tracing_data: HashMap<String, String>,
 }
 
 #[instrument(

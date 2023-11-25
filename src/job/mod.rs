@@ -716,6 +716,7 @@ impl From<BatchWalletAccountingData> for BatchBroadcastingData {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            tracing_data: crate::tracing::extract_tracing_data(),
         }
     }
 }
@@ -725,6 +726,7 @@ impl From<BatchSigningData> for BatchBroadcastingData {
         Self {
             account_id: data.account_id,
             batch_id: data.batch_id,
+            tracing_data: crate::tracing::extract_tracing_data(),
         }
     }
 }
