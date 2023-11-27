@@ -28,7 +28,7 @@ tonic-health = "0.10.2"
 rust_decimal = "1.33"
 tracing = "0.1.40"
 tracing-opentelemetry = "0.22.0"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 prost = "0.12"
 prost-wkt-types = { version = "0.5", features = ["vendored-protoc"]}
 rust_decimal_macros = "1.33"
