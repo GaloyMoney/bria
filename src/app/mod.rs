@@ -845,9 +845,11 @@ impl App {
             )
             .await?;
         let expected_time = if let Some(interval) = payout_queue.spawn_in() {
-            match job::next_attempt_of_queue(&self.pool, payout_queue.id).await {
-                Ok(Some(next_attempt)) => Some(next_attempt),
-                Ok(None) | Err(_) => Some(
+            let queue_ids = std::iter::once(payout_queue.id).collect();
+            let mut next_attempts = job::next_attempt_of_queues(&self.pool, queue_ids).await?;
+            match next_attempts.remove(&payout_queue.id) {
+                Some(next_attempt) => Some(next_attempt),
+                None => Some(
                     chrono::Utc::now()
                         + chrono::Duration::from_std(interval)
                             .expect("interval value will always be less than i64"),
