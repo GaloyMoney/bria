@@ -38,7 +38,7 @@ uuid = { version = "1.5.0", features = ["serde", "v4"] }
 futures = "0.3.29"
 url = "2.5.0"
 rand = "0.8.5"
-bdk = "0.28.2"
+bdk = "0.29.0"
 lazy_static = "1.4.0"
 opentelemetry = { version = "0.21.0" }
 opentelemetry_sdk = { version = "0.21.0", features = ["rt-tokio"] }
