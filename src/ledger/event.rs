@@ -3,7 +3,7 @@ use sqlx_ledger::event::*;
 use super::{constants::*, error::LedgerError, templates::*};
 use crate::primitives::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct JournalEvent {
     pub journal_id: LedgerJournalId,
     pub account_id: AccountId,
@@ -11,10 +11,11 @@ pub struct JournalEvent {
     pub ledger_event_id: SqlxLedgerEventId,
     pub recorded_at: chrono::DateTime<chrono::Utc>,
     pub metadata: JournalEventMetadata,
+    #[serde(skip)]
     pub notification_otel_context: Option<opentelemetry::Context>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub enum JournalEventMetadata {
     UtxoDetected(UtxoDetectedMeta, SqlxLedgerEventId),
     UtxoSettled(UtxoSettledMeta),

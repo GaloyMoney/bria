@@ -15,7 +15,7 @@ pub struct PopulateOutboxData {
     pub(super) tracing_data: HashMap<String, String>,
 }
 
-#[instrument("job.handle_outbox", skip(outbox, ledger))]
+#[instrument("job.populate_outbox", skip(outbox, ledger))]
 pub async fn execute(
     data: PopulateOutboxData,
     outbox: Outbox,

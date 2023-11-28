@@ -53,7 +53,7 @@ pub async fn execute(
         let mut new_sessions = HashMap::new();
         let mut account_xpubs = HashMap::new();
         let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
-        span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
+        span.record("tx_id", &tracing::field::display(batch.bitcoin_tx_id));
         let unsigned_psbt = batch.unsigned_psbt;
         for (wallet_id, summary) in batch.wallet_summaries {
             let wallet = wallets.find_by_id(wallet_id).await?;
@@ -141,7 +141,7 @@ pub async fn execute(
         }
         if current_keychain.is_none() {
             let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
-            span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
+            span.record("tx_id", &tracing::field::display(batch.bitcoin_tx_id));
             let wallet_id = batch.wallet_summaries.into_keys().next().unwrap();
             let wallet = wallets.find_by_id(wallet_id).await?;
             current_keychain = Some(wallet.current_keychain_wallet(&pool));

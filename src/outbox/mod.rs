@@ -56,7 +56,12 @@ impl Outbox {
         Ok(ret)
     }
 
-    #[instrument("outbox.handle_journal_event", skip(self, linked_span), err)]
+    #[instrument(
+        "outbox.handle_journal_event",
+        skip(self, linked_span),
+        fields(next_sequence, ledger_event, error, error.level, error.message),
+        err
+    )]
     pub async fn handle_journal_event(
         &self,
         mut ledger_event: JournalEvent,
@@ -68,10 +73,17 @@ impl Outbox {
             current_span.set_parent(context);
         }
 
+        current_span.record(
+            "ledger_event",
+            &tracing::field::display(
+                serde_json::to_string(&ledger_event).expect("Couldn't serialize JournalEvent"),
+            ),
+        );
         let payloads = Vec::<OutboxEventPayload>::from(ledger_event.metadata);
         let sequences = self.sequences_for(ledger_event.account_id).await?;
         let mut write_sequences = sequences.write().await;
         let mut sequence = write_sequences.0;
+        current_span.record("next_sequence", &tracing::field::display(sequence));
         let events: Vec<OutboxEvent<_>> = payloads
             .into_iter()
             .map(|payload| {
@@ -91,6 +103,7 @@ impl Outbox {
         if let Err(res) = self.repo.persist_events(&events).await {
             let mut write_seqs = self.sequences.write().await;
             write_seqs.remove(&ledger_event.account_id);
+            crate::tracing::insert_error_fields(tracing::Level::WARN, &res);
             return Err(res);
         }
         for event in events {
