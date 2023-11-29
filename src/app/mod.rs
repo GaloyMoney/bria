@@ -81,7 +81,7 @@ impl App {
             mempool_space_client.clone(),
         )
         .await?;
-        let batch_inclusion = BatchInclusion::new(pool.clone());
+        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues.clone());
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
@@ -851,7 +851,7 @@ impl App {
 
         let estimation = self
             .batch_inclusion
-            .estimate_for_payout(id, payout_queue)
+            .estimate_next_queue_trigger(payout_queue)
             .await?;
         Ok((id, estimation))
     }

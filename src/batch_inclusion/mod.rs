@@ -4,7 +4,12 @@ use chrono::{DateTime, Duration, Utc};
 
 use std::collections::HashMap;
 
-use crate::{job, payout::Payout, payout_queue::PayoutQueue, primitives::*};
+use crate::{
+    job,
+    payout::Payout,
+    payout_queue::{PayoutQueue, PayoutQueues},
+    primitives::*,
+};
 
 use error::BatchInclusionError;
 
@@ -17,41 +22,59 @@ pub struct PayoutWithInclusionEstimate {
 
 pub struct BatchInclusion {
     pool: sqlx::PgPool,
+    payout_queues: PayoutQueues,
 }
 
 impl BatchInclusion {
-    pub fn new(pool: sqlx::PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: sqlx::PgPool, payout_queues: PayoutQueues) -> Self {
+        Self {
+            payout_queues,
+            pool,
+        }
     }
 
-    pub async fn estimate_for_payout(
+    pub async fn estimate_next_queue_trigger(
         &self,
-        payout_id: PayoutId,
         payout_queue: PayoutQueue,
     ) -> Result<Option<BatchInclusionEstimate>, BatchInclusionError> {
-        let payouts = [(payout_id, payout_queue.id)].into_iter().collect();
-        let queues = [(payout_queue.id, payout_queue)].into_iter().collect();
-        Ok(self
-            .estimate_batch_inclusion(queues, payouts)
-            .await?
-            .remove(&payout_id))
+        let id = payout_queue.id;
+        let mut next_queue_trigger_times =
+            self.next_queue_trigger_times(vec![payout_queue]).await?;
+        Ok(next_queue_trigger_times.remove(&id))
     }
 
-    async fn estimate_batch_inclusion(
+    pub async fn include_estimation(
         &self,
-        queues: HashMap<PayoutQueueId, PayoutQueue>,
-        payouts: HashMap<PayoutId, PayoutQueueId>,
-    ) -> Result<HashMap<PayoutId, BatchInclusionEstimate>, BatchInclusionError> {
-        let queue_ids = queues.keys().copied().collect();
+        account_id: AccountId,
+        payouts: Vec<Payout>,
+    ) -> Result<Vec<PayoutWithInclusionEstimate>, BatchInclusionError> {
+        let queues = self.payout_queues.list_by_account_id(account_id).await?;
+        let next_queue_trigger_times = self.next_queue_trigger_times(queues).await?;
+        Ok(payouts
+            .into_iter()
+            .map(|payout| PayoutWithInclusionEstimate {
+                estimated_batch_inclusion: next_queue_trigger_times
+                    .get(&payout.payout_queue_id)
+                    .copied(),
+                payout,
+            })
+            .collect())
+    }
+
+    async fn next_queue_trigger_times(
+        &self,
+        queues: Vec<PayoutQueue>,
+    ) -> Result<HashMap<PayoutQueueId, BatchInclusionEstimate>, BatchInclusionError> {
+        let queue_ids = queues.iter().map(|q| q.id).collect();
         let next_attempts = job::next_attempt_of_queues(&self.pool, queue_ids).await?;
 
         let mut res = HashMap::new();
-        for (payout_id, payout_queue_id) in payouts.into_iter() {
-            if let Some(next_attempt) = next_attempts.get(&payout_queue_id) {
-                res.insert(payout_id, *next_attempt);
-            } else if let Some(interval) = queues.get(&payout_queue_id).and_then(|p| p.spawn_in()) {
+        for queue in queues.into_iter() {
+            if let Some(next_attempt) = next_attempts.get(&queue.id) {
+                res.insert(queue.id, *next_attempt);
+            } else if let Some(interval) = queue.spawn_in() {
                 res.insert(
-                    payout_id,
+                    queue.id,
                     Utc::now()
                         + Duration::from_std(interval)
                             .expect("interval value will always be less than i64"),
