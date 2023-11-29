@@ -23,7 +23,7 @@ impl From<(Payout, Option<&BatchInclusionEstimate>)> for PayoutWithInclusionEsti
     fn from(
         (payout, estimated_batch_inclusion): (Payout, Option<&BatchInclusionEstimate>),
     ) -> Self {
-        let estimate = if payout.batch_id.is_some() {
+        let estimate = if payout.batch_id.is_some() || payout.is_cancelled() {
             None
         } else {
             estimated_batch_inclusion
@@ -64,7 +64,7 @@ impl BatchInclusion {
         account_id: AccountId,
         payout: Payout,
     ) -> Result<PayoutWithInclusionEstimate, BatchInclusionError> {
-        if payout.batch_id.is_some() {
+        if payout.batch_id.is_some() || payout.is_cancelled() {
             return Ok(PayoutWithInclusionEstimate::from((payout, None)));
         }
         let queue = self
