@@ -1,3 +1,10 @@
+# [bria release v0.1.76](https://github.com/GaloyMoney/bria/releases/tag/0.1.76)
+
+
+### Features
+
+- Add batch_inclusion_estimated_at to proto::Payout (#405)
+
 # [bria release v0.1.75](https://github.com/GaloyMoney/bria/releases/tag/0.1.75)
 
 
