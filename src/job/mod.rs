@@ -15,8 +15,6 @@ use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, JobRunnerHandle};
 use tracing::instrument;
 use uuid::{uuid, Uuid};
 
-use std::collections::{HashMap, HashSet};
-
 use crate::{
     account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::MempoolSpaceClient,
     ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
@@ -611,29 +609,6 @@ pub async fn spawn_respawn_all_outbox_handlers(
         }
         Ok(_) => Ok(()),
     }
-}
-
-pub async fn next_attempt_of_queues(
-    pool: &sqlx::PgPool,
-    ids: HashSet<PayoutQueueId>,
-) -> Result<HashMap<PayoutQueueId, chrono::DateTime<chrono::Utc>>, JobError> {
-    let ids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
-    let result = sqlx::query!(
-        "SELECT id, attempt_at FROM mq_msgs WHERE id = ANY($1)",
-        &ids
-    )
-    .fetch_all(pool)
-    .await?;
-    let mut map = HashMap::new();
-    for row in result {
-        if let Some(attempt_at) = row.attempt_at {
-            map.insert(
-                PayoutQueueId::from(row.id),
-                attempt_at + chrono::Duration::seconds(1),
-            );
-        }
-    }
-    Ok(map)
 }
 
 fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {

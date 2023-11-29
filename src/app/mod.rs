@@ -61,7 +61,12 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
-        let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
+        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues.clone());
+        let outbox = Outbox::init(
+            &pool,
+            Augmenter::new(&addresses, &payouts, &batch_inclusion),
+        )
+        .await?;
         let mempool_space_client = MempoolSpaceClient::new(config.fees.mempool_space.clone());
         let runner = job::start_job_runner(
             &pool,
@@ -81,7 +86,6 @@ impl App {
             mempool_space_client.clone(),
         )
         .await?;
-        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues.clone());
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
@@ -884,10 +888,14 @@ impl App {
         &self,
         profile: &Profile,
         external_id: String,
-    ) -> Result<Payout, ApplicationError> {
-        Ok(self
+    ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
+        let payout = self
             .payouts
             .find_by_external_id(profile.account_id, external_id)
+            .await?;
+        Ok(self
+            .batch_inclusion
+            .include_estimate(profile.account_id, payout)
             .await?)
     }
 
@@ -896,8 +904,12 @@ impl App {
         &self,
         profile: &Profile,
         id: PayoutId,
-    ) -> Result<Payout, ApplicationError> {
-        Ok(self.payouts.find_by_id(profile.account_id, id).await?)
+    ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
+        let payout = self.payouts.find_by_id(profile.account_id, id).await?;
+        Ok(self
+            .batch_inclusion
+            .include_estimate(profile.account_id, payout)
+            .await?)
     }
 
     #[instrument(name = "app.list_payouts", skip_all, err)]
@@ -917,7 +929,7 @@ impl App {
 
         Ok(self
             .batch_inclusion
-            .include_estimation(profile.account_id, payouts)
+            .include_estimates(profile.account_id, payouts)
             .await?)
     }
 

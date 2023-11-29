@@ -197,37 +197,6 @@ impl From<PayoutWithInclusionEstimate> for proto::Payout {
     }
 }
 
-impl From<Payout> for proto::Payout {
-    fn from(payout: Payout) -> Self {
-        let cancelled = payout.is_cancelled();
-        let destination = match payout.destination {
-            PayoutDestination::OnchainAddress { value } => {
-                proto::payout::Destination::OnchainAddress(value.to_string())
-            }
-            PayoutDestination::Wallet { id, address } => {
-                proto::payout::Destination::Wallet(proto::BriaWalletDestination {
-                    wallet_id: id.to_string(),
-                    address: address.to_string(),
-                })
-            }
-        };
-
-        proto::Payout {
-            id: payout.id.to_string(),
-            wallet_id: payout.wallet_id.to_string(),
-            payout_queue_id: payout.payout_queue_id.to_string(),
-            batch_id: payout.batch_id.map(|id| id.to_string()),
-            satoshis: u64::from(payout.satoshis),
-            destination: Some(destination),
-            cancelled,
-            external_id: payout.external_id,
-            metadata: payout.metadata.map(|json| {
-                serde_json::from_value(json).expect("Could not transfer json -> struct")
-            }),
-        }
-    }
-}
-
 impl From<Wallet> for proto::Wallet {
     fn from(wallet: Wallet) -> Self {
         let id = wallet.id.to_string();

@@ -1,6 +1,10 @@
 use thiserror::Error;
 
-use crate::{address::error::AddressError, payout::error::PayoutError};
+use crate::{
+    address::error::AddressError, batch_inclusion::error::BatchInclusionError,
+    payout::error::PayoutError,
+};
+
 #[derive(Error, Debug)]
 pub enum OutboxError {
     #[error("OutboxError - SendEventError")]
@@ -11,6 +15,8 @@ pub enum OutboxError {
     CouldNotParseIncomingMetadata(#[from] serde_json::Error),
     #[error("{0}")]
     PayoutError(#[from] PayoutError),
+    #[error("{0}")]
+    BatchInclusionError(#[from] BatchInclusionError),
     #[error("{0}")]
     AddressError(#[from] AddressError),
 }
