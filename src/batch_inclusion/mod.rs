@@ -19,8 +19,10 @@ pub struct PayoutWithInclusionEstimate {
     pub estimated_batch_inclusion: Option<BatchInclusionEstimate>,
 }
 
-impl From<(Payout, Option<BatchInclusionEstimate>)> for PayoutWithInclusionEstimate {
-    fn from((payout, estimated_batch_inclusion): (Payout, Option<BatchInclusionEstimate>)) -> Self {
+impl From<(Payout, Option<&BatchInclusionEstimate>)> for PayoutWithInclusionEstimate {
+    fn from(
+        (payout, estimated_batch_inclusion): (Payout, Option<&BatchInclusionEstimate>),
+    ) -> Self {
         let estimate = if payout.batch_id.is_some() {
             None
         } else {
@@ -28,7 +30,7 @@ impl From<(Payout, Option<BatchInclusionEstimate>)> for PayoutWithInclusionEstim
         };
         Self {
             payout,
-            estimated_batch_inclusion: estimate,
+            estimated_batch_inclusion: estimate.copied(),
         }
     }
 }
@@ -86,9 +88,7 @@ impl BatchInclusion {
         Ok(payouts
             .into_iter()
             .map(|payout| {
-                let estimate = next_queue_trigger_times
-                    .get(&payout.payout_queue_id)
-                    .copied();
+                let estimate = next_queue_trigger_times.get(&payout.payout_queue_id);
                 PayoutWithInclusionEstimate::from((payout, estimate))
             })
             .collect())

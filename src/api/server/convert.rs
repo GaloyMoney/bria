@@ -181,6 +181,8 @@ impl From<PayoutWithInclusionEstimate> for proto::Payout {
             }
         };
 
+        let batch_inclusion_estimated_at =
+            estimated_batch_inclusion.map(|time| time.timestamp() as u32);
         proto::Payout {
             id: payout.id.to_string(),
             wallet_id: payout.wallet_id.to_string(),
@@ -193,6 +195,7 @@ impl From<PayoutWithInclusionEstimate> for proto::Payout {
             metadata: payout.metadata.map(|json| {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
             }),
+            batch_inclusion_estimated_at,
         }
     }
 }
