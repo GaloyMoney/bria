@@ -4,6 +4,7 @@ use thiserror::Error;
 use crate::{
     address::error::AddressError,
     batch::error::BatchError,
+    batch_inclusion::error::BatchInclusionError,
     bdk::error::BdkError,
     descriptor::error::DescriptorError,
     fees::error::FeeEstimationError,
@@ -24,6 +25,8 @@ use crate::{
 pub enum ApplicationError {
     #[error("{0}")]
     BdkError(#[from] BdkError),
+    #[error("{0}")]
+    BatchInclusionError(#[from] BatchInclusionError),
     #[error("{0}")]
     WalletError(#[from] WalletError),
     #[error("{0}")]

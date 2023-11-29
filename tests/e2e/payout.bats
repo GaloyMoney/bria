@@ -15,7 +15,7 @@ teardown_file() {
 }
 
 
-@test "payout: Cancel a payout and see if the balance is reflected" {
+@test "payout: Batch inclusion and cancellation" {
   bria_cmd create-payout-queue --name high --interval-trigger 5
   payout_id=$(bria_cmd submit-payout -w default --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000 | jq -r '.id')
   for i in {1..20}; do
@@ -25,7 +25,13 @@ teardown_file() {
   done
   [[ $(cached_encumbered_outgoing) == 75000000 ]] || exit 1
 
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" != "null" ]] || exit 1
+
   bria_cmd cancel-payout --id ${payout_id}
+
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" = "null" ]] || exit 1
 
   for i in {1..20}; do
     cache_wallet_balance

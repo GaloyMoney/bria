@@ -7,6 +7,7 @@ pub mod admin;
 mod api;
 pub mod app;
 pub mod batch;
+mod batch_inclusion;
 pub mod bdk;
 pub mod cli;
 pub mod descriptor;

@@ -6,6 +6,7 @@ use crate::{
     address::*,
     app::error::*,
     batch::*,
+    batch_inclusion::PayoutWithInclusionEstimate,
     outbox::*,
     payout::*,
     payout_queue::*,
@@ -160,8 +161,13 @@ impl From<KeychainUtxos> for proto::KeychainUtxos {
     }
 }
 
-impl From<Payout> for proto::Payout {
-    fn from(payout: Payout) -> Self {
+impl From<PayoutWithInclusionEstimate> for proto::Payout {
+    fn from(
+        PayoutWithInclusionEstimate {
+            payout,
+            estimated_batch_inclusion,
+        }: PayoutWithInclusionEstimate,
+    ) -> Self {
         let cancelled = payout.is_cancelled();
         let destination = match payout.destination {
             PayoutDestination::OnchainAddress { value } => {
@@ -175,6 +181,8 @@ impl From<Payout> for proto::Payout {
             }
         };
 
+        let batch_inclusion_estimated_at =
+            estimated_batch_inclusion.map(|time| time.timestamp() as u32);
         proto::Payout {
             id: payout.id.to_string(),
             wallet_id: payout.wallet_id.to_string(),
@@ -187,6 +195,7 @@ impl From<Payout> for proto::Payout {
             metadata: payout.metadata.map(|json| {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
             }),
+            batch_inclusion_estimated_at,
         }
     }
 }

@@ -13,6 +13,7 @@ use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
     batch::*,
+    batch_inclusion::*,
     descriptor::*,
     fees::{self, *},
     job,
@@ -44,6 +45,7 @@ pub struct App {
     utxos: Utxos,
     addresses: Addresses,
     mempool_space_client: MempoolSpaceClient,
+    batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
 }
@@ -59,7 +61,12 @@ impl App {
         let utxos = Utxos::new(&pool);
         let signing_sessions = SigningSessions::new(&pool);
         let addresses = Addresses::new(&pool);
-        let outbox = Outbox::init(&pool, Augmenter::new(&addresses, &payouts)).await?;
+        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues.clone());
+        let outbox = Outbox::init(
+            &pool,
+            Augmenter::new(&addresses, &payouts, &batch_inclusion),
+        )
+        .await?;
         let mempool_space_client = MempoolSpaceClient::new(config.fees.mempool_space.clone());
         let runner = job::start_job_runner(
             &pool,
@@ -105,6 +112,7 @@ impl App {
             utxos,
             addresses,
             mempool_space_client,
+            batch_inclusion,
             config,
             _runner: runner,
         };
@@ -844,19 +852,12 @@ impl App {
                 },
             )
             .await?;
-        let expected_time = if let Some(interval) = payout_queue.spawn_in() {
-            match job::next_attempt_of_queue(&self.pool, payout_queue.id).await {
-                Ok(Some(next_attempt)) => Some(next_attempt),
-                Ok(None) | Err(_) => Some(
-                    chrono::Utc::now()
-                        + chrono::Duration::from_std(interval)
-                            .expect("interval value will always be less than i64"),
-                ),
-            }
-        } else {
-            None
-        };
-        Ok((id, expected_time))
+
+        let estimation = self
+            .batch_inclusion
+            .estimate_next_queue_trigger(payout_queue)
+            .await?;
+        Ok((id, estimation))
     }
 
     pub async fn cancel_payout(
@@ -887,10 +888,14 @@ impl App {
         &self,
         profile: &Profile,
         external_id: String,
-    ) -> Result<Payout, ApplicationError> {
-        Ok(self
+    ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
+        let payout = self
             .payouts
             .find_by_external_id(profile.account_id, external_id)
+            .await?;
+        Ok(self
+            .batch_inclusion
+            .include_estimate(profile.account_id, payout)
             .await?)
     }
 
@@ -899,8 +904,12 @@ impl App {
         &self,
         profile: &Profile,
         id: PayoutId,
-    ) -> Result<Payout, ApplicationError> {
-        Ok(self.payouts.find_by_id(profile.account_id, id).await?)
+    ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
+        let payout = self.payouts.find_by_id(profile.account_id, id).await?;
+        Ok(self
+            .batch_inclusion
+            .include_estimate(profile.account_id, payout)
+            .await?)
     }
 
     #[instrument(name = "app.list_payouts", skip_all, err)]
@@ -908,14 +917,19 @@ impl App {
         &self,
         profile: &Profile,
         wallet_name: String,
-    ) -> Result<Vec<Payout>, ApplicationError> {
+    ) -> Result<Vec<PayoutWithInclusionEstimate>, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        Ok(self
+        let payouts = self
             .payouts
             .list_for_wallet(profile.account_id, wallet.id)
+            .await?;
+
+        Ok(self
+            .batch_inclusion
+            .include_estimates(profile.account_id, payouts)
             .await?)
     }
 

@@ -611,22 +611,6 @@ pub async fn spawn_respawn_all_outbox_handlers(
     }
 }
 
-pub async fn next_attempt_of_queue(
-    pool: &sqlx::PgPool,
-    id: PayoutQueueId,
-) -> Result<Option<chrono::DateTime<chrono::Utc>>, JobError> {
-    let result = sqlx::query!(
-        "SELECT attempt_at FROM mq_msgs WHERE id = $1",
-        id as PayoutQueueId
-    )
-    .fetch_one(pool)
-    .await?;
-    let next_attempt = result
-        .attempt_at
-        .map(|time| time + chrono::Duration::seconds(1));
-    Ok(next_attempt)
-}
-
 fn schedule_payout_queue_channel_arg(payout_queue_id: PayoutQueueId) -> String {
     format!("payout_queue_id:{payout_queue_id}")
 }

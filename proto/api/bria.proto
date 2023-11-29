@@ -383,6 +383,7 @@ message Payout {
   bool cancelled = 9;
   string external_id = 7;
   optional google.protobuf.Struct metadata = 8;
+  optional uint32 batch_inclusion_estimated_at = 11;
 }
 
 message ListPayoutsResponse {

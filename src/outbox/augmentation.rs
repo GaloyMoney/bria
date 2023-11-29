@@ -1,9 +1,9 @@
 use super::{error::OutboxError, event::*};
-use crate::{address::*, payout::*, primitives::*};
+use crate::{address::*, batch_inclusion::*, payout::*, primitives::*};
 
 pub struct Augmentation {
     pub address: Option<AddressAugmentation>,
-    pub payout: Option<Payout>,
+    pub payout: Option<PayoutWithInclusionEstimate>,
 }
 
 pub struct AddressAugmentation {
@@ -17,13 +17,15 @@ pub struct AddressAugmentation {
 pub struct Augmenter {
     addresses: Addresses,
     payouts: Payouts,
+    batch_inclusion: BatchInclusion,
 }
 
 impl Augmenter {
-    pub fn new(addresses: &Addresses, payouts: &Payouts) -> Self {
+    pub fn new(addresses: &Addresses, payouts: &Payouts, batch_inclusion: &BatchInclusion) -> Self {
         Self {
             addresses: addresses.clone(),
             payouts: payouts.clone(),
+            batch_inclusion: batch_inclusion.clone(),
         }
     }
 
@@ -62,6 +64,10 @@ impl Augmenter {
             | OutboxEventPayload::PayoutBroadcast { id, .. }
             | OutboxEventPayload::PayoutSettled { id, .. } => {
                 let payout = self.payouts.find_by_id(account_id, id).await?;
+                let payout = self
+                    .batch_inclusion
+                    .include_estimate(account_id, payout)
+                    .await?;
                 Ok(Augmentation {
                     payout: Some(payout),
                     address: None,
