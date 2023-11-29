@@ -1,3 +1,13 @@
+# [bria release v0.1.74](https://github.com/GaloyMoney/bria/releases/tag/0.1.74)
+
+
+### Miscellaneous Tasks
+
+- Temp ignore audit warning
+- Record more tracing in outbox
+- Bump serde_with from 3.3.0 to 3.4.0 (#404)
+- Bump rust_decimal_macros from 1.32.0 to 1.33.1 (#403)
+
 # [bria release v0.1.73](https://github.com/GaloyMoney/bria/releases/tag/0.1.73)
 
 
