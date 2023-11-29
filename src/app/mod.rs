@@ -13,6 +13,7 @@ use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
     batch::*,
+    batch_inclusion::*,
     descriptor::*,
     fees::{self, *},
     job,
@@ -44,6 +45,7 @@ pub struct App {
     utxos: Utxos,
     addresses: Addresses,
     mempool_space_client: MempoolSpaceClient,
+    batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
 }
@@ -79,6 +81,7 @@ impl App {
             mempool_space_client.clone(),
         )
         .await?;
+        let batch_inclusion = BatchInclusion::new(pool.clone());
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
@@ -105,6 +108,7 @@ impl App {
             utxos,
             addresses,
             mempool_space_client,
+            batch_inclusion,
             config,
             _runner: runner,
         };
@@ -845,14 +849,11 @@ impl App {
             )
             .await?;
 
-        let payouts = [(id, payout_queue.id)].into_iter().collect();
-        let queues = [(payout_queue.id, payout_queue)].into_iter().collect();
-        let expected_time = self
-            .estimate_batch_inclusion(queues, payouts)
-            .await?
-            .remove(&id);
-
-        Ok((id, expected_time))
+        let estimation = self
+            .batch_inclusion
+            .estimate_for_payout(id, payout_queue)
+            .await?;
+        Ok((id, estimation))
     }
 
     pub async fn cancel_payout(
