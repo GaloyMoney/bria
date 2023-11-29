@@ -905,14 +905,19 @@ impl App {
         &self,
         profile: &Profile,
         wallet_name: String,
-    ) -> Result<Vec<Payout>, ApplicationError> {
+    ) -> Result<Vec<PayoutWithInclusionEstimate>, ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        Ok(self
+        let payouts = self
             .payouts
             .list_for_wallet(profile.account_id, wallet.id)
+            .await?;
+
+        Ok(self
+            .batch_inclusion
+            .include_estimation(profile.account_id, payouts)
             .await?)
     }
 
@@ -994,30 +999,6 @@ impl App {
                 augment,
             )
             .await?;
-        Ok(res)
-    }
-
-    async fn estimate_batch_inclusion(
-        &self,
-        queues: HashMap<PayoutQueueId, PayoutQueue>,
-        payouts: HashMap<PayoutId, PayoutQueueId>,
-    ) -> Result<HashMap<PayoutId, chrono::DateTime<chrono::Utc>>, ApplicationError> {
-        let queue_ids = queues.keys().copied().collect();
-        let next_attempts = job::next_attempt_of_queues(&self.pool, queue_ids).await?;
-
-        let mut res = HashMap::new();
-        for (payout_id, payout_queue_id) in payouts.into_iter() {
-            if let Some(next_attempt) = next_attempts.get(&payout_queue_id) {
-                res.insert(payout_id, *next_attempt);
-            } else if let Some(interval) = queues.get(&payout_queue_id).and_then(|p| p.spawn_in()) {
-                res.insert(
-                    payout_id,
-                    chrono::Utc::now()
-                        + chrono::Duration::from_std(interval)
-                            .expect("interval value will always be less than i64"),
-                );
-            }
-        }
         Ok(res)
     }
 
