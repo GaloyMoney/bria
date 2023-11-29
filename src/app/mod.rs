@@ -844,20 +844,14 @@ impl App {
                 },
             )
             .await?;
-        let expected_time = if let Some(interval) = payout_queue.spawn_in() {
-            let queue_ids = std::iter::once(payout_queue.id).collect();
-            let mut next_attempts = job::next_attempt_of_queues(&self.pool, queue_ids).await?;
-            match next_attempts.remove(&payout_queue.id) {
-                Some(next_attempt) => Some(next_attempt),
-                None => Some(
-                    chrono::Utc::now()
-                        + chrono::Duration::from_std(interval)
-                            .expect("interval value will always be less than i64"),
-                ),
-            }
-        } else {
-            None
-        };
+
+        let payouts = [(id, payout_queue.id)].into_iter().collect();
+        let queues = [(payout_queue.id, payout_queue)].into_iter().collect();
+        let expected_time = self
+            .estimate_batch_inclusion(queues, payouts)
+            .await?
+            .remove(&id);
+
         Ok((id, expected_time))
     }
 
@@ -999,6 +993,30 @@ impl App {
                 augment,
             )
             .await?;
+        Ok(res)
+    }
+
+    async fn estimate_batch_inclusion(
+        &self,
+        queues: HashMap<PayoutQueueId, PayoutQueue>,
+        payouts: HashMap<PayoutId, PayoutQueueId>,
+    ) -> Result<HashMap<PayoutId, chrono::DateTime<chrono::Utc>>, ApplicationError> {
+        let queue_ids = queues.keys().copied().collect();
+        let next_attempts = job::next_attempt_of_queues(&self.pool, queue_ids).await?;
+
+        let mut res = HashMap::new();
+        for (payout_id, payout_queue_id) in payouts.into_iter() {
+            if let Some(next_attempt) = next_attempts.get(&payout_queue_id) {
+                res.insert(payout_id, *next_attempt);
+            } else if let Some(interval) = queues.get(&payout_queue_id).and_then(|p| p.spawn_in()) {
+                res.insert(
+                    payout_id,
+                    chrono::Utc::now()
+                        + chrono::Duration::from_std(interval)
+                            .expect("interval value will always be less than i64"),
+                );
+            }
+        }
         Ok(res)
     }
 
