@@ -5,7 +5,7 @@ use tracing::instrument;
 use std::{collections::HashMap, str::FromStr};
 
 use super::{entity::*, error::BatchError};
-use crate::primitives::{bitcoin::*, *};
+use crate::primitives::*;
 
 pub struct BatchInfo {
     pub id: BatchId,
@@ -29,6 +29,7 @@ impl Batches {
         tx: &mut Transaction<'a, Postgres>,
         batch: NewBatch,
     ) -> Result<BatchId, BatchError> {
+        let serializied_psbt = batch.unsigned_psbt.serialize();
         sqlx::query!(
             r#"INSERT INTO bria_batches (id, account_id, payout_queue_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)
             VALUES ($1, $2, $3, $4, $5, $6)"#,
@@ -36,8 +37,8 @@ impl Batches {
             batch.account_id as AccountId,
             batch.payout_queue_id as PayoutQueueId,
             i64::from(batch.total_fee_sats),
-            batch.tx_id.as_ref(),
-            bitcoin::consensus::encode::serialize(&batch.unsigned_psbt)
+            batch.tx_id.as_ref() as &[u8],
+            serializied_psbt.as_slice() as &[u8],
         ).execute(&mut **tx).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -105,7 +106,8 @@ impl Batches {
 
         let mut wallet_summaries = HashMap::new();
         let bitcoin_tx_id = bitcoin::consensus::deserialize(&rows[0].bitcoin_tx_id)?;
-        let unsigned_psbt = bitcoin::consensus::deserialize(&rows[0].unsigned_psbt)?;
+        let unsigned_psbt =
+            bitcoin::psbt::PartiallySignedTransaction::deserialize(&rows[0].unsigned_psbt)?;
         let signed_tx = rows[0]
             .signed_tx
             .as_ref()
@@ -226,7 +228,7 @@ impl Batches {
                    FOR UPDATE
                ) s
                ON b.id = s.batch_id"#,
-            bitcoin_tx_id.as_ref(),
+            bitcoin_tx_id.as_ref() as &[u8],
             wallet_id as WalletId
         )
         .fetch_optional(&mut *tx)

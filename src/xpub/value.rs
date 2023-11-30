@@ -46,9 +46,10 @@ impl TryFrom<&DescriptorPublicKey> for XPub {
         match pk {
             DescriptorPublicKey::Single(_) => Err(XPubError::UnsupportedPubKeyType),
             DescriptorPublicKey::XPub(inner) => Ok(Self {
-                derivation: Some(derivation_path),
+                derivation: derivation_path,
                 inner: inner.xkey,
             }),
+            DescriptorPublicKey::MultiXPub(_) => Err(XPubError::UnsupportedPubKeyType),
         }
     }
 }
@@ -59,9 +60,9 @@ impl<O: AsRef<str>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
         let derivation: Option<DerivationPath> =
             derivation.map(|d| d.as_ref().parse()).transpose()?;
-        use bdk::bitcoin::util::base58;
+        use bdk::bitcoin::base58;
         let mut xpub_data =
-            base58::from_check(original.as_ref()).map_err(XPubError::XPubParseError)?;
+            base58::decode_check(original.as_ref()).map_err(XPubError::XPubParseError)?;
         fix_version_bits_for_rust_bitcoin(&mut xpub_data);
         let inner = ExtendedPubKey::decode(&xpub_data)?;
         if let Some(ref d) = derivation {

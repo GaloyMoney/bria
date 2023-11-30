@@ -4,10 +4,7 @@ use std::collections::HashSet;
 use crate::{
     fees::MempoolSpaceConfig,
     job::JobsConfig,
-    primitives::{
-        bitcoin::{self, Network},
-        PayoutDestination,
-    },
+    primitives::{bitcoin::Network, Address, PayoutDestination},
     xpub::SignerEncryptionConfig,
 };
 
@@ -65,7 +62,7 @@ pub struct FeesConfig {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SecurityConfig {
-    blocked_addresses: HashSet<bitcoin::Address>,
+    blocked_addresses: HashSet<Address>,
 }
 
 impl SecurityConfig {

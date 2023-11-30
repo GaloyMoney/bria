@@ -121,7 +121,7 @@ impl KeychainWallet {
     pub fn max_satisfaction_weight(&self) -> usize {
         self.config
             .external_descriptor()
-            .max_satisfaction_weight()
+            .max_weight_to_satisfy()
             .expect("max_satisfaction_weight")
     }
 

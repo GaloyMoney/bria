@@ -273,7 +273,9 @@ impl From<WalletTotals> for WalletSummary {
             cpfp_fee_sats: wt.cpfp_fee_satoshis,
             cpfp_details,
             change_sats: wt.change_satoshis,
-            change_address: wt.change_outpoint.map(|_| wt.change_address.address),
+            change_address: wt
+                .change_outpoint
+                .map(|_| Address(wt.change_address.address)),
             change_outpoint: wt.change_outpoint,
             current_keychain_id: wt.change_keychain_id,
             batch_created_ledger_tx_id: None,

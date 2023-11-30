@@ -1,12 +1,12 @@
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 pub use sqlx_ledger::{
     event::SqlxLedgerEventId, AccountId as LedgerAccountId, JournalId as LedgerJournalId,
     TransactionId as LedgerTransactionId,
 };
 
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
@@ -77,18 +77,15 @@ impl std::ops::Deref for XPubId {
 pub mod bitcoin {
     pub use bdk::{
         bitcoin::{
+            address::{Error as AddressError, NetworkChecked, NetworkUnchecked},
+            bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
             blockdata::{
-                script::Script,
+                script::{Script, ScriptBuf},
                 transaction::{OutPoint, Transaction, TxOut},
             },
             consensus,
             hash_types::Txid,
-            util::{
-                address::Error as AddressError,
-                bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
-                psbt,
-            },
-            Address, Network,
+            psbt, Address as BdkAddress, Network,
         },
         descriptor::ExtendedDescriptor,
         BlockTime, FeeRate, KeychainKind,
@@ -137,22 +134,62 @@ impl TxPriority {
     }
 }
 
-pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
+#[derive(Debug, Clone, Serialize, Eq, PartialEq, Hash)]
+pub struct Address(pub(super) bitcoin::BdkAddress);
+
+impl Address {
+    pub fn new(address: bitcoin::BdkAddress) -> Self {
+        Self(address)
+    }
+
+    pub fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+
+    pub fn script_pubkey(&self) -> bitcoin::ScriptBuf {
+        self.0.script_pubkey()
+    }
+}
+
+impl FromStr for Address {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let address = s
+            .parse::<bitcoin::BdkAddress<_>>()
+            .map_err(|err| err.to_string())?
+            .assume_checked();
+
+        Ok(Address(address))
+    }
+}
+
+impl<'de> Deserialize<'de> for Address {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let address = s
+            .parse::<bitcoin::BdkAddress<_>>()
+            .map_err(|err| serde::de::Error::custom(err.to_string()))?
+            .assume_checked();
+
+        Ok(Address(address))
+    }
+}
+
+pub type TxPayout = (uuid::Uuid, Address, Satoshis);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {
-    OnchainAddress {
-        value: bitcoin::Address,
-    },
-    Wallet {
-        id: WalletId,
-        address: bitcoin::Address,
-    },
+    OnchainAddress { value: Address },
+    Wallet { id: WalletId, address: Address },
 }
 
 impl PayoutDestination {
-    pub fn onchain_address(&self) -> &bitcoin::Address {
+    pub fn onchain_address(&self) -> &Address {
         match self {
             Self::OnchainAddress { value } => value,
             Self::Wallet { address, .. } => address,
@@ -164,18 +201,20 @@ impl std::fmt::Display for PayoutDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         match self {
             PayoutDestination::OnchainAddress { value } => {
-                write!(f, "{value}")
+                let addr = &value.0;
+                write!(f, "{addr}")
             }
-            PayoutDestination::Wallet { id, address } => write!(f, "wallet:{id}:{address}"),
+            PayoutDestination::Wallet { id, address } => {
+                let addr = &address.0;
+                write!(f, "wallet:{id}:{addr}")
+            }
         }
     }
 }
 
 pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Satoshis(Decimal);
 
 impl std::fmt::Display for Satoshis {

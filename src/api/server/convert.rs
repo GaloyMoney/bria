@@ -48,9 +48,9 @@ impl TryFrom<proto::SpendingPolicy> for SpendingPolicy {
         let mut allowed_payout_addresses = Vec::new();
         for dest in sp.allowed_payout_addresses {
             let addr = dest
-                .parse::<bitcoin::Address>()
+                .parse::<bitcoin::BdkAddress<_>>()
                 .map_err(|err| tonic::Status::invalid_argument(err.to_string()))?;
-            allowed_payout_addresses.push(addr);
+            allowed_payout_addresses.push(Address(addr.assume_checked()));
         }
         Ok(Self {
             allowed_payout_addresses,
@@ -685,6 +685,9 @@ impl From<ApplicationError> for tonic::Status {
             }
             ApplicationError::PayoutError(PayoutError::PayoutAlreadyCancelled) => {
                 tonic::Status::failed_precondition(err.to_string())
+            }
+            ApplicationError::CouldNotParseAddress(_) => {
+                tonic::Status::invalid_argument(err.to_string())
             }
             _ => tonic::Status::internal(err.to_string()),
         }

@@ -57,7 +57,7 @@ pub struct WalletSummary {
     pub cpfp_fee_sats: Satoshis,
     pub cpfp_details: HashMap<bitcoin::OutPoint, HashMap<bitcoin::Txid, CpfpDetails>>,
     pub change_sats: Satoshis,
-    pub change_address: Option<bitcoin::Address>,
+    pub change_address: Option<Address>,
     pub change_outpoint: Option<bitcoin::OutPoint>,
     pub batch_created_ledger_tx_id: Option<LedgerTransactionId>,
     pub batch_broadcast_ledger_tx_id: Option<LedgerTransactionId>,

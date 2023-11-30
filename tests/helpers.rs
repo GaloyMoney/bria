@@ -85,7 +85,7 @@ pub async fn bitcoind_client_inner(wallet_name: &str) -> anyhow::Result<bitcoinc
         .get_new_address(None, None)
         .context("client.get_new_address - 2")?;
     client
-        .generate_to_address(101, &addr)
+        .generate_to_address(101, &addr.assume_checked())
         .context("client.generate_to_address - 2")?;
     Ok(client)
 }
@@ -108,7 +108,7 @@ pub fn fund_addr(
     amount: u64,
 ) -> anyhow::Result<bitcoin::Txid> {
     let fund = bitcoind.get_new_address(None, None)?;
-    bitcoind.generate_to_address(6, &fund)?;
+    bitcoind.generate_to_address(6, &fund.assume_checked())?;
     let tx_id = bitcoind.send_to_address(
         addr,
         Amount::from_sat(amount),
@@ -145,7 +145,7 @@ pub fn lookup_tx_info(
 
 pub fn gen_blocks(bitcoind: &BitcoindClient, n: u64) -> anyhow::Result<()> {
     let addr = bitcoind.get_new_address(None, None)?;
-    bitcoind.generate_to_address(n, &addr)?;
+    bitcoind.generate_to_address(n, &addr.assume_checked())?;
     Ok(())
 }
 
@@ -153,7 +153,7 @@ pub async fn electrum_blockchain() -> anyhow::Result<ElectrumBlockchain> {
     let electrum_host = std::env::var("ELECTRUM_HOST").unwrap_or("localhost".to_string());
     let electrum_url = format!("{electrum_host}:50001");
 
-    let cfg = ConfigBuilder::new().retry(10).timeout(Some(4))?.build();
+    let cfg = ConfigBuilder::new().retry(10).timeout(Some(4)).build();
     let mut retries = 0;
 
     loop {

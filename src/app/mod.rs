@@ -459,7 +459,7 @@ impl App {
         wallet_name: String,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> Result<(WalletId, bitcoin::Address), ApplicationError> {
+    ) -> Result<(WalletId, Address), ApplicationError> {
         let wallet = self
             .wallets
             .find_by_name(profile.account_id, wallet_name)
@@ -468,8 +468,9 @@ impl App {
         let addr = keychain_wallet.new_external_address().await?;
 
         let mut builder = NewAddress::builder();
+        let address = Address(addr.address);
         builder
-            .address(addr.address.clone())
+            .address(address.clone())
             .account_id(profile.account_id)
             .wallet_id(wallet.id)
             .profile_id(profile.id)
@@ -483,7 +484,7 @@ impl App {
         let new_address = builder.build().expect("Couldn't build NewAddress");
         self.addresses.persist_new_address(new_address).await?;
 
-        Ok((wallet.id, addr.address))
+        Ok((wallet.id, address))
     }
 
     #[instrument(name = "app.update_address", skip(self), err)]
@@ -635,11 +636,12 @@ impl App {
             .current_keychain_wallet(&self.pool)
             .example_address()
             .await?;
+        // can't use Address<NetworkUnchecked> cause the destination is AddressInfo that returns Address type.
         self.estimate_payout_fee_to_address(
             profile,
             wallet_name,
             queue_name,
-            destination.address,
+            destination.address.to_string(),
             sats,
         )
         .await
@@ -651,7 +653,7 @@ impl App {
         profile: &Profile,
         wallet_name: String,
         queue_name: String,
-        destination: bitcoin::Address,
+        destination: String,
         sats: Satoshis,
     ) -> Result<Satoshis, ApplicationError> {
         let wallet = self
@@ -666,6 +668,11 @@ impl App {
             .payouts
             .list_unbatched(profile.account_id, payout_queue.id)
             .await?;
+        let destination = Address(
+            destination
+                .parse::<bitcoin::BdkAddress<_>>()?
+                .require_network(self.config.blockchain.network)?,
+        );
         let payout_id = uuid::Uuid::new_v4();
         unbatched_payouts
             .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
@@ -719,7 +726,7 @@ impl App {
         profile: &Profile,
         wallet_name: String,
         queue_name: String,
-        address: bitcoin::Address,
+        address: String,
         sats: Satoshis,
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
@@ -732,6 +739,11 @@ impl App {
             .payout_queues
             .find_by_name(profile.account_id, queue_name)
             .await?;
+        let address = Address(
+            address
+                .parse::<bitcoin::BdkAddress<_>>()?
+                .require_network(self.config.blockchain.network)?,
+        );
         self.submit_payout(
             profile,
             wallet,

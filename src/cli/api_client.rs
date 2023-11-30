@@ -365,8 +365,10 @@ impl ApiClient {
         destination: String,
         satoshis: u64,
     ) -> anyhow::Result<()> {
-        let destination = if let Ok(addr) = destination.parse::<bitcoin::Address>() {
-            proto::estimate_payout_fee_request::Destination::OnchainAddress(addr.to_string())
+        let destination = if let Ok(addr) = destination.parse::<bitcoin::BdkAddress<_>>() {
+            proto::estimate_payout_fee_request::Destination::OnchainAddress(
+                addr.assume_checked().to_string(),
+            )
         } else {
             proto::estimate_payout_fee_request::Destination::DestinationWalletName(destination)
         };
@@ -393,8 +395,10 @@ impl ApiClient {
         external_id: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> anyhow::Result<()> {
-        let destination = if let Ok(addr) = destination.parse::<bitcoin::Address>() {
-            proto::submit_payout_request::Destination::OnchainAddress(addr.to_string())
+        let destination = if let Ok(addr) = destination.parse::<bitcoin::BdkAddress<_>>() {
+            proto::submit_payout_request::Destination::OnchainAddress(
+                addr.assume_checked().to_string(),
+            )
         } else {
             proto::submit_payout_request::Destination::DestinationWalletName(destination)
         };

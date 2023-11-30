@@ -1,7 +1,7 @@
 pub mod error;
 mod mempool_space;
 
-use bdk::bitcoin::{LockTime, Transaction, TxOut};
+use bdk::bitcoin::{locktime::absolute::LockTime, Transaction, TxOut, Weight};
 use std::collections::HashMap;
 
 use crate::primitives::*;
@@ -18,9 +18,9 @@ pub async fn fees_to_encumber(
     satisfaction_weight: usize,
 ) -> Result<Satoshis, FeeEstimationError> {
     let fee_rate = mempool_space.fee_rate(TxPriority::NextBlock).await?;
-    Ok(Satoshis::from(
-        fee_rate.fee_wu(TXIN_BASE_WEIGHT + satisfaction_weight),
-    ))
+    Ok(Satoshis::from(fee_rate.fee_wu(Weight::from_wu(
+        (TXIN_BASE_WEIGHT + satisfaction_weight) as u64,
+    ))))
 }
 
 pub fn estimate_proportional_fee(
@@ -29,7 +29,7 @@ pub fn estimate_proportional_fee(
     fee_rate: bitcoin::FeeRate,
     avg_n_payouts: usize,
     avg_payout_value: Satoshis,
-    output_destination: bitcoin::Address,
+    output_destination: Address,
     output_value: Satoshis,
 ) -> Satoshis {
     let mut total_out = Satoshis::ZERO;
@@ -56,7 +56,7 @@ pub fn estimate_proportional_fee(
     let tx = Transaction {
         input: vec![],
         version: 1,
-        lock_time: LockTime::ZERO.into(),
+        lock_time: LockTime::ZERO,
         output,
     };
 
@@ -66,7 +66,7 @@ pub fn estimate_proportional_fee(
         .round_dp_with_strategy(0, rust_decimal::RoundingStrategy::AwayFromZero);
     let input_weight = (TXIN_BASE_WEIGHT + input_satisfaction_weight)
         * usize::try_from(n_inputs).expect("Could not convert decimal -> usize");
-    let total_weight = tx.weight() + input_weight + 2; // 2 for segwit marker and flag
+    let total_weight = tx.weight() + Weight::from_wu((input_weight + 2) as u64); // 2 for segwit marker and flag
     let fee = rust_decimal::Decimal::from(fee_rate.fee_wu(total_weight));
     let proportion = output_value.into_inner() / total_out.into_inner();
     let proportional_fee = fee * proportion;
@@ -106,12 +106,12 @@ pub fn allocate_proportional_fees(
     proportional_fees
 }
 
-pub fn output_fee(fee_rate: &bitcoin::FeeRate, script_pubkey: bitcoin::Script) -> u64 {
+pub fn output_fee(fee_rate: &bitcoin::FeeRate, script_pubkey: bitcoin::ScriptBuf) -> u64 {
     let output_size = (8 + // value
                         bdk::bitcoin::consensus::encode::VarInt(script_pubkey.len() as u64).len() +
                         script_pubkey.len())
         * bdk::bitcoin::blockdata::constants::WITNESS_SCALE_FACTOR;
-    fee_rate.fee_wu(output_size)
+    fee_rate.fee_wu(Weight::from_wu(output_size as u64))
 }
 
 #[cfg(test)]
@@ -124,20 +124,23 @@ mod tests {
         // has 1 input and 2 outputs
         let bytes = hex::decode("01000000000101e4b803c2d1bbc799050ef212b6749b925e35e9530839c833aca4964c4278a3e4010000000080e3ffff02b738010000000000160014c3dc650ba285d0b7bcb0486ec7454e434146f6e093f6c20000000000160014c789c7a2800fdad9a330373a3b58319f4b7b0f8802483045022100a9dbe84dd0ce75aeac6bc9151e3ecea0d9be70ce93645d179bc61ca96bfd6eaa02200fa8facea14e00d207b830a0b0b3bb106a6735a4a8e0702232aa22c8ffa6a4e101210226f3fc10d64822765964345fd6bc71d48782d2c44bcef826089d0e4d709532ac00000000").unwrap();
         let tx: Transaction = bitcoin::consensus::encode::deserialize(&bytes).unwrap();
-        assert_eq!(tx.weight(), 562);
+        assert_eq!(tx.weight(), Weight::from_wu(562 as u64));
 
         let fee_rate = bitcoin::FeeRate::from_sat_per_vb(1000.);
 
         let total_fee = Satoshis::from(fee_rate.fee_wu(tx.weight()));
 
         let descriptor : bdk::descriptor::ExtendedDescriptor = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr".parse().unwrap();
-        let address = "bc1qc7yu0g5qplddngesxuarkkp3na9hkrugpydqs0"
-            .parse()
-            .unwrap();
+        let address = Address(
+            "bc1qc7yu0g5qplddngesxuarkkp3na9hkrugpydqs0"
+                .parse::<bitcoin::BdkAddress<_>>()
+                .unwrap()
+                .assume_checked(),
+        );
 
         let estimate = estimate_proportional_fee(
             Some(Satoshis::from(200_000_000)),
-            descriptor.max_satisfaction_weight().unwrap(),
+            descriptor.max_weight_to_satisfy().unwrap(),
             fee_rate,
             0,
             Satoshis::ZERO,

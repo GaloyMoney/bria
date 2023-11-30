@@ -7,7 +7,7 @@ pub struct Augmentation {
 }
 
 pub struct AddressAugmentation {
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub wallet_id: WalletId,
     pub external_id: String,
     pub metadata: Option<serde_json::Value>,

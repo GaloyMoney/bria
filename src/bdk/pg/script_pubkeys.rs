@@ -2,7 +2,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
-use crate::primitives::{bitcoin::Script, *};
+use crate::primitives::{bitcoin::ScriptBuf, *};
 
 pub struct ScriptPubkeys {
     keychain_id: KeychainId,
@@ -16,7 +16,7 @@ impl ScriptPubkeys {
 
     pub async fn persist_all(
         &self,
-        keys: Vec<(BdkKeychainKind, u32, Script)>,
+        keys: Vec<(BdkKeychainKind, u32, ScriptBuf)>,
     ) -> Result<(), bdk::Error> {
         const BATCH_SIZE: usize = 5000;
         let chunks = keys.chunks(BATCH_SIZE);
@@ -30,7 +30,7 @@ impl ScriptPubkeys {
                 builder.push_bind(self.keychain_id);
                 builder.push_bind(keychain);
                 builder.push_bind(*path as i32);
-                builder.push_bind(script.as_ref().to_vec());
+                builder.push_bind(script.as_bytes());
                 builder.push_bind(format!("{:02x}", script));
                 builder.push_bind(format!("{:?}", script));
             });
@@ -49,7 +49,7 @@ impl ScriptPubkeys {
         &self,
         keychain: impl Into<BdkKeychainKind>,
         path: u32,
-    ) -> Result<Option<Script>, bdk::Error> {
+    ) -> Result<Option<ScriptBuf>, bdk::Error> {
         let kind = keychain.into();
         let rows = sqlx::query!(
             r#"SELECT script FROM bdk_script_pubkeys
@@ -61,18 +61,21 @@ impl ScriptPubkeys {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        Ok(rows.into_iter().next().map(|row| Script::from(row.script)))
+        Ok(rows
+            .into_iter()
+            .next()
+            .map(|row| ScriptBuf::from(row.script)))
     }
 
     pub async fn find_path(
         &self,
-        script: &Script,
+        script: &ScriptBuf,
     ) -> Result<Option<(BdkKeychainKind, u32)>, bdk::Error> {
         let rows = sqlx::query!(
             r#"SELECT keychain_kind as "keychain_kind: BdkKeychainKind", path FROM bdk_script_pubkeys
             WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"#,
             Uuid::from(self.keychain_id),
-            script.as_ref(),
+            script.as_bytes(),
         )
         .fetch_all(&self.pool)
         .await
@@ -87,7 +90,7 @@ impl ScriptPubkeys {
     pub async fn list_scripts(
         &self,
         keychain: Option<impl Into<BdkKeychainKind>>,
-    ) -> Result<Vec<Script>, bdk::Error> {
+    ) -> Result<Vec<ScriptBuf>, bdk::Error> {
         let kind = keychain.map(|k| k.into());
         let rows = sqlx::query!(
             r#"SELECT script, keychain_kind as "keychain_kind: BdkKeychainKind" FROM bdk_script_pubkeys
@@ -102,12 +105,12 @@ impl ScriptPubkeys {
             .filter_map(|row| {
                 if let Some(kind) = kind {
                     if kind == row.keychain_kind {
-                        Some(Script::from(row.script))
+                        Some(ScriptBuf::from(row.script))
                     } else {
                         None
                     }
                 } else {
-                    Some(Script::from(row.script))
+                    Some(ScriptBuf::from(row.script))
                 }
             })
             .collect())
