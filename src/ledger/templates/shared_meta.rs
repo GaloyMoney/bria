@@ -21,7 +21,7 @@ pub struct WalletTransactionSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeOutput {
     pub outpoint: bitcoin::OutPoint,
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub satoshis: Satoshis,
 }
 

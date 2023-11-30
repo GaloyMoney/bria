@@ -15,7 +15,7 @@ pub enum AddressEvent {
         wallet_id: WalletId,
         keychain_id: KeychainId,
         profile_id: Option<ProfileId>,
-        address: bitcoin::Address,
+        address: Address,
         address_idx: u32,
         kind: KeychainKind,
     },
@@ -31,7 +31,7 @@ pub enum AddressEvent {
 #[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct WalletAddress {
     pub account_id: AccountId,
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub wallet_id: WalletId,
     pub external_id: String,
     kind: KeychainKind,
@@ -73,7 +73,7 @@ impl WalletAddress {
 pub struct NewAddress {
     pub(super) db_uuid: uuid::Uuid,
     #[builder(setter(custom))]
-    pub(super) address: bitcoin::Address,
+    pub(super) address: Address,
     #[builder(setter(into))]
     pub(super) address_idx: u32,
     pub(super) account_id: AccountId,
@@ -118,7 +118,7 @@ impl NewAddress {
 }
 
 impl NewAddressBuilder {
-    pub fn address(&mut self, address: bitcoin::Address) -> &mut Self {
+    pub fn address(&mut self, address: Address) -> &mut Self {
         if self.external_id.is_none() {
             self.external_id = Some(address.to_string());
         }

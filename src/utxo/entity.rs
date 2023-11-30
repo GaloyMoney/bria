@@ -9,7 +9,7 @@ pub struct WalletUtxo {
     pub kind: KeychainKind,
     pub address_idx: u32,
     pub value: Satoshis,
-    pub address: Option<bitcoin::Address>,
+    pub address: Option<Address>,
     pub bdk_spent: bool,
     pub block_height: Option<u32>,
     pub utxo_detected_ledger_tx_id: LedgerTransactionId,
@@ -21,7 +21,7 @@ pub struct WalletUtxo {
 pub struct SettledUtxo {
     pub keychain_id: KeychainId,
     pub value: Satoshis,
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub utxo_detected_ledger_tx_id: LedgerTransactionId,
     pub utxo_settled_ledger_tx_id: LedgerTransactionId,
     pub spend_detected_ledger_tx_id: Option<LedgerTransactionId>,

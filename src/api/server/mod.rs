@@ -525,12 +525,7 @@ impl BriaService for Bria {
                             &profile,
                             wallet_name,
                             payout_queue_name,
-                            address.parse().map_err(|_| {
-                                tonic::Status::new(
-                                    tonic::Code::InvalidArgument,
-                                    "on chain address couldn't be parsed",
-                                )
-                            })?,
+                            address,
                             Satoshis::from(satoshis),
                         )
                         .await?
@@ -589,12 +584,7 @@ impl BriaService for Bria {
                             &profile,
                             wallet_name,
                             payout_queue_name,
-                            address.parse().map_err(|_| {
-                                tonic::Status::new(
-                                    tonic::Code::InvalidArgument,
-                                    "on chain address couldn't be parsed",
-                                )
-                            })?,
+                            address,
                             Satoshis::from(satoshis),
                             external_id,
                             metadata

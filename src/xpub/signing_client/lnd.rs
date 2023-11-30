@@ -5,7 +5,7 @@ use tonic_lnd::walletrpc::SignPsbtRequest;
 use std::fs;
 
 use super::{error::*, r#trait::*};
-use crate::primitives::bitcoin::{consensus, psbt};
+use crate::primitives::bitcoin::psbt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LndSignerConfig {
@@ -53,17 +53,18 @@ impl RemoteSigningClient for LndRemoteSigner {
         &mut self,
         psbt: &psbt::PartiallySignedTransaction,
     ) -> Result<psbt::PartiallySignedTransaction, SigningClientError> {
+        let serialized_psbt = psbt.serialize();
         let response = self
             .inner
             .wallet()
             .sign_psbt(SignPsbtRequest {
-                funded_psbt: consensus::encode::serialize(psbt),
+                funded_psbt: serialized_psbt,
             })
             .await
             .map_err(|e| {
                 SigningClientError::RemoteCallFailure(format!("Failed to sign psbt via lnd: {e}"))
             })?;
         let signed_psbt = response.into_inner().signed_psbt;
-        Ok(consensus::encode::deserialize(&signed_psbt)?)
+        Ok(psbt::PartiallySignedTransaction::deserialize(&signed_psbt)?)
     }
 }
