@@ -474,9 +474,8 @@ impl App {
             .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
-
+        let address = Address::from(addr.address);
         let mut builder = NewAddress::builder();
-        let address = Address(addr.address);
         builder
             .address(address.clone())
             .account_id(profile.account_id)
@@ -675,11 +674,7 @@ impl App {
             .payouts
             .list_unbatched(profile.account_id, payout_queue.id)
             .await?;
-        let destination = Address(
-            destination
-                .parse::<bitcoin::BdkAddress<_>>()?
-                .require_network(self.config.blockchain.network)?,
-        );
+        let destination = Address::new(&destination, self.config.blockchain.network)?;
         let payout_id = uuid::Uuid::new_v4();
         unbatched_payouts
             .include_simulated_payout(wallet.id, (payout_id, destination.clone(), sats));
@@ -746,17 +741,13 @@ impl App {
             .payout_queues
             .find_by_name(profile.account_id, queue_name)
             .await?;
-        let address = Address(
-            address
-                .parse::<bitcoin::BdkAddress<_>>()?
-                .require_network(self.config.blockchain.network)?,
-        );
+        let addr = Address::new(&address, self.config.blockchain.network)?;
         self.submit_payout(
             profile,
             wallet,
             payout_queue,
             PayoutId::new(),
-            PayoutDestination::OnchainAddress { value: address },
+            PayoutDestination::OnchainAddress { value: addr },
             sats,
             external_id,
             metadata,

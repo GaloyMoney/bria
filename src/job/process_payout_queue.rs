@@ -275,7 +275,7 @@ impl From<WalletTotals> for WalletSummary {
             change_sats: wt.change_satoshis,
             change_address: wt
                 .change_outpoint
-                .map(|_| Address(wt.change_address.address)),
+                .map(|_| Address::from(wt.change_address.address)),
             change_outpoint: wt.change_outpoint,
             current_keychain_id: wt.change_keychain_id,
             batch_created_ledger_tx_id: None,

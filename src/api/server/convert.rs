@@ -46,12 +46,13 @@ impl TryFrom<proto::SpendingPolicy> for SpendingPolicy {
     type Error = tonic::Status;
 
     fn try_from(sp: proto::SpendingPolicy) -> Result<Self, Self::Error> {
+        use std::str::FromStr;
+
         let mut allowed_payout_addresses = Vec::new();
         for dest in sp.allowed_payout_addresses {
-            let addr = dest
-                .parse::<bitcoin::BdkAddress<_>>()
+            let addr = Address::from_str(&dest)
                 .map_err(|err| tonic::Status::invalid_argument(err.to_string()))?;
-            allowed_payout_addresses.push(Address(addr.assume_checked()));
+            allowed_payout_addresses.push(addr);
         }
         Ok(Self {
             allowed_payout_addresses,

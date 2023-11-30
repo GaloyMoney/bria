@@ -128,11 +128,7 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
     let _ = app
         .create_descriptors_wallet(&profile, wallet_name.clone(), external, internal)
         .await?;
-    let address = Address::new(
-        bitcoin::BdkAddress::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string())
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs").unwrap();
     let queue_name = "test".to_string();
     let sats = Satoshis::from(10000);
     let err = app

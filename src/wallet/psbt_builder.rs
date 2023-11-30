@@ -336,7 +336,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
 
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
-            .max_weight_to_satisfy()
+            .max_satisfaction_weight()
             .expect("Unsupported descriptor");
 
         let drain_address = if self.for_estimation {
@@ -411,7 +411,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         };
         let keychain_satisfaction_weight = wallet
             .get_descriptor_for_keychain(KeychainKind::External)
-            .max_weight_to_satisfy()
+            .max_satisfaction_weight()
             .expect("Unsupported descriptor");
         let mut max_payout = 0;
         let mut absolute_fee = 0;

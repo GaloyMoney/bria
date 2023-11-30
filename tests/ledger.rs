@@ -9,7 +9,7 @@ use bria::{
 };
 use rand::distributions::{Alphanumeric, DistString};
 
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 #[tokio::test]
 async fn utxo_confirmation() -> anyhow::Result<()> {
@@ -31,12 +31,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
     let zero = Satoshis::from(0);
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str(&"1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -163,12 +158,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
     let zero = Satoshis::from(0);
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -356,12 +346,7 @@ async fn create_batch() -> anyhow::Result<()> {
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
     let change_sats = total_utxo_in_sats - total_spent_sats - fee_sats;
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -469,12 +454,7 @@ async fn spend_detected() -> anyhow::Result<()> {
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(200_000_000);
     let reserved_fees = Satoshis::from(12_346);
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -620,12 +600,7 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
     let change_sats = Satoshis::from(40_000_000);
     let total_utxo_in_sats = Satoshis::from(200_000_000);
     let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()
@@ -745,12 +720,7 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     let one_btc = Satoshis::from(100_000_000);
     let one_sat = Satoshis::from(1);
-    let address = Address::new(
-        "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let address = Address::from_str("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa").unwrap();
     let outpoint = OutPoint {
         txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
             .parse()

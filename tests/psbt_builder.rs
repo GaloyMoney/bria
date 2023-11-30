@@ -2,6 +2,7 @@ mod helpers;
 
 use rand::Rng;
 use serial_test::serial;
+use std::str::FromStr;
 
 use bdk::{bitcoin::Network, blockchain::Blockchain, wallet::AddressIndex, FeeRate, SignOptions};
 use uuid::Uuid;
@@ -93,12 +94,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
     let other_wallet_id = WalletId::new();
     let send_amount = Satoshis::from(100_000_000);
-    let destination = Address::new(
-        "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let destination = Address::from_str("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU").unwrap();
     let payouts_one = vec![(Uuid::new_v4(), destination.clone(), domain_send_amount)];
 
     let payouts_two = vec![
@@ -285,12 +281,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
 
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(100_000_000);
-    let destination = Address::new(
-        "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
+    let destination = Address::from_str("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU").unwrap();
     let payouts_one = vec![(Uuid::new_v4(), destination.clone(), domain_send_amount)];
 
     let builder = builder

@@ -1,3 +1,4 @@
+#![allow(warnings)]
 pub mod error;
 mod mempool_space;
 
@@ -120,6 +121,8 @@ mod tests {
 
     #[test]
     fn test_fee_calculation() {
+        use std::str::FromStr;
+
         // Reference tx https://blockstream.info/tx/c6260b24a8234f7cb6bd0698634d9056c1a3927a89ab5f98c0dcba199198f187
         // has 1 input and 2 outputs
         let bytes = hex::decode("01000000000101e4b803c2d1bbc799050ef212b6749b925e35e9530839c833aca4964c4278a3e4010000000080e3ffff02b738010000000000160014c3dc650ba285d0b7bcb0486ec7454e434146f6e093f6c20000000000160014c789c7a2800fdad9a330373a3b58319f4b7b0f8802483045022100a9dbe84dd0ce75aeac6bc9151e3ecea0d9be70ce93645d179bc61ca96bfd6eaa02200fa8facea14e00d207b830a0b0b3bb106a6735a4a8e0702232aa22c8ffa6a4e101210226f3fc10d64822765964345fd6bc71d48782d2c44bcef826089d0e4d709532ac00000000").unwrap();
@@ -131,16 +134,10 @@ mod tests {
         let total_fee = Satoshis::from(fee_rate.fee_wu(tx.weight()));
 
         let descriptor : bdk::descriptor::ExtendedDescriptor = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr".parse().unwrap();
-        let address = Address(
-            "bc1qc7yu0g5qplddngesxuarkkp3na9hkrugpydqs0"
-                .parse::<bitcoin::BdkAddress<_>>()
-                .unwrap()
-                .assume_checked(),
-        );
-
+        let address = Address::from_str("bc1qc7yu0g5qplddngesxuarkkp3na9hkrugpydqs0").unwrap();
         let estimate = estimate_proportional_fee(
             Some(Satoshis::from(200_000_000)),
-            descriptor.max_weight_to_satisfy().unwrap(),
+            descriptor.max_satisfaction_weight().unwrap(),
             fee_rate,
             0,
             Satoshis::ZERO,

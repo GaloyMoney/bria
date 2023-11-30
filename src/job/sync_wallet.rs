@@ -152,7 +152,7 @@ pub async fn execute(
                     .account_id(data.account_id)
                     .wallet_id(data.wallet_id)
                     .keychain_id(keychain_id)
-                    .address(Address(address_info.address.clone()))
+                    .address(address_info.address.clone().into())
                     .kind(address_info.keychain)
                     .address_idx(address_info.index)
                     .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
@@ -197,7 +197,7 @@ pub async fn execute(
                                     keychain_id,
                                     outpoint: local_utxo.outpoint,
                                     satoshis: local_utxo.txout.value.into(),
-                                    address: Address(address_info.address),
+                                    address: address_info.address.into(),
                                     encumbered_spending_fees: std::iter::once((
                                         local_utxo.outpoint,
                                         fees_to_encumber,
@@ -275,7 +275,7 @@ pub async fn execute(
                         .account_id(data.account_id)
                         .wallet_id(data.wallet_id)
                         .keychain_id(keychain_id)
-                        .address(Address(address_info.address.clone()))
+                        .address(address_info.address.clone().into())
                         .kind(address_info.keychain)
                         .address_idx(address_info.index)
                         .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
@@ -361,7 +361,7 @@ pub async fn execute(
                                                 .iter()
                                                 .map(|(u, a)| ChangeOutput {
                                                     outpoint: u.outpoint,
-                                                    address: Address(a.address.clone()),
+                                                    address: a.address.clone().into(),
                                                     satoshis: Satoshis::from(u.txout.value),
                                                 })
                                                 .collect(),

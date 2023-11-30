@@ -1,3 +1,4 @@
+#![allow(warnings)]
 pub mod balance;
 mod config;
 mod entity;

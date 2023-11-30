@@ -58,6 +58,8 @@ async fn payout() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn spending_policy() -> anyhow::Result<()> {
+    use std::str::FromStr;
+
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
 
@@ -86,14 +88,7 @@ async fn spending_policy() -> anyhow::Result<()> {
     let _ = app
         .create_payout_queue(&profile, queue_name.clone(), None, None)
         .await?;
-
-    let address = Address::new(
-        "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU"
-            .parse::<bitcoin::BdkAddress<_>>()
-            .unwrap()
-            .assume_checked(),
-    );
-
+    let address = Address::from_str("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU").unwrap();
     let spending_profile = app
         .create_profile(
             &profile,
@@ -116,10 +111,7 @@ async fn spending_policy() -> anyhow::Result<()> {
         )
         .await?;
 
-    let address = "bc1qafpuzp2888lh2cnw5p6zge2mjpdn7was3cjj2l"
-        .parse::<bitcoin::BdkAddress<_>>()
-        .unwrap()
-        .assume_checked();
+    let address = Address::from_str("bc1qafpuzp2888lh2cnw5p6zge2mjpdn7was3cjj2l").unwrap();
 
     let res = app
         .submit_payout_to_address(

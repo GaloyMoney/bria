@@ -6,7 +6,7 @@ pub use sqlx_ledger::{
     TransactionId as LedgerTransactionId,
 };
 
-use std::{fmt, str::FromStr};
+use std::fmt;
 
 crate::entity_id! { AdminApiKeyId }
 crate::entity_id! { AccountId }
@@ -15,6 +15,7 @@ impl From<LedgerJournalId> for AccountId {
         Self::from(uuid::Uuid::from(id))
     }
 }
+
 impl From<AccountId> for LedgerJournalId {
     fn from(id: AccountId) -> Self {
         Self::from(uuid::Uuid::from(id))
@@ -28,11 +29,13 @@ crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }
 crate::entity_id! { PayoutQueueId }
 crate::entity_id! { PayoutId }
+
 impl From<PayoutId> for LedgerTransactionId {
     fn from(id: PayoutId) -> Self {
         Self::from(uuid::Uuid::from(id))
     }
 }
+
 impl From<LedgerTransactionId> for PayoutId {
     fn from(id: LedgerTransactionId) -> Self {
         Self::from(uuid::Uuid::from(id))
@@ -90,6 +93,7 @@ pub mod bitcoin {
         descriptor::ExtendedDescriptor,
         BlockTime, FeeRate, KeychainKind,
     };
+
     pub mod pg {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
         #[sqlx(type_name = "KeychainKind", rename_all = "snake_case")]
@@ -97,6 +101,7 @@ pub mod bitcoin {
             External,
             Internal,
         }
+
         impl From<super::KeychainKind> for PgKeychainKind {
             fn from(kind: super::KeychainKind) -> Self {
                 match kind {
@@ -105,6 +110,7 @@ pub mod bitcoin {
                 }
             }
         }
+
         impl From<PgKeychainKind> for super::KeychainKind {
             fn from(kind: PgKeychainKind) -> Self {
                 match kind {
@@ -135,15 +141,24 @@ impl TxPriority {
 }
 
 #[derive(Debug, Clone, Serialize, Eq, PartialEq, Hash)]
-pub struct Address(pub(super) bitcoin::BdkAddress);
+pub struct Address(bitcoin::BdkAddress);
 
 impl Address {
-    pub fn new(address: bitcoin::BdkAddress) -> Self {
-        Self(address)
+    pub fn new(addr: &str, network: bitcoin::Network) -> Result<Self, bitcoin::AddressError> {
+        let addr = addr
+            .parse::<bitcoin::BdkAddress<_>>()?
+            .require_network(network)?;
+        Ok(Self(addr))
     }
 
     pub fn script_pubkey(&self) -> bitcoin::ScriptBuf {
         self.0.script_pubkey()
+    }
+}
+
+impl From<bitcoin::BdkAddress> for Address {
+    fn from(addr: bitcoin::BdkAddress) -> Self {
+        Self(addr)
     }
 }
 
@@ -153,7 +168,7 @@ impl fmt::Display for Address {
     }
 }
 
-impl FromStr for Address {
+impl std::str::FromStr for Address {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -199,17 +214,11 @@ impl PayoutDestination {
     }
 }
 
-impl std::fmt::Display for PayoutDestination {
+impl fmt::Display for PayoutDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         match self {
-            PayoutDestination::OnchainAddress { value } => {
-                let addr = &value.0;
-                write!(f, "{addr}")
-            }
-            PayoutDestination::Wallet { id, address } => {
-                let addr = &address.0;
-                write!(f, "wallet:{id}:{addr}")
-            }
+            PayoutDestination::OnchainAddress { value } => write!(f, "{value}"),
+            PayoutDestination::Wallet { id, address } => write!(f, "wallet:{id}:{address}"),
         }
     }
 }
@@ -219,7 +228,7 @@ pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Satoshis(Decimal);
 
-impl std::fmt::Display for Satoshis {
+impl fmt::Display for Satoshis {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -363,7 +372,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_address() {
+    fn parse_address() {
         let address_str = "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0";
         let address = Address(
             address_str
