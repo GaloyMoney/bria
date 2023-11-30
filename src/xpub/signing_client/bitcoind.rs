@@ -37,7 +37,8 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         &mut self,
         psbt: &psbt::PartiallySignedTransaction,
     ) -> Result<psbt::PartiallySignedTransaction, SigningClientError> {
-        let hex_psbt = psbt.serialize_hex();
+        let raw_psbt = psbt.serialize();
+        let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
         let sighash_type = Some(DEFAULT_SIGHASH_TYPE.into());
         let response = self
             .inner
