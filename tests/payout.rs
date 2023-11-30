@@ -111,7 +111,7 @@ async fn spending_policy() -> anyhow::Result<()> {
         )
         .await?;
 
-    let address = Address::from_str("bc1qafpuzp2888lh2cnw5p6zge2mjpdn7was3cjj2l").unwrap();
+    let address = Address::from_str("n4VQ5YdHf7hLQ2gWQYYrcxoE5B7nWuDFNF").unwrap();
 
     let res = app
         .submit_payout_to_address(
