@@ -124,6 +124,10 @@ impl App {
         Ok(app)
     }
 
+    pub fn network(&self) -> bitcoin::Network {
+        self.config.blockchain.network
+    }
+
     #[instrument(name = "app.authenticate", skip_all, err)]
     pub async fn authenticate(&self, key: &str) -> Result<Profile, ApplicationError> {
         let profile = self.profiles.find_by_key(key).await?;
