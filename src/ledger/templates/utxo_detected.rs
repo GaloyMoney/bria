@@ -17,7 +17,7 @@ pub struct UtxoDetectedMeta {
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub encumbered_spending_fees: EncumberedSpendingFees,
     pub confirmation_time: Option<BlockTime>,
 }

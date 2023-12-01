@@ -43,7 +43,7 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let spending_policy = request
                 .spending_policy
-                .map(profile::SpendingPolicy::try_from)
+                .map(|policy| profile::SpendingPolicy::try_from((policy, self.app.network())))
                 .transpose()?;
             let profile = self
                 .app
@@ -525,12 +525,7 @@ impl BriaService for Bria {
                             &profile,
                             wallet_name,
                             payout_queue_name,
-                            address.parse().map_err(|_| {
-                                tonic::Status::new(
-                                    tonic::Code::InvalidArgument,
-                                    "on chain address couldn't be parsed",
-                                )
-                            })?,
+                            address,
                             Satoshis::from(satoshis),
                         )
                         .await?
@@ -589,12 +584,7 @@ impl BriaService for Bria {
                             &profile,
                             wallet_name,
                             payout_queue_name,
-                            address.parse().map_err(|_| {
-                                tonic::Status::new(
-                                    tonic::Code::InvalidArgument,
-                                    "on chain address couldn't be parsed",
-                                )
-                            })?,
+                            address,
                             Satoshis::from(satoshis),
                             external_id,
                             metadata

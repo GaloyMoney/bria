@@ -7,7 +7,7 @@ mod transactions;
 mod utxos;
 
 use bdk::{
-    bitcoin::{blockdata::transaction::OutPoint, Script, Transaction, Txid},
+    bitcoin::{blockdata::transaction::OutPoint, Script, ScriptBuf, Transaction, Txid},
     database::{BatchDatabase, BatchOperations, Database, SyncTime},
     KeychainKind, LocalUtxo, TransactionDetails,
 };
@@ -27,7 +27,7 @@ pub struct SqlxWalletDb {
     rt: Handle,
     pool: PgPool,
     keychain_id: KeychainId,
-    addresses: Option<Vec<(BdkKeychainKind, u32, Script)>>,
+    addresses: Option<Vec<(BdkKeychainKind, u32, ScriptBuf)>>,
     utxos: Option<Vec<LocalUtxo>>,
     txs: Option<Vec<TransactionDetails>>,
 }
@@ -58,7 +58,7 @@ impl BatchOperations for SqlxWalletDb {
         self.addresses.as_mut().unwrap().push((
             BdkKeychainKind::from(keychain),
             path,
-            script.clone(),
+            script.into(),
         ));
         Ok(())
     }
@@ -101,7 +101,7 @@ impl BatchOperations for SqlxWalletDb {
         &mut self,
         _: KeychainKind,
         _: u32,
-    ) -> Result<Option<Script>, bdk::Error> {
+    ) -> Result<Option<ScriptBuf>, bdk::Error> {
         unimplemented!()
     }
     fn del_path_from_script_pubkey(
@@ -160,7 +160,7 @@ impl Database for SqlxWalletDb {
     fn iter_script_pubkeys(
         &self,
         keychain: Option<KeychainKind>,
-    ) -> Result<Vec<Script>, bdk::Error> {
+    ) -> Result<Vec<ScriptBuf>, bdk::Error> {
         self.rt.block_on(async {
             let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
             let scripts = script_pubkeys.list_scripts(keychain).await?;
@@ -189,7 +189,7 @@ impl Database for SqlxWalletDb {
         &self,
         keychain: KeychainKind,
         path: u32,
-    ) -> Result<Option<Script>, bdk::Error> {
+    ) -> Result<Option<ScriptBuf>, bdk::Error> {
         self.rt.block_on(async {
             let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
             script_pubkeys.find_script(keychain, path).await
@@ -202,7 +202,7 @@ impl Database for SqlxWalletDb {
         self.rt.block_on(async {
             let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
             Ok(script_pubkeys
-                .find_path(script)
+                .find_path(&ScriptBuf::from(script))
                 .await?
                 .map(|(kind, path)| (kind.into(), path)))
         })

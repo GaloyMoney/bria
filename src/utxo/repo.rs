@@ -103,7 +103,7 @@ impl UtxoRepo {
         Ok(SettledUtxo {
             keychain_id,
             value: Satoshis::from(row.value),
-            address: row.address.parse().expect("couldn't parse address"),
+            address: Address::parse_from_trusted_source(&row.address),
             utxo_detected_ledger_tx_id: LedgerTransactionId::from(row.income_detected_ledger_tx_id),
             utxo_settled_ledger_tx_id: new_confirmed_ledger_tx_id,
             spend_detected_ledger_tx_id: row
@@ -229,7 +229,7 @@ impl UtxoRepo {
                 value: Satoshis::from(row.value),
                 address: row
                     .optional_address
-                    .map(|addr| addr.parse().expect("couldn't parse address")),
+                    .map(|addr| Address::parse_from_trusted_source(&addr)),
                 bdk_spent: row.bdk_spent,
                 block_height: row.block_height.map(|v| v as u32),
                 utxo_detected_ledger_tx_id: LedgerTransactionId::from(
@@ -410,7 +410,7 @@ impl UtxoRepo {
                 keychain_id: KeychainId::from(row.get::<Uuid, _>("keychain_id")),
                 address: row
                     .get::<Option<String>, _>("optional_address")
-                    .map(|addr| addr.parse().expect("couldn't parse address")),
+                    .map(|addr| Address::parse_from_trusted_source(&addr)),
                 address_idx: row.get::<i32, _>("address_idx") as u32,
                 outpoint: OutPoint {
                     txid: row.get::<String, _>("tx_id").parse().unwrap(),

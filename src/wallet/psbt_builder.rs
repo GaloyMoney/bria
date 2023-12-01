@@ -16,8 +16,8 @@ use crate::{
     utxo::CpfpUtxo,
 };
 
-pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::EcdsaSighashType =
-    bdk::bitcoin::EcdsaSighashType::All;
+pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::sighash::EcdsaSighashType =
+    bdk::bitcoin::sighash::EcdsaSighashType::All;
 const HEADER_VBYTES: usize = 53;
 
 pub struct WalletTotals {

@@ -54,7 +54,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         vout: u32,
         satoshis: Satoshis,
-        address: bitcoin::Address,
+        address: Address,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         // This is to differentiate in the event of a
@@ -65,7 +65,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         vout: u32,
         satoshis: Satoshis,
-        address: bitcoin::Address,
+        address: Address,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         confirmation_time: bitcoin::BlockTime,
@@ -74,7 +74,7 @@ pub enum OutboxEventPayload {
         tx_id: bitcoin::Txid,
         vout: u32,
         satoshis: Satoshis,
-        address: bitcoin::Address,
+        address: Address,
         wallet_id: WalletId,
         keychain_id: KeychainId,
         // This is to differentiate in the event of a

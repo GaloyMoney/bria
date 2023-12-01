@@ -182,7 +182,7 @@ mod tests {
                 payout_queue_id: PayoutQueueId::new(),
                 destination: PayoutDestination::OnchainAddress {
                     value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
-                        .parse()
+                        .parse::<Address>()
                         .unwrap(),
                 },
                 satoshis: Satoshis::from(Decimal::from(21)),

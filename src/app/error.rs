@@ -79,6 +79,8 @@ pub enum ApplicationError {
     HexDecodeError(#[from] hex::FromHexError),
     #[error("Could not decrypt the encrypted key: {0}")]
     CouldNotDecryptKey(chacha20poly1305::Error),
+    #[error("AddressError - Could not parse the address: {0}")]
+    CouldNotParseAddress(#[from] bitcoin::AddressError),
 }
 
 impl From<chacha20poly1305::Error> for ApplicationError {

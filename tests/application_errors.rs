@@ -117,9 +117,6 @@ async fn wallet_name_not_found() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn payout_queue_name_not_found() -> anyhow::Result<()> {
-    use bdk::bitcoin::Address;
-    use std::str::FromStr;
-
     let pool = helpers::init_pool().await?;
     let profile = helpers::create_test_account(&pool).await?;
     let external = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/0/*)#q8r69l4d".to_owned();
@@ -129,11 +126,17 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
     let _ = app
         .create_descriptors_wallet(&profile, wallet_name.clone(), external, internal)
         .await?;
-    let address = Address::from_str(&"3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs".to_string()).unwrap();
+    let address = Address::parse_from_trusted_source("3EZQk4F8GURH5sqVMLTFisD17yNeKa7Dfs");
     let queue_name = "test".to_string();
     let sats = Satoshis::from(10000);
     let err = app
-        .estimate_payout_fee_to_address(&profile, wallet_name, queue_name, address, sats)
+        .estimate_payout_fee_to_address(
+            &profile,
+            wallet_name,
+            queue_name,
+            address.to_string(),
+            sats,
+        )
         .await;
     assert!(matches!(
         err,

@@ -16,7 +16,7 @@ pub struct UtxoSettledMeta {
     pub keychain_id: KeychainId,
     pub outpoint: bitcoin::OutPoint,
     pub satoshis: Satoshis,
-    pub address: bitcoin::Address,
+    pub address: Address,
     pub confirmation_time: BlockTime,
     pub already_spent_tx_id: Option<LedgerTransactionId>,
 }

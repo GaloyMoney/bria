@@ -39,7 +39,7 @@ impl Profile {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendingPolicy {
-    pub allowed_payout_addresses: Vec<bitcoin::Address>,
+    pub allowed_payout_addresses: Vec<Address>,
 }
 
 impl SpendingPolicy {

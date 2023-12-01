@@ -16,17 +16,17 @@ struct SecurityOutput {
 }
 #[derive(Serialize)]
 struct AddressOutput {
-    blocked_addresses: Vec<bitcoin::Address>,
+    blocked_addresses: Vec<bitcoin::BdkAddress>,
 }
 
-fn extract_addresses(file_contents: &str) -> HashSet<bitcoin::Address> {
+fn extract_addresses(file_contents: &str) -> HashSet<bitcoin::BdkAddress> {
     let re = Regex::new(r"\b(bc1|1|3|tb1|m|n|2)[0-9a-zA-Z]*\b").unwrap();
-    let mut addresses: HashSet<bitcoin::Address> = HashSet::new();
+    let mut addresses: HashSet<bitcoin::BdkAddress> = HashSet::new();
 
     for cap in re.captures_iter(file_contents) {
         if let Some(addr) = cap.get(0) {
-            if let Ok(address) = addr.as_str().parse::<bitcoin::Address>() {
-                addresses.insert(address);
+            if let Ok(address) = addr.as_str().parse::<bitcoin::BdkAddress<_>>() {
+                addresses.insert(address.assume_checked());
             }
         }
     }

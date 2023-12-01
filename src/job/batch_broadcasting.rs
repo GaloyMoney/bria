@@ -43,11 +43,7 @@ pub async fn execute(
 async fn init_electrum(electrum_url: &str) -> Result<ElectrumBlockchain, BdkError> {
     let blockchain = ElectrumBlockchain::from(Client::from_config(
         electrum_url,
-        ConfigBuilder::new()
-            .retry(10)
-            .timeout(Some(60))
-            .expect("couldn't set electrum timeout")
-            .build(),
+        ConfigBuilder::new().retry(10).timeout(Some(60)).build(),
     )?);
     Ok(blockchain)
 }

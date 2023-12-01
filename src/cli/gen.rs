@@ -1,5 +1,5 @@
 use bdk::{
-    bitcoin::{secp256k1::Secp256k1, util::bip32, Network},
+    bitcoin::{bip32, secp256k1::Secp256k1, Network},
     keys::{DerivableKey, DescriptorKey, GeneratableKey, GeneratedKey},
     miniscript::Segwitv0,
 };

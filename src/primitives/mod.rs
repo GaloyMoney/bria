@@ -1,6 +1,6 @@
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 pub use sqlx_ledger::{
     event::SqlxLedgerEventId, AccountId as LedgerAccountId, JournalId as LedgerJournalId,
     TransactionId as LedgerTransactionId,
@@ -15,6 +15,7 @@ impl From<LedgerJournalId> for AccountId {
         Self::from(uuid::Uuid::from(id))
     }
 }
+
 impl From<AccountId> for LedgerJournalId {
     fn from(id: AccountId) -> Self {
         Self::from(uuid::Uuid::from(id))
@@ -28,11 +29,13 @@ crate::entity_id! { SignerId }
 crate::entity_id! { WalletId }
 crate::entity_id! { PayoutQueueId }
 crate::entity_id! { PayoutId }
+
 impl From<PayoutId> for LedgerTransactionId {
     fn from(id: PayoutId) -> Self {
         Self::from(uuid::Uuid::from(id))
     }
 }
+
 impl From<LedgerTransactionId> for PayoutId {
     fn from(id: LedgerTransactionId) -> Self {
         Self::from(uuid::Uuid::from(id))
@@ -77,22 +80,20 @@ impl std::ops::Deref for XPubId {
 pub mod bitcoin {
     pub use bdk::{
         bitcoin::{
+            address::{Error as AddressError, NetworkChecked, NetworkUnchecked},
+            bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
             blockdata::{
-                script::Script,
+                script::{Script, ScriptBuf},
                 transaction::{OutPoint, Transaction, TxOut},
             },
             consensus,
             hash_types::Txid,
-            util::{
-                address::Error as AddressError,
-                bip32::{self, DerivationPath, ExtendedPubKey, Fingerprint},
-                psbt,
-            },
-            Address, Network,
+            psbt, Address as BdkAddress, Network,
         },
         descriptor::ExtendedDescriptor,
         BlockTime, FeeRate, KeychainKind,
     };
+
     pub mod pg {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
         #[sqlx(type_name = "KeychainKind", rename_all = "snake_case")]
@@ -100,6 +101,7 @@ pub mod bitcoin {
             External,
             Internal,
         }
+
         impl From<super::KeychainKind> for PgKeychainKind {
             fn from(kind: super::KeychainKind) -> Self {
                 match kind {
@@ -108,6 +110,7 @@ pub mod bitcoin {
                 }
             }
         }
+
         impl From<PgKeychainKind> for super::KeychainKind {
             fn from(kind: PgKeychainKind) -> Self {
                 match kind {
@@ -137,22 +140,80 @@ impl TxPriority {
     }
 }
 
-pub type TxPayout = (uuid::Uuid, bitcoin::Address, Satoshis);
+#[derive(Debug, Clone, Serialize, Eq, PartialEq, Hash)]
+pub struct Address(bitcoin::BdkAddress);
+
+impl Address {
+    pub fn script_pubkey(&self) -> bitcoin::ScriptBuf {
+        self.0.script_pubkey()
+    }
+
+    pub fn parse_from_trusted_source(s: &str) -> Address {
+        s.parse::<bitcoin::BdkAddress<_>>()
+            .expect("should always parse address")
+            .assume_checked()
+            .into()
+    }
+}
+
+impl From<bitcoin::BdkAddress> for Address {
+    fn from(addr: bitcoin::BdkAddress) -> Self {
+        Self(addr)
+    }
+}
+
+impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+impl std::str::FromStr for Address {
+    type Err = <bitcoin::BdkAddress<bitcoin::NetworkUnchecked> as std::str::FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let address = bitcoin::BdkAddress::from_str(s)?.assume_checked();
+        Ok(Address(address))
+    }
+}
+
+impl TryFrom<(String, bitcoin::Network)> for Address {
+    type Error = bitcoin::AddressError;
+    fn try_from((address, network): (String, bitcoin::Network)) -> Result<Self, Self::Error> {
+        let address = address
+            .parse::<bitcoin::BdkAddress<_>>()?
+            .require_network(network)?;
+        Ok(Address(address))
+    }
+}
+
+impl<'de> Deserialize<'de> for Address {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let address = s
+            .parse::<bitcoin::BdkAddress<_>>()
+            .map_err(|err| serde::de::Error::custom(err.to_string()))?
+            .assume_checked();
+
+        Ok(Address(address))
+    }
+}
+
+pub type TxPayout = (uuid::Uuid, Address, Satoshis);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PayoutDestination {
-    OnchainAddress {
-        value: bitcoin::Address,
-    },
-    Wallet {
-        id: WalletId,
-        address: bitcoin::Address,
-    },
+    OnchainAddress { value: Address },
+    Wallet { id: WalletId, address: Address },
 }
 
 impl PayoutDestination {
-    pub fn onchain_address(&self) -> &bitcoin::Address {
+    pub fn onchain_address(&self) -> &Address {
         match self {
             Self::OnchainAddress { value } => value,
             Self::Wallet { address, .. } => address,
@@ -160,12 +221,10 @@ impl PayoutDestination {
     }
 }
 
-impl std::fmt::Display for PayoutDestination {
+impl fmt::Display for PayoutDestination {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         match self {
-            PayoutDestination::OnchainAddress { value } => {
-                write!(f, "{value}")
-            }
+            PayoutDestination::OnchainAddress { value } => write!(f, "{value}"),
             PayoutDestination::Wallet { id, address } => write!(f, "wallet:{id}:{address}"),
         }
     }
@@ -173,12 +232,10 @@ impl std::fmt::Display for PayoutDestination {
 
 pub const SATS_PER_BTC: Decimal = dec!(100_000_000);
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Satoshis(Decimal);
 
-impl std::fmt::Display for Satoshis {
+impl fmt::Display for Satoshis {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }

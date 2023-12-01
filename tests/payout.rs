@@ -86,11 +86,7 @@ async fn spending_policy() -> anyhow::Result<()> {
     let _ = app
         .create_payout_queue(&profile, queue_name.clone(), None, None)
         .await?;
-
-    let address = "mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU"
-        .parse::<bitcoin::Address>()
-        .unwrap();
-
+    let address = Address::parse_from_trusted_source("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU");
     let spending_profile = app
         .create_profile(
             &profile,
@@ -106,16 +102,14 @@ async fn spending_policy() -> anyhow::Result<()> {
             &spending_profile,
             wallet_name.clone(),
             queue_name.clone(),
-            address,
+            address.to_string(),
             Satoshis::from(10000),
             None,
             None,
         )
         .await?;
 
-    let address = "bc1qafpuzp2888lh2cnw5p6zge2mjpdn7was3cjj2l"
-        .parse::<bitcoin::Address>()
-        .unwrap();
+    let address = "n4VQ5YdHf7hLQ2gWQYYrcxoE5B7nWuDFNF".parse().unwrap();
 
     let res = app
         .submit_payout_to_address(
