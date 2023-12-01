@@ -197,3 +197,50 @@ fn read_to_base64(path: impl Into<std::path::PathBuf>) -> anyhow::Result<String>
     use base64::{engine::general_purpose, Engine};
     Ok(general_purpose::STANDARD.encode(buffer))
 }
+
+pub async fn bitcoind_signing_client() -> anyhow::Result<BitcoindRemoteSigner> {
+    use bitcoincore_rpc::Auth;
+
+    let bitcoind_host = std::env::var("BITCOIND_HOST").unwrap_or("localhost".to_string());
+    let wallet_name = format!(
+        "wallet_{}",
+        Alphanumeric.sample_string(&mut rand::thread_rng(), 6)
+    );
+    let client = BitcoindClient::new(
+        &format!("{bitcoind_host}:18443/wallet/{wallet_name}"),
+        Auth::UserPass("rpcuser".to_string(), "rpcpassword".to_string()),
+    )?;
+
+    client
+        .create_wallet(&wallet_name, None, None, None, None)
+        .context("client.create_signing_wallet")?;
+
+    let external_json_descriptor = serde_json::json!({
+        "active": true,
+        "desc": "wpkh([6f2fa1b2/84'/0'/0']tprv8gXB88g1VCScmqPp8WcetpJPRxix24fRJJ6FniYCcCUEFMREDrCfwd34zWXPiY5MW2xp8e1Z6EeBrh74zMSgfQQmTorWtE1zyBtv7yxdcoa/0/*)#88k4937c",
+        "timestamp": 0
+    });
+    let external_desc = serde_json::from_value(external_json_descriptor)?;
+    client
+        .import_descriptors(external_desc)
+        .context("client.import_external_descriptor")?;
+
+    let internal_json_descriptor = serde_json::json!({
+        "active": true,
+        "desc": "wpkh([6f2fa1b2/84'/0'/0']tprv8gXB88g1VCScmqPp8WcetpJPRxix24fRJJ6FniYCcCUEFMREDrCfwd34zWXPiY5MW2xp8e1Z6EeBrh74zMSgfQQmTorWtE1zyBtv7yxdcoa/1/*)#knn5cywq",
+        "internal": true,
+        "timestamp": 0
+    });
+    let internal_desc = serde_json::from_value(internal_json_descriptor)?;
+    client
+        .import_descriptors(internal_desc)
+        .context("client.import_internal_descriptor")?;
+
+    let cfg = BitcoindSignerConfig {
+        endpoint: format!("{bitcoind_host}:18443/wallet/{wallet_name}").to_string(),
+        rpc_password: "rpcpassword".to_string(),
+        rpc_user: "rpcuser".to_string(),
+    };
+
+    Ok(BitcoindRemoteSigner::connect(&cfg).await?)
+}

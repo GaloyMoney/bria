@@ -37,9 +37,10 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     let pool = helpers::init_pool().await?;
 
+    let external = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr";
+    let internal = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm";
     let domain_current_keychain_id = Uuid::new_v4();
-    let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
-    let keychain_cfg = KeychainConfig::wpkh(xpub);
+    let keychain_cfg = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
     let domain_current_keychain = KeychainWallet::new(
         pool.clone(),
         Network::Regtest,
@@ -210,8 +211,8 @@ async fn build_psbt() -> anyhow::Result<()> {
 
     other_wallet_current_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
     other_wallet_deprecated_keychain.sign(&mut unsigned_psbt, SignOptions::default())?;
-    let mut lnd_client = helpers::lnd_signing_client().await?;
-    let signed_psbt = lnd_client.sign_psbt(&unsigned_psbt).await?;
+    let mut bitcoind_client = helpers::bitcoind_signing_client().await?;
+    let signed_psbt = bitcoind_client.sign_psbt(&unsigned_psbt).await?;
     let tx = domain_current_keychain
         .finalize_psbt(signed_psbt)
         .await?
