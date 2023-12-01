@@ -362,6 +362,12 @@ impl std::ops::AddAssign<Satoshis> for Satoshis {
     }
 }
 
+impl std::ops::SubAssign<Satoshis> for Satoshis {
+    fn sub_assign(&mut self, rhs: Satoshis) {
+        *self = Self(self.0 - rhs.0)
+    }
+}
+
 impl std::iter::Sum for Satoshis {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
         iter.fold(Satoshis::ZERO, |a, b| a + b)

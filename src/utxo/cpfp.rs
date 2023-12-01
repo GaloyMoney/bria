@@ -43,16 +43,31 @@ impl CpfpUtxo {
         &self,
         fee_rate: &bdk::FeeRate,
     ) -> HashMap<Txid, (Option<BatchId>, Satoshis)> {
-        self.attributions
-            .iter()
-            .fold(HashMap::new(), |mut ret, (tx_id, attr)| {
-                let required_fee = fee_rate.fee_vb(attr.vbytes as usize);
-                let diff_sats = Satoshis::from(required_fee) - attr.fee;
-                if diff_sats > Satoshis::ZERO {
-                    ret.insert(*tx_id, (attr.batch_id, diff_sats));
+        let total_vbytes = self.additional_vbytes();
+        let included_fees = self.included_fees();
+        let required_fee = fee_rate.fee_vb(total_vbytes as usize);
+        let mut fees_still_to_allocate = Satoshis::from(required_fee) - included_fees;
+        if fees_still_to_allocate <= Satoshis::ZERO {
+            return HashMap::new();
+        }
+        let missing_fees = u64::from(fees_still_to_allocate) as f64;
+        let len = self.attributions.len();
+
+        self.attributions.iter().enumerate().fold(
+            HashMap::new(),
+            |mut acc, (idx, (tx_id, attr))| {
+                if idx == len - 1 {
+                    acc.insert(*tx_id, (attr.batch_id, fees_still_to_allocate));
+                } else {
+                    let fees_to_attribute =
+                        (attr.vbytes as f64 * missing_fees) / total_vbytes as f64;
+                    let sats_to_attribute = Satoshis::from(fees_to_attribute.round() as u64);
+                    fees_still_to_allocate -= sats_to_attribute;
+                    acc.insert(*tx_id, (attr.batch_id, sats_to_attribute));
                 }
-                ret
-            })
+                acc
+            },
+        )
     }
 }
 
@@ -160,19 +175,25 @@ mod tests {
                 .into_iter()
                 .collect(),
         );
-        let utxo = res.get(&keychain_id1).unwrap();
-        assert_eq!(utxo.len(), 1);
-        assert_eq!(utxo[0].attributions.len(), 1);
+        let utxos = res.get(&keychain_id1).unwrap();
+        assert_eq!(utxos.len(), 1);
+        assert_eq!(utxos[0].attributions.len(), 1);
         assert_eq!(
-            utxo[0]
+            utxos[0]
                 .attributions
                 .get(&txid1)
                 .expect("missing attribution")
                 .fee,
             Satoshis::from(42)
         );
-        let utxo = res.get(&keychain_id2).unwrap();
-        assert_eq!(utxo.len(), 2);
+        let missing_fees = utxos[0].missing_fees(&FeeRate::from_sat_per_vb(2.0));
+        assert_eq!(missing_fees.len(), 1);
+        let (_, missing_fee) = missing_fees
+            .get(&txid1)
+            .expect("missing missing fee for txid");
+        assert_eq!(*missing_fee, Satoshis::from(42));
+        let utxos = res.get(&keychain_id2).unwrap();
+        assert_eq!(utxos.len(), 2);
     }
 
     #[test]
@@ -384,5 +405,54 @@ mod tests {
         assert_eq!(utxos.len(), 1);
         assert_eq!(utxos[0].additional_vbytes(), 126);
         assert_eq!(utxos[0].included_fees(), Satoshis::from(126));
+    }
+
+    #[test]
+    fn candidate_with_cpfp_history() {
+        let keychain_id = KeychainId::new();
+        let txid = "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap();
+        let ancestor_id1 = "5010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap();
+
+        let candidate1 = CpfpCandidate {
+            keychain_id,
+            origin_tx_batch_id: None,
+            utxo_history_tip: true,
+            outpoint: OutPoint { txid, vout: 0 },
+            ancestor_tx_id: Some(ancestor_id1),
+            origin_tx_vbytes: 100,
+            origin_tx_fee: Satoshis::from(1000),
+        };
+        let ancestor1 = CpfpCandidate {
+            keychain_id,
+            origin_tx_batch_id: Some(BatchId::new()),
+            utxo_history_tip: false,
+            outpoint: OutPoint {
+                txid: ancestor_id1,
+                vout: 0,
+            },
+            ancestor_tx_id: None,
+            origin_tx_vbytes: 100,
+            origin_tx_fee: Satoshis::from(100),
+        };
+
+        let res = extract_cpfp_utxos(vec![candidate1, ancestor1].into_iter().collect());
+        let utxos = res.get(&keychain_id).unwrap();
+        assert_eq!(utxos.len(), 1);
+        assert_eq!(utxos[0].additional_vbytes(), 200);
+        assert_eq!(utxos[0].included_fees(), Satoshis::from(1100));
+        let missing_fees = utxos[0].missing_fees(&FeeRate::from_sat_per_vb(100.0));
+        assert_eq!(missing_fees.len(), 2);
+        let (_, missing_fee) = missing_fees
+            .get(&txid)
+            .expect("missing missing fee for txid");
+        assert_eq!(*missing_fee, Satoshis::from(9450));
+        let (_, missing_fee) = missing_fees
+            .get(&ancestor_id1)
+            .expect("missing missing fee for txid");
+        assert_eq!(*missing_fee, Satoshis::from(9450));
     }
 }
