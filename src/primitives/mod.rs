@@ -169,14 +169,10 @@ impl fmt::Display for Address {
 }
 
 impl std::str::FromStr for Address {
-    type Err = String;
+    type Err = <bitcoin::BdkAddress<bitcoin::NetworkUnchecked> as std::str::FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let address = s
-            .parse::<bitcoin::BdkAddress<_>>()
-            .map_err(|err| err.to_string())?
-            .assume_checked();
-
+        let address = bitcoin::BdkAddress::from_str(s)?.assume_checked();
         Ok(Address(address))
     }
 }

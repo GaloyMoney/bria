@@ -11,5 +11,5 @@ pub enum BatchError {
     #[error("BatchError - BitcoinConsensusEncodeError: {0}")]
     BitcoinConsensusEncodeError(#[from] crate::primitives::bitcoin::consensus::encode::Error),
     #[error("BatchError - Could not deserialize PSBT: {0}")]
-    PsbtDeserializeError(#[from] crate::primitives::bitcoin::psbt::Error),
+    PsbtDeserializationError(#[from] crate::primitives::bitcoin::psbt::Error),
 }
