@@ -174,7 +174,6 @@ mod tests {
     use super::*;
 
     fn init_events() -> EntityEvents<PayoutEvent> {
-        use std::str::FromStr;
         EntityEvents::init([
             PayoutEvent::Initialized {
                 id: PayoutId::new(),
@@ -182,10 +181,9 @@ mod tests {
                 profile_id: ProfileId::new(),
                 payout_queue_id: PayoutQueueId::new(),
                 destination: PayoutDestination::OnchainAddress {
-                    value: Address::from_str(
-                        "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej",
-                    )
-                    .unwrap(),
+                    value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+                        .parse::<Address>()
+                        .unwrap(),
                 },
                 satoshis: Satoshis::from(Decimal::from(21)),
             },

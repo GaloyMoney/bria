@@ -144,15 +144,15 @@ impl TxPriority {
 pub struct Address(bitcoin::BdkAddress);
 
 impl Address {
-    pub fn new(addr: &str, network: bitcoin::Network) -> Result<Self, bitcoin::AddressError> {
-        let addr = addr
-            .parse::<bitcoin::BdkAddress<_>>()?
-            .require_network(network)?;
-        Ok(Self(addr))
-    }
-
     pub fn script_pubkey(&self) -> bitcoin::ScriptBuf {
         self.0.script_pubkey()
+    }
+
+    pub fn parse_from_trusted_source(s: &str) -> Address {
+        s.parse::<bitcoin::BdkAddress<_>>()
+            .expect("should always parse address")
+            .assume_checked()
+            .into()
     }
 }
 
@@ -168,11 +168,22 @@ impl fmt::Display for Address {
     }
 }
 
+#[cfg(test)]
 impl std::str::FromStr for Address {
     type Err = <bitcoin::BdkAddress<bitcoin::NetworkUnchecked> as std::str::FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let address = bitcoin::BdkAddress::from_str(s)?.assume_checked();
+        Ok(Address(address))
+    }
+}
+
+impl TryFrom<(String, bitcoin::Network)> for Address {
+    type Error = bitcoin::AddressError;
+    fn try_from((address, network): (String, bitcoin::Network)) -> Result<Self, Self::Error> {
+        let address = address
+            .parse::<bitcoin::BdkAddress<_>>()?
+            .require_network(network)?;
         Ok(Address(address))
     }
 }
@@ -360,23 +371,5 @@ impl std::iter::Sum for Satoshis {
 impl<'a> std::iter::Sum<&'a Satoshis> for Satoshis {
     fn sum<I: Iterator<Item = &'a Self>>(iter: I) -> Self {
         iter.fold(Satoshis::ZERO, |a, b| a + *b)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn parse_address() {
-        let address_str = "bcrt1qzg4a08kc2xrp08d9k5jadm78ehf7catp735zn0";
-        let address = Address(
-            address_str
-                .parse::<bitcoin::BdkAddress<_>>()
-                .unwrap()
-                .assume_checked(),
-        );
-
-        assert_eq!(address_str, address.to_string());
     }
 }

@@ -2,7 +2,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use sqlx_ledger::TransactionId as LedgerTxId;
 use tracing::instrument;
 
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use super::{entity::*, error::BatchError};
 use crate::primitives::*;
@@ -136,7 +136,7 @@ impl Batches {
                     change_address: row
                         .change_address
                         .as_ref()
-                        .map(|a| Address::from_str(a).expect("parse address")),
+                        .map(|a| Address::parse_from_trusted_source(a)),
                     change_outpoint: row.change_vout.map(|out| bitcoin::OutPoint {
                         txid: bitcoin_tx_id,
                         vout: out as u32,

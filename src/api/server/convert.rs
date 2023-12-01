@@ -42,15 +42,15 @@ impl From<SpendingPolicy> for proto::SpendingPolicy {
     }
 }
 
-impl TryFrom<(bitcoin::Network, proto::SpendingPolicy)> for SpendingPolicy {
+impl TryFrom<(proto::SpendingPolicy, bitcoin::Network)> for SpendingPolicy {
     type Error = tonic::Status;
 
-    fn try_from((_, sp): (bitcoin::Network, proto::SpendingPolicy)) -> Result<Self, Self::Error> {
-        use std::str::FromStr;
-
+    fn try_from(
+        (sp, network): (proto::SpendingPolicy, bitcoin::Network),
+    ) -> Result<Self, Self::Error> {
         let mut allowed_payout_addresses = Vec::new();
         for dest in sp.allowed_payout_addresses {
-            let addr = Address::from_str(&dest)
+            let addr = Address::try_from((dest, network))
                 .map_err(|err| tonic::Status::invalid_argument(err.to_string()))?;
             allowed_payout_addresses.push(addr);
         }

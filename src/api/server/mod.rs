@@ -43,7 +43,7 @@ impl BriaService for Bria {
             let request = request.into_inner();
             let spending_policy = request
                 .spending_policy
-                .map(|policy| profile::SpendingPolicy::try_from((self.app.network(), policy)))
+                .map(|policy| profile::SpendingPolicy::try_from((policy, self.app.network())))
                 .transpose()?;
             let profile = self
                 .app
