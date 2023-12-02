@@ -1,3 +1,18 @@
+# [bria release v0.1.77](https://github.com/GaloyMoney/bria/releases/tag/0.1.77)
+
+
+### Bug Fixes
+
+- Attribution in chain of cpfp txs (#409)
+
+### Miscellaneous Tasks
+
+- Update bdk, bitcoincore-rpc and electrum-client (#407)
+
+### Testing
+
+- Use bitcoind as signing client for build_psbt fn (#408)
+
 # [bria release v0.1.76](https://github.com/GaloyMoney/bria/releases/tag/0.1.76)
 
 
