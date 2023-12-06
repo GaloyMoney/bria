@@ -295,6 +295,7 @@ impl From<proto::PayoutQueueConfig> for PayoutQueueConfig {
             consolidate_deprecated_keychains: proto_config.consolidate_deprecated_keychains,
             cpfp_payouts_after_mins: proto_config.cpfp_payouts_after_mins,
             cpfp_payouts_after_blocks: proto_config.cpfp_payouts_after_blocks,
+            force_min_change_sats: proto_config.force_min_change_sats.map(Satoshis::from),
             ..Self::default()
         };
 
