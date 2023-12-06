@@ -345,6 +345,8 @@ enum Command {
         cpfp_payouts_after_mins: Option<u32>,
         #[clap(long = "cpfp-after-blocks")]
         cpfp_payouts_after_blocks: Option<u32>,
+        #[clap(long)]
+        min_change: Option<u64>,
     },
     /// Trigger Payout Queue
     TriggerPayoutQueue {
@@ -500,6 +502,8 @@ enum Command {
         cpfp_payouts_after_mins: Option<u32>,
         #[clap(long = "cpfp-after-blocks")]
         cpfp_payouts_after_blocks: Option<u32>,
+        #[clap(long)]
+        min_change: Option<u64>,
     },
     /// Get Batch details
     GetBatch {
@@ -851,6 +855,7 @@ pub async fn run() -> anyhow::Result<()> {
             manual_trigger,
             cpfp_payouts_after_mins,
             cpfp_payouts_after_blocks,
+            min_change,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
@@ -863,6 +868,7 @@ pub async fn run() -> anyhow::Result<()> {
                     manual_trigger,
                     cpfp_payouts_after_mins,
                     cpfp_payouts_after_blocks,
+                    min_change,
                 )
                 .await?;
         }
@@ -944,6 +950,7 @@ pub async fn run() -> anyhow::Result<()> {
             interval_trigger,
             cpfp_payouts_after_mins,
             cpfp_payouts_after_blocks,
+            min_change,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client
@@ -955,6 +962,7 @@ pub async fn run() -> anyhow::Result<()> {
                     interval_trigger,
                     cpfp_payouts_after_mins,
                     cpfp_payouts_after_blocks,
+                    min_change,
                 )
                 .await?;
         }

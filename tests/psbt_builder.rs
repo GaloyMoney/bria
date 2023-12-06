@@ -373,6 +373,64 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[tokio::test]
+#[serial]
+async fn build_psbt_with_min_change_output() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+
+    let domain_current_keychain_id = Uuid::new_v4();
+    let xpub = XPub::try_from(("tpubDD4vFnWuTMEcZiaaZPgvzeGyMzWe6qHW8gALk5Md9kutDvtdDjYFwzauEFFRHgov8pAwup5jX88j5YFyiACsPf3pqn5hBjvuTLRAseaJ6b4", Some("m/84'/0'/0'"))).unwrap();
+    let keychain_cfg = KeychainConfig::wpkh(xpub);
+    let domain_current_keychain = KeychainWallet::new(
+        pool.clone(),
+        Network::Regtest,
+        domain_current_keychain_id.into(),
+        keychain_cfg,
+    );
+    let domain_addr = domain_current_keychain.new_external_address().await?;
+
+    let bitcoind = helpers::bitcoind_client().await?;
+    let wallet_funding = 100_000_000;
+    let wallet_funding_sats = Satoshis::from(wallet_funding);
+    helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
+    let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
+    helpers::gen_blocks(&bitcoind, 10)?;
+
+    let sats_per_vbyte: f64 = 100.0;
+    let fee = FeeRate::from_sat_per_vb(sats_per_vbyte as f32);
+    let min_change = Satoshis::from(100_000_000);
+    let cfg = PsbtBuilderConfig::builder()
+        .consolidate_deprecated_keychains(true)
+        .fee_rate(fee)
+        .force_min_change_output(Some(min_change))
+        .build()
+        .unwrap();
+    let builder = PsbtBuilder::new(cfg);
+
+    let domain_wallet_id = WalletId::new();
+    let domain_send_amount = wallet_funding_sats - Satoshis::from(50_000_000);
+    let destination = Address::parse_from_trusted_source("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU");
+    let payouts_one = vec![(Uuid::new_v4(), destination.clone(), domain_send_amount)];
+
+    let builder = builder
+        .wallet_payouts(domain_wallet_id, payouts_one)
+        .accept_current_keychain();
+    while !find_tx_id(&pool, domain_current_keychain_id, tx_id).await? {
+        let blockchain = helpers::electrum_blockchain().await?;
+        domain_current_keychain.sync(blockchain).await?;
+    }
+    let builder = domain_current_keychain
+        .dispatch_bdk_wallet(builder)
+        .await?
+        .next_wallet();
+    let FinishedPsbtBuild { wallet_totals, .. } = builder.finish();
+    assert_eq!(wallet_totals.len(), 1);
+    let domain_wallet_total = wallet_totals.get(&domain_wallet_id).unwrap();
+    assert!(domain_wallet_total.change_satoshis >= min_change);
+
+    Ok(())
+}
+
 async fn find_tx_id(
     pool: &sqlx::PgPool,
     keychain_id: Uuid,
