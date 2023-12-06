@@ -31,14 +31,15 @@ impl MempoolSpaceClient {
             .expect("Could not build reqwest client");
 
         let url = format!("{}{}", self.config.url, "/api/v1/fees/recommended");
-        let resp = client.get(&url).send().await?;
-        let fee_estimations = resp.json::<RecommendedFeesResponse>().await.map_err(|e| {
-            if e.is_decode() {
-                FeeEstimationError::MempoolSpaceBlip
-            } else {
-                FeeEstimationError::FeeEstimation(e)
-            }
-        })?;
+        let resp = client
+            .get(&url)
+            .send()
+            .await
+            .map_err(FeeEstimationError::FeeEstimation)?;
+        let fee_estimations = resp
+            .json::<RecommendedFeesResponse>()
+            .await
+            .map_err(FeeEstimationError::CouldNotDecodeResponseBody)?;
         match priority {
             TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(
                 fee_estimations.half_hour_fee as f32,
