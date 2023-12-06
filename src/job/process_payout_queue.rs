@@ -195,10 +195,15 @@ pub async fn construct_psbt(
         reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
     );
 
-    let mut mandatory_cpfp_utxos = HashMap::new();
+    span.record("n_cpfp_utxos", 0);
+
+    let mut cfg = PsbtBuilderConfig::builder()
+        .consolidate_deprecated_keychains(queue_cfg.consolidate_deprecated_keychains)
+        .fee_rate(fee_rate)
+        .reserved_utxos(reserved_utxos);
     if !for_estimation && queue_cfg.should_cpfp() {
         let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
-        mandatory_cpfp_utxos = utxos
+        let utxos = utxos
             .find_cpfp_utxos(
                 tx,
                 keychain_ids,
@@ -208,29 +213,22 @@ pub async fn construct_psbt(
                     .cpfp_payouts_detected_before_block(crate::bdk::last_sync_time(pool).await?),
             )
             .await?;
+        span.record(
+            "n_cpfp_utxos",
+            utxos.values().fold(0, |acc, v| acc + v.len()),
+        );
+        cfg = cfg.cpfp_utxos(utxos);
     }
-    span.record(
-        "n_cpfp_utxos",
-        mandatory_cpfp_utxos
-            .values()
-            .fold(0, |acc, v| acc + v.len()),
-    );
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
 
-    let cfg = PsbtBuilderConfig::builder()
-        .build()
-        .expect("Couldn't build PsbtBuilderConfig");
     Ok(PsbtBuilder::construct_psbt(
         pool,
-        cfg,
-        queue_cfg.consolidate_deprecated_keychains,
-        fee_rate,
-        reserved_utxos,
-        mandatory_cpfp_utxos,
+        cfg.for_estimation(for_estimation)
+            .build()
+            .expect("Couldn't build PsbtBuilderConfig"),
         tx_payouts,
         wallets,
-        for_estimation,
     )
     .await?)
 }
