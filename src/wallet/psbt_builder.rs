@@ -3,6 +3,7 @@ use bdk::{
     wallet::{tx_builder::TxOrdering, AddressIndex, AddressInfo},
     FeeRate, Wallet,
 };
+use derive_builder::Builder;
 use std::{
     collections::{HashMap, HashSet},
     marker::PhantomData,
@@ -61,7 +62,23 @@ impl FinishedPsbtBuild {
     }
 }
 
+#[derive(Builder)]
+#[builder(pattern = "owned")]
+pub struct PsbtBuilderConfig {
+    consolidate_deprecated_keychains: bool,
+    fee_rate: FeeRate,
+    reserved_utxos: HashMap<KeychainId, Vec<OutPoint>>,
+    cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>,
+    for_estimation: bool,
+}
+
+impl PsbtBuilderConfig {
+    pub fn builder() -> PsbtBuilderConfigBuilder {
+        PsbtBuilderConfigBuilder::default()
+    }
+}
 pub struct PsbtBuilder<T> {
+    cfg: PsbtBuilderConfig,
     consolidate_deprecated_keychains: Option<bool>,
     fee_rate: Option<FeeRate>,
     reserved_utxos: Option<HashMap<KeychainId, Vec<OutPoint>>>,
@@ -148,17 +165,12 @@ impl<T> PsbtBuilder<T> {
     }
 }
 
-impl Default for PsbtBuilder<InitialPsbtBuilderState> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl PsbtBuilder<InitialPsbtBuilderState> {
     #[instrument(name = "psbt_builder.construct_psbt", skip_all)]
     #[allow(clippy::too_many_arguments)]
     pub async fn construct_psbt(
         pool: &sqlx::PgPool,
+        cfg: PsbtBuilderConfig,
         consolidate_deprecated_keychains: bool,
         fee_rate: FeeRate,
         reserved_utxos: HashMap<KeychainId, Vec<bitcoin::OutPoint>>,
@@ -167,7 +179,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         mut wallets: HashMap<WalletId, WalletEntity>,
         for_estimation: bool,
     ) -> Result<FinishedPsbtBuild, BdkError> {
-        let mut outer_builder = PsbtBuilder::new()
+        let mut outer_builder = PsbtBuilder::new(cfg)
             .consolidate_deprecated_keychains(consolidate_deprecated_keychains)
             .fee_rate(fee_rate)
             .reserved_utxos(reserved_utxos)
@@ -191,8 +203,9 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         Ok(outer_builder.finish())
     }
 
-    pub fn new() -> Self {
+    pub fn new(cfg: PsbtBuilderConfig) -> Self {
         Self {
+            cfg,
             consolidate_deprecated_keychains: None,
             fee_rate: None,
             reserved_utxos: None,
@@ -275,6 +288,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         };
 
         PsbtBuilder::<AcceptingWalletState> {
+            cfg: self.cfg,
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
@@ -302,6 +316,7 @@ impl PsbtBuilder<AcceptingWalletState> {
         assert!(self.current_wallet_psbts.is_empty());
         assert!(self.current_wallet_cpfp_allocations.is_empty());
         PsbtBuilder::<AcceptingDeprecatedKeychainState> {
+            cfg: self.cfg,
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
@@ -380,6 +395,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingDeprecatedKeychainState> {
 impl PsbtBuilder<AcceptingDeprecatedKeychainState> {
     pub fn accept_current_keychain(self) -> PsbtBuilder<AcceptingCurrentKeychainState> {
         PsbtBuilder::<AcceptingCurrentKeychainState> {
+            cfg: self.cfg,
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,
@@ -597,6 +613,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 impl PsbtBuilder<AcceptingCurrentKeychainState> {
     pub fn next_wallet(self) -> PsbtBuilder<AcceptingWalletState> {
         PsbtBuilder::<AcceptingWalletState> {
+            cfg: self.cfg,
             consolidate_deprecated_keychains: self.consolidate_deprecated_keychains,
             fee_rate: self.fee_rate,
             reserved_utxos: self.reserved_utxos,

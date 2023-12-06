@@ -218,8 +218,12 @@ pub async fn construct_psbt(
 
     let tx_payouts = unbatched_payouts.into_tx_payouts();
 
+    let cfg = PsbtBuilderConfig::builder()
+        .build()
+        .expect("Couldn't build PsbtBuilderConfig");
     Ok(PsbtBuilder::construct_psbt(
         pool,
+        cfg,
         queue_cfg.consolidate_deprecated_keychains,
         fee_rate,
         reserved_utxos,

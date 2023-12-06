@@ -85,7 +85,8 @@ async fn build_psbt() -> anyhow::Result<()> {
     }
 
     let fee = FeeRate::from_sat_per_vb(1.0);
-    let builder = PsbtBuilder::new()
+    let cfg = PsbtBuilderConfig::builder().build().unwrap();
+    let builder = PsbtBuilder::new(cfg)
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
         .accept_wallets();
@@ -269,7 +270,8 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     }];
     let sats_per_vbyte: f64 = 100.0;
     let fee = FeeRate::from_sat_per_vb(sats_per_vbyte as f32);
-    let builder = PsbtBuilder::new()
+    let cfg = PsbtBuilderConfig::builder().build().unwrap();
+    let builder = PsbtBuilder::new(cfg)
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
         .cpfp_utxos(
