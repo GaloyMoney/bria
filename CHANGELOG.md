@@ -1,3 +1,18 @@
+# [bria release v0.1.78](https://github.com/GaloyMoney/bria/releases/tag/0.1.78)
+
+
+### Bug Fixes
+
+- Pass force_min_change_sats in convert
+
+### Features
+
+- Add force_min_change_sats to PayoutQueueConfig (#414)
+
+### Refactor
+
+- Introduce PsbtBuilderConfig (#413)
+
 # [bria release v0.1.77](https://github.com/GaloyMoney/bria/releases/tag/0.1.77)
 
 
