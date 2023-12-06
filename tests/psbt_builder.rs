@@ -90,7 +90,7 @@ async fn build_psbt() -> anyhow::Result<()> {
         .fee_rate(fee)
         .build()
         .unwrap();
-    let builder = PsbtBuilder::new(cfg).accept_wallets();
+    let builder = PsbtBuilder::new(cfg);
 
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
@@ -281,7 +281,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
         )
         .build()
         .unwrap();
-    let builder = PsbtBuilder::new(cfg).accept_wallets();
+    let builder = PsbtBuilder::new(cfg);
 
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(100_000_000);

@@ -79,6 +79,30 @@ impl PsbtBuilderConfig {
     pub fn builder() -> PsbtBuilderConfigBuilder {
         PsbtBuilderConfigBuilder::default()
     }
+
+    pub fn collect_missing_cpfp_fees(&mut self) -> HashMap<Txid, (Option<BatchId>, Satoshis)> {
+        let mut missing_cpfp_fees = HashMap::new();
+        let mut non_cpfp_utxos = HashSet::new();
+        for (keychain, utxos) in self.cpfp_utxos.iter_mut() {
+            non_cpfp_utxos.clear();
+            for utxo in utxos.iter() {
+                let missing_fees = utxo.missing_fees(&self.fee_rate);
+                // If we don't actually need additional fees to bump we will
+                // let BDK choose the UTXO it if it wants
+                // => remove from reserved_utxos
+                if missing_fees.is_empty() {
+                    non_cpfp_utxos.insert(utxo.outpoint);
+                    if let Some(reserved) = self.reserved_utxos.get_mut(keychain) {
+                        reserved.retain(|out| out != &utxo.outpoint);
+                    }
+                } else {
+                    missing_cpfp_fees.extend(missing_fees);
+                }
+            }
+            utxos.retain(|utxo| !non_cpfp_utxos.contains(&utxo.outpoint));
+        }
+        missing_cpfp_fees
+    }
 }
 
 pub struct PsbtBuilder<T> {
@@ -168,7 +192,7 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         unbatched_payouts: HashMap<WalletId, Vec<TxPayout>>,
         mut wallets: HashMap<WalletId, WalletEntity>,
     ) -> Result<FinishedPsbtBuild, BdkError> {
-        let mut outer_builder = PsbtBuilder::new(cfg).accept_wallets();
+        let mut outer_builder = PsbtBuilder::new(cfg);
 
         for (wallet_id, payouts) in unbatched_payouts {
             let wallet = wallets.remove(&wallet_id).expect("Wallet not found");
@@ -186,10 +210,11 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
         Ok(outer_builder.finish())
     }
 
-    pub fn new(cfg: PsbtBuilderConfig) -> Self {
-        Self {
+    pub fn new(mut cfg: PsbtBuilderConfig) -> PsbtBuilder<AcceptingWalletState> {
+        let missing_cpfp_fees = cfg.collect_missing_cpfp_fees();
+        PsbtBuilder::<AcceptingWalletState> {
             cfg,
-            missing_cpfp_fees: HashMap::new(),
+            missing_cpfp_fees,
             current_wallet: None,
             current_payouts: vec![],
             current_wallet_psbts: vec![],
@@ -205,41 +230,6 @@ impl PsbtBuilder<InitialPsbtBuilderState> {
                 tx_id: None,
                 psbt: None,
             },
-            _phantom: PhantomData,
-        }
-    }
-
-    pub fn accept_wallets(mut self) -> PsbtBuilder<AcceptingWalletState> {
-        let mut non_cpfp_utxos = HashSet::new();
-        for (keychain, utxos) in self.cfg.cpfp_utxos.iter_mut() {
-            non_cpfp_utxos.clear();
-            for utxo in utxos.iter() {
-                let missing_fees = utxo.missing_fees(&self.cfg.fee_rate);
-                // If we don't actually need additional fees to bump we will
-                // let BDK choose the UTXO it if it wants
-                // => remove from reserved_utxos
-                if missing_fees.is_empty() {
-                    non_cpfp_utxos.insert(utxo.outpoint);
-                    if let Some(reserved) = self.cfg.reserved_utxos.get_mut(keychain) {
-                        reserved.retain(|out| out != &utxo.outpoint);
-                    }
-                } else {
-                    self.missing_cpfp_fees.extend(missing_fees);
-                }
-            }
-            utxos.retain(|utxo| !non_cpfp_utxos.contains(&utxo.outpoint));
-        }
-
-        PsbtBuilder::<AcceptingWalletState> {
-            cfg: self.cfg,
-            missing_cpfp_fees: self.missing_cpfp_fees,
-            current_wallet: None,
-            current_payouts: vec![],
-            current_wallet_psbts: self.current_wallet_psbts,
-            current_wallet_cpfp_allocations: self.current_wallet_cpfp_allocations,
-            all_included_utxos: self.all_included_utxos,
-            input_weights: self.input_weights,
-            result: self.result,
             _phantom: PhantomData,
         }
     }
