@@ -70,9 +70,11 @@ pub struct PsbtBuilderConfig {
     #[builder(default)]
     reserved_utxos: HashMap<KeychainId, Vec<OutPoint>>,
     #[builder(default)]
-    pub cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>,
+    cpfp_utxos: HashMap<KeychainId, Vec<CpfpUtxo>>,
     #[builder(default)]
     for_estimation: bool,
+    #[builder(default)]
+    force_min_change_output: Option<Satoshis>,
 }
 
 impl PsbtBuilderConfig {
@@ -550,6 +552,9 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.cfg.fee_rate);
         builder.drain_to(change_address.script_pubkey());
+        if let Some(sats) = self.cfg.force_min_change_output {
+            builder.add_recipient(change_address.script_pubkey(), u64::from(sats));
+        }
 
         for (_, destination, satoshis) in payouts.iter() {
             builder.add_recipient(destination.script_pubkey(), u64::from(*satoshis));
@@ -602,12 +607,12 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
                     .iter()
                     .filter(|out| out.script_pubkey == script_pubkey)
                     .count();
-                let subtract_fee = if n_change_outputs > 1 {
-                    crate::fees::output_fee(&self.cfg.fee_rate, script_pubkey)
-                        + self.cfg.fee_rate.fee_vb(HEADER_VBYTES)
-                } else {
-                    self.cfg.fee_rate.fee_vb(HEADER_VBYTES)
-                };
+                // Here we are subtracting HEADER_VBYTES because we only need them 1 time
+                // and they will be added later if this is the first TX we are building
+                // also removing redundant change_output weight
+                let subtract_fee = self.cfg.fee_rate.fee_vb(HEADER_VBYTES)
+                    + (1.max(n_change_outputs) - 1) as u64
+                        * crate::fees::output_fee(&self.cfg.fee_rate, script_pubkey);
                 let inputs = psbt
                     .unsigned_tx
                     .input

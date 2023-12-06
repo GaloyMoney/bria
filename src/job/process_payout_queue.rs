@@ -200,7 +200,8 @@ pub async fn construct_psbt(
     let mut cfg = PsbtBuilderConfig::builder()
         .consolidate_deprecated_keychains(queue_cfg.consolidate_deprecated_keychains)
         .fee_rate(fee_rate)
-        .reserved_utxos(reserved_utxos);
+        .reserved_utxos(reserved_utxos)
+        .force_min_change_output(queue_cfg.force_min_change_sats);
     if !for_estimation && queue_cfg.should_cpfp() {
         let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
         let utxos = utxos
