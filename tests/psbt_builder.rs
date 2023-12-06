@@ -85,10 +85,12 @@ async fn build_psbt() -> anyhow::Result<()> {
     }
 
     let fee = FeeRate::from_sat_per_vb(1.0);
-    let builder = PsbtBuilder::new()
+    let cfg = PsbtBuilderConfig::builder()
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
-        .accept_wallets();
+        .build()
+        .unwrap();
+    let builder = PsbtBuilder::new(cfg);
 
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(155);
@@ -269,7 +271,7 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
     }];
     let sats_per_vbyte: f64 = 100.0;
     let fee = FeeRate::from_sat_per_vb(sats_per_vbyte as f32);
-    let builder = PsbtBuilder::new()
+    let cfg = PsbtBuilderConfig::builder()
         .consolidate_deprecated_keychains(true)
         .fee_rate(fee)
         .cpfp_utxos(
@@ -277,7 +279,9 @@ async fn build_psbt_with_cpfp() -> anyhow::Result<()> {
                 .into_iter()
                 .collect(),
         )
-        .accept_wallets();
+        .build()
+        .unwrap();
+    let builder = PsbtBuilder::new(cfg);
 
     let domain_wallet_id = WalletId::new();
     let domain_send_amount = wallet_funding_sats - Satoshis::from(100_000_000);
