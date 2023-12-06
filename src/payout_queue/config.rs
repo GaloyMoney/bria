@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::primitives::TxPriority;
+use crate::primitives::{Satoshis, TxPriority};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PayoutQueueConfig {
@@ -10,6 +10,7 @@ pub struct PayoutQueueConfig {
     pub cpfp_payouts_after_mins: Option<u32>,
     #[serde(default)]
     pub cpfp_payouts_after_blocks: Option<u32>,
+    pub force_min_change_sats: Option<Satoshis>,
     pub consolidate_deprecated_keychains: bool,
     pub trigger: PayoutQueueTrigger,
 }
@@ -55,6 +56,7 @@ impl Default for PayoutQueueConfig {
             },
             cpfp_payouts_after_mins: None,
             cpfp_payouts_after_blocks: None,
+            force_min_change_sats: None,
         }
     }
 }
