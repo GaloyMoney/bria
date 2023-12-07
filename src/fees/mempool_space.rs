@@ -25,17 +25,17 @@ impl MempoolSpaceClient {
     }
 
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, FeeEstimationError> {
-        let client = reqwest::Client::builder()
-            .timeout(self.config.timeout)
-            .build()
-            .expect("Could not build reqwest client");
+        let retry_policy =
+            reqwest_retry::policies::ExponentialBackoff::builder().build_with_max_retries(3);
+
+        let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
+            .with(reqwest_retry::RetryTransientMiddleware::new_with_policy(
+                retry_policy,
+            ))
+            .build();
 
         let url = format!("{}{}", self.config.url, "/api/v1/fees/recommended");
-        let resp = client
-            .get(&url)
-            .send()
-            .await
-            .map_err(FeeEstimationError::FeeEstimation)?;
+        let resp = client.get(&url).send().await?;
         let fee_estimations = resp
             .json::<RecommendedFeesResponse>()
             .await
