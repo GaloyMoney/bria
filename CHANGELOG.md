@@ -1,3 +1,15 @@
+# [bria release v0.1.79](https://github.com/GaloyMoney/bria/releases/tag/0.1.79)
+
+
+### Miscellaneous Tasks
+
+- Add total_change_sats to process payout queue
+- Bump clap from 4.4.10 to 4.4.11 (#411)
+
+### Refactor
+
+- Add better error type to the decode error (#412)
+
 # [bria release v0.1.78](https://github.com/GaloyMoney/bria/releases/tag/0.1.78)
 
 
