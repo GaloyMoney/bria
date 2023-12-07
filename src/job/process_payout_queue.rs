@@ -28,6 +28,7 @@ pub struct ProcessPayoutQueueData {
         tx_id,
         total_fee_sats,
         cpfp_fee_sats,
+        total_change_sats,
         psbt,
         batch_id,
         payout_queue_id
@@ -89,6 +90,14 @@ pub(super) async fn execute<'a>(
         let wallet_ids = wallet_totals.keys().copied().collect();
         span.record("batch_id", &tracing::field::display(data.batch_id));
         span.record("total_fee_sats", &tracing::field::display(fee_satoshis));
+        span.record(
+            "total_change_sats",
+            &tracing::field::display(
+                wallet_totals
+                    .values()
+                    .fold(Satoshis::ZERO, |acc, v| acc + v.change_satoshis),
+            ),
+        );
         span.record(
             "cpfp_fee_sats",
             &tracing::field::display(
