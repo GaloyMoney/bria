@@ -25,15 +25,28 @@ impl MempoolSpaceClient {
     }
 
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, FeeEstimationError> {
-        let client = reqwest::Client::builder()
-            .timeout(self.config.timeout)
-            .build()
-            .expect("Could not build reqwest client");
+        let min_retry_interval = std::time::Duration::from_secs(1);
+        let max_retry_interval = std::time::Duration::from_secs(30 * 60);
+        let retry_policy = reqwest_retry::policies::ExponentialBackoff::builder()
+            .retry_bounds(min_retry_interval, max_retry_interval)
+            .build_with_max_retries(3);
+        let client = reqwest_middleware::ClientBuilder::new(
+            reqwest::Client::builder()
+                .timeout(self.config.timeout)
+                .build()
+                .expect("could not build reqwest client"),
+        )
+        .with(reqwest_retry::RetryTransientMiddleware::new_with_policy(
+            retry_policy,
+        ))
+        .build();
 
         let url = format!("{}{}", self.config.url, "/api/v1/fees/recommended");
         let resp = client.get(&url).send().await?;
-        let fee_estimations: RecommendedFeesResponse = resp.json().await?;
-
+        let fee_estimations = resp
+            .json::<RecommendedFeesResponse>()
+            .await
+            .map_err(FeeEstimationError::CouldNotDecodeResponseBody)?;
         match priority {
             TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(
                 fee_estimations.half_hour_fee as f32,
