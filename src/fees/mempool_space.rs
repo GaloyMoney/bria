@@ -29,7 +29,7 @@ impl MempoolSpaceClient {
         let max_retry_interval = std::time::Duration::from_secs(30 * 60);
         let retry_policy = reqwest_retry::policies::ExponentialBackoff::builder()
             .retry_bounds(min_retry_interval, max_retry_interval)
-            .build_with_max_retries(3);
+            .build_with_max_retries(self.config.number_of_retries);
         let client = reqwest_middleware::ClientBuilder::new(
             reqwest::Client::builder()
                 .timeout(self.config.timeout)
@@ -67,6 +67,8 @@ pub struct MempoolSpaceConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_timeout")]
     pub timeout: std::time::Duration,
+    #[serde(default = "default_number_of_retries")]
+    pub number_of_retries: u32,
 }
 
 impl Default for MempoolSpaceConfig {
@@ -74,6 +76,7 @@ impl Default for MempoolSpaceConfig {
         Self {
             url: default_url(),
             timeout: default_timeout(),
+            number_of_retries: default_number_of_retries(),
         }
     }
 }
@@ -84,4 +87,8 @@ fn default_url() -> String {
 
 fn default_timeout() -> std::time::Duration {
     std::time::Duration::from_secs(10)
+}
+
+fn default_number_of_retries() -> u32 {
+    3
 }
