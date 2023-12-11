@@ -1,3 +1,10 @@
+# [bria release v0.1.80](https://github.com/GaloyMoney/bria/releases/tag/0.1.80)
+
+
+### Refactor
+
+- Configurable number of retries (#415)
+
 # [bria release v0.1.79](https://github.com/GaloyMoney/bria/releases/tag/0.1.79)
 
 
