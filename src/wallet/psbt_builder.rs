@@ -20,6 +20,7 @@ use crate::{
 pub const DEFAULT_SIGHASH_TYPE: bdk::bitcoin::sighash::EcdsaSighashType =
     bdk::bitcoin::sighash::EcdsaSighashType::All;
 const HEADER_VBYTES: usize = 53;
+const MAX_JITTER_PERCENT: u64 = 10; //10%
 
 pub struct WalletTotals {
     pub wallet_id: WalletId,
@@ -104,6 +105,15 @@ impl PsbtBuilderConfig {
             utxos.retain(|utxo| !non_cpfp_utxos.contains(&utxo.outpoint));
         }
         missing_cpfp_fees
+    }
+
+    fn force_min_change_output_with_jitter(&self) -> Option<Satoshis> {
+        use rand::Rng;
+        self.force_min_change_output.map(|sats| {
+            let max_jitter = u64::from(sats) * MAX_JITTER_PERCENT / 100;
+            let jitter: u64 = rand::thread_rng().gen_range(0..=max_jitter);
+            sats + Satoshis::from(jitter)
+        })
     }
 }
 
@@ -552,8 +562,8 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         let mut builder = wallet.build_tx();
         builder.fee_rate(self.cfg.fee_rate);
         builder.drain_to(change_address.script_pubkey());
-        if let Some(sats) = self.cfg.force_min_change_output {
-            builder.add_recipient(change_address.script_pubkey(), u64::from(sats));
+        if let Some(sats_with_jitter) = self.cfg.force_min_change_output_with_jitter() {
+            builder.add_recipient(change_address.script_pubkey(), u64::from(sats_with_jitter));
         }
 
         for (_, destination, satoshis) in payouts.iter() {
