@@ -1,3 +1,11 @@
+# [bria release v0.1.81](https://github.com/GaloyMoney/bria/releases/tag/0.1.81)
+
+
+### Miscellaneous Tasks
+
+- Add jitter to minimum change utxo (#417)
+- Bump tokio from 1.34.0 to 1.35.0 (#416)
+
 # [bria release v0.1.80](https://github.com/GaloyMoney/bria/releases/tag/0.1.80)
 
 
