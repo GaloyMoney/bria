@@ -553,7 +553,14 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         builder.fee_rate(self.cfg.fee_rate);
         builder.drain_to(change_address.script_pubkey());
         if let Some(sats) = self.cfg.force_min_change_output {
-            builder.add_recipient(change_address.script_pubkey(), u64::from(sats));
+            let sats_with_jitter = {
+                use rand::Rng;
+                let mut rng = rand::thread_rng();
+                let max_jitter = u64::from(sats / 10.into());
+                let jitter: u64 = rng.gen_range(0..=max_jitter);
+                sats + Satoshis::try_from(jitter).expect("jitter")
+            };
+            builder.add_recipient(change_address.script_pubkey(), u64::from(sats_with_jitter));
         }
 
         for (_, destination, satoshis) in payouts.iter() {
