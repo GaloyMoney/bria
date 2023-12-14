@@ -35,7 +35,8 @@ fn extract_addresses(file_contents: &str) -> HashSet<bitcoin::BdkAddress> {
 
 pub fn read_and_parse_addresses(file_path: impl AsRef<Path>) -> anyhow::Result<()> {
     let s = std::fs::read_to_string(file_path).context("Couldn't read file")?;
-    let blocked_addresses = extract_addresses(&s).into_iter().collect();
+    let mut blocked_addresses: Vec<_> = extract_addresses(&s).into_iter().collect();
+    blocked_addresses.sort();
 
     let app_output = AppOutput {
         app: SecurityOutput {
