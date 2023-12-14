@@ -1,3 +1,14 @@
+# [bria release v0.1.82](https://github.com/GaloyMoney/bria/releases/tag/0.1.82)
+
+
+### Miscellaneous Tasks
+
+- Sort addreses in address_extractor
+
+### Refactor
+
+- Move cpfp details to tx_summary (#418)
+
 # [bria release v0.1.81](https://github.com/GaloyMoney/bria/releases/tag/0.1.81)
 
 
