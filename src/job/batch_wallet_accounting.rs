@@ -83,19 +83,6 @@ pub async fn execute(
                             batch_id: id,
                             payout_queue_id,
                             included_payouts: payouts.into_iter().map(PayoutInfo::from).collect(),
-                            cpfp_fee_sats: wallet_summary.cpfp_fee_sats,
-                            cpfp_details: wallet_summary
-                                .cpfp_details
-                                .into_iter()
-                                .map(|(k, v)| {
-                                    (
-                                        k,
-                                        v.into_iter()
-                                            .map(|(k, v)| (k, CpfpInfo::from(v)))
-                                            .collect(),
-                                    )
-                                })
-                                .collect(),
                         },
                         tx_summary: WalletTransactionSummary {
                             account_id: data.account_id,
@@ -106,6 +93,21 @@ pub async fn execute(
                             total_utxo_in_sats: wallet_summary.total_in_sats,
                             total_utxo_settled_in_sats: settled_sats,
                             change_utxos,
+                            cpfp_fee_sats: Some(wallet_summary.cpfp_fee_sats),
+                            cpfp_details: Some(
+                                wallet_summary
+                                    .cpfp_details
+                                    .into_iter()
+                                    .map(|(k, v)| {
+                                        (
+                                            k,
+                                            v.into_iter()
+                                                .map(|(k, v)| (k, CpfpInfo::from(v)))
+                                                .collect(),
+                                        )
+                                    })
+                                    .collect(),
+                            ),
                         },
                     },
                 },
