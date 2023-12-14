@@ -16,6 +16,10 @@ pub struct WalletTransactionSummary {
     pub total_utxo_settled_in_sats: Satoshis,
     pub fee_sats: Satoshis,
     pub change_utxos: Vec<ChangeOutput>,
+    #[serde(default)]
+    pub cpfp_details: Option<HashMap<bitcoin::OutPoint, HashMap<bitcoin::Txid, CpfpInfo>>>,
+    #[serde(default)]
+    pub cpfp_fee_sats: Option<Satoshis>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,10 +36,6 @@ pub struct BatchWalletInfo {
     pub batch_id: BatchId,
     pub wallet_id: WalletId,
     pub included_payouts: Vec<PayoutInfo>,
-    #[serde(default)]
-    pub cpfp_details: HashMap<bitcoin::OutPoint, HashMap<bitcoin::Txid, CpfpInfo>>,
-    #[serde(default)]
-    pub cpfp_fee_sats: Satoshis,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

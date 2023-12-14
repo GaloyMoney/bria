@@ -357,6 +357,8 @@ pub async fn execute(
                                             total_utxo_in_sats: unsynced_tx.total_utxo_in_sats,
                                             total_utxo_settled_in_sats: settled_sats,
                                             fee_sats: unsynced_tx.fee_sats,
+                                            cpfp_details: None,
+                                            cpfp_fee_sats: None,
                                             change_utxos: change_utxos
                                                 .iter()
                                                 .map(|(u, a)| ChangeOutput {

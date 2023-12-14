@@ -373,8 +373,6 @@ async fn create_batch() -> anyhow::Result<()> {
                         batch_id,
                         payout_queue_id: PayoutQueueId::new(),
                         included_payouts: Vec::new(),
-                        cpfp_fee_sats: Satoshis::ZERO,
-                        cpfp_details: HashMap::new(),
                     },
                     tx_summary: WalletTransactionSummary {
                         account_id,
@@ -393,6 +391,8 @@ async fn create_batch() -> anyhow::Result<()> {
                         })
                         .collect(),
                         current_keychain_id: KeychainId::new(),
+                        cpfp_details: None,
+                        cpfp_fee_sats: None,
                     },
                 },
             },
@@ -494,6 +494,8 @@ async fn spend_detected() -> anyhow::Result<()> {
                             address,
                         })
                         .collect(),
+                        cpfp_details: None,
+                        cpfp_fee_sats: None,
                     },
                     encumbered_spending_fees: std::iter::once((
                         outpoint,
@@ -643,6 +645,8 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
                             address,
                         })
                         .collect(),
+                        cpfp_details: None,
+                        cpfp_fee_sats: None,
                     },
                     encumbered_spending_fees: std::iter::once((
                         outpoint,
