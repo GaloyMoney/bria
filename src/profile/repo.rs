@@ -20,6 +20,7 @@ impl Profiles {
         tx: &mut Transaction<'_, Postgres>,
         profile: NewProfile,
     ) -> Result<Profile, ProfileError> {
+        let id = profile.id;
         sqlx::query!(
             r#"INSERT INTO bria_profiles (id, account_id, name)
             VALUES ($1, $2, $3)"#,
@@ -29,18 +30,14 @@ impl Profiles {
         )
         .execute(&mut **tx)
         .await?;
-        let res = Profile {
-            id: profile.id,
-            account_id: profile.account_id,
-            name: profile.name.clone(),
-            spending_policy: profile.spending_policy.clone(),
-        };
+        let events = profile.initial_events();
         EntityEvents::<ProfileEvent>::persist(
             "bria_profile_events",
             &mut *tx,
-            profile.initial_events().new_serialized_events(res.id),
+            events.new_serialized_events(id),
         )
         .await?;
+        let res = Profile::try_from(events)?;
         Ok(res)
     }
 
