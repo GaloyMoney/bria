@@ -1,3 +1,10 @@
+# [bria release v0.1.83](https://github.com/GaloyMoney/bria/releases/tag/0.1.83)
+
+
+### Refactor
+
+- Create profile using try_from (#419)
+
 # [bria release v0.1.82](https://github.com/GaloyMoney/bria/releases/tag/0.1.82)
 
 
