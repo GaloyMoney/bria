@@ -35,7 +35,7 @@ rust_decimal_macros = "1.33"
 rusty-money = "0.4.1"
 thiserror = "1.0.51"
 uuid = { version = "1.5.0", features = ["serde", "v4"] }
-futures = "0.3.29"
+futures = "0.3.30"
 url = "2.5.0"
 rand = "0.8.5"
 bdk = "0.29.0"
