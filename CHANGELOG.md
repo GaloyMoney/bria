@@ -1,3 +1,28 @@
+# [bria release v0.1.84](https://github.com/GaloyMoney/bria/releases/tag/0.1.84)
+
+
+### Bug Fixes
+
+- Clippy
+
+### Miscellaneous Tasks
+
+- Bump flake (#435)
+- Bump thiserror from 1.0.52 to 1.0.53 (#432)
+- Bump anyhow from 1.0.77 to 1.0.78 (#433)
+- Bump async-trait from 0.1.75 to 0.1.76 (#434)
+- Bump clap from 4.4.11 to 4.4.12 (#431)
+- Bump anyhow from 1.0.76 to 1.0.77 (#429)
+- Bump tempfile from 3.8.1 to 3.9.0 (#430)
+- Bump thiserror from 1.0.51 to 1.0.52 (#428)
+- Bump anyhow from 1.0.75 to 1.0.76 (#426)
+- Bump serde_yaml from 0.9.27 to 0.9.29 (#427)
+- Bump futures from 0.3.29 to 0.3.30 (#425)
+- Bump tokio from 1.35.0 to 1.35.1 (#422)
+- Bump async-trait from 0.1.74 to 0.1.75 (#423)
+- Bump reqwest from 0.11.22 to 0.11.23 (#421)
+- Bump thiserror from 1.0.50 to 1.0.51 (#420)
+
 # [bria release v0.1.83](https://github.com/GaloyMoney/bria/releases/tag/0.1.83)
 
 
