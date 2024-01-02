@@ -120,7 +120,7 @@ impl Ledger {
             .list_by_ids(std::iter::once(detected_txn_id))
             .await?;
 
-        let txn = txs.get(0).ok_or(LedgerError::TransactionNotFound)?;
+        let txn = txs.first().ok_or(LedgerError::TransactionNotFound)?;
 
         let UtxoDetectedMeta {
             account_id,
@@ -211,7 +211,7 @@ impl Ledger {
                 .await?;
             let outpoint = params.meta.outpoint;
             let mut params = sqlx_ledger::tx_template::TxParams::from(params);
-            if let Some(tx) = txs.get(0) {
+            if let Some(tx) = txs.first() {
                 if let Ok(Some(ExtractAllocations {
                     mut withdraw_from_effective_when_settled,
                 })) = tx.metadata()
@@ -264,7 +264,7 @@ impl Ledger {
             .transactions()
             .list_by_ids(std::iter::once(payout_submitted_tx_id))
             .await?;
-        let txn = txs.get(0).ok_or(LedgerError::TransactionNotFound)?;
+        let txn = txs.first().ok_or(LedgerError::TransactionNotFound)?;
         let PayoutSubmittedMeta {
             payout_id,
             account_id,

@@ -388,7 +388,7 @@ pub async fn execute(
                         &mut tx,
                         keychain_id,
                         utxos_to_fetch.get(&keychain_id).unwrap().iter(),
-                        change.get(0).as_ref().map(|(u, _)| u.clone()),
+                        change.first().as_ref().map(|(u, _)| u.clone()),
                         conf_time.height,
                     )
                     .await?

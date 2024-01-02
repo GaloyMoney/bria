@@ -71,6 +71,6 @@ impl Indexes {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        Ok(rows.get(0).map(|row| row.index as u32))
+        Ok(rows.first().map(|row| row.index as u32))
     }
 }

@@ -29,7 +29,7 @@ impl DescriptorChecksums {
         .fetch_all(&self.pool)
         .await
         .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        if let Some(record) = record.get(0) {
+        if let Some(record) = record.first() {
             if script_bytes == record.script_bytes {
                 Ok(())
             } else {
