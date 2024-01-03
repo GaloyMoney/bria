@@ -2,7 +2,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 
 use crate::{
-    fees::MempoolSpaceConfig,
+    fees::FeesConfig,
     job::JobsConfig,
     primitives::{bitcoin::Network, Address, PayoutDestination},
     xpub::SignerEncryptionConfig,
@@ -52,12 +52,6 @@ fn default_network() -> Network {
 
 fn default_electrum_url() -> String {
     "127.0.0.1:50001".to_string()
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct FeesConfig {
-    #[serde(default)]
-    pub mempool_space: MempoolSpaceConfig,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

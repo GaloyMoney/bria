@@ -8,3 +8,12 @@ async fn mempool_space() -> anyhow::Result<()> {
     assert!(fee_rate.as_sat_per_vb() > 0.0);
     Ok(())
 }
+
+#[tokio::test]
+async fn blockstream() -> anyhow::Result<()> {
+    let blockstream_config = BlockstreamConfig::default();
+    let blockstream = BlockstreamClient::new(blockstream_config);
+    let fee_rate = blockstream.fee_rate(TxPriority::NextBlock).await?;
+    assert!(fee_rate.as_sat_per_vb() > 0.0);
+    Ok(())
+}
