@@ -1,3 +1,11 @@
+# [bria release v0.1.85](https://github.com/GaloyMoney/bria/releases/tag/0.1.85)
+
+
+### Miscellaneous Tasks
+
+- Fallback to blockstream for fee estimation (#440)
+- Bump async-trait from 0.1.76 to 0.1.77 (#436)
+
 # [bria release v0.1.84](https://github.com/GaloyMoney/bria/releases/tag/0.1.84)
 
 
