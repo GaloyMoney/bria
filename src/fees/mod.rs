@@ -1,4 +1,7 @@
 #![allow(warnings)]
+mod blockstream;
+mod client;
+mod config;
 pub mod error;
 mod mempool_space;
 
@@ -6,6 +9,10 @@ use bdk::bitcoin::{locktime::absolute::LockTime, Transaction, TxOut, Weight};
 use std::collections::HashMap;
 
 use crate::primitives::*;
+
+pub use blockstream::*;
+pub use client::*;
+pub use config::*;
 pub use mempool_space::*;
 
 use error::FeeEstimationError;
@@ -15,10 +22,10 @@ use error::FeeEstimationError;
 const TXIN_BASE_WEIGHT: usize = (32 + 4 + 4) * 4;
 
 pub async fn fees_to_encumber(
-    mempool_space: &MempoolSpaceClient,
+    fees_client: &FeesClient,
     satisfaction_weight: usize,
 ) -> Result<Satoshis, FeeEstimationError> {
-    let fee_rate = mempool_space.fee_rate(TxPriority::NextBlock).await?;
+    let fee_rate = fees_client.fee_rate(TxPriority::NextBlock).await?;
     Ok(Satoshis::from(fee_rate.fee_wu(Weight::from_wu(
         (TXIN_BASE_WEIGHT + satisfaction_weight) as u64,
     ))))

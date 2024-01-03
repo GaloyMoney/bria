@@ -4,8 +4,7 @@ use tracing::instrument;
 
 use super::error::JobError;
 use crate::{
-    batch::*, fees::MempoolSpaceClient, payout::*, payout_queue::*, primitives::*, utxo::*,
-    wallet::*,
+    batch::*, fees::FeesClient, payout::*, payout_queue::*, primitives::*, utxo::*, wallet::*,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +43,7 @@ pub(super) async fn execute<'a>(
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,
-    mempool_space_client: MempoolSpaceClient,
+    fees_client: FeesClient,
 ) -> Result<
     (
         ProcessPayoutQueueData,
@@ -58,7 +57,7 @@ pub(super) async fn execute<'a>(
     let mut unbatched_payouts = payouts
         .list_unbatched(data.account_id, data.payout_queue_id)
         .await?;
-    let fee_rate = mempool_space_client
+    let fee_rate = fees_client
         .fee_rate(payout_queue.config.tx_priority)
         .await?;
     let mut tx = pool.begin().await?;

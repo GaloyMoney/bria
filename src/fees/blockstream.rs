@@ -7,25 +7,26 @@ use crate::primitives::TxPriority;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RecommendedFeesResponse {
-    fastest_fee: u64,
-    half_hour_fee: u64,
-    hour_fee: u64,
-    // economy_fee: u64,
-    // minimum_fee: u64,
+struct FeeEstimatesResponse {
+    #[serde(rename = "1")]
+    next_block: f32,
+    #[serde(rename = "3")]
+    half_hour_fee: f32,
+    #[serde(rename = "6")]
+    hour_fee: f32,
 }
 
 #[derive(Clone, Debug)]
-pub struct MempoolSpaceClient {
-    config: MempoolSpaceConfig,
+pub struct BlockstreamClient {
+    config: BlockstreamConfig,
 }
 
-impl MempoolSpaceClient {
-    pub fn new(config: MempoolSpaceConfig) -> Self {
+impl BlockstreamClient {
+    pub fn new(config: BlockstreamConfig) -> Self {
         Self { config }
     }
 
-    #[instrument(name = "mempool_space.fee_rate", skip(self), ret, err)]
+    #[instrument(name = "blockstream.fee_rate", skip(self), ret, err)]
     pub async fn fee_rate(&self, priority: TxPriority) -> Result<FeeRate, FeeEstimationError> {
         let min_retry_interval = std::time::Duration::from_secs(1);
         let max_retry_interval = std::time::Duration::from_secs(30 * 60);
@@ -43,27 +44,23 @@ impl MempoolSpaceClient {
         ))
         .build();
 
-        let url = format!("{}{}", self.config.url, "/api/v1/fees/recommended");
+        let url = format!("{}{}", self.config.url, "/api/fee-estimates");
         let resp = client.get(&url).send().await?;
         let fee_estimations = resp
-            .json::<RecommendedFeesResponse>()
+            .json::<FeeEstimatesResponse>()
             .await
             .map_err(FeeEstimationError::CouldNotDecodeResponseBody)?;
         match priority {
-            TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(
-                fee_estimations.half_hour_fee as f32,
-            )),
-            TxPriority::OneHour => Ok(FeeRate::from_sat_per_vb(fee_estimations.hour_fee as f32)),
-            TxPriority::NextBlock => {
-                Ok(FeeRate::from_sat_per_vb(fee_estimations.fastest_fee as f32))
-            }
+            TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(fee_estimations.half_hour_fee)),
+            TxPriority::OneHour => Ok(FeeRate::from_sat_per_vb(fee_estimations.hour_fee)),
+            TxPriority::NextBlock => Ok(FeeRate::from_sat_per_vb(fee_estimations.next_block)),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_with::serde_as]
-pub struct MempoolSpaceConfig {
+pub struct BlockstreamConfig {
     #[serde(default = "default_url")]
     pub url: String,
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
@@ -73,7 +70,7 @@ pub struct MempoolSpaceConfig {
     pub number_of_retries: u32,
 }
 
-impl Default for MempoolSpaceConfig {
+impl Default for BlockstreamConfig {
     fn default() -> Self {
         Self {
             url: default_url(),
@@ -84,7 +81,7 @@ impl Default for MempoolSpaceConfig {
 }
 
 fn default_url() -> String {
-    "https://mempool.tk7.mempool.space".to_string()
+    "https://blockstream.info".to_string()
 }
 
 fn default_timeout() -> std::time::Duration {

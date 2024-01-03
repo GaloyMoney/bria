@@ -16,7 +16,7 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::MempoolSpaceClient,
+    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient,
     ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
     utxo::Utxos, wallet::*, xpub::*,
 };
@@ -50,7 +50,7 @@ pub async fn start_job_runner(
     config: JobsConfig,
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
-    mempool_space_client: MempoolSpaceClient,
+    fees_client: FeesClient,
 ) -> Result<JobRunnerHandle, JobError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -77,7 +77,7 @@ pub async fn start_job_runner(
     registry.set_context(utxos);
     registry.set_context(addresses);
     registry.set_context(signer_encryption_config);
-    registry.set_context(mempool_space_client);
+    registry.set_context(fees_client);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -192,7 +192,7 @@ async fn sync_wallet(
     utxos: Utxos,
     ledger: Ledger,
     batches: Batches,
-    mempool_space_client: MempoolSpaceClient,
+    fees_client: FeesClient,
 ) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     let mut has_more = false;
@@ -212,7 +212,7 @@ async fn sync_wallet(
                 ledger,
                 batches,
                 data,
-                mempool_space_client,
+                fees_client,
             )
             .await?;
             *more_ref = more;
@@ -263,7 +263,7 @@ async fn process_payout_queue(
     utxos: Utxos,
     payout_queues: PayoutQueues,
     batches: Batches,
-    mempool_space_client: MempoolSpaceClient,
+    fees_client: FeesClient,
 ) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     JobExecutor::builder(&mut current_job)
@@ -280,7 +280,7 @@ async fn process_payout_queue(
                 batches,
                 utxos,
                 data,
-                mempool_space_client,
+                fees_client,
             )
             .await?;
             if let Some((mut tx, wallet_ids)) = res {

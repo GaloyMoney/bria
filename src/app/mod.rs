@@ -44,7 +44,7 @@ pub struct App {
     ledger: Ledger,
     utxos: Utxos,
     addresses: Addresses,
-    mempool_space_client: MempoolSpaceClient,
+    fees_client: FeesClient,
     batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
@@ -67,7 +67,7 @@ impl App {
             Augmenter::new(&addresses, &payouts, &batch_inclusion),
         )
         .await?;
-        let mempool_space_client = MempoolSpaceClient::new(config.fees.mempool_space.clone());
+        let fees_client = FeesClient::new(config.fees.clone());
         let runner = job::start_job_runner(
             &pool,
             outbox.clone(),
@@ -83,7 +83,7 @@ impl App {
             config.jobs.clone(),
             config.blockchain.clone(),
             config.signer_encryption.clone(),
-            mempool_space_client.clone(),
+            fees_client.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
@@ -111,7 +111,7 @@ impl App {
             ledger,
             utxos,
             addresses,
-            mempool_space_client,
+            fees_client,
             batch_inclusion,
             config,
             _runner: runner,
@@ -685,7 +685,7 @@ impl App {
 
         let queue_id = payout_queue.id;
         let tx_priority = payout_queue.config.tx_priority;
-        let fee_rate = self.mempool_space_client.fee_rate(tx_priority).await?;
+        let fee_rate = self.fees_client.fee_rate(tx_priority).await?;
 
         let psbt = {
             let mut tx = self.pool.begin().await?;
