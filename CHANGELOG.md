@@ -1,3 +1,22 @@
+# [bria release v0.1.86](https://github.com/GaloyMoney/bria/releases/tag/0.1.86)
+
+
+### Miscellaneous Tasks
+
+- Bump clap from 4.4.12 to 4.4.14 (#449)
+- Bump opentelemetry_sdk from 0.21.1 to 0.21.2 (#450)
+- Bump serde_yaml from 0.9.29 to 0.9.30 (#451)
+- Bump serial_test from 2.0.0 to 3.0.0 (#447)
+- Bump serde from 1.0.194 to 1.0.195 (#446)
+- Bump serde_json from 1.0.109 to 1.0.111 (#443)
+- Bump thiserror from 1.0.53 to 1.0.56 (#444)
+- Bump anyhow from 1.0.78 to 1.0.79 (#441)
+- Bump serde from 1.0.193 to 1.0.194 (#438)
+
+### Refactor
+
+- Remove dependency from app -> tonic
+
 # [bria release v0.1.85](https://github.com/GaloyMoney/bria/releases/tag/0.1.85)
 
 
