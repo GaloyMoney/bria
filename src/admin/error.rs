@@ -30,7 +30,6 @@ impl From<ApplicationError> for AdminApiError {
     fn from(err: ApplicationError) -> Self {
         match err {
             ApplicationError::Sqlx(e) => AdminApiError::SqlxError(e),
-            ApplicationError::ServerError(e) => AdminApiError::TonicError(e),
             e => AdminApiError::BriaError(e),
         }
     }

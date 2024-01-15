@@ -1,7 +1,7 @@
 mod config;
 mod server;
 
-use crate::app::{error::*, *};
+use crate::app::*;
 
 pub use config::*;
 pub use server::*;
@@ -12,7 +12,7 @@ pub async fn run_dev(
     app_cfg: AppConfig,
     xpub: Option<(String, String)>,
     derivation_path: Option<String>,
-) -> Result<(), ApplicationError> {
+) -> anyhow::Result<()> {
     use crate::{
         dev_constants,
         payout_queue::*,
@@ -61,11 +61,7 @@ pub async fn run_dev(
     Ok(())
 }
 
-pub async fn run(
-    pool: sqlx::PgPool,
-    config: ApiConfig,
-    app_cfg: AppConfig,
-) -> Result<(), ApplicationError> {
+pub async fn run(pool: sqlx::PgPool, config: ApiConfig, app_cfg: AppConfig) -> anyhow::Result<()> {
     let app = App::run(pool, app_cfg).await?;
     server::start(config, app).await?;
     Ok(())

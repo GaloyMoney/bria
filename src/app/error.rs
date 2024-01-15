@@ -57,8 +57,6 @@ pub enum ApplicationError {
     DescriptorError(#[from] DescriptorError),
     #[error("{0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("{0}")]
-    ServerError(#[from] tonic::transport::Error),
     #[error("UnsupportedPubKeyType")]
     UnsupportedPubKeyType,
     #[error("CouldNotParseIncomingMetadata: {0}")]
