@@ -473,7 +473,7 @@ dependencies = [
 
 [[package]]
 name = "bria"
-version = "0.1.87"
+version = "0.1.88-dev"
 dependencies = [
  "anyhow",
  "async-trait",
