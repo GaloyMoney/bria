@@ -1,3 +1,15 @@
+# [bria release v0.1.87](https://github.com/GaloyMoney/bria/releases/tag/0.1.87)
+
+
+### Miscellaneous Tasks
+
+- Bump regex from 1.10.2 to 1.10.3 (#458)
+- Bump uuid from 1.6.1 to 1.7.0 (#456)
+- Bump clap from 4.4.17 to 4.4.18 (#455)
+- Bump h2 to version 0.3.24 (#457)
+- Bump clap from 4.4.16 to 4.4.17 (#454)
+- Bump clap from 4.4.14 to 4.4.16 (#453)
+
 # [bria release v0.1.86](https://github.com/GaloyMoney/bria/releases/tag/0.1.86)
 
 
