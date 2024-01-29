@@ -1,3 +1,11 @@
+# [bria release v0.1.88](https://github.com/GaloyMoney/bria/releases/tag/0.1.88)
+
+
+### Miscellaneous Tasks
+
+- Bump osx building
+- Bump derive_builder from 0.12.0 to 0.13.0 (#459)
+
 # [bria release v0.1.87](https://github.com/GaloyMoney/bria/releases/tag/0.1.87)
 
 
