@@ -13,7 +13,7 @@ sqlx-ledger = { version = "0.11.2", features = ["otel"] }
 anyhow = "1.0.79"
 bitcoincore-rpc = "0.17.0"
 clap = { version = "4.4", features = ["derive", "env"] }
-chrono = { version = "0.4.31", features = ["clock", "serde"], default-features = false }
+chrono = { version = "0.4.33", features = ["clock", "serde"], default-features = false }
 derive_builder = "0.13.0"
 opentelemetry-otlp = { version = "0.14.0", features = ["http-proto", "reqwest-client"] }
 serde = { version = "1.0.196", features = ["derive"] }
