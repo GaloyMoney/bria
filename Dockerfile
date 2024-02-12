@@ -1,6 +1,7 @@
 FROM clux/muslrust:stable AS build
   COPY . /src
   WORKDIR /src
+  RUN echo 'targets = ["x86_64-unknown-linux-musl"]' >> rust-toolchain.toml
   RUN SQLX_OFFLINE=true cargo build --locked
 
 FROM ubuntu
