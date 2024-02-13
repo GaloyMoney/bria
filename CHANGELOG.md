@@ -1,3 +1,21 @@
+# [bria release v0.1.89](https://github.com/GaloyMoney/bria/releases/tag/0.1.89)
+
+
+### Bug Fixes
+
+- Add musl target to rust-toolchain
+
+### Miscellaneous Tasks
+
+- Add targets to rust-toolchain.toml
+- Pin rust to 1.75.0
+- Bump tonic-build from 0.10.2 to 0.11.0 (#470)
+- Bump rust_decimal from 1.33.1 to 1.34.2 (#467)
+- Bump chrono from 0.4.31 to 0.4.33 (#462)
+- Bump serde_json from 1.0.111 to 1.0.113 (#465)
+- Bump serde_with from 3.4.0 to 3.5.1 (#460)
+- Bump serde from 1.0.195 to 1.0.196 (#463)
+
 # [bria release v0.1.88](https://github.com/GaloyMoney/bria/releases/tag/0.1.88)
 
 
