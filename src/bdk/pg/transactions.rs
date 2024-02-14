@@ -32,6 +32,7 @@ impl Transactions {
         Self { keychain_id, pool }
     }
 
+    #[instrument(name = "bdk.transactions.persist", skip_all)]
     pub async fn persist_all(&self, txs: Vec<TransactionDetails>) -> Result<(), bdk::Error> {
         const BATCH_SIZE: usize = 5000;
         let batches = txs.chunks(BATCH_SIZE);
@@ -63,6 +64,7 @@ impl Transactions {
         Ok(())
     }
 
+    #[instrument(name = "bdk.transactions.delete", skip_all)]
     pub async fn delete(&self, tx_id: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
         let tx = sqlx::query!(
             r#"UPDATE bdk_transactions
@@ -81,6 +83,7 @@ impl Transactions {
         }))
     }
 
+    #[instrument(name = "bdk.transactions.find_by_id", skip_all)]
     pub async fn find_by_id(&self, tx_id: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
         let tx = sqlx::query!(
             r#"
@@ -94,7 +97,7 @@ impl Transactions {
         Ok(tx.map(|tx| serde_json::from_value(tx.details_json).unwrap()))
     }
 
-    #[instrument(name = "bdk_transactions.list", skip(self), fields(n_rows))]
+    #[instrument(name = "bdk.transactions.list", skip(self), fields(n_rows))]
     pub async fn list(&self) -> Result<Vec<TransactionDetails>, bdk::Error> {
         let txs = sqlx::query!(
             r#"
@@ -111,7 +114,7 @@ impl Transactions {
             .collect())
     }
 
-    #[instrument(name = "bdk_transactions.find_unsynced_tx", skip(self), fields(n_rows))]
+    #[instrument(name = "bdk.transactions.find_unsynced_tx", skip(self), fields(n_rows))]
     pub async fn find_unsynced_tx(
         &self,
         excluded_tx_ids: &[String],
@@ -182,7 +185,7 @@ impl Transactions {
         }))
     }
 
-    #[instrument(name = "bdk_transactions.find_confirmed_spend_tx", skip(self, tx))]
+    #[instrument(name = "bdk.transactions.find_confirmed_spend_tx", skip(self, tx))]
     pub async fn find_confirmed_spend_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -251,7 +254,7 @@ impl Transactions {
         }))
     }
 
-    #[instrument(name = "bdk_transactions.mark_as_synced", skip(self))]
+    #[instrument(name = "bdk.transactions.mark_as_synced", skip(self))]
     pub async fn mark_as_synced(&self, tx_id: bitcoin::Txid) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_transactions SET synced_to_bria = true, modified_at = NOW()
@@ -264,7 +267,7 @@ impl Transactions {
         Ok(())
     }
 
-    #[instrument(name = "bdk_transactions.mark_confirmed", skip(self))]
+    #[instrument(name = "bdk.transactions.mark_confirmed", skip(self))]
     pub async fn mark_confirmed(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -282,7 +285,7 @@ impl Transactions {
     }
 
     #[instrument(
-        name = "bdk_transactions.delete_transaction_if_no_more_utxos_exist",
+        name = "bdk.transactions.delete_transaction_if_no_more_utxos_exist",
         skip(self, tx)
     )]
     pub async fn delete_transaction_if_no_more_utxos_exist(

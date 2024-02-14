@@ -1,5 +1,6 @@
 use bdk::database::SyncTime;
 use sqlx::PgPool;
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{bdk::error::BdkError, primitives::*};
@@ -14,6 +15,7 @@ impl SyncTimes {
         Self { keychain_id, pool }
     }
 
+    #[instrument(name = "bdk.sync_times.persist", skip_all)]
     pub async fn persist(&self, time: SyncTime) -> Result<(), bdk::Error> {
         sqlx::query!(
             r#"INSERT INTO bdk_sync_times (keychain_id, height, timestamp)
@@ -29,6 +31,7 @@ impl SyncTimes {
         Ok(())
     }
 
+    #[instrument(name = "bdk.sync_times.get", skip_all)]
     pub async fn get(&self) -> Result<Option<SyncTime>, bdk::Error> {
         let sync_time = sqlx::query!(
             r#"SELECT height, timestamp FROM bdk_sync_times WHERE keychain_id = $1"#,
@@ -45,6 +48,7 @@ impl SyncTimes {
         }))
     }
 
+    #[instrument(name = "bdk.sync_times.last_sync_time", skip_all)]
     pub async fn last_sync_time(pool: &PgPool) -> Result<u32, BdkError> {
         let sync_time =
             sqlx::query!(r#"SELECT COALESCE(MAX(height), 0) as "height!" FROM bdk_sync_times"#,)

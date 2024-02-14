@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
@@ -14,6 +15,10 @@ impl DescriptorChecksums {
         Self { keychain_id, pool }
     }
 
+    #[instrument(
+        name = "bdk.descriptor_checksums.check_or_persist_descriptor_checksum",
+        skip_all
+    )]
     pub async fn check_or_persist_descriptor_checksum(
         &self,
         keychain: impl Into<BdkKeychainKind>,

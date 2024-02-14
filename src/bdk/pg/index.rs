@@ -1,4 +1,5 @@
 use sqlx::PgPool;
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
@@ -14,6 +15,7 @@ impl Indexes {
         Self { keychain_id, pool }
     }
 
+    #[instrument(name = "bdk.indexes.increment", skip_all)]
     pub async fn increment(&self, keychain: impl Into<BdkKeychainKind>) -> Result<u32, bdk::Error> {
         let kind = keychain.into();
         let result = sqlx::query!(
@@ -36,6 +38,7 @@ impl Indexes {
         Ok(new_idx as u32)
     }
 
+    #[instrument(name = "bdk.indexes.persist_last_index", skip_all)]
     pub async fn persist_last_index(
         &self,
         keychain: impl Into<BdkKeychainKind>,
@@ -58,6 +61,7 @@ impl Indexes {
         Ok(())
     }
 
+    #[instrument(name = "bdk.indexes.get_latest", skip_all)]
     pub async fn get_latest(
         &self,
         keychain: impl Into<BdkKeychainKind>,

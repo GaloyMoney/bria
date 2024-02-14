@@ -21,6 +21,7 @@ impl Utxos {
         Self { keychain_id, pool }
     }
 
+    #[instrument(name = "bdk.utxos.persist_all", skip_all)]
     pub async fn persist_all(&self, utxos: Vec<LocalUtxo>) -> Result<(), bdk::Error> {
         const BATCH_SIZE: usize = 5000;
         let batches = utxos.chunks(BATCH_SIZE);
@@ -51,6 +52,7 @@ impl Utxos {
         Ok(())
     }
 
+    #[instrument(name = "bdk.utxos.delete", skip_all)]
     pub async fn delete(
         &self,
         outpoint: &bitcoin::OutPoint,
@@ -72,6 +74,7 @@ impl Utxos {
         }))
     }
 
+    #[instrument(name = "bdk.utxos.undelete", skip_all)]
     pub async fn undelete(&self, outpoint: bitcoin::OutPoint) -> Result<(), BdkError> {
         sqlx::query!(
             r#"UPDATE bdk_utxos SET deleted_at = NULL
@@ -86,6 +89,7 @@ impl Utxos {
         Ok(())
     }
 
+    #[instrument(name = "bdk.utxos.find", skip_all)]
     pub async fn find(&self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
         let utxo = sqlx::query!(
             r#"
@@ -108,6 +112,7 @@ impl Utxos {
         }))
     }
 
+    #[instrument(name = "bdk.utxos.list_local_utxos", skip_all)]
     pub async fn list_local_utxos(&self) -> Result<Vec<LocalUtxo>, bdk::Error> {
         let utxos = sqlx::query!(
             r#"SELECT utxo_json FROM bdk_utxos WHERE keychain_id = $1 AND deleted_at IS NULL"#,
@@ -122,7 +127,7 @@ impl Utxos {
             .collect())
     }
 
-    #[instrument(name = "bdk_utxos.mark_as_synced", skip(self, tx))]
+    #[instrument(name = "bdk.utxos.mark_as_synced", skip(self, tx))]
     pub async fn mark_as_synced(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -140,7 +145,7 @@ impl Utxos {
         Ok(())
     }
 
-    #[instrument(name = "bdk_utxos.mark_confirmed", skip(self, tx))]
+    #[instrument(name = "bdk.utxos.mark_confirmed", skip(self, tx))]
     pub async fn mark_confirmed(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -158,7 +163,7 @@ impl Utxos {
         Ok(())
     }
 
-    #[instrument(name = "bdk_utxos.find_confirmed_income_utxo", skip(self, tx))]
+    #[instrument(name = "bdk.utxos.find_confirmed_income_utxo", skip(self, tx))]
     pub async fn find_confirmed_income_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -207,6 +212,7 @@ impl Utxos {
         }))
     }
 
+    #[instrument(name = "bdk.utxos.find_and_remove_soft_deleted_utxo", skip_all)]
     pub async fn find_and_remove_soft_deleted_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,

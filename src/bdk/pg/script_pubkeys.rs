@@ -1,4 +1,5 @@
 use sqlx::{PgPool, Postgres, QueryBuilder};
+use tracing::instrument;
 use uuid::Uuid;
 
 use super::convert::BdkKeychainKind;
@@ -14,6 +15,7 @@ impl ScriptPubkeys {
         Self { keychain_id, pool }
     }
 
+    #[instrument(name = "bdk.script_pubkeys.persist_all", skip_all)]
     pub async fn persist_all(
         &self,
         keys: Vec<(BdkKeychainKind, u32, ScriptBuf)>,
@@ -45,6 +47,7 @@ impl ScriptPubkeys {
         Ok(())
     }
 
+    #[instrument(name = "bdk.script_pubkeys.find_script", skip_all)]
     pub async fn find_script(
         &self,
         keychain: impl Into<BdkKeychainKind>,
@@ -67,6 +70,7 @@ impl ScriptPubkeys {
             .map(|row| ScriptBuf::from(row.script)))
     }
 
+    #[instrument(name = "bdk.script_pubkeys.find_path", skip_all)]
     pub async fn find_path(
         &self,
         script: &ScriptBuf,
@@ -87,6 +91,7 @@ impl ScriptPubkeys {
         }
     }
 
+    #[instrument(name = "bdk.script_pubkeys.list_scripts", skip_all)]
     pub async fn list_scripts(
         &self,
         keychain: Option<impl Into<BdkKeychainKind>>,
