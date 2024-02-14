@@ -1,3 +1,10 @@
+# [bria release v0.1.90](https://github.com/GaloyMoney/bria/releases/tag/0.1.90)
+
+
+### Miscellaneous Tasks
+
+- More tracing for bdk <-> pg interactions
+
 # [bria release v0.1.89](https://github.com/GaloyMoney/bria/releases/tag/0.1.89)
 
 
