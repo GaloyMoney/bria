@@ -2,6 +2,8 @@ use bdk::{bitcoin::Txid, LocalUtxo, TransactionDetails};
 use sqlx::{PgPool, Postgres, QueryBuilder, Transaction};
 use tracing::instrument;
 
+use std::collections::HashMap;
+
 use crate::{bdk::error::BdkError, primitives::*};
 
 #[derive(Debug)]
@@ -97,8 +99,8 @@ impl Transactions {
         Ok(tx.map(|tx| serde_json::from_value(tx.details_json).unwrap()))
     }
 
-    #[instrument(name = "bdk.transactions.list", skip(self), fields(n_rows))]
-    pub async fn list(&self) -> Result<Vec<TransactionDetails>, bdk::Error> {
+    #[instrument(name = "bdk.transactions.load_all", skip(self), fields(n_rows))]
+    pub async fn load_all(&self) -> Result<HashMap<Txid, TransactionDetails>, bdk::Error> {
         let txs = sqlx::query!(
             r#"
         SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND deleted_at IS NULL"#,
@@ -110,7 +112,10 @@ impl Transactions {
         tracing::Span::current().record("n_rows", txs.len());
         Ok(txs
             .into_iter()
-            .map(|tx| serde_json::from_value(tx.details_json).unwrap())
+            .map(|tx| {
+                let tx = serde_json::from_value::<TransactionDetails>(tx.details_json).unwrap();
+                (tx.txid, tx)
+            })
             .collect())
     }
 

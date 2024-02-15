@@ -19,6 +19,10 @@ use convert::BdkKeychainKind;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 pub(super) use sync_times::SyncTimes;
 pub use transactions::*;
 pub use utxos::*;
@@ -27,9 +31,11 @@ pub struct SqlxWalletDb {
     rt: Handle,
     pool: PgPool,
     keychain_id: KeychainId,
-    addresses: Option<Vec<(BdkKeychainKind, u32, ScriptBuf)>>,
     utxos: Option<Vec<LocalUtxo>>,
-    txs: Option<Vec<TransactionDetails>>,
+    cached_spks: Arc<Mutex<HashMap<ScriptBuf, (KeychainKind, u32)>>>,
+    addresses: HashMap<ScriptBuf, (KeychainKind, u32)>,
+    cached_txs: Arc<Mutex<HashMap<Txid, TransactionDetails>>>,
+    txs: HashMap<Txid, TransactionDetails>,
 }
 
 impl SqlxWalletDb {
@@ -38,10 +44,37 @@ impl SqlxWalletDb {
             rt: Handle::current(),
             keychain_id,
             pool,
-            addresses: None,
             utxos: None,
-            txs: None,
+            addresses: HashMap::new(),
+            cached_spks: Arc::new(Mutex::new(HashMap::new())),
+            txs: HashMap::new(),
+            cached_txs: Arc::new(Mutex::new(HashMap::new())),
         }
+    }
+
+    fn load_all_txs(&self) -> Result<(), bdk::Error> {
+        let mut txs = self.cached_txs.lock().expect("poisoned txs cache lock");
+        if txs.is_empty() {
+            let loaded = self.rt.block_on(async {
+                let txs = Transactions::new(self.keychain_id, self.pool.clone());
+                txs.load_all().await
+            })?;
+            *txs = loaded;
+        }
+        Ok(())
+    }
+
+    fn lookup_tx(&self, txid: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
+        if let Some(tx) = self.txs.get(txid) {
+            return Ok(Some(tx.clone()));
+        }
+        self.load_all_txs()?;
+        Ok(self
+            .cached_txs
+            .lock()
+            .expect("poisoned txs cache lock")
+            .get(txid)
+            .cloned())
     }
 }
 
@@ -52,14 +85,7 @@ impl BatchOperations for SqlxWalletDb {
         keychain: KeychainKind,
         path: u32,
     ) -> Result<(), bdk::Error> {
-        if self.addresses.is_none() {
-            self.addresses = Some(Vec::new());
-        }
-        self.addresses.as_mut().unwrap().push((
-            BdkKeychainKind::from(keychain),
-            path,
-            script.into(),
-        ));
+        self.addresses.insert(script.into(), (keychain, path));
         Ok(())
     }
 
@@ -76,10 +102,7 @@ impl BatchOperations for SqlxWalletDb {
     }
 
     fn set_tx(&mut self, tx: &TransactionDetails) -> Result<(), bdk::Error> {
-        if self.txs.is_none() {
-            self.txs = Some(Vec::new());
-        }
-        self.txs.as_mut().unwrap().push(tx.clone());
+        self.txs.insert(tx.txid, tx.clone());
         Ok(())
     }
 
@@ -179,10 +202,14 @@ impl Database for SqlxWalletDb {
     }
 
     fn iter_txs(&self, _: bool) -> Result<Vec<TransactionDetails>, bdk::Error> {
-        self.rt.block_on(async {
-            let txs = Transactions::new(self.keychain_id, self.pool.clone());
-            txs.list().await
-        })
+        self.load_all_txs()?;
+        Ok(self
+            .cached_txs
+            .lock()
+            .expect("poisoned txs cache lock")
+            .values()
+            .cloned()
+            .collect())
     }
 
     fn get_script_pubkey_from_path(
@@ -199,13 +226,22 @@ impl Database for SqlxWalletDb {
         &self,
         script: &Script,
     ) -> Result<Option<(KeychainKind, u32)>, bdk::Error> {
-        self.rt.block_on(async {
-            let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
-            Ok(script_pubkeys
-                .find_path(&ScriptBuf::from(script))
-                .await?
-                .map(|(kind, path)| (kind.into(), path)))
-        })
+        let mut cache = self.cached_spks.lock().expect("poisoned spk cache lock");
+        if cache.is_empty() {
+            let loaded = self.rt.block_on(async {
+                let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
+                script_pubkeys.load_all().await
+            })?;
+            *cache = loaded;
+        }
+
+        if let Some(res) = cache.get(script) {
+            Ok(Some(*res))
+        } else if let Some(res) = self.addresses.get(script) {
+            Ok(Some(*res))
+        } else {
+            Ok(None)
+        }
     }
     fn get_utxo(&self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
         self.rt.block_on(async {
@@ -215,20 +251,15 @@ impl Database for SqlxWalletDb {
         })
     }
     fn get_raw_tx(&self, tx_id: &Txid) -> Result<Option<Transaction>, bdk::Error> {
-        self.rt.block_on(async {
-            let txs = Transactions::new(self.keychain_id, self.pool.clone());
-            Ok(txs.find_by_id(tx_id).await?.and_then(|tx| tx.transaction))
-        })
+        self.lookup_tx(tx_id)
+            .map(|tx| tx.and_then(|tx| tx.transaction))
     }
     fn get_tx(
         &self,
         tx_id: &Txid,
         _include_raw: bool,
     ) -> Result<Option<TransactionDetails>, bdk::Error> {
-        self.rt.block_on(async {
-            let txs = Transactions::new(self.keychain_id, self.pool.clone());
-            txs.find_by_id(tx_id).await
-        })
+        self.lookup_tx(tx_id)
     }
     fn get_last_index(&self, kind: KeychainKind) -> Result<std::option::Option<u32>, bdk::Error> {
         self.rt.block_on(async {
@@ -254,23 +285,48 @@ impl BatchDatabase for SqlxWalletDb {
     type Batch = Self;
 
     fn begin_batch(&self) -> <Self as BatchDatabase>::Batch {
-        SqlxWalletDb::new(self.pool.clone(), self.keychain_id)
+        let mut res = SqlxWalletDb::new(self.pool.clone(), self.keychain_id);
+        res.cached_spks = Arc::clone(&self.cached_spks);
+        res.cached_txs = Arc::clone(&self.cached_txs);
+        res
     }
 
     fn commit_batch(
         &mut self,
         mut batch: <Self as BatchDatabase>::Batch,
     ) -> Result<(), bdk::Error> {
+        self.cached_spks
+            .lock()
+            .expect("poisoned spk cache lock")
+            .extend(
+                batch
+                    .addresses
+                    .iter()
+                    .map(|(s, (k, p))| (s.clone(), (*k, *p))),
+            );
+
+        self.cached_txs
+            .lock()
+            .expect("poisoned txs cache lock")
+            .extend(batch.txs.iter().map(|(id, tx)| (*id, tx.clone())));
+
         self.rt.block_on(async move {
-            if let Some(addresses) = batch.addresses.take() {
+            if !batch.addresses.is_empty() {
+                let addresses: Vec<_> = batch
+                    .addresses
+                    .drain()
+                    .map(|(s, (k, p))| (BdkKeychainKind::from(k), p, s))
+                    .collect();
                 let repo = ScriptPubkeys::new(batch.keychain_id, batch.pool.clone());
                 repo.persist_all(addresses).await?;
             }
+
             if let Some(utxos) = batch.utxos.take() {
                 let repo = Utxos::new(batch.keychain_id, batch.pool.clone());
                 repo.persist_all(utxos).await?;
             }
-            if let Some(txs) = batch.txs.take() {
+            if !batch.txs.is_empty() {
+                let txs = batch.txs.drain().map(|(_, tx)| tx).collect();
                 let repo = Transactions::new(batch.keychain_id, batch.pool.clone());
                 repo.persist_all(txs).await?;
             }

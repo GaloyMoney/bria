@@ -1,4 +1,5 @@
 use sqlx::{PgPool, Postgres, QueryBuilder};
+use std::collections::HashMap;
 use tracing::instrument;
 use uuid::Uuid;
 
@@ -68,6 +69,28 @@ impl ScriptPubkeys {
             .into_iter()
             .next()
             .map(|row| ScriptBuf::from(row.script)))
+    }
+
+    #[instrument(name = "bdk.script_pubkeys.load_all", skip_all)]
+    pub async fn load_all(
+        &self,
+    ) -> Result<HashMap<ScriptBuf, (bdk::KeychainKind, u32)>, bdk::Error> {
+        let rows = sqlx::query!(
+            r#"SELECT script, keychain_kind as "keychain_kind: BdkKeychainKind", path FROM bdk_script_pubkeys
+            WHERE keychain_id = $1"#,
+            Uuid::from(self.keychain_id),
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
+        let mut ret = HashMap::new();
+        for row in rows {
+            ret.insert(
+                ScriptBuf::from(row.script),
+                (bdk::KeychainKind::from(row.keychain_kind), row.path as u32),
+            );
+        }
+        Ok(ret)
     }
 
     #[instrument(name = "bdk.script_pubkeys.find_path", skip_all)]
