@@ -1,3 +1,10 @@
+# [bria release v0.1.91](https://github.com/GaloyMoney/bria/releases/tag/0.1.91)
+
+
+### Performance
+
+- Cache spks + txs to avoid n-plus-one in bdk (#472)
+
 # [bria release v0.1.90](https://github.com/GaloyMoney/bria/releases/tag/0.1.90)
 
 
