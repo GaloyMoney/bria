@@ -1,6 +1,6 @@
 [package]
 name = "bria"
-version = "0.1.91"
+version = "0.1.92-dev"
 edition = "2021"
 
 [features]
