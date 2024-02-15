@@ -19,6 +19,10 @@ use convert::BdkKeychainKind;
 use descriptor_checksum::DescriptorChecksums;
 use index::Indexes;
 use script_pubkeys::ScriptPubkeys;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 pub(super) use sync_times::SyncTimes;
 pub use transactions::*;
 pub use utxos::*;
@@ -27,9 +31,10 @@ pub struct SqlxWalletDb {
     rt: Handle,
     pool: PgPool,
     keychain_id: KeychainId,
-    addresses: Option<Vec<(BdkKeychainKind, u32, ScriptBuf)>>,
     utxos: Option<Vec<LocalUtxo>>,
     txs: Option<Vec<TransactionDetails>>,
+    cached_spks: Arc<Mutex<HashMap<ScriptBuf, (KeychainKind, u32)>>>,
+    addresses: HashMap<ScriptBuf, (KeychainKind, u32)>,
 }
 
 impl SqlxWalletDb {
@@ -38,9 +43,10 @@ impl SqlxWalletDb {
             rt: Handle::current(),
             keychain_id,
             pool,
-            addresses: None,
+            addresses: HashMap::new(),
             utxos: None,
             txs: None,
+            cached_spks: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 }
@@ -52,14 +58,7 @@ impl BatchOperations for SqlxWalletDb {
         keychain: KeychainKind,
         path: u32,
     ) -> Result<(), bdk::Error> {
-        if self.addresses.is_none() {
-            self.addresses = Some(Vec::new());
-        }
-        self.addresses.as_mut().unwrap().push((
-            BdkKeychainKind::from(keychain),
-            path,
-            script.into(),
-        ));
+        self.addresses.insert(script.into(), (keychain, path));
         Ok(())
     }
 
@@ -199,13 +198,22 @@ impl Database for SqlxWalletDb {
         &self,
         script: &Script,
     ) -> Result<Option<(KeychainKind, u32)>, bdk::Error> {
-        self.rt.block_on(async {
-            let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
-            Ok(script_pubkeys
-                .find_path(&ScriptBuf::from(script))
-                .await?
-                .map(|(kind, path)| (kind.into(), path)))
-        })
+        let mut cache = self.cached_spks.lock().expect("poisoned spk cache lock");
+        if cache.is_empty() {
+            let loaded = self.rt.block_on(async {
+                let script_pubkeys = ScriptPubkeys::new(self.keychain_id, self.pool.clone());
+                script_pubkeys.load_all().await
+            })?;
+            *cache = loaded;
+        }
+
+        if let Some(res) = cache.get(script) {
+            Ok(Some(*res))
+        } else if let Some(res) = self.addresses.get(script) {
+            Ok(Some(*res))
+        } else {
+            Ok(None)
+        }
     }
     fn get_utxo(&self, outpoint: &OutPoint) -> Result<Option<LocalUtxo>, bdk::Error> {
         self.rt.block_on(async {
@@ -262,10 +270,16 @@ impl BatchDatabase for SqlxWalletDb {
         mut batch: <Self as BatchDatabase>::Batch,
     ) -> Result<(), bdk::Error> {
         self.rt.block_on(async move {
-            if let Some(addresses) = batch.addresses.take() {
+            if !batch.addresses.is_empty() {
+                let addresses: Vec<_> = batch
+                    .addresses
+                    .drain()
+                    .map(|(s, (k, p))| (BdkKeychainKind::from(k), p, s))
+                    .collect();
                 let repo = ScriptPubkeys::new(batch.keychain_id, batch.pool.clone());
                 repo.persist_all(addresses).await?;
             }
+
             if let Some(utxos) = batch.utxos.take() {
                 let repo = Utxos::new(batch.keychain_id, batch.pool.clone());
                 repo.persist_all(utxos).await?;
