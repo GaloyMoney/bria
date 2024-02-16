@@ -31,7 +31,7 @@ tracing-opentelemetry = "0.22.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 prost = "0.12"
 prost-wkt-types = { version = "0.5", features = ["vendored-protoc"]}
-rust_decimal_macros = "1.33"
+rust_decimal_macros = "1.34"
 rusty-money = "0.4.1"
 thiserror = "1.0.56"
 uuid = { version = "1.7.0", features = ["serde", "v4"] }
