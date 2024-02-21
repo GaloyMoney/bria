@@ -39,12 +39,15 @@ futures = "0.3.30"
 url = "2.5.0"
 rand = "0.8.5"
 bdk = "0.29.0"
+payjoin = { version = "0.13.0", features = ["base64", "receive"] }
 lazy_static = "1.4.0"
 opentelemetry = { version = "0.21.0" }
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
 serde_with = "3.6.1"
 electrum-client = "0.18.0"
 reqwest = { version = "0.11.23", default-features = false, features = ["json", "rustls-tls"] }
+hyper = { version = "0.14", features = ["full"] }
+hyper-rustls = { version = "0.24", optional = true }
 tonic_lnd = { version = "0.5.0", features = ["tracing"] }
 async-trait = "0.1"
 base64 = "0.21.7"

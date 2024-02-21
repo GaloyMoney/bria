@@ -88,7 +88,7 @@ pub mod bitcoin {
             },
             consensus,
             hash_types::Txid,
-            psbt, Address as BdkAddress, Network,
+            psbt, Address as BdkAddress, Amount, Network,
         },
         descriptor::ExtendedDescriptor,
         BlockTime, FeeRate, KeychainKind,

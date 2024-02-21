@@ -19,6 +19,7 @@ use crate::{
     job,
     ledger::*,
     outbox::*,
+    payjoin::{config::*, *},
     payout::*,
     payout_queue::*,
     primitives::*,
@@ -97,6 +98,14 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
+        let pj = PayjoinReceiver::new(
+            PayjoinConfig { listen_port: 8088 },
+            addresses.clone(),
+            utxos.clone(),
+            wallets.clone(),
+            config.blockchain.network,
+        );
+        Self::spawn_payjoin_receiver(pj).await?;
         let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
@@ -1064,6 +1073,13 @@ impl App {
                 .await;
                 tokio::time::sleep(delay).await;
             }
+        });
+        Ok(())
+    }
+
+    async fn spawn_payjoin_receiver(pj: PayjoinReceiver) -> Result<(), ApplicationError> {
+        tokio::spawn(async move {
+            crate::payjoin::start(pj).await;
         });
         Ok(())
     }
