@@ -1,3 +1,16 @@
+# [bria release v0.1.92](https://github.com/GaloyMoney/bria/releases/tag/0.1.92)
+
+
+### Miscellaneous Tasks
+
+- Bump serde_json from 1.0.113 to 1.0.114 (#477)
+- Bump tempfile from 3.9.0 to 3.10.0 (#476)
+- Bump reqwest from 0.11.23 to 0.11.24 (#475)
+- Bump serde_with from 3.5.1 to 3.6.1 (#469)
+- Bump rust_decimal_macros from 1.33.1 to 1.34.2 (#473)
+- Bump serde_yaml from 0.9.30 to 0.9.32 (#474)
+- Bump derive_builder from 0.13.0 to 0.13.1 (#471)
+
 # [bria release v0.1.91](https://github.com/GaloyMoney/bria/releases/tag/0.1.91)
 
 
