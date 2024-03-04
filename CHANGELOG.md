@@ -1,3 +1,16 @@
+# [bria release v0.1.93](https://github.com/GaloyMoney/bria/releases/tag/0.1.93)
+
+
+### Miscellaneous Tasks
+
+- Bump base64 from 0.21.7 to 0.22.0 (#487)
+- Bump anyhow from 1.0.79 to 1.0.80 (#485)
+- Bump tempfile from 3.10.0 to 3.10.1 (#486)
+- Bump tonic and tonic-health to 0.11.0 (#483)
+- Bump serde from 1.0.196 to 1.0.197 (#480)
+- Bump rust_decimal from 1.34.2 to 1.34.3 (#478)
+- Bump thiserror from 1.0.56 to 1.0.57 (#479)
+
 # [bria release v0.1.92](https://github.com/GaloyMoney/bria/releases/tag/0.1.92)
 
 
