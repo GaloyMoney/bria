@@ -40,7 +40,7 @@ url = "2.5.0"
 rand = "0.8.5"
 bdk = "0.29.0"
 lazy_static = "1.4.0"
-opentelemetry = { version = "0.21.0" }
+opentelemetry = { version = "0.22.0" }
 opentelemetry_sdk = { version = "0.21.2", features = ["rt-tokio"] }
 serde_with = "3.6.1"
 electrum-client = "0.18.0"
