@@ -1,3 +1,11 @@
+# [bria release v0.1.94](https://github.com/GaloyMoney/bria/releases/tag/0.1.94)
+
+
+### Miscellaneous Tasks
+
+- Bump sqlx-ledger, opentelemetry and tracing related deps (#488)
+- Bump tokio from 1.35.1 to 1.36.0 (#489)
+
 # [bria release v0.1.93](https://github.com/GaloyMoney/bria/releases/tag/0.1.93)
 
 
