@@ -1042,7 +1042,7 @@ impl App {
         tokio::spawn(async move {
             loop {
                 let _ =
-                    job::spawn_process_all_payout_queues(&pool, std::time::Duration::from_secs(1))
+                    job::spawn_process_all_payout_queues(&pool, std::time::Duration::from_secs(2))
                         .await;
                 tokio::time::sleep(delay).await;
             }
@@ -1059,7 +1059,7 @@ impl App {
             loop {
                 let _ = job::spawn_respawn_all_outbox_handlers(
                     &pool,
-                    std::time::Duration::from_secs(1),
+                    std::time::Duration::from_secs(2),
                 )
                 .await;
                 tokio::time::sleep(delay).await;
