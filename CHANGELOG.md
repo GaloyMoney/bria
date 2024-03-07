@@ -1,3 +1,10 @@
+# [bria release v0.1.96](https://github.com/GaloyMoney/bria/releases/tag/0.1.96)
+
+
+### Miscellaneous Tasks
+
+- Move meta spawn jobs to trace output
+
 # [bria release v0.1.95](https://github.com/GaloyMoney/bria/releases/tag/0.1.95)
 
 
