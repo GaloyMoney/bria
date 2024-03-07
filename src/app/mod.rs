@@ -1020,7 +1020,7 @@ impl App {
         Ok(res)
     }
 
-    #[instrument(name = "app.spawn_sync_all_wallets", skip_all, err)]
+    #[instrument(name = "app.spawn_sync_all_wallets", level = "trace", skip_all, err)]
     async fn spawn_sync_all_wallets(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
@@ -1034,7 +1034,12 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.spawn_process_all_payout_queues", skip_all, err)]
+    #[instrument(
+        name = "app.spawn_process_all_payout_queues",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn spawn_process_all_payout_queues(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
@@ -1042,7 +1047,7 @@ impl App {
         tokio::spawn(async move {
             loop {
                 let _ =
-                    job::spawn_process_all_payout_queues(&pool, std::time::Duration::from_secs(2))
+                    job::spawn_process_all_payout_queues(&pool, std::time::Duration::from_secs(1))
                         .await;
                 tokio::time::sleep(delay).await;
             }
@@ -1050,7 +1055,12 @@ impl App {
         Ok(())
     }
 
-    #[instrument(name = "app.spawn_respawn_all_outbox_handlers", skip_all, err)]
+    #[instrument(
+        name = "app.spawn_respawn_all_outbox_handlers",
+        level = "trace",
+        skip_all,
+        err
+    )]
     async fn spawn_respawn_all_outbox_handlers(
         pool: sqlx::PgPool,
         delay: std::time::Duration,
@@ -1059,7 +1069,7 @@ impl App {
             loop {
                 let _ = job::spawn_respawn_all_outbox_handlers(
                     &pool,
-                    std::time::Duration::from_secs(2),
+                    std::time::Duration::from_secs(1),
                 )
                 .await;
                 tokio::time::sleep(delay).await;
