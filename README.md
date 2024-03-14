@@ -76,21 +76,21 @@ To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer
 
 2. **Manual entry:** Alternatively, you can manually enter the environment by executing `nix develop`. You can also run a specific command directly with `nix develop --command <command>`, or use the environment as you prefer.
 
-### Running tests
+#### Running tests
 
 - to run the tests, use the following command:
     ```bash
     make reset-deps next-watch
     ```
 
-### End-to-end tests
+#### End-to-end tests
 
 - for bash-based end-to-end tests, we use [bats](https://bats-core.readthedocs.io/en/stable/) as a test runner. To execute these tests, run:
     ```bash
     make e2e
     ```
 
-### Local daemon for E2E tests and exploration
+#### Local daemon for E2E tests and exploration
 
 - if your end-to-end tests stall, or if you simply wish to inspect the state or experiment locally, you can start the local daemon with:
     ```bash

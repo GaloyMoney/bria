@@ -1,9 +1,20 @@
-## Demo walkthough
+## Demo walkthrough
 
-* goto bria directory and run direnv 
+### Build from source
+* clone the bria repository
+  ```
+  git clone https://github.com/GaloyMoney/bria
+  ```
+* go to the bria directory and run direnv
   ```
   cd bria && direnv allow
   ```
+* build the bria binary
+  ```
+  make build
+  ```
+
+### Walkthrough steps
 * start the preconfigured dependencies
   ```
   make reset-deps
@@ -20,6 +31,7 @@
   ```
   bria daemon --config ./tests/e2e/bria.local.yml postgres://user:password@127.0.0.1:5432/pg dev
   ```
+* open a new terminal and run direnv allow
 
 * create aliases to work with the docker containers
   ```
@@ -98,4 +110,3 @@
   bria help
   bria <COMMAND> help
   ```
-  
