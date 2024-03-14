@@ -43,7 +43,7 @@
   ```
 * Create an address
   ```
-  bria new-address -w default --external-id my-id --metadat "{"hello": "world"}"
+  bria new-address -w default --external-id my-id --metadata '{"hello": "world"}'
   ```
 * Send funds to the wallet
   ```
@@ -58,29 +58,24 @@
   bria submit-payout -w default --queue-name my-queue --destination bcrt1qxcpz7ytf3nwlhjay4n04nuz8jyg3hl4ud02t9t --amount 100000
   bria submit-payout -w default --queue-name my-queue --destination bcrt1qxcpz7ytf3nwlhjay4n04nuz8jyg3hl4ud02t9t --amount 150000
   ```
-* Check the wallet balance and all events with metadata (press CTRL+C t end the stream)
+* Check the wallet balance and all events with metadata
   ```
   bria wallet-balance -w default
   bria watch-events --after 0 --one-shot
-  ```
-* Check the wallet balance and the events again
-  ```
-  bria wallet-balance -w default
-  bria watch-events --after 0 --one-shot --augment
   ```
 * Mine two blocks
   ```
   bitcoin_cli -generate 2
   ```
-* Check the wallet balance and all events with metadata (press CTRL+C t end the stream)
+* Check the wallet balance and all events with metadata
   ```
   bria wallet-balance -w default
-  bria watch-events --after 0
+  bria watch-events --after 0 --one-shot
   ```
 * Sign
   ```
   bria set-signer-config \
-    --xpub "68bfb290 " bitcoind \
+    --xpub "68bfb290" bitcoind \
     --endpoint "localhost:18543" \
     --rpc-user "rpcuser" \
     --rpc-password "rpcpassword"
@@ -93,8 +88,8 @@
   ```
   bria wallet-balance -w default
   ```
-* More info in the {Video demo above](#demo-video) and the help of the commands
+* Explore more options with:
   ```
-  bria --help
-  bria <COMMAND> --help
+  bria help
+  bria <COMMAND> help
   ```
