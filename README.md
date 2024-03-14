@@ -197,122 +197,39 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   PATH="${PATH}:$(pwd)/target/debug"
   ```
 
-## Setup
-### Configuration
-* Connect to the dependencies following the example in the [docker-compose file](docker-compose.yml)
-- Database
-  - postgres - to store the internal state - run it locally
-- Blockhchain source
-  - electrum server - run locally or connect to a public server (e.g., `ssl://electrum.blockstream.info:50002` )
-- Signers
-  - bitcoind-signer
-  - lnd
-  - manual PSBT feeding is possible with others
-- Fee-estimation
-  - mempool.space API - self-hostable or use a public instance (e.g., `https://mempool.space` )
-- Telemetry
-  - otel-agent - optional for observability
 
-* Example [terraform provider configuration](https://github.com/GaloyMoney/terraform-provider-bria/blob/main/example/main.tf)
-* Provide the database connection parameters in environment variables
-  ```
-  # create a .envrc file
-  cat <<EOF > .envrc
-  export PG_HOST=127.0.0.1
-  export PG_CON=postgres://user:password@${PG_HOST}:5432/pg
-  EOF
+## Developing with Nix Environment
 
-  direnv allow
-  ```
-* Provide the database encryption key
-  ```
-  export SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
-  ```
-* Create a minimal config file
-  ```
-  cat <<EOF > config.yml
-  app:
-    blockchain:
-      network: regtest
-      electrum_url: localhost:50001
-    fees:
-      mempool_space:
-        url: http://localhost:8999
-  EOF
-  ```
+To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer) environment, there are two primary methods:
 
-### Bria daemon
-* start the Bria daemon with the config
-  ```
-  bria daemon -c config.yml run
-  ```
+1. **Using `direnv`:** If `direnv` is installed and hooked into your shell, simply `cd` into the repository. Nix will automatically bootstrap the environment for you using the flake.
 
-### Bootstrap
-* create an admin API key (needed once only - stored in the .bria folder)
-  ```
-  bria admin bootstrap
-  ```
+2. **Manual Entry:** Alternatively, you can manually enter the environment by executing `nix develop`. You can also run a specific command directly with `nix develop --command <command>`, or use the environment as you prefer.
 
-### Usage
-* create an account (creates also a profile API key scoped to the account)
-  ```
-  bria admin create-account -n default
-  ```
-* create a wallet for the bria account
-  ```
-  bria  create-wallet --help
-  ```
-  ```
-  Create a wallet from imported xpubs
+### Running Tests
 
-  Usage: bria create-wallet [OPTIONS] --name <NAME> [API_KEY] <COMMAND>
+- To run the tests, use the following command:
+    ```bash
+    make reset-deps next-watch
+    ```
 
-  Commands:
-    wpkh             Initialize the wallet via wpkh
-    descriptors      Initialize the wallet via descriptors
-    sorted-multisig
-    help             Print this message or the help of the given subcommand(s)
-  ```
-* For further options and subcommands see:
-  ```
-  bria --help
-  bria <COMMAND> --help
-  ```
+### End-to-End Tests
 
-## Developing
-For developing all dependencies are run via docker compose
+- For bash-based end-to-end tests, we use [bats](https://bats-core.readthedocs.io/en/stable/) as a test runner. To execute these tests, run:
+    ```bash
+    make e2e
+    ```
 
-* To run the tests make sure `PG_CON` is pointing to the PG instance inside docker:
-  ```
-  # create an .envrc file
-  cat <<EOF > .envrc
-  export PG_HOST=127.0.0.1
-  export PG_CON=postgres://user:password@${PG_HOST}:5432/pg
-  EOF
+### Local Daemon for E2E Tests and Exploration
 
-  direnv allow
-  ```
-* Add the dev dependencies
-  ```
-  make install-dev-deps
-  ```
-* Run the tests via
-  ```
-  make reset-deps next-watch
-  ```
-* For bash based e2e tests we use [bats](https://bats-core.readthedocs.io/en/stable/) as a test runner.
-Run the tests via:
-  ```
-  make e2e
-  ```
-* If your e2e tests stall and you want to inspect the state (or just want to play around locally) then:
-  ```
-  make local-daemon
-  ```
-* Will bring up the daemon and you can run cli commands against it eg:
-  ```
-  cargo run --bin bria admin list-accounts
-  ```
+- If your end-to-end tests stall, or if you simply wish to inspect the state or experiment locally, you can start the local daemon with:
+    ```bash
+    make local-daemon
+    ```
+- Once the daemon is up, you can run CLI commands against it. For example:
+    ```bash
+    cargo run --bin bria help
+    ```
 
 ## License
 [Mozilla Public License 2.0](LICENSE)
