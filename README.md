@@ -65,7 +65,6 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 #### Docker
 * choose the install method for your system https://docs.docker.com/desktop/
 
-
 ### Build from source
 * download the source code
   ```
@@ -82,7 +81,9 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   ```
   PATH="${PATH}:$(pwd)/target/debug"
   ```
-### [Demo walkthrough](docs/demo.md)
+### Demo walkthrough
+
+For a step-by-step guide on how to get started with the demo, see the [demo walkthrough](docs/demo.md).
 
 ## Developing with Nix environment
 
