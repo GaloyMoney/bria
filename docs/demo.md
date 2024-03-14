@@ -1,4 +1,9 @@
 ## Demo walkthough
+
+* goto bria directory and run direnv 
+  ```
+  cd bria && direnv allow
+  ```
 * start the preconfigured dependencies
   ```
   make reset-deps

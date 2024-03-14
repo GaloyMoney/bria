@@ -44,7 +44,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   - extensive automated testing (unit + integration in rust, end-to-end using BATS)
   - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
-## Quickstart
+## Developing
 
 ### Dependencies
 
@@ -65,27 +65,11 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 #### Docker
 * choose the install method for your system https://docs.docker.com/desktop/
 
-### Build from source
-* download the source code
-  ```
-  git clone https://github.com/GaloyMoney/bria
-  ```
-
-* build
-  ```
-  cd bria
-  direnv allow
-  make build
-  ```
-* add the location of the binary to the PATH
-  ```
-  PATH="${PATH}:$(pwd)/target/debug"
-  ```
 ### Demo walkthrough
 
 For a step-by-step guide on how to get started with the demo, see the [demo walkthrough](docs/demo.md).
 
-## Developing with Nix environment
+### Testing
 
 To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer) environment, there are two primary methods:
 
