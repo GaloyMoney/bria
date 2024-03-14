@@ -8,17 +8,16 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 <summary>Table of Contents</summary>
 
 - [Key features](#key-features)
-- [Quickstart](#quickstart)
+- [Developing](#developing)
   - [Dependencies](#dependencies)
     - [Nix package manager](#nix-package-manager)
     - [direnv \>= 2.30.0](#direnv--2300)
     - [Docker](#docker)
-  - [Build from source](#build-from-source)
   - [Demo walkthrough](#demo-walkthrough)
-- [Developing with Nix environment](#developing-with-nix-environment)
-  - [Running tests](#running-tests)
-  - [End-to-end tests](#end-to-end-tests)
-  - [Local daemon for E2E tests and exploration](#local-daemon-for-e2e-tests-and-exploration)
+  - [Testing](#testing)
+    - [Running tests](#running-tests)
+    - [End-to-end tests](#end-to-end-tests)
+    - [Local daemon for E2E tests and exploration](#local-daemon-for-e2e-tests-and-exploration)
 - [License](#license)
 
 </details>
@@ -44,7 +43,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   - extensive automated testing (unit + integration in rust, end-to-end using BATS)
   - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
-## Quickstart
+## Developing
 
 ### Dependencies
 
@@ -65,27 +64,11 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 #### Docker
 * choose the install method for your system https://docs.docker.com/desktop/
 
-### Build from source
-* download the source code
-  ```
-  git clone https://github.com/GaloyMoney/bria
-  ```
-
-* build
-  ```
-  cd bria
-  direnv allow
-  make build
-  ```
-* add the location of the binary to the PATH
-  ```
-  PATH="${PATH}:$(pwd)/target/debug"
-  ```
 ### Demo walkthrough
 
 For a step-by-step guide on how to get started with the demo, see the [demo walkthrough](docs/demo.md).
 
-## Developing with Nix environment
+### Testing
 
 To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer) environment, there are two primary methods:
 
@@ -93,21 +76,21 @@ To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer
 
 2. **Manual entry:** Alternatively, you can manually enter the environment by executing `nix develop`. You can also run a specific command directly with `nix develop --command <command>`, or use the environment as you prefer.
 
-### Running tests
+#### Running tests
 
 - to run the tests, use the following command:
     ```bash
     make reset-deps next-watch
     ```
 
-### End-to-end tests
+#### End-to-end tests
 
 - for bash-based end-to-end tests, we use [bats](https://bats-core.readthedocs.io/en/stable/) as a test runner. To execute these tests, run:
     ```bash
     make e2e
     ```
 
-### Local daemon for E2E tests and exploration
+#### Local daemon for E2E tests and exploration
 
 - if your end-to-end tests stall, or if you simply wish to inspect the state or experiment locally, you can start the local daemon with:
     ```bash
