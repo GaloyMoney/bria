@@ -8,17 +8,16 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 <summary>Table of Contents</summary>
 
 - [Key features](#key-features)
-- [Quickstart](#quickstart)
+- [Developing](#developing)
   - [Dependencies](#dependencies)
     - [Nix package manager](#nix-package-manager)
     - [direnv \>= 2.30.0](#direnv--2300)
     - [Docker](#docker)
-  - [Build from source](#build-from-source)
   - [Demo walkthrough](#demo-walkthrough)
-- [Developing with Nix environment](#developing-with-nix-environment)
-  - [Running tests](#running-tests)
-  - [End-to-end tests](#end-to-end-tests)
-  - [Local daemon for E2E tests and exploration](#local-daemon-for-e2e-tests-and-exploration)
+  - [Testing](#testing)
+    - [Running tests](#running-tests)
+    - [End-to-end tests](#end-to-end-tests)
+    - [Local daemon for E2E tests and exploration](#local-daemon-for-e2e-tests-and-exploration)
 - [License](#license)
 
 </details>
