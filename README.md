@@ -202,7 +202,7 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 
 To run commands in the [Nix](https://github.com/DeterminateSystems/nix-installer) environment, there are two primary methods:
 
-1. **Using `direnv`:** If `direnv` is installed and hooked into your shell, simply `cd` into the repository. Nix will automatically bootstrap the environment for you using the flake.
+1. **Using `direnv`:** If `direnv` is installed and hooked into your shell, simply `cd` into the repository. Nix will automatically bootstrap the environment for you using the flake. On the first run, you'll need to execute `direnv allow` to load the environment configuration.
 
 2. **Manual Entry:** Alternatively, you can manually enter the environment by executing `nix develop`. You can also run a specific command directly with `nix develop --command <command>`, or use the environment as you prefer.
 
