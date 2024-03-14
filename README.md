@@ -8,17 +8,17 @@ Bria enables transaction batching and UTXO management providing the liquidity of
 <summary>Table of Contents</summary>
 
 - [Key features](#key-features)
-- [Demo video](#demo-video)
 - [Quickstart](#quickstart)
-  - [Install](#install)
-  - [Demo walkthough](#demo-walkthough)
-- [Build from source](#build-from-source)
-- [Setup](#setup)
-  - [Configuration](#configuration)
-  - [Bria daemon](#bria-daemon)
-  - [Bootstrap](#bootstrap)
-  - [Usage](#usage)
-- [Developing](#developing)
+  - [Dependencies](#dependencies)
+    - [Nix package manager](#nix-package-manager)
+    - [direnv \>= 2.30.0](#direnv--2300)
+    - [Docker](#docker)
+  - [Build from source](#build-from-source)
+  - [Demo Walkthrough](#demo-walkthrough)
+- [Developing with Nix Environment](#developing-with-nix-environment)
+  - [Running Tests](#running-tests)
+  - [End-to-End Tests](#end-to-end-tests)
+  - [Local Daemon for E2E Tests and Exploration](#local-daemon-for-e2e-tests-and-exploration)
 - [License](#license)
 
 </details>
@@ -44,18 +44,34 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   - extensive automated testing (unit + integration in rust, end-to-end using BATS)
   - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
-## Demo video
-<a href="https://www.loom.com/share/53e38dc7d1694b11a09b08fc32c584c8">
-    <img src="https://cdn.loom.com/sessions/thumbnails/53e38dc7d1694b11a09b08fc32c584c8-1689716086737-with-play.gif" alt="Understanding Bria: Transaction Batching and UTXO Management [🎥]" width="300">
-</a>
-
 ## Quickstart
+
+### Dependencies
+
+#### Nix package manager
+* recommended install method using https://github.com/DeterminateSystems/nix-installer
+  ```
+  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+  ```
+
+#### direnv >= 2.30.0
+* recommended install method from https://direnv.net/docs/installation.html:
+  ```
+  curl -sfL https://direnv.net/install.sh | bash
+  echo "eval \"\$(direnv hook bash)\"" >> ~/.bashrc
+  source ~/.bashrc
+  ```
+
+#### Docker
+* choose the install method for your system https://docs.docker.com/desktop/
+
+
 ### Build from source
 * Download the source code
   ```
   git clone https://github.com/GaloyMoney/bria
   ```
-* Make sure you have [Nix](https://github.com/DeterminateSystems/nix-installer) and ```Docker``` Installed
+
 * Build
   ```
   cd bria
@@ -67,7 +83,6 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   PATH="${PATH}:$(pwd)/target/debug"
   ```
 ### [Demo Walkthrough](docs/demo.md)
-
 
 ## Developing with Nix Environment
 
