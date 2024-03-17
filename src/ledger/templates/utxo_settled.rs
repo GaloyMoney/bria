@@ -1,5 +1,5 @@
 use bdk::BlockTime;
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
@@ -96,10 +96,9 @@ impl From<UtxoSettledParams> for TxParams {
         }: UtxoSettledParams,
     ) -> Self {
         let amount = meta.satoshis.to_btc();
-        let effective =
-            NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
-                .expect("Couldn't convert blocktime to NaiveDateTime")
-                .date();
+        let effective = DateTime::from_timestamp(meta.confirmation_time.timestamp as i64, 0)
+            .expect("Couldn't convert blocktime to NaiveDateTime")
+            .date_naive();
         let meta = serde_json::to_value(meta).expect("Couldn't serialize meta");
         let mut params = Self::default();
         params.insert("journal_id", journal_id);

@@ -1,5 +1,5 @@
 use bdk::BlockTime;
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
@@ -108,10 +108,9 @@ impl From<SpendSettledParams> for TxParams {
             meta,
         }: SpendSettledParams,
     ) -> Self {
-        let effective =
-            NaiveDateTime::from_timestamp_opt(meta.confirmation_time.timestamp as i64, 0)
-                .expect("Couldn't convert blocktime to NaiveDateTime")
-                .date();
+        let effective = DateTime::from_timestamp(meta.confirmation_time.timestamp as i64, 0)
+            .expect("Couldn't convert blocktime to NaiveDateTime")
+            .date_naive();
         let WalletTransactionSummary {
             total_utxo_in_sats,
             ref change_utxos,

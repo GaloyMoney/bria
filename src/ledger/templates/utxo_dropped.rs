@@ -1,5 +1,5 @@
 use bdk::BlockTime;
-use chrono::{NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{tx_template::*, JournalId, SqlxLedger, SqlxLedgerError};
 use tracing::instrument;
@@ -104,9 +104,9 @@ impl From<UtxoDroppedParams> for TxParams {
             .confirmation_time
             .as_ref()
             .map(|t| {
-                NaiveDateTime::from_timestamp_opt(t.timestamp as i64, 0)
+                DateTime::from_timestamp(t.timestamp as i64, 0)
                     .expect("Couldn't convert blocktime to NaiveDateTime")
-                    .date()
+                    .date_naive()
             })
             .unwrap_or_else(|| Utc::now().date_naive());
         let correlation_id = meta.detected_txn_id;
