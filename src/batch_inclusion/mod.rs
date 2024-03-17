@@ -132,7 +132,8 @@ impl BatchInclusion {
             if let Some(attempt_at) = row.attempt_at {
                 map.insert(
                     PayoutQueueId::from(row.id),
-                    attempt_at + chrono::Duration::seconds(1),
+                    attempt_at
+                        + chrono::Duration::try_seconds(1).expect("could not convert to duration"),
                 );
             }
         }
