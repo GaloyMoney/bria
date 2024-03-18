@@ -1,3 +1,22 @@
+# [bria release v0.1.97](https://github.com/GaloyMoney/bria/releases/tag/0.1.97)
+
+
+### Bug Fixes
+
+- Lock rows and skip them during concurrent poll (#498)
+
+### Documentation
+
+- Remove Quickstart section (#497)
+- Unify capitalization (#496)
+- Update install instructions and demo walkthrough (#495)
+- Extract out bria demo (#494)
+- Using nix for development (#493)
+
+### Miscellaneous Tasks
+
+- Remove accidental file
+
 # [bria release v0.1.96](https://github.com/GaloyMoney/bria/releases/tag/0.1.96)
 
 
