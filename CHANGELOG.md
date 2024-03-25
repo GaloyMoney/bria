@@ -1,3 +1,10 @@
+# [bria release v0.1.99](https://github.com/GaloyMoney/bria/releases/tag/0.1.99)
+
+
+### Miscellaneous Tasks
+
+- Bump deps
+
 # [bria release v0.1.98](https://github.com/GaloyMoney/bria/releases/tag/0.1.98)
 
 
