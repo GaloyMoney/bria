@@ -10,7 +10,7 @@ fail-on-warnings = []
 [dependencies]
 sqlx-ledger = { version = "0.11.3", features = ["otel"] }
 
-anyhow = "1.0.80"
+anyhow = "1.0.81"
 bitcoincore-rpc = "0.17.0"
 clap = { version = "4.4", features = ["derive", "env"] }
 chrono = { version = "0.4.35", features = ["clock", "serde"], default-features = false }
@@ -18,7 +18,7 @@ derive_builder = "0.20.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 serde_yaml = "0.9.32"
-sqlx = { version = "0.7.2", features = ["runtime-tokio-rustls", "postgres", "rust_decimal", "uuid", "chrono"] }
+sqlx = { version = "0.7.4", features = ["runtime-tokio-rustls", "postgres", "rust_decimal", "uuid", "chrono"] }
 sqlxmq = { version = "0.5", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio = { version = "1.36", features = ["rt-multi-thread", "macros"] }
 tokio-stream = { version = "0.1.14", features = ["sync"] }
@@ -29,22 +29,21 @@ prost = "0.12"
 prost-wkt-types = { version = "0.5", features = ["vendored-protoc"]}
 rust_decimal_macros = "1.34"
 rusty-money = "0.4.1"
-thiserror = "1.0.57"
-uuid = { version = "1.7.0", features = ["serde", "v4"] }
+thiserror = "1.0.58"
+uuid = { version = "1.8.0", features = ["serde", "v4"] }
 futures = "0.3.30"
 url = "2.5.0"
 rand = "0.8.5"
 bdk = "0.29.0"
-lazy_static = "1.4.0"
 opentelemetry = { version = "0.22.0" }
 opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.15.0", features = ["http-proto", "reqwest-client"] }
 tracing = "0.1.40"
 tracing-opentelemetry = "0.23.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
-serde_with = "3.6.1"
+serde_with = "3.7.0"
 electrum-client = "0.18.0"
-reqwest = { version = "0.11.24", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11.27", default-features = false, features = ["json", "rustls-tls"] }
 tonic_lnd = { version = "0.5.0", features = ["tracing"] }
 async-trait = "0.1"
 base64 = "0.22.0"
@@ -54,7 +53,7 @@ chacha20poly1305 = "0.10.1"
 regex = "1.10.3"
 miniscript = "10.0"
 reqwest-retry = "0.4.0"
-reqwest-middleware = "0.2.4"
+reqwest-middleware = "0.2.5"
 
 [dev-dependencies]
 serial_test = "*"
