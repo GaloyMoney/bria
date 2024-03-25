@@ -1,3 +1,15 @@
+# [bria release v0.1.98](https://github.com/GaloyMoney/bria/releases/tag/0.1.98)
+
+
+### Bug Fixes
+
+- Payout external (#500)
+
+### Miscellaneous Tasks
+
+- Bump chronos / derive_builder (#501)
+- Bump flake (#499)
+
 # [bria release v0.1.97](https://github.com/GaloyMoney/bria/releases/tag/0.1.97)
 
 
