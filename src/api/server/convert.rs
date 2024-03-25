@@ -645,6 +645,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
             }
+            ApplicationError::PayoutError(PayoutError::ExternalIdAlreadyExists) => {
+                tonic::Status::already_exists(err.to_string())
+            }
             ApplicationError::CouldNotParseIncomingMetadata(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
