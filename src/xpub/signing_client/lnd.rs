@@ -27,6 +27,7 @@ impl LndRemoteSigner {
 
         let mut cert = fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .mode(0o600)
             .open(&cert_file)?;
@@ -34,6 +35,7 @@ impl LndRemoteSigner {
         let macaroon_file = tmpdir.path().join("macaroon");
         let mut macaroon = fs::OpenOptions::new()
             .create(true)
+            .truncate(true)
             .write(true)
             .mode(0o600)
             .open(&macaroon_file)?;
