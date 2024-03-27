@@ -13,7 +13,7 @@ use crate::{
     outbox::error::OutboxError,
     payout::error::PayoutError,
     payout_queue::error::PayoutQueueError,
-    primitives::{bitcoin, PayoutDestination},
+    primitives::{bitcoin, PayoutDestination, Satoshis},
     profile::error::ProfileError,
     signing_session::error::SigningSessionError,
     utxo::error::UtxoError,
@@ -67,6 +67,8 @@ pub enum ApplicationError {
     DestinationBlocked(PayoutDestination),
     #[error("DestinationNotAllowed - profile is not allowed to send to '{0}'")]
     DestinationNotAllowed(PayoutDestination),
+    #[error("PayoutExceedsMaximum - profile is not allowed to send '{0}' satoshis")]
+    PayoutExceedsMaximum(Satoshis),
     #[error("Signing Session not found for batch id: {0}")]
     SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
     #[error("Signing Session not found for xpub id: {0}")]

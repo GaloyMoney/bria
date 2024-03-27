@@ -35,17 +35,29 @@ impl Profile {
             .map(|sp| sp.is_destination_allowed(destination))
             .unwrap_or(true)
     }
+
+    pub fn is_amount_allowed(&self, sats: Satoshis) -> bool {
+        self.spending_policy
+            .as_ref()
+            .map(|sp| sp.is_amount_allowed(sats))
+            .unwrap_or(true)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpendingPolicy {
     pub allowed_payout_addresses: Vec<Address>,
+    pub maximum_payout: Option<Satoshis>,
 }
 
 impl SpendingPolicy {
     fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
         self.allowed_payout_addresses
             .contains(destination.onchain_address())
+    }
+
+    fn is_amount_allowed(&self, amount: Satoshis) -> bool {
+        self.maximum_payout.map(|max| amount <= max).unwrap_or(true)
     }
 }
 

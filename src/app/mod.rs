@@ -822,6 +822,9 @@ impl App {
         if !profile.is_destination_allowed(&destination) {
             return Err(ApplicationError::DestinationNotAllowed(destination));
         }
+        if !profile.is_amount_allowed(sats) {
+            return Err(ApplicationError::PayoutExceedsMaximum(sats));
+        }
 
         let mut builder = NewPayout::builder(id);
         builder

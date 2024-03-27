@@ -38,6 +38,7 @@ impl From<SpendingPolicy> for proto::SpendingPolicy {
                 .into_iter()
                 .map(|addr| addr.to_string())
                 .collect(),
+            max_payout_sats: sp.maximum_payout.map(u64::from),
         }
     }
 }
@@ -56,6 +57,7 @@ impl TryFrom<(proto::SpendingPolicy, bitcoin::Network)> for SpendingPolicy {
         }
         Ok(Self {
             allowed_payout_addresses,
+            maximum_payout: sp.max_payout_sats.map(Satoshis::from),
         })
     }
 }
@@ -661,6 +663,9 @@ impl From<ApplicationError> for tonic::Status {
                 tonic::Status::permission_denied(err.to_string())
             }
             ApplicationError::DestinationNotAllowed(_) => {
+                tonic::Status::permission_denied(err.to_string())
+            }
+            ApplicationError::PayoutExceedsMaximum(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {

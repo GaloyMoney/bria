@@ -53,6 +53,7 @@ message CreateProfileRequest {
 
 message SpendingPolicy {
   repeated string allowed_payout_addresses = 1;
+  optional uint64 max_payout_sats = 2;
 }
 
 message CreateProfileResponse {
