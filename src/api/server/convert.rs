@@ -38,7 +38,7 @@ impl From<SpendingPolicy> for proto::SpendingPolicy {
                 .into_iter()
                 .map(|addr| addr.to_string())
                 .collect(),
-            max_payout_sats: sp.maximum_payout.map(u64::from),
+            max_payout_sats: sp.max_payout.map(u64::from),
         }
     }
 }
@@ -57,7 +57,7 @@ impl TryFrom<(proto::SpendingPolicy, bitcoin::Network)> for SpendingPolicy {
         }
         Ok(Self {
             allowed_payout_addresses,
-            maximum_payout: sp.max_payout_sats.map(Satoshis::from),
+            max_payout: sp.max_payout_sats.map(Satoshis::from),
         })
     }
 }

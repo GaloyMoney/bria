@@ -63,7 +63,7 @@ impl Profile {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpendingPolicy {
     pub allowed_payout_addresses: Vec<Address>,
-    pub maximum_payout: Option<Satoshis>,
+    pub max_payout: Option<Satoshis>,
 }
 
 impl SpendingPolicy {
@@ -73,7 +73,7 @@ impl SpendingPolicy {
     }
 
     fn is_amount_allowed(&self, amount: Satoshis) -> bool {
-        self.maximum_payout.map(|max| amount <= max).unwrap_or(true)
+        self.max_payout.map(|max| amount <= max).unwrap_or(true)
     }
 }
 
