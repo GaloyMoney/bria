@@ -35,12 +35,7 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
     let app = AdminApp::new(pool.clone(), bitcoin::Network::Regtest);
 
     let profile_key = app.create_account(name.clone()).await?;
-    Ok(Profile {
-        id: profile_key.profile_id,
-        account_id: profile_key.account_id,
-        name,
-        spending_policy: None,
-    })
+    Ok(Profiles::new(pool).find_by_key(&profile_key.key).await?)
 }
 
 pub async fn bitcoind_client() -> anyhow::Result<bitcoincore_rpc::Client> {

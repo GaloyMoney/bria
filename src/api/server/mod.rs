@@ -57,6 +57,36 @@ impl BriaService for Bria {
         .await
     }
 
+    #[instrument(name = "bria.update_profile", skip_all, fields(error, error.level, error.message), err)]
+    async fn update_profile(
+        &self,
+        request: Request<UpdateProfileRequest>,
+    ) -> Result<Response<UpdateProfileResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let spending_policy = request
+                .spending_policy
+                .map(|policy| profile::SpendingPolicy::try_from((policy, self.app.network())))
+                .transpose()?;
+            self.app
+                .update_profile(
+                    &profile,
+                    request
+                        .id
+                        .parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                    spending_policy,
+                )
+                .await?;
+            Ok(Response::new(UpdateProfileResponse {}))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.list_profiles", skip_all, fields(error, error.level, error.message), err)]
     async fn list_profiles(
         &self,

@@ -93,6 +93,7 @@ async fn spending_policy() -> anyhow::Result<()> {
             wallet_name.clone(),
             Some(SpendingPolicy {
                 allowed_payout_addresses: vec![address.clone()],
+                maximum_payout: Some(Satoshis::from(10000)),
             }),
         )
         .await?;
@@ -108,6 +109,22 @@ async fn spending_policy() -> anyhow::Result<()> {
             None,
         )
         .await?;
+
+    let res = app
+        .submit_payout_to_address(
+            &spending_profile,
+            wallet_name.clone(),
+            queue_name.clone(),
+            address.to_string(),
+            Satoshis::from(10001),
+            None,
+            None,
+        )
+        .await;
+    assert!(matches!(
+        res,
+        Err(ApplicationError::PayoutExceedsMaximum(_))
+    ));
 
     let address = "n4VQ5YdHf7hLQ2gWQYYrcxoE5B7nWuDFNF".parse().unwrap();
 
