@@ -70,6 +70,34 @@ impl Profiles {
         Ok(profiles)
     }
 
+    pub async fn find_by_id(
+        &self,
+        account_id: AccountId,
+        id: ProfileId,
+    ) -> Result<Profile, ProfileError> {
+        let rows = sqlx::query!(
+            r#"SELECT p.id, e.sequence, e.event_type, e.event
+               FROM bria_profiles p
+               JOIN bria_profile_events e ON p.id = e.id
+               WHERE p.account_id = $1 AND p.id = $2
+               ORDER BY p.id, sequence"#,
+            account_id as AccountId,
+            id as ProfileId
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        if !rows.is_empty() {
+            let mut events = EntityEvents::new();
+            for row in rows {
+                events.load_event(row.sequence as usize, row.event)?;
+            }
+            Ok(Profile::try_from(events)?)
+        } else {
+            Err(ProfileError::ProfileIdNotFound(id))
+        }
+    }
+
     pub async fn find_by_name(
         &self,
         account_id: AccountId,
@@ -156,5 +184,22 @@ impl Profiles {
         } else {
             Err(ProfileError::ProfileKeyNotFound)
         }
+    }
+
+    pub async fn update(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        profile: Profile,
+    ) -> Result<(), ProfileError> {
+        if !profile.events.is_dirty() {
+            return Ok(());
+        }
+        EntityEvents::<ProfileEvent>::persist(
+            "bria_profile_events",
+            tx,
+            profile.events.new_serialized_events(profile.id),
+        )
+        .await?;
+        Ok(())
     }
 }

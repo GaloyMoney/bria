@@ -153,6 +153,24 @@ impl App {
         Ok(new_profile)
     }
 
+    #[instrument(name = "app.update_profile", skip(self), err)]
+    pub async fn update_profile(
+        &self,
+        profile: &Profile,
+        profile_id: ProfileId,
+        spending_policy: Option<SpendingPolicy>,
+    ) -> Result<(), ApplicationError> {
+        let mut target_profile = self
+            .profiles
+            .find_by_id(profile.account_id, profile_id)
+            .await?;
+        target_profile.update_spending_policy(spending_policy);
+        let mut tx = self.pool.begin().await?;
+        self.profiles.update(&mut tx, target_profile).await?;
+        tx.commit().await?;
+        Ok(())
+    }
+
     #[instrument(name = "app.list_profiles", skip(self), err)]
     pub async fn list_profiles(&self, profile: &Profile) -> Result<Vec<Profile>, ApplicationError> {
         let profiles = self.profiles.list_for_account(profile.account_id).await?;

@@ -16,6 +16,7 @@ pub enum ProfileEvent {
     SpendingPolicyUpdated {
         spending_policy: SpendingPolicy,
     },
+    SpendingPolicyRemoved {},
 }
 
 #[derive(Debug, Builder)]
@@ -24,11 +25,26 @@ pub struct Profile {
     pub id: ProfileId,
     pub account_id: AccountId,
     pub name: String,
-    #[builder(default, setter(strip_option))]
+    #[builder(default)]
     pub spending_policy: Option<SpendingPolicy>,
+
+    pub(super) events: EntityEvents<ProfileEvent>,
 }
 
 impl Profile {
+    pub fn update_spending_policy(&mut self, policy: Option<SpendingPolicy>) {
+        if self.spending_policy != policy {
+            self.spending_policy = policy.clone();
+            if let Some(policy) = policy {
+                self.events.push(ProfileEvent::SpendingPolicyUpdated {
+                    spending_policy: policy,
+                });
+            } else {
+                self.events.push(ProfileEvent::SpendingPolicyRemoved {});
+            }
+        }
+    }
+
     pub fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
         self.spending_policy
             .as_ref()
@@ -44,7 +60,7 @@ impl Profile {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpendingPolicy {
     pub allowed_payout_addresses: Vec<Address>,
     pub maximum_payout: Option<Satoshis>,
@@ -109,19 +125,20 @@ impl TryFrom<EntityEvents<ProfileEvent>> for Profile {
 
     fn try_from(events: EntityEvents<ProfileEvent>) -> Result<Self, Self::Error> {
         let mut builder = ProfileBuilder::default();
-        for event in events.into_iter() {
+        for event in events.iter() {
             match event {
                 ProfileEvent::Initialized { id, account_id } => {
-                    builder = builder.id(id).account_id(account_id)
+                    builder = builder.id(*id).account_id(*account_id)
                 }
                 ProfileEvent::NameUpdated { name } => {
-                    builder = builder.name(name);
+                    builder = builder.name(name.clone());
                 }
                 ProfileEvent::SpendingPolicyUpdated { spending_policy } => {
-                    builder = builder.spending_policy(spending_policy);
+                    builder = builder.spending_policy(Some(spending_policy.clone()));
                 }
+                ProfileEvent::SpendingPolicyRemoved {} => builder = builder.spending_policy(None),
             }
         }
-        builder.build()
+        builder.events(events).build()
     }
 }
