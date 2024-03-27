@@ -93,7 +93,7 @@ async fn spending_policy() -> anyhow::Result<()> {
             wallet_name.clone(),
             Some(SpendingPolicy {
                 allowed_payout_addresses: vec![address.clone()],
-                maximum_payout: Some(Satoshis::from(10000)),
+                max_payout: Some(Satoshis::from(10000)),
             }),
         )
         .await?;
