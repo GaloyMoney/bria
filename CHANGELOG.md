@@ -1,3 +1,23 @@
+# [bria release v0.1.100](https://github.com/GaloyMoney/bria/releases/tag/0.1.100)
+
+
+### Bug Fixes
+
+- Update max payout field name (#508)
+- Max_payout in test
+
+### Features
+
+- Add max_payout_sats to profile (#507)
+
+### Miscellaneous Tasks
+
+- Bump async-trait + regex
+
+### Refactor
+
+- Rename maximum -> max
+
 # [bria release v0.1.99](https://github.com/GaloyMoney/bria/releases/tag/0.1.99)
 
 
