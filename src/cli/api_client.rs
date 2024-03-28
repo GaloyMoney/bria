@@ -78,6 +78,42 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn update_profile(
+        &self,
+        id: String,
+        addresses: Option<Vec<String>>,
+        max_payout: Option<u64>,
+    ) -> anyhow::Result<()> {
+        let spending_policy = match (addresses, max_payout) {
+            (Some(allowed_payout_addresses), Some(max_payout_sats)) => {
+                Some(proto::SpendingPolicy {
+                    allowed_payout_addresses,
+                    max_payout_sats: Some(max_payout_sats),
+                })
+            }
+            (Some(allowed_payout_addresses), None) => Some(proto::SpendingPolicy {
+                allowed_payout_addresses,
+                max_payout_sats: None,
+            }),
+            (None, Some(max_payout_sats)) => Some(proto::SpendingPolicy {
+                allowed_payout_addresses: Vec::new(),
+                max_payout_sats: Some(max_payout_sats),
+            }),
+            (None, None) => None,
+        };
+
+        let request = tonic::Request::new(proto::UpdateProfileRequest {
+            id,
+            spending_policy,
+        });
+        let response = self
+            .connect()
+            .await?
+            .update_profile(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn list_profiles(&self) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListProfilesRequest {});
         let response = self
