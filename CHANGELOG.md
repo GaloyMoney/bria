@@ -1,3 +1,10 @@
+# [bria release v0.1.101](https://github.com/GaloyMoney/bria/releases/tag/0.1.101)
+
+
+### Features
+
+- Add update profile cli command (#510)
+
 # [bria release v0.1.100](https://github.com/GaloyMoney/bria/releases/tag/0.1.100)
 
 
