@@ -68,8 +68,10 @@ pub struct SpendingPolicy {
 
 impl SpendingPolicy {
     fn is_destination_allowed(&self, destination: &PayoutDestination) -> bool {
-        self.allowed_payout_addresses
-            .contains(destination.onchain_address())
+        self.allowed_payout_addresses.is_empty()
+            || self
+                .allowed_payout_addresses
+                .contains(destination.onchain_address())
     }
 
     fn is_amount_allowed(&self, amount: Satoshis) -> bool {
@@ -140,5 +142,50 @@ impl TryFrom<EntityEvents<ProfileEvent>> for Profile {
             }
         }
         builder.events(events).build()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn allow_all_addresses_if_allowed_list_empty() {
+        let address = Address::parse_from_trusted_source("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU");
+        let policy = super::SpendingPolicy {
+            allowed_payout_addresses: vec![],
+            max_payout: Some(Satoshis::from(1000)),
+        };
+        assert!(
+            policy.is_destination_allowed(&PayoutDestination::OnchainAddress { value: address })
+        );
+    }
+
+    #[test]
+    fn block_address_not_in_allowed_list() {
+        let address = Address::parse_from_trusted_source("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU");
+        let policy = super::SpendingPolicy {
+            allowed_payout_addresses: vec![Address::parse_from_trusted_source(
+                "bcrt1q4gfcga7jfjmm02zpvrh4ttc5k7lmnq2re52z2y",
+            )],
+            max_payout: Some(Satoshis::from(1000)),
+        };
+
+        assert!(
+            !policy.is_destination_allowed(&PayoutDestination::OnchainAddress { value: address })
+        );
+    }
+
+    #[test]
+    fn allow_address_in_allowed_list() {
+        let address =
+            Address::parse_from_trusted_source("bcrt1q4gfcga7jfjmm02zpvrh4ttc5k7lmnq2re52z2y");
+        let policy = super::SpendingPolicy {
+            allowed_payout_addresses: vec![address.clone()],
+            max_payout: Some(Satoshis::from(1000)),
+        };
+
+        assert!(
+            policy.is_destination_allowed(&PayoutDestination::OnchainAddress { value: address })
+        );
     }
 }

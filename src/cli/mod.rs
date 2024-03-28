@@ -84,6 +84,34 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         name: String,
+        /// Allowed payout addresses for the spending policy
+        #[clap(short, long)]
+        addresses: Option<Vec<String>>,
+        /// The max payout amount in Satoshi
+        #[clap(short, long)]
+        max_payout: Option<u64>,
+    },
+    /// Update a profile
+    UpdateProfile {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        /// The id to update
+        #[clap(short, long)]
+        id: String,
+        /// Allowed payout addresses for the spending policy
+        #[clap(short, long)]
+        addresses: Option<Vec<String>>,
+        /// The max payout amount in Satoshi
+        #[clap(short, long)]
+        max_payout: Option<u64>,
     },
     /// List all profiles
     ListProfiles {
@@ -729,9 +757,25 @@ pub async fn run() -> anyhow::Result<()> {
                 }
             }
         }
-        Command::CreateProfile { url, api_key, name } => {
+        Command::CreateProfile {
+            url,
+            api_key,
+            name,
+            addresses,
+            max_payout,
+        } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.create_profile(name).await?;
+            client.create_profile(name, addresses, max_payout).await?;
+        }
+        Command::UpdateProfile {
+            url,
+            api_key,
+            id,
+            addresses,
+            max_payout,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.update_profile(id, addresses, max_payout).await?;
         }
         Command::ListProfiles { url, api_key } => {
             let client = api_client(cli.bria_home, url, api_key);

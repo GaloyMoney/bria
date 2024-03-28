@@ -65,15 +65,60 @@ impl ApiClient {
         Ok(request)
     }
 
-    pub async fn create_profile(&self, name: String) -> anyhow::Result<()> {
+    pub async fn create_profile(
+        &self,
+        name: String,
+        addresses: Option<Vec<String>>,
+        max_payout: Option<u64>,
+    ) -> anyhow::Result<()> {
+        let policy = proto::SpendingPolicy {
+            allowed_payout_addresses: addresses.unwrap_or_default(),
+            max_payout_sats: max_payout,
+        };
+        let spending_policy =
+            if policy.allowed_payout_addresses.is_empty() && policy.max_payout_sats.is_none() {
+                None
+            } else {
+                Some(policy)
+            };
+
         let request = tonic::Request::new(proto::CreateProfileRequest {
             name,
-            spending_policy: None,
+            spending_policy,
         });
         let response = self
             .connect()
             .await?
             .create_profile(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
+    pub async fn update_profile(
+        &self,
+        id: String,
+        addresses: Option<Vec<String>>,
+        max_payout: Option<u64>,
+    ) -> anyhow::Result<()> {
+        let policy = proto::SpendingPolicy {
+            allowed_payout_addresses: addresses.unwrap_or_default(),
+            max_payout_sats: max_payout,
+        };
+        let spending_policy =
+            if policy.allowed_payout_addresses.is_empty() && policy.max_payout_sats.is_none() {
+                None
+            } else {
+                Some(policy)
+            };
+
+        let request = tonic::Request::new(proto::UpdateProfileRequest {
+            id,
+            spending_policy,
+        });
+        let response = self
+            .connect()
+            .await?
+            .update_profile(self.inject_auth_token(request)?)
             .await?;
         output_json(response)
     }
