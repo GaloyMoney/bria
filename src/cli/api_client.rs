@@ -65,10 +65,26 @@ impl ApiClient {
         Ok(request)
     }
 
-    pub async fn create_profile(&self, name: String) -> anyhow::Result<()> {
+    pub async fn create_profile(
+        &self,
+        name: String,
+        addresses: Option<Vec<String>>,
+        max_payout: Option<u64>,
+    ) -> anyhow::Result<()> {
+        let policy = proto::SpendingPolicy {
+            allowed_payout_addresses: addresses.unwrap_or_default(),
+            max_payout_sats: max_payout,
+        };
+        let spending_policy =
+            if policy.allowed_payout_addresses.is_empty() && policy.max_payout_sats.is_none() {
+                None
+            } else {
+                Some(policy)
+            };
+
         let request = tonic::Request::new(proto::CreateProfileRequest {
             name,
-            spending_policy: None,
+            spending_policy,
         });
         let response = self
             .connect()
@@ -84,23 +100,16 @@ impl ApiClient {
         addresses: Option<Vec<String>>,
         max_payout: Option<u64>,
     ) -> anyhow::Result<()> {
-        let spending_policy = match (addresses, max_payout) {
-            (Some(allowed_payout_addresses), Some(max_payout_sats)) => {
-                Some(proto::SpendingPolicy {
-                    allowed_payout_addresses,
-                    max_payout_sats: Some(max_payout_sats),
-                })
-            }
-            (Some(allowed_payout_addresses), None) => Some(proto::SpendingPolicy {
-                allowed_payout_addresses,
-                max_payout_sats: None,
-            }),
-            (None, Some(max_payout_sats)) => Some(proto::SpendingPolicy {
-                allowed_payout_addresses: Vec::new(),
-                max_payout_sats: Some(max_payout_sats),
-            }),
-            (None, None) => None,
+        let policy = proto::SpendingPolicy {
+            allowed_payout_addresses: addresses.unwrap_or_default(),
+            max_payout_sats: max_payout,
         };
+        let spending_policy =
+            if policy.allowed_payout_addresses.is_empty() && policy.max_payout_sats.is_none() {
+                None
+            } else {
+                Some(policy)
+            };
 
         let request = tonic::Request::new(proto::UpdateProfileRequest {
             id,

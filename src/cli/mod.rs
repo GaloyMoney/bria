@@ -84,6 +84,12 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         name: String,
+        /// Allowed payout addresses for the spending policy
+        #[clap(short, long)]
+        addresses: Option<Vec<String>>,
+        /// The max payout amount in Satoshi
+        #[clap(short, long)]
+        max_payout: Option<u64>,
     },
     /// Update a profile
     UpdateProfile {
@@ -751,9 +757,15 @@ pub async fn run() -> anyhow::Result<()> {
                 }
             }
         }
-        Command::CreateProfile { url, api_key, name } => {
+        Command::CreateProfile {
+            url,
+            api_key,
+            name,
+            addresses,
+            max_payout,
+        } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.create_profile(name).await?;
+            client.create_profile(name, addresses, max_payout).await?;
         }
         Command::UpdateProfile {
             url,
