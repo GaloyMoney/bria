@@ -1,3 +1,13 @@
+# [bria release v0.1.103](https://github.com/GaloyMoney/bria/releases/tag/0.1.103)
+
+
+### Miscellaneous Tasks
+
+- Bump serde_json from 1.0.114 to 1.0.115 (#514)
+- Bump clap from 4.5.1 to 4.5.4 (#515)
+- Bump chrono from 0.4.35 to 0.4.37 (#512)
+- Bump tokio-stream from 0.1.14 to 0.1.15 (#511)
+
 # [bria release v0.1.102](https://github.com/GaloyMoney/bria/releases/tag/0.1.102)
 
 
