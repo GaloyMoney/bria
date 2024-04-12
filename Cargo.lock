@@ -487,7 +487,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
- "prost 0.12.3",
+ "prost 0.12.4",
  "prost-wkt-types",
  "protobuf-src",
  "rand",
@@ -2045,7 +2045,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
- "prost 0.12.3",
+ "prost 0.12.4",
  "reqwest 0.11.27",
  "thiserror",
  "tokio",
@@ -2060,7 +2060,7 @@ checksum = "3a8fddc9b68f5b80dae9d6f510b88e02396f006ad48cac349411fbecc80caae4"
 dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
- "prost 0.12.3",
+ "prost 0.12.4",
  "tonic 0.11.0",
 ]
 
@@ -2372,12 +2372,12 @@ dependencies = [
 
 [[package]]
 name = "prost"
-version = "0.12.3"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
+checksum = "d0f5d036824e4761737860779c906171497f6d55681139d8312388f8fe398922"
 dependencies = [
  "bytes",
- "prost-derive 0.12.3",
+ "prost-derive 0.12.4",
 ]
 
 [[package]]
@@ -2412,7 +2412,7 @@ dependencies = [
  "once_cell",
  "petgraph 0.6.4",
  "prettyplease",
- "prost 0.12.3",
+ "prost 0.12.4",
  "prost-types 0.12.3",
  "regex",
  "syn 2.0.52",
@@ -2448,12 +2448,12 @@ dependencies = [
 
 [[package]]
 name = "prost-derive"
-version = "0.12.3"
+version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efb6c9a1dd1def8e2124d17e83a20af56f1570d6c2d2bd9e266ccb768df3840e"
+checksum = "19de2de2a00075bf566bee3bd4db014b11587e84184d3f7a791bc17f1a8e9e48"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.12.1",
  "proc-macro2",
  "quote",
  "syn 2.0.52",
@@ -2475,7 +2475,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193898f59edcf43c26227dcd4c8427f00d99d61e95dcde58dabd49fa291d470e"
 dependencies = [
- "prost 0.12.3",
+ "prost 0.12.4",
 ]
 
 [[package]]
@@ -2486,7 +2486,7 @@ checksum = "4d8ef9c3f0f1dab910d2b7e2c24a8e4322e122eba6d7a1921eeebcebbc046c40"
 dependencies = [
  "chrono",
  "inventory",
- "prost 0.12.3",
+ "prost 0.12.4",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2500,7 +2500,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b31cae9a54ca84fee1504740a82eebf2479532905e106f63ca0c3bc8d780321"
 dependencies = [
  "heck 0.4.1",
- "prost 0.12.3",
+ "prost 0.12.4",
  "prost-build 0.12.3",
  "prost-types 0.12.3",
  "quote",
@@ -2513,7 +2513,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "435be4a8704091b4c5fb1d79799de7f2dbff53af05edf29385237f8cf7ab37ee"
 dependencies = [
  "chrono",
- "prost 0.12.3",
+ "prost 0.12.4",
  "prost-build 0.12.3",
  "prost-types 0.12.3",
  "prost-wkt",
@@ -4020,7 +4020,7 @@ dependencies = [
  "hyper-timeout",
  "percent-encoding",
  "pin-project",
- "prost 0.12.3",
+ "prost 0.12.4",
  "tokio",
  "tokio-stream",
  "tower",
@@ -4061,7 +4061,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2cef6e24bc96871001a7e48e820ab240b3de2201e59b517cf52835df2f1d2350"
 dependencies = [
  "async-stream",
- "prost 0.12.3",
+ "prost 0.12.4",
  "tokio",
  "tokio-stream",
  "tonic 0.11.0",
