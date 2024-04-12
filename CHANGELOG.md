@@ -1,3 +1,14 @@
+# [bria release v0.1.104](https://github.com/GaloyMoney/bria/releases/tag/0.1.104)
+
+
+### Miscellaneous Tasks
+
+- Bump prost from 0.12.3 to 0.12.4 (#522)
+- Bump rust via nix flake
+- Bumps reqwest related deps and h2 (#523)
+- Bump rust_decimal from 1.34.3 to 1.35.0 (#519)
+- Bump tokio from 1.36.0 to 1.37.0 (#518)
+
 # [bria release v0.1.103](https://github.com/GaloyMoney/bria/releases/tag/0.1.103)
 
 
