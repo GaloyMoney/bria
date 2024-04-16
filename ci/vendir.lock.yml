@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: add repo input to open chart pr task (#39)'
-      sha: 64581226f53d8bfcca1f96eec1d5e76318f859d9
+      commitTitle: 'chore: use kaniko builder in shared build task (#50)'
+      sha: 3d1a7c11c7967952e84231e39aa5425ad704d93d
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: add repo input to open chart pr task (#39)'
-      sha: 64581226f53d8bfcca1f96eec1d5e76318f859d9
+      commitTitle: 'chore: use kaniko builder in shared build task (#50)'
+      sha: 3d1a7c11c7967952e84231e39aa5425ad704d93d
     path: .
   path: ./vendor
 kind: LockConfig
