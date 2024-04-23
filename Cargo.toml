@@ -10,7 +10,7 @@ fail-on-warnings = []
 [dependencies]
 sqlx-ledger = { version = "0.11.3", features = ["otel"] }
 
-anyhow = "1.0.81"
+anyhow = "1.0.82"
 bitcoincore-rpc = "0.17.0"
 clap = { version = "4.5", features = ["derive", "env"] }
 chrono = { version = "0.4.38", features = ["clock", "serde"], default-features = false }
