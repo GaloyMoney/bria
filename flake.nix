@@ -58,6 +58,7 @@
               docker-compose
               bats
               jq
+              protobuf
             ];
           });
 
