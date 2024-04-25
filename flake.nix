@@ -31,6 +31,7 @@
       nativeBuildInputs = with pkgs;
         [
           rustToolchain
+          protobuf
         ]
         ++ lib.optionals pkgs.stdenv.isDarwin [
           darwin.apple_sdk.frameworks.SystemConfiguration
