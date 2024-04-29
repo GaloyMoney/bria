@@ -68,7 +68,7 @@ impl Wallets {
         &self,
     ) -> Result<impl Iterator<Item = (AccountId, WalletId)>, WalletError> {
         let rows =
-            sqlx::query!(r#"SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets"#,)
+            sqlx::query!(r#"SELECT DISTINCT account_id, id AS wallet_id FROM bria_wallets"#,)
                 .fetch_all(&self.pool)
                 .await?;
         Ok(rows.into_iter().map(|row| {

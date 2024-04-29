@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT DISTINCT account_id, id as wallet_id FROM bria_wallets",
+  "query": "SELECT DISTINCT account_id, id AS wallet_id FROM bria_wallets",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "1e4d8b2841a5854fb6c8d01b0c7826a0b7c7348bf6141a736eeac25bf563c82b"
+  "hash": "8e7e4c4b663b639b8b3fcecc4c765d9a470baab1636c7b91e4485de5d1e02ca1"
 }
