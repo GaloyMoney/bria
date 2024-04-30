@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'chore: use nix for rust check-code (#52)'
-      sha: a14ab78128be32e6e1d37f21def9a83351531bde
+      commitTitle: 'fix: remove extra run field in rust-check-code.yml (#54)'
+      sha: cf019b0824456877035b30561f519f7615e6901c
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'chore: use nix for rust check-code (#52)'
-      sha: a14ab78128be32e6e1d37f21def9a83351531bde
+      commitTitle: 'fix: remove extra run field in rust-check-code.yml (#54)'
+      sha: cf019b0824456877035b30561f519f7615e6901c
     path: .
   path: vendor
 kind: LockConfig
