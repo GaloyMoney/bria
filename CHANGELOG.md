@@ -1,3 +1,14 @@
+# [bria release v0.1.105](https://github.com/GaloyMoney/bria/releases/tag/0.1.105)
+
+
+### Miscellaneous Tasks
+
+- Use fedimint-tonic-lnd (#532)
+- Bump prost-wkt-types from 0.5.0 to 0.5.1 (#526)
+- Bump anyhow from 1.0.81 to 1.0.82 (#527)
+- Bump chrono from 0.4.37 to 0.4.38 (#525)
+- Bump async-trait from 0.1.79 to 0.1.80 (#524)
+
 # [bria release v0.1.104](https://github.com/GaloyMoney/bria/releases/tag/0.1.104)
 
 
