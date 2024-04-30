@@ -178,30 +178,36 @@ jobs:
       - name: repo
       run:
         path: pipeline-tasks/ci/tasks/prep-docker-build-env.sh
-  - in_parallel:
-    - do:
-      - task: build
-        privileged: true
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: vito/oci-build-task
-          inputs:
-          - name: repo
-          outputs:
-          - name: image
-          params:
-            CONTEXT: repo
-            BUILD_ARGS_FILE: repo/.env
-            DOCKERFILE: "repo/Dockerfile.release"
-          run:
-            path: build
-      - put: latest-image
-        params:
-          image: image/image.tar
-          additional_tags: version/version
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source:
+          repository: gcr.io/kaniko-project/executor
+          tag: debug
+      inputs:
+      - name: repo
+      outputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -exc
+        - |
+          /kaniko/executor \
+            --dockerfile=repo/Dockerfile.release \
+            --context=repo \
+            $(awk -F= '{print "--build-arg="$1"="$2}' repo/.env) \
+            --use-new-run \
+            --single-snapshot \
+            --cache=false \
+            --no-push \
+            --tar-path=image/image.tar
+  - put: latest-image
+    params:
+      image: image/image.tar
+      additional_tags: version/version
 
 - name: set-dev-version
   plan:
