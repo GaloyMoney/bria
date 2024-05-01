@@ -55,6 +55,10 @@ bitcoin_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
 }
 
+payjoin_cli() {
+  docker exec "${COMPOSE_PROJECT_NAME}-payjoin-cli-1" payjoin-cli $@
+}
+
 bitcoin_signer_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
 }

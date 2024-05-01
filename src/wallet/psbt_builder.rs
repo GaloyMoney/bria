@@ -76,6 +76,8 @@ pub struct PsbtBuilderConfig {
     for_estimation: bool,
     #[builder(default)]
     force_min_change_output: Option<Satoshis>,
+    // #[builder(default)]
+    // payjoin_proposal: Option<PayjoinProposal>,
 }
 
 impl PsbtBuilderConfig {

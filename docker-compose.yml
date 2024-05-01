@@ -10,6 +10,7 @@ services:
       - otel-agent
       - fulcrum
       - mempool
+      - payjoin-cli
   postgres:
     image: postgres:14.1
     environment:
@@ -85,6 +86,11 @@ services:
     command:
       - |
         bitcoind -connect=bitcoind:18444
+  payjoin-cli:
+    image: dangould/payjoin-cli:latest
+    volumes:
+      - ${HOST_PROJECT_PATH:-.}/dev/payjoin-cli/config.toml:/config.toml
+    depends_on: [ bitcoind ]
   lnd:
     image: lightninglabs/lnd:v0.15.4-beta
     volumes:

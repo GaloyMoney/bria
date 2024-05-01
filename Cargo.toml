@@ -42,8 +42,12 @@ tracing = "0.1.40"
 tracing-opentelemetry = "0.23.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 serde_with = "3.7.0"
+payjoin = { version = "0.15.0", features = ["base64", "receive", "v2"], path = "../payjoin/payjoin" }
+payjoin-defaults = { features = ["v2"], path = "../payjoin/payjoin-defaults" }
 electrum-client = "0.18.0"
 reqwest = { version = "0.12.3", default-features = false, features = ["json", "rustls-tls"] }
+hyper = { version = "0.14", features = ["full"] }
+hyper-rustls = { version = "0.24", optional = true }
 tonic_lnd = { version = "0.5.0", features = ["tracing"] }
 async-trait = "0.1.80"
 base64 = "0.22.0"
@@ -57,7 +61,12 @@ reqwest-middleware = "0.3"
 
 [dev-dependencies]
 serial_test = "*"
+payjoin = { version = "0.15.0", features = ["send", "v2"], path = "../payjoin/payjoin"  }
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
 tonic-build = { version = "0.11.0", features = ["prost"] }
+
+
+[patch.crates-io.payjoin]
+path = "../payjoin/payjoin"

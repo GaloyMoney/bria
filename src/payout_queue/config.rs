@@ -12,6 +12,7 @@ pub struct PayoutQueueConfig {
     pub cpfp_payouts_after_blocks: Option<u32>,
     pub force_min_change_sats: Option<Satoshis>,
     pub consolidate_deprecated_keychains: bool,
+    // pub(super) can_payjoin_preempt: bool,
     pub trigger: PayoutQueueTrigger,
 }
 
@@ -56,6 +57,7 @@ impl Default for PayoutQueueConfig {
             },
             cpfp_payouts_after_mins: None,
             cpfp_payouts_after_blocks: None,
+            // can_payjoin_preempt: true,
             force_min_change_sats: None,
         }
     }
