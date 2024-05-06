@@ -1,3 +1,25 @@
+# [bria release v0.1.106](https://github.com/GaloyMoney/bria/releases/tag/0.1.106)
+
+
+### Features
+
+- Use nix for gh actions test (#541)
+
+### Miscellaneous Tasks
+
+- Bump flake
+- Bump base64 from 0.22.0 to 0.22.1 (#543)
+- Bump serde from 1.0.199 to 1.0.200 (#544)
+- Bump serde from 1.0.197 to 1.0.199 (#542)
+- Bump serde_with from 3.7.0 to 3.8.1 (#540)
+- Bump thiserror from 1.0.58 to 1.0.59 (#539)
+- Bump serde_json from 1.0.115 to 1.0.116 (#534)
+- Bump serial_test from 3.0.0 to 3.1.1 (#536)
+
+### Refactor
+
+- Paginate list-payouts cmd (#546)
+
 # [bria release v0.1.105](https://github.com/GaloyMoney/bria/releases/tag/0.1.105)
 
 
