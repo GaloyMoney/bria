@@ -54,13 +54,13 @@ pub(super) async fn execute<'a>(
     let payout_queue = payout_queues
         .find_by_id(data.account_id, data.payout_queue_id)
         .await?;
+    let mut tx = pool.begin().await?;
     let mut unbatched_payouts = payouts
-        .list_unbatched(data.account_id, data.payout_queue_id)
+        .list_unbatched(&mut tx, data.account_id, data.payout_queue_id)
         .await?;
     let fee_rate = fees_client
         .fee_rate(payout_queue.config.tx_priority)
         .await?;
-    let mut tx = pool.begin().await?;
     let FinishedPsbtBuild {
         psbt,
         included_payouts,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.wallet_id = $2\n              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE",
+  "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.wallet_id = $2\n              ORDER BY b.created_at, b.id, e.sequence",
   "describe": {
     "columns": [
       {
@@ -73,5 +73,5 @@
       false
     ]
   },
-  "hash": "ef8b83a66cdeb4d36d14308de0253cd462c04e43f9a97910d0c44362dacc3d77"
+  "hash": "e6e1c692de948c8fac9d54c2ab5def4e6853cf8bbe0db7ff6fb25193083a43ab"
 }

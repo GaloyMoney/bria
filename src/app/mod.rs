@@ -692,9 +692,10 @@ impl App {
             .payout_queues
             .find_by_name(profile.account_id, queue_name)
             .await?;
+        let mut tx = self.pool.begin().await?;
         let mut unbatched_payouts = self
             .payouts
-            .list_unbatched(profile.account_id, payout_queue.id)
+            .list_unbatched(&mut tx, profile.account_id, payout_queue.id)
             .await?;
         let destination = Address::try_from((destination, self.config.blockchain.network))?;
         let payout_id = uuid::Uuid::new_v4();
@@ -706,7 +707,6 @@ impl App {
         let fee_rate = self.fees_client.fee_rate(tx_priority).await?;
 
         let psbt = {
-            let mut tx = self.pool.begin().await?;
             job::process_payout_queue::construct_psbt(
                 &self.pool,
                 &mut tx,
