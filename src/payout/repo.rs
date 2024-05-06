@@ -1,6 +1,5 @@
 use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
-use uuid::Uuid;
 
 use std::collections::HashMap;
 
@@ -26,11 +25,11 @@ impl Payouts {
         sqlx::query!(
             r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
                VALUES ($1, $2, $3, $4, $5, $6)"#,
-            Uuid::from(new_payout.id),
-            Uuid::from(new_payout.account_id),
-            Uuid::from(new_payout.wallet_id),
-            Uuid::from(new_payout.payout_queue_id),
-            Uuid::from(new_payout.profile_id),
+            new_payout.id as PayoutId,
+            new_payout.account_id as AccountId,
+            new_payout.wallet_id as WalletId,
+            new_payout.payout_queue_id as PayoutQueueId,
+            new_payout.profile_id as ProfileId,
             new_payout.external_id,
         ).execute(&mut **tx).await?;
         let id = new_payout.id;
@@ -106,6 +105,7 @@ impl Payouts {
     #[instrument(name = "payouts.list_unbatched", skip(self))]
     pub async fn list_unbatched(
         &self,
+        tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
         payout_queue_id: PayoutQueueId,
     ) -> Result<UnbatchedPayouts, PayoutError> {
@@ -119,7 +119,7 @@ impl Payouts {
             account_id as AccountId,
             payout_queue_id as PayoutQueueId,
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&mut **tx)
         .await?;
         let mut wallet_payouts = Vec::new();
         let mut entity_events = HashMap::new();
@@ -162,16 +162,29 @@ impl Payouts {
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
+        page: u64,
+        page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
+        let offset = (page - 1) * page_size;
+
         let rows = sqlx::query!(
             r#"
-              SELECT b.*, e.sequence, e.event
-              FROM bria_payouts b
-              JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.account_id = $1 AND b.wallet_id = $2
-              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            Uuid::from(account_id),
-            Uuid::from(wallet_id)
+            WITH payouts AS (
+            SELECT *
+            FROM bria_payouts
+            WHERE account_id = $1 AND wallet_id = $2
+            ORDER BY created_at DESC, id
+            LIMIT $3 OFFSET $4
+            )
+            SELECT p.*, e.sequence, e.event
+            FROM payouts p
+            JOIN bria_payout_events e ON p.id = e.id
+            ORDER BY p.created_at DESC, p.id, e.sequence
+            "#,
+            account_id as AccountId,
+            wallet_id as WalletId,
+            page_size as i64,
+            offset as i64,
         )
         .fetch_all(&self.pool)
         .await?;
