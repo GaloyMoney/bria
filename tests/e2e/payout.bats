@@ -158,7 +158,7 @@ teardown_file() {
   bria_cmd submit-payout --wallet default --queue-name manual --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
 
   for i in {1..20}; do  
-    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[3].batchId')
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
      [[ "${batch_id}" != "null" ]] && break;
     sleep 1
   done
@@ -167,7 +167,7 @@ teardown_file() {
   bria_cmd trigger-payout-queue --name manual;
 
   for i in {1..20}; do  
-    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[3].batchId')
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
@@ -242,14 +242,14 @@ teardown_file() {
   done
   [[ $(cached_encumbered_outgoing) == 100000 ]] || exit 1;
 
-  batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')
+  batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
 
   queue_id=$(bria_cmd list-payout-queues | jq -r '.PayoutQueues[] | select(.name == "high").id')
   bria_cmd update-payout-queue -i "${queue_id}" --interval-trigger 5 --cpfp-after-mins 0
 
   for i in {1..90}; do
-    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[-1].batchId')
+    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done

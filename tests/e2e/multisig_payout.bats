@@ -106,7 +106,7 @@ teardown_file() {
 
   bria_cmd submit-payout --wallet multisig --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
   for i in {1..20}; do
-    batch_id=$(bria_cmd list-payouts -w multisig | jq -r '.payouts[1].batchId')
+    batch_id=$(bria_cmd list-payouts -w multisig | jq -r '.payouts[0].batchId')
     [[ "${batch_id}" != "null" ]] && break
     sleep 1
   done
