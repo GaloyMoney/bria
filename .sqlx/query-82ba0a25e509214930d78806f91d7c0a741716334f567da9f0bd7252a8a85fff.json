@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n              SELECT b.*, e.sequence, e.event\n              FROM bria_payouts b\n              JOIN bria_payout_events e ON b.id = e.id\n              WHERE b.account_id = $1 AND b.wallet_id = $2\n              ORDER BY b.created_at, b.id, e.sequence",
+  "query": "\n            WITH payouts AS (\n            SELECT *\n            FROM bria_payouts\n            WHERE account_id = $1 AND wallet_id = $2\n            ORDER BY created_at DESC, id\n            LIMIT $3 OFFSET $4\n            )\n            SELECT p.*, e.sequence, e.event\n            FROM payouts p\n            JOIN bria_payout_events e ON p.id = e.id\n            ORDER BY p.created_at DESC, p.id, e.sequence\n            ",
   "describe": {
     "columns": [
       {
@@ -57,7 +57,9 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -73,5 +75,5 @@
       false
     ]
   },
-  "hash": "e6e1c692de948c8fac9d54c2ab5def4e6853cf8bbe0db7ff6fb25193083a43ab"
+  "hash": "82ba0a25e509214930d78806f91d7c0a741716334f567da9f0bd7252a8a85fff"
 }

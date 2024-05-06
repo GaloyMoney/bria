@@ -443,6 +443,10 @@ enum Command {
         api_key: String,
         #[clap(short, long)]
         wallet: String,
+        #[clap(short, long)]
+        page: Option<u64>,
+        #[clap(short = 's', long = "page-size")]
+        page_size: Option<u64>,
     },
     /// Find Payout By external id or payout_id
     GetPayout {
@@ -959,9 +963,11 @@ pub async fn run() -> anyhow::Result<()> {
             url,
             api_key,
             wallet,
+            page,
+            page_size,
         } => {
             let client = api_client(cli.bria_home, url, api_key);
-            client.list_payouts(wallet).await?;
+            client.list_payouts(wallet, page, page_size).await?;
         }
         Command::GetPayout {
             url,

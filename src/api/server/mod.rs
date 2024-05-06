@@ -667,9 +667,17 @@ impl BriaService for Bria {
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let ListPayoutsRequest {
+                wallet_name,
+                page,
+                page_size,
+            } = request;
+            let page = page.unwrap_or(1);
+            let page_size = page_size.unwrap_or(100);
             let payouts = self
                 .app
-                .list_payouts(&profile, request.into_inner().wallet_name)
+                .list_payouts(&profile, wallet_name, page, page_size)
                 .await?;
 
             let payout_messages: Vec<proto::Payout> =

@@ -162,16 +162,29 @@ impl Payouts {
         &self,
         account_id: AccountId,
         wallet_id: WalletId,
+        page: u64,
+        page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
+        let offset = (page - 1) * page_size;
+
         let rows = sqlx::query!(
             r#"
-              SELECT b.*, e.sequence, e.event
-              FROM bria_payouts b
-              JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.account_id = $1 AND b.wallet_id = $2
-              ORDER BY b.created_at, b.id, e.sequence"#,
+            WITH payouts AS (
+            SELECT *
+            FROM bria_payouts
+            WHERE account_id = $1 AND wallet_id = $2
+            ORDER BY created_at DESC, id
+            LIMIT $3 OFFSET $4
+            )
+            SELECT p.*, e.sequence, e.event
+            FROM payouts p
+            JOIN bria_payout_events e ON p.id = e.id
+            ORDER BY p.created_at DESC, p.id, e.sequence
+            "#,
             account_id as AccountId,
             wallet_id as WalletId,
+            page_size as i64,
+            offset as i64,
         )
         .fetch_all(&self.pool)
         .await?;

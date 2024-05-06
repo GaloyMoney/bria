@@ -944,6 +944,8 @@ impl App {
         &self,
         profile: &Profile,
         wallet_name: String,
+        page: u64,
+        page_size: u64,
     ) -> Result<Vec<PayoutWithInclusionEstimate>, ApplicationError> {
         let wallet = self
             .wallets
@@ -951,7 +953,7 @@ impl App {
             .await?;
         let payouts = self
             .payouts
-            .list_for_wallet(profile.account_id, wallet.id)
+            .list_for_wallet(profile.account_id, wallet.id, page, page_size)
             .await?;
 
         Ok(self

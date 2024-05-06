@@ -475,9 +475,16 @@ impl ApiClient {
         output_json(response)
     }
 
-    pub async fn list_payouts(&self, wallet: String) -> anyhow::Result<()> {
+    pub async fn list_payouts(
+        &self,
+        wallet: String,
+        page: Option<u64>,
+        page_size: Option<u64>,
+    ) -> anyhow::Result<()> {
         let request = tonic::Request::new(proto::ListPayoutsRequest {
             wallet_name: wallet,
+            page,
+            page_size,
         });
         let response = self
             .connect()
