@@ -52,7 +52,7 @@ impl WalletAddress {
 
     pub fn update_external_id(&mut self, external_id: String) {
         if self.external_id != external_id {
-            self.external_id = external_id.clone();
+            self.external_id.clone_from(&external_id);
             self.events
                 .push(AddressEvent::ExternalIdUpdated { external_id });
         }

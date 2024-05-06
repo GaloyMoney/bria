@@ -34,7 +34,7 @@ pub struct Profile {
 impl Profile {
     pub fn update_spending_policy(&mut self, policy: Option<SpendingPolicy>) {
         if self.spending_policy != policy {
-            self.spending_policy = policy.clone();
+            self.spending_policy.clone_from(&policy);
             if let Some(policy) = policy {
                 self.events.push(ProfileEvent::SpendingPolicyUpdated {
                     spending_policy: policy,
