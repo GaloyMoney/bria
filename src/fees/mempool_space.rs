@@ -61,8 +61,8 @@ impl MempoolSpaceClient {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_with::serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MempoolSpaceConfig {
     #[serde(default = "default_url")]
     pub url: String,

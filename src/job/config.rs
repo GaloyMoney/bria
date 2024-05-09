@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_with::serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobsConfig {
     #[serde_as(as = "serde_with::DurationSeconds<u64>")]
     #[serde(default = "default_sync_all_wallets_delay")]
@@ -17,8 +17,8 @@ pub struct JobsConfig {
     pub signing: SigningJobConfig,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde_with::serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SigningJobConfig {
     #[serde(default = "default_signing_warn_retries")]
     pub warn_retries: u32,
