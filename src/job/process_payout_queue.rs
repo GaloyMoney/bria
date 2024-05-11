@@ -388,6 +388,20 @@ pub async fn construct_psbt(
     .await?)
 }
 
+// pub async fn sign_payjoin_psbt(
+//     psbt: bdk::bitcoin::psbt::Psbt,
+//     pool: &sqlx::Pool<sqlx::Postgres>,
+//     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+//     unbatched_payouts: &UnbatchedPayouts,
+//     utxos: &Utxos,
+//     wallets: &Wallets,
+//     payout_queue: PayoutQueue,
+//     fee_rate: bitcoin::FeeRate,
+//     for_estimation: bool,
+// ) -> Result<FinishedPsbtBuild, JobError> {
+
+// }
+
 // #[allow(clippy::too_many_arguments)]
 // pub async fn construct_payjoin_psbt(
 //     pool: &sqlx::Pool<sqlx::Postgres>,

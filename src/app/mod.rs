@@ -1,7 +1,7 @@
 mod config;
 pub mod error;
 
-use bdk::bitcoin::address::NetworkChecked;
+use bdk::bitcoin::{address::NetworkChecked, Amount};
 use payjoin::receive::v2::Enrolled;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
@@ -13,24 +13,7 @@ pub use config::*;
 use error::*;
 
 use crate::{
-    account::balance::AccountBalanceSummary,
-    address::*,
-    batch::*,
-    batch_inclusion::*,
-    descriptor::*,
-    fees::{self, *},
-    job,
-    ledger::*,
-    outbox::*,
-    payjoin::*,
-    payout::*,
-    payout_queue::*,
-    primitives::*,
-    profile::*,
-    signing_session::*,
-    utxo::*,
-    wallet::{balance::*, *},
-    xpub::*,
+    account::balance::AccountBalanceSummary, address::*, api::proto::payout, batch::*, batch_inclusion::*, descriptor::*, fees::{self, *}, job, ledger::*, outbox::*, payjoin::{config::PayjoinConfig, *}, payout::*, payout_queue::*, primitives::*, profile::*, signing_session::*, utxo::*, wallet::{balance::*, *}, xpub::*
 };
 
 #[allow(dead_code)]
@@ -53,6 +36,7 @@ pub struct App {
     batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
+    pj: crate::payjoin::PayjoinReceiver,
 }
 
 impl App {
@@ -102,14 +86,15 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
-        // let pj = PayjoinReceiver::new(
-        //     PayjoinConfig { listen_port: 8088 },
-        //     addresses.clone(),
-        //     utxos.clone(),
-        //     wallets.clone(),
-        //     config.blockchain.network,
-        // );
-        //Self::spawn_payjoin_receiver(pj).await?;
+        let pj = PayjoinReceiver::new(
+            pool.clone(),
+            payout_queues.clone(),
+            PayjoinConfig { listen_port: 8088 },
+            addresses.clone(),
+            utxos.clone(),
+            wallets.clone(),
+            config.blockchain.network,
+        );
         let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
@@ -127,6 +112,7 @@ impl App {
             fees_client,
             batch_inclusion,
             config,
+            pj,
             _runner: runner,
         };
         crate::profile::migration::profile_event_migration(&app.pool).await?;
@@ -543,7 +529,8 @@ impl App {
             .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
-        let address = Address::from(addr.address);
+        let address = Address::from(addr.address.clone());
+        println!("got address: {:?}", addr.address);
         let mut builder = NewAddress::builder();
         builder
             .address(address.clone())
@@ -559,45 +546,15 @@ impl App {
         }
         let new_address = builder.build().expect("Couldn't build NewUri");
         self.addresses.persist_new_address(new_address).await?;
-
-        let (enrolled, ohttp_keys) = Self::start_payjoin_session().await?;
+        println!("init payjoin");
+        let (enrolled, ohttp_keys) = crate::payjoin::init_payjoin_session(self.pj.clone(), profile.account_id).await?;
+        println!("init'd payjoin");
         // TODO save session to DB
-        let uri = enrolled.fallback_target();
-
+        let pj_dir = enrolled.fallback_target();
+        let uri = payjoin::PjUriBuilder::new(addr.address, url::Url::parse(&pj_dir).map_err(|e| anyhow::anyhow!(e.to_string()))?, Some(ohttp_keys))
+            .amount(Amount::from_sat(600_000))
+            .build().to_string();
         Ok((wallet.id, uri))
-    }
-
-    async fn start_payjoin_session() -> Result<(Enrolled, payjoin::OhttpKeys), anyhow::Error> {
-        let payjoin_dir =  Url::parse("https://payjo.in").expect("Invalid URL");
-        let ohttp_relays: [Url; 2] = [
-            Url::parse("https://pj.bobspacebkk.com").expect("Invalid URL"),
-            Url::parse("https://ohttp-relay.obscuravpn.io").expect("Invalid URL"),
-        ];
-        let ohttp_keys = payjoin_defaults::fetch_ohttp_keys(ohttp_relays[0].clone(), payjoin_dir.clone())?;
-        let http_client = reqwest::Client::builder().build()?;
-
-        fn random_ohttp_relay(ohttp_relays: [Url; 2]) -> Url {
-            use rand::seq::SliceRandom;
-            use rand::thread_rng;
-            ohttp_relays.choose(&mut thread_rng()).unwrap().clone()
-        }
-        let mut enroller = payjoin::receive::v2::Enroller::from_directory_config(
-            payjoin_dir.to_owned(),
-            ohttp_keys.clone(),
-            random_ohttp_relay(ohttp_relays).to_owned(),
-        );
-        let (req, context) = enroller.extract_req().map_err(|e| anyhow::anyhow!(e.to_string()))?;
-        let ohttp_response = http_client
-            .post(req.url)
-            .header("Content-Type", "message/ohttp-req")
-            .body(req.body)
-            .send()
-            .await?;
-        let ohttp_response = ohttp_response.bytes().await?;
-        Ok((
-            enroller.process_res(ohttp_response.as_ref(), context).map_err(|e| anyhow::anyhow!(e.to_string()))?,
-            ohttp_keys,
-        ))
     }
 
     #[instrument(name = "app.update_address", skip(self), err)]
@@ -1179,13 +1136,6 @@ impl App {
                 .await;
                 tokio::time::sleep(delay).await;
             }
-        });
-        Ok(())
-    }
-
-    async fn spawn_payjoin_receiver(pj: PayjoinReceiver) -> Result<(), ApplicationError> {
-        tokio::spawn(async move {
-            crate::payjoin::start(pj).await;
         });
         Ok(())
     }

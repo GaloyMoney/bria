@@ -91,6 +91,10 @@ services:
     volumes:
       - ${HOST_PROJECT_PATH:-.}/dev/payjoin-cli/config.toml:/config.toml
     depends_on: [ bitcoind ]
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        tail -f /dev/null
   lnd:
     image: lightninglabs/lnd:v0.15.4-beta
     volumes:
