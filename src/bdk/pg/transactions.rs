@@ -18,6 +18,7 @@ pub struct UnsyncedTransaction {
 }
 
 pub struct ConfirmedSpendTransaction {
+    #[allow(dead_code)]
     pub tx_id: bitcoin::Txid,
     pub confirmation_time: bitcoin::BlockTime,
     pub inputs: Vec<LocalUtxo>,

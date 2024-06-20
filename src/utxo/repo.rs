@@ -8,6 +8,7 @@ use crate::primitives::{bitcoin::*, *};
 
 pub struct ReservableUtxo {
     pub keychain_id: KeychainId,
+    #[allow(dead_code)]
     pub income_address: bool,
     pub outpoint: OutPoint,
     pub spending_batch_id: Option<BatchId>,
