@@ -1,3 +1,23 @@
+# [bria release v0.1.107](https://github.com/GaloyMoney/bria/releases/tag/0.1.107)
+
+
+### Bug Fixes
+
+- Correct serde_with position
+
+### Miscellaneous Tasks
+
+- Bump otel deps (#561)
+- Suppress clippy warnings after rustc update (#559)
+- Bump url from 2.5.0 to 2.5.2 (#558)
+- Bump reqwest from 0.12.3 to 0.12.5 (#556)
+- Bump thiserror from 1.0.60 to 1.0.61 (#554)
+- Bump prost from 0.12.4 to 0.12.6 (#553)
+- Bump serde_json from 1.0.116 to 1.0.117 (#549)
+- Bump serde from 1.0.200 to 1.0.203 (#552)
+- Bump reqwest-middleware from 0.3.0 to 0.3.1 (#547)
+- Bump thiserror from 1.0.59 to 1.0.60 (#548)
+
 # [bria release v0.1.106](https://github.com/GaloyMoney/bria/releases/tag/0.1.106)
 
 
