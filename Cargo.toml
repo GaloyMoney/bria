@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-sqlx-ledger = { version = "0.11.3", features = ["otel"] }
+sqlx-ledger = { version = "0.11.4", features = ["otel"] }
 
 anyhow = "1.0.82"
 bitcoincore-rpc = "0.17.0"
@@ -35,11 +35,11 @@ futures = "0.3.30"
 url = "2.5.2"
 rand = "0.8.5"
 bdk = "0.29.0"
-opentelemetry = { version = "0.22.0" }
-opentelemetry_sdk = { version = "0.22.1", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.15.0", features = ["http-proto", "reqwest-client"] }
+opentelemetry = { version = "0.23.0" }
+opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.16.0", features = ["http-proto", "reqwest-client"] }
 tracing = "0.1.40"
-tracing-opentelemetry = "0.23.0"
+tracing-opentelemetry = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 serde_with = "3.8.1"
 electrum-client = "0.18.0"
