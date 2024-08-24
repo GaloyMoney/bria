@@ -165,7 +165,9 @@ pub async fn execute(
             }
             (Ok(None), _) => {
                 span.record("finalization_status", "stalled_due_to_finalization");
-                Ok((data, false))
+                Err(JobError::BatchSigningStalled(
+                    "Stalled during PSBT finalization",
+                ))
             }
             _ if stalled => {
                 span.record("finalization_status", "stalled");
