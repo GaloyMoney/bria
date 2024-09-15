@@ -368,6 +368,42 @@ impl BriaService for Bria {
         .await
     }
 
+    async fn new_uri(
+        &self,
+        request: Request<NewAddressRequest>,
+    ) -> Result<Response<NewUriResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            println!("REQ");
+
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let NewAddressRequest {
+                wallet_name,
+                external_id,
+                metadata,
+            } = request;
+
+            let (_, uri) = self
+                .app
+                .new_uri(
+                    &profile,
+                    wallet_name,
+                    external_id,
+                    metadata
+                        .map(serde_json::to_value)
+                        .transpose()
+                        .map_err(ApplicationError::CouldNotParseIncomingMetadata)?,
+                )
+                .await?;
+            Ok(Response::new(NewUriResponse {
+                uri: uri.to_string(),
+            }))
+        })
+        .await
+    }
+
     #[instrument(name = "bria.update_address", skip_all, fields(error, error.level, error.message), err)]
     async fn update_address(
         &self,

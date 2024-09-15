@@ -243,6 +243,7 @@ impl From<PayoutQueue> for proto::PayoutQueue {
             consolidate_deprecated_keychains: payout_queue.config.consolidate_deprecated_keychains,
             cpfp_payouts_after_mins: payout_queue.config.cpfp_payouts_after_mins,
             cpfp_payouts_after_blocks: payout_queue.config.cpfp_payouts_after_blocks,
+            //can_payjoin_preempt: payout_queue.config.can_payjoin_preempt,
             force_min_change_sats: payout_queue.config.force_min_change_sats.map(u64::from),
         });
         proto::PayoutQueue {

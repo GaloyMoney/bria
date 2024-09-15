@@ -55,6 +55,10 @@ bitcoin_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
 }
 
+payjoin_cli() {
+  docker exec "${COMPOSE_PROJECT_NAME}-payjoin-cli-1" ./payjoin-cli $@
+}
+
 bitcoin_signer_cli() {
   docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
 }
@@ -100,7 +104,9 @@ bitcoind_init() {
   local wallet="${1:-default}"
 
   bitcoin_cli createwallet "default" || true
-  bitcoin_cli generatetoaddress 200 "$(bitcoin_cli getnewaddress)"
+  bitcoin_cli createwallet "payjoin" || true
+  bitcoin_cli -rpcwallet=payjoin generatetoaddress 25 "$(bitcoin_cli -rpcwallet=payjoin getnewaddress)"
+  bitcoin_cli -rpcwallet=default generatetoaddress 175 "$(bitcoin_cli -rpcwallet=default getnewaddress)"
 
   if [[ "${wallet}" == "default" ]]; then 
     bitcoin_signer_cli createwallet "default" || true

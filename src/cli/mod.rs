@@ -276,6 +276,25 @@ enum Command {
         #[clap(short, long, value_parser = parse_json)]
         metadata: Option<serde_json::Value>,
     },
+    // Get a new BIP21 URI for a wallet
+    NewUri {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        wallet: String,
+        #[clap(short, long)]
+        external_id: Option<String>,
+        #[clap(short, long, value_parser = parse_json)]
+        metadata: Option<serde_json::Value>,
+    },
     /// Update address information
     UpdateAddress {
         #[clap(
@@ -854,6 +873,16 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.new_address(wallet, external_id, metadata).await?;
+        }
+        Command::NewUri{
+            url,
+            api_key,
+            wallet,
+            external_id,
+            metadata,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.new_uri(wallet, external_id, metadata).await?;
         }
         Command::UpdateAddress {
             url,

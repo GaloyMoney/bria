@@ -66,6 +66,42 @@ impl Utxos {
         Ok(tx_id.map(|id| (id, tx)))
     }
 
+    // #[instrument(name = "utxos.foreign_utxo_detected", skip(self), err)]
+    // #[allow(clippy::too_many_arguments)]
+    // pub async fn foreign_utxo_detected(
+    //     &self,
+    //     account_id: AccountId,
+    //     wallet_id: WalletId, // AccountId/Foreign
+    //     keychain_id: KeychainId, // None
+    //     address: &AddressInfo,
+    //     utxo: &LocalUtxo,
+    //     origin_tx_fee: Satoshis,
+    //     origin_tx_vbytes: u64,
+    //     self_pay: bool,
+    //     current_block_height: u32,
+    // ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
+    //     let new_utxo = NewUtxo::builder()
+    //         .account_id(account_id)
+    //         .wallet_id(wallet_id)
+    //         .keychain_id(keychain_id)
+    //         .outpoint(utxo.outpoint)
+    //         .kind(address.keychain)
+    //         .address_idx(address.index)
+    //         .address(address.to_string())
+    //         .script_hex(format!("{:x}", utxo.txout.script_pubkey))
+    //         .value(utxo.txout.value)
+    //         .bdk_spent(utxo.is_spent)
+    //         .detected_block_height(current_block_height)
+    //         .origin_tx_fee(origin_tx_fee)
+    //         .origin_tx_vbytes(origin_tx_vbytes)
+    //         .self_pay(self_pay)
+    //         .build()
+    //         .expect("Could not build NewUtxo");
+    //     let mut tx = self.pool.begin().await?;
+    //     let tx_id = self.utxos.persist_utxo(&mut tx, new_utxo).await?;
+    //     Ok(tx_id.map(|id| (id, tx)))
+    // }
+
     #[instrument(name = "utxos.settle_utxo", skip(self, tx), err)]
     pub async fn settle_utxo(
         &self,

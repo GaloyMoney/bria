@@ -40,6 +40,7 @@ impl PayoutQueue {
         match self.config.trigger {
             Interval { seconds } => Some(seconds),
             Manual => None,
+            // Payjoin => None,
         }
     }
 

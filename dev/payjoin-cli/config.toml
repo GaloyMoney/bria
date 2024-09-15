@@ -1,0 +1,5 @@
+bitcoind_rpcuser = "rpcuser"
+bitcoind_rpcpass = "rpcpassword"
+bitcoind_rpchost = "http://bitcoind:18443/wallet/payjoin"
+pj_endpoint = "https://payjo.in"
+ohttp_relay = "https://pj.bobspacebkk.com"

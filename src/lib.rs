@@ -17,6 +17,7 @@ pub mod fees;
 mod job;
 pub mod ledger;
 mod outbox;
+pub mod payjoin;
 pub mod payout;
 pub mod payout_queue;
 pub mod primitives;

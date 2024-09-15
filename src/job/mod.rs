@@ -240,6 +240,21 @@ pub async fn spawn_process_payout_queue(
     .await
 }
 
+pub async fn spawn_payjoin_payout_queue(
+    pool: &sqlx::PgPool,
+    data: impl Into<ProcessPayoutQueueData>,
+) -> Result<ProcessPayoutQueueData, JobError> {
+    let data = data.into();
+    onto_account_main_channel(
+        pool,
+        data.account_id,
+        Uuid::new_v4(),
+        "payjoin_payout_queue",
+        data,
+    )
+    .await
+}
+
 #[job(name = "schedule_process_payout_queue")]
 async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
@@ -295,6 +310,47 @@ async fn process_payout_queue(
         .await?;
     Ok(())
 }
+
+// #[job(name = "payjoin_payout_queue")]
+// async fn payjoin_payout_queue(
+//     mut current_job: CurrentJob,
+//     payouts: Payouts,
+//     wallets: Wallets,
+//     utxos: Utxos,
+//     payout_queues: PayoutQueues,
+//     batches: Batches,
+//     fees_client: FeesClient,
+// ) -> Result<(), JobError> {
+//     let pool = current_job.pool().clone();
+//     JobExecutor::builder(&mut current_job)
+//         .initial_retry_delay(std::time::Duration::from_secs(2))
+//         .build()
+//         .expect("couldn't build JobExecutor")
+//         .execute(|data| async move {
+//             let data: ProcessPayoutQueueData = data.expect("no ProcessPayoutQueueData available");
+//             let (data, res) = process_payout_queue::execute_payjoin(
+//                 pool,
+//                 payouts,
+//                 wallets,
+//                 payout_queues,
+//                 batches,
+//                 utxos,
+//                 data,
+//                 fees_client,
+//             )
+//             .await?;
+//             if let Some((mut tx, wallet_ids)) = res {
+//                 for id in wallet_ids {
+//                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
+//                 }
+//                 spawn_batch_signing(tx, &data).await?;
+//             }
+
+//             Ok::<_, JobError>(data)
+//         })
+//         .await?;
+//     Ok(())
+// }
 
 #[job(
     name = "batch_wallet_accounting",
@@ -660,6 +716,7 @@ impl From<(AccountId, PayoutQueueId)> for ProcessPayoutQueueData {
             payout_queue_id,
             account_id,
             batch_id: BatchId::new(),
+            payjoin: None,
             tracing_data: crate::tracing::extract_tracing_data(),
         }
     }

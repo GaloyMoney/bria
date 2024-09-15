@@ -1,0 +1,3 @@
+I peeled another layer back today addressing payjoin integration with the payout_queue and related abstractions.
+
+Once a sender's proposal is checked to be a suitable as a fallback to turn into a payjoin, we can think of it as being added to bria's mempool. This is distinct from our instance of bitcoind's mempool, since it's only in bria's section of memory, but we know it still is able to pay us if broadcast, gives us some funds in a foreign utxo to *partially* account for (since some will be paid back to the sender as change), and specifies at least one Payout, either a self-spend to one of our wallets that we may update or change that the sender has specified.

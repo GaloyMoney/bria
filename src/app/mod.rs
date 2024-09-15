@@ -1,32 +1,19 @@
 mod config;
 pub mod error;
 
+use bdk::bitcoin::{address::NetworkChecked, Amount};
+use payjoin::receive::v2::SessionInitializer;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
+use url::Url;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 pub use config::*;
 use error::*;
 
 use crate::{
-    account::balance::AccountBalanceSummary,
-    address::*,
-    batch::*,
-    batch_inclusion::*,
-    descriptor::*,
-    fees::{self, *},
-    job,
-    ledger::*,
-    outbox::*,
-    payout::*,
-    payout_queue::*,
-    primitives::*,
-    profile::*,
-    signing_session::*,
-    utxo::*,
-    wallet::{balance::*, *},
-    xpub::*,
+    account::balance::AccountBalanceSummary, address::*, api::proto::payout, batch::*, batch_inclusion::*, descriptor::*, fees::{self, *}, job, ledger::*, outbox::*, payjoin::{config::PayjoinConfig, *}, payout::*, payout_queue::*, primitives::*, profile::*, signing_session::*, utxo::*, wallet::{balance::*, *}, xpub::*
 };
 
 #[allow(dead_code)]
@@ -40,6 +27,7 @@ pub struct App {
     payout_queues: PayoutQueues,
     payouts: Payouts,
     batches: Batches,
+    // payjoin_sessions: PayjoinSessions,
     signing_sessions: SigningSessions,
     ledger: Ledger,
     utxos: Utxos,
@@ -48,6 +36,7 @@ pub struct App {
     batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
+    pj: crate::payjoin::PayjoinReceiver,
 }
 
 impl App {
@@ -97,6 +86,15 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
+        let pj = PayjoinReceiver::new(
+            pool.clone(),
+            payout_queues.clone(),
+            PayjoinConfig { listen_port: 8088 },
+            addresses.clone(),
+            utxos.clone(),
+            wallets.clone(),
+            config.blockchain.network,
+        );
         let app = Self {
             outbox,
             profiles: Profiles::new(&pool),
@@ -114,6 +112,7 @@ impl App {
             fees_client,
             batch_inclusion,
             config,
+            pj,
             _runner: runner,
         };
         crate::profile::migration::profile_event_migration(&app.pool).await?;
@@ -514,6 +513,45 @@ impl App {
         self.addresses.persist_new_address(new_address).await?;
 
         Ok((wallet.id, address))
+    }
+
+    #[instrument(name = "app.new_uri", skip(self), err)]
+    pub async fn new_uri(
+        &self,
+        profile: &Profile,
+        wallet_name: String,
+        external_id: Option<String>,
+        metadata: Option<serde_json::Value>,
+    ) -> Result<(WalletId, String), ApplicationError> {
+        let wallet = self
+            .wallets
+            .find_by_name(profile.account_id, wallet_name)
+            .await?;
+        let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
+        let addr = keychain_wallet.new_external_address().await?;
+        let address = Address::from(addr.address.clone());
+        println!("got address: {:?}", addr.address);
+        let mut builder = NewAddress::builder();
+        builder
+            .address(address.clone())
+            .account_id(profile.account_id)
+            .wallet_id(wallet.id)
+            .profile_id(profile.id)
+            .keychain_id(keychain_wallet.keychain_id)
+            .kind(bitcoin::KeychainKind::External)
+            .address_idx(addr.index)
+            .metadata(metadata);
+        if let Some(external_id) = external_id {
+            builder.external_id(external_id);
+        }
+        let new_address = builder.build().expect("Couldn't build NewUri");
+        self.addresses.persist_new_address(new_address).await?;
+        println!("init payjoin");
+        let (session, ohttp_keys) = crate::payjoin::init_payjoin_session(payjoin::bitcoin::Address::from_str(&address.to_string()).unwrap().assume_checked(), self.pj.clone(), profile.account_id).await?;
+        println!("init'd payjoin");
+        // TODO save session to DB
+        let uri = session.pj_uri_builder().amount(payjoin::bitcoin::Amount::from_sat(600_000)).build().to_string();
+        Ok((wallet.id, uri))
     }
 
     #[instrument(name = "app.update_address", skip(self), err)]

@@ -81,6 +81,8 @@ pub enum ApplicationError {
     CouldNotDecryptKey(chacha20poly1305::Error),
     #[error("AddressError - Could not parse the address: {0}")]
     CouldNotParseAddress(#[from] bitcoin::AddressError),
+    #[error("PayjoinSession")]
+    PayjoinSession(#[from] anyhow::Error),
 }
 
 impl From<chacha20poly1305::Error> for ApplicationError {
