@@ -240,21 +240,6 @@ pub async fn spawn_process_payout_queue(
     .await
 }
 
-pub async fn spawn_payjoin_payout_queue(
-    pool: &sqlx::PgPool,
-    data: impl Into<ProcessPayoutQueueData>,
-) -> Result<ProcessPayoutQueueData, JobError> {
-    let data = data.into();
-    onto_account_main_channel(
-        pool,
-        data.account_id,
-        Uuid::new_v4(),
-        "payjoin_payout_queue",
-        data,
-    )
-    .await
-}
-
 #[job(name = "schedule_process_payout_queue")]
 async fn schedule_process_payout_queue(mut current_job: CurrentJob) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
@@ -716,7 +701,19 @@ impl From<(AccountId, PayoutQueueId)> for ProcessPayoutQueueData {
             payout_queue_id,
             account_id,
             batch_id: BatchId::new(),
-            payjoin: None,
+            payjoin_session: None,
+            tracing_data: crate::tracing::extract_tracing_data(),
+        }
+    }
+}
+
+impl From<(AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)> for ProcessPayoutQueueData {
+    fn from((account_id, payout_queue_id, session): (AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)) -> Self {
+        Self {
+            payout_queue_id,
+            account_id,
+            batch_id: BatchId::new(),
+            payjoin_session: Some(session),
             tracing_data: crate::tracing::extract_tracing_data(),
         }
     }

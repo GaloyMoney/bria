@@ -12,6 +12,7 @@ pub struct Batch {
     pub wallet_summaries: HashMap<WalletId, WalletSummary>,
     pub unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub signed_tx: Option<bitcoin::Transaction>,
+    pub provisional_proposal: Option<payjoin::receive::v2::ProvisionalProposal>,
 }
 
 impl Batch {
@@ -31,6 +32,7 @@ pub struct NewBatch {
     pub(super) total_fee_sats: Satoshis,
     pub(super) unsigned_psbt: bitcoin::psbt::PartiallySignedTransaction,
     pub(super) wallet_summaries: HashMap<WalletId, WalletSummary>,
+    pub(super) provisional_proposal: Option<payjoin::receive::v2::ProvisionalProposal>,
 }
 
 impl NewBatch {

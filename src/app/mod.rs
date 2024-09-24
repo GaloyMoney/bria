@@ -530,7 +530,7 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
         let address = Address::from(addr.address.clone());
-        println!("got address: {:?}", addr.address);
+        dbg!("got address: {:?}", addr.address);
         let mut builder = NewAddress::builder();
         builder
             .address(address.clone())
@@ -546,11 +546,10 @@ impl App {
         }
         let new_address = builder.build().expect("Couldn't build NewUri");
         self.addresses.persist_new_address(new_address).await?;
-        println!("init payjoin");
-        let (session, ohttp_keys) = crate::payjoin::init_payjoin_session(payjoin::bitcoin::Address::from_str(&address.to_string()).unwrap().assume_checked(), self.pj.clone(), profile.account_id).await?;
-        println!("init'd payjoin");
-        // TODO save session to DB
-        let uri = session.pj_uri_builder().amount(payjoin::bitcoin::Amount::from_sat(600_000)).build().to_string();
+        dbg!("init payjoin");
+        let (session, ohttp_keys) = self.pj.init_payjoin_session(&profile.account_id, payjoin::bitcoin::Address::from_str(&address.to_string()).unwrap().assume_checked()).await?;
+        dbg!("init'd payjoin");
+        let uri = session.session.pj_uri_builder().amount(payjoin::bitcoin::Amount::from_sat(600_000)).build().to_string();
         Ok((wallet.id, uri))
     }
 

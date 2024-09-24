@@ -44,6 +44,7 @@ pub async fn execute(
     let mut stalled = false;
     let mut last_err = None;
     let mut current_keychain = None;
+    // get provisional proposal psbt to replace batch.unsigned_psbt out with an mpsc channel, sign it, and replace it with the result with a channel back into the finalize_psbt wallet_process_psbt closure
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .list_for_batch(data.account_id, data.batch_id)
         .await?
@@ -112,6 +113,7 @@ pub async fn execute(
                 continue;
             }
         };
+        // switch session.unsigned_psbt to provisional_proposal.finalize_psbt(|psbt|)
         match client.sign_psbt(&session.unsigned_psbt).await {
             Ok(psbt) => {
                 session.remote_signing_complete(psbt);

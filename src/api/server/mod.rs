@@ -374,7 +374,7 @@ impl BriaService for Bria {
     ) -> Result<Response<NewUriResponse>, Status> {
         crate::tracing::record_error(|| async move {
             extract_tracing(&request);
-            println!("REQ");
+            dbg!("REQ");
 
             let key = extract_api_token(&request)?;
             let profile = self.app.authenticate(key).await?;
