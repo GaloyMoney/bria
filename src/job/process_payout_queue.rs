@@ -37,7 +37,7 @@ pub struct ProcessPayoutQueueData {
     err
 )]
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
-pub(super) async fn                                                                                                                                execute<'a>(
+pub(super) async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
@@ -65,7 +65,8 @@ pub(super) async fn                                                             
         .await?;
 
     // simplification: only payjoin when there is just one wallet
-    let is_payjoin_eligible = data.payjoin_session.is_some() && unbatched_payouts.wallet_ids().len() == 1;
+    let is_payjoin_eligible =
+        data.payjoin_session.is_some() && unbatched_payouts.wallet_ids().len() == 1;
     let FinishedPsbtBuild {
         psbt,
         included_payouts,

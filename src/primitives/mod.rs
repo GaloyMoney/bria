@@ -43,6 +43,7 @@ impl From<LedgerTransactionId> for PayoutId {
 }
 crate::entity_id! { BatchId }
 crate::entity_id! { OutboxEventId }
+crate::entity_id! { PayjoinProposalId }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
 #[serde(transparent)]

@@ -42,11 +42,9 @@ tracing = "0.1.40"
 tracing-opentelemetry = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 serde_with = "3.8.1"
-payjoin = { version = "0.20.0", features = ["base64", "receive", "v2", "io"] }
+payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde"] }
 electrum-client = "0.18.0"
 reqwest = { version = "0.12.5", default-features = false, features = ["json", "rustls-tls"] }
-hyper = { version = "0.14", features = ["full"] }
-hyper-rustls = { version = "0.24", optional = true }
 async-trait = "0.1.80"
 base64 = "0.22.1"
 tempfile = "3.10.1"
@@ -60,7 +58,7 @@ tonic_lnd = { version = "0.2.0", package="fedimint-tonic-lnd", features = ["ligh
 
 [dev-dependencies]
 serial_test = "*"
-payjoin = { version = "0.20.0", features = ["send", "v2", "io"] }
+payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde"] }
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }

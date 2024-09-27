@@ -874,7 +874,7 @@ pub async fn run() -> anyhow::Result<()> {
             let client = api_client(cli.bria_home, url, api_key);
             client.new_address(wallet, external_id, metadata).await?;
         }
-        Command::NewUri{
+        Command::NewUri {
             url,
             api_key,
             wallet,

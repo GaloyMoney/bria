@@ -296,47 +296,6 @@ async fn process_payout_queue(
     Ok(())
 }
 
-// #[job(name = "payjoin_payout_queue")]
-// async fn payjoin_payout_queue(
-//     mut current_job: CurrentJob,
-//     payouts: Payouts,
-//     wallets: Wallets,
-//     utxos: Utxos,
-//     payout_queues: PayoutQueues,
-//     batches: Batches,
-//     fees_client: FeesClient,
-// ) -> Result<(), JobError> {
-//     let pool = current_job.pool().clone();
-//     JobExecutor::builder(&mut current_job)
-//         .initial_retry_delay(std::time::Duration::from_secs(2))
-//         .build()
-//         .expect("couldn't build JobExecutor")
-//         .execute(|data| async move {
-//             let data: ProcessPayoutQueueData = data.expect("no ProcessPayoutQueueData available");
-//             let (data, res) = process_payout_queue::execute_payjoin(
-//                 pool,
-//                 payouts,
-//                 wallets,
-//                 payout_queues,
-//                 batches,
-//                 utxos,
-//                 data,
-//                 fees_client,
-//             )
-//             .await?;
-//             if let Some((mut tx, wallet_ids)) = res {
-//                 for id in wallet_ids {
-//                     spawn_batch_wallet_accounting(&mut tx, (&data, id)).await?;
-//                 }
-//                 spawn_batch_signing(tx, &data).await?;
-//             }
-
-//             Ok::<_, JobError>(data)
-//         })
-//         .await?;
-//     Ok(())
-// }
-
 #[job(
     name = "batch_wallet_accounting",
     channel_name = "wallet_accounting",
@@ -707,8 +666,16 @@ impl From<(AccountId, PayoutQueueId)> for ProcessPayoutQueueData {
     }
 }
 
-impl From<(AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)> for ProcessPayoutQueueData {
-    fn from((account_id, payout_queue_id, session): (AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)) -> Self {
+impl From<(AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)>
+    for ProcessPayoutQueueData
+{
+    fn from(
+        (account_id, payout_queue_id, session): (
+            AccountId,
+            PayoutQueueId,
+            payjoin::receive::v2::WantsOutputs,
+        ),
+    ) -> Self {
         Self {
             payout_queue_id,
             account_id,

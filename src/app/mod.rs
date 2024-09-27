@@ -13,7 +13,25 @@ pub use config::*;
 use error::*;
 
 use crate::{
-    account::balance::AccountBalanceSummary, address::*, api::proto::payout, batch::*, batch_inclusion::*, descriptor::*, fees::{self, *}, job, ledger::*, outbox::*, payjoin::{config::PayjoinConfig, *}, payout::*, payout_queue::*, primitives::*, profile::*, signing_session::*, utxo::*, wallet::{balance::*, *}, xpub::*
+    account::balance::AccountBalanceSummary,
+    address::*,
+    api::proto::payout,
+    batch::*,
+    batch_inclusion::*,
+    descriptor::*,
+    fees::{self, *},
+    job,
+    ledger::*,
+    outbox::*,
+    payjoin::{config::PayjoinConfig, *},
+    payout::*,
+    payout_queue::*,
+    primitives::*,
+    profile::*,
+    signing_session::*,
+    utxo::*,
+    wallet::{balance::*, *},
+    xpub::*,
 };
 
 #[allow(dead_code)]
@@ -547,9 +565,22 @@ impl App {
         let new_address = builder.build().expect("Couldn't build NewUri");
         self.addresses.persist_new_address(new_address).await?;
         dbg!("init payjoin");
-        let (session, ohttp_keys) = self.pj.init_payjoin_session(&profile.account_id, payjoin::bitcoin::Address::from_str(&address.to_string()).unwrap().assume_checked()).await?;
+        let (session, _ohttp_keys) = self
+            .pj
+            .init_payjoin_session(
+                &profile.account_id,
+                payjoin::bitcoin::Address::from_str(&address.to_string())
+                    .unwrap()
+                    .assume_checked(),
+            )
+            .await?;
         dbg!("init'd payjoin");
-        let uri = session.session.pj_uri_builder().amount(payjoin::bitcoin::Amount::from_sat(600_000)).build().to_string();
+        let uri = session
+            .session
+            .pj_uri_builder()
+            .amount(payjoin::bitcoin::Amount::from_sat(600_000))
+            .build()
+            .to_string();
         Ok((wallet.id, uri))
     }
 

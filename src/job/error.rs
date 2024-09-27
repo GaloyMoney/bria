@@ -57,6 +57,8 @@ pub enum JobError {
     PsbtMissingInSigningSessions,
     #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
+    #[error("JobError - Payjoin")]
+    Payjoin,
 }
 
 impl JobExecutionError for JobError {}

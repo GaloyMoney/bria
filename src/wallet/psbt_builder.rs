@@ -1,5 +1,8 @@
 use bdk::{
-    bitcoin::hashes::Hash, database::BatchDatabase, wallet::{tx_builder::TxOrdering, AddressIndex, AddressInfo}, FeeRate, Wallet
+    bitcoin::hashes::Hash,
+    database::BatchDatabase,
+    wallet::{tx_builder::TxOrdering, AddressIndex, AddressInfo},
+    FeeRate, Wallet,
 };
 use derive_builder::Builder;
 use std::{
@@ -409,9 +412,11 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
 
         // add foreign payjoin utxos
         // *try* Handle payjoin to see what happens. visit_bdk_wallet will actually use the state machine
-        if let Some(wants_outputs) = self.cfg.wants_outputs {
+        if let Some(ref wants_outputs) = self.cfg.wants_outputs {
             use std::str::FromStr;
-            let mut payjoin_original_psbt = psbt::Psbt::from_str(&wants_outputs.original_psbt().to_string()).expect("failed to parse payjoin original psbt");
+            let mut payjoin_original_psbt =
+                psbt::Psbt::from_str(&wants_outputs.original_psbt().to_string())
+                    .expect("failed to parse payjoin original psbt");
             let current_wallet_owned_vouts = wants_outputs.owned_vouts();
             for i in (0..payjoin_original_psbt.unsigned_tx.output.len()).rev() {
                 if !current_wallet_owned_vouts.contains(&i) {
@@ -421,7 +426,7 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
             }
             // for include each remaining payjoin output
             for output in payjoin_original_psbt.unsigned_tx.output.iter() {
-                builder.add_recipient(output.script_pubkey, output.value);
+                builder.add_recipient(output.script_pubkey.clone(), output.value);
             }
         }
 
@@ -486,24 +491,63 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
         builder.ordering(TxOrdering::Bip69Lexicographic);
         match builder.finish() {
             Ok((psbt, details)) => {
-                if let Some(wants_outputs) = self.cfg.wants_outputs {
+                if let Some(wants_outputs) = &self.cfg.wants_outputs {
                     use std::str::FromStr;
                     // convert psbt unsigned_tx.output to payjoin::bitcoin::TxOut
-                    let replacement_outputs: Vec<payjoin::bitcoin::TxOut> = psbt.unsigned_tx.output.into_iter().map(|out| payjoin::bitcoin::TxOut {
-                        value: payjoin::bitcoin::Amount::from_sat(out.value.into()),
-                        script_pubkey: payjoin::bitcoin::ScriptBuf::from_bytes(out.script_pubkey.to_bytes()),
-                    }).collect();
-                    let payjoin_drain_script = payjoin::bitcoin::ScriptBuf::from_bytes(change_address.script_pubkey().to_bytes());
-                    let wants_inputs = wants_outputs.replace_receiver_outputs(replacement_outputs, &payjoin_drain_script).unwrap().commit_outputs();
+                    let replacement_outputs: Vec<payjoin::bitcoin::TxOut> = psbt
+                        .unsigned_tx
+                        .output
+                        .clone()
+                        .into_iter()
+                        .map(|out| payjoin::bitcoin::TxOut {
+                            value: payjoin::bitcoin::Amount::from_sat(out.value.into()),
+                            script_pubkey: payjoin::bitcoin::ScriptBuf::from_bytes(
+                                out.script_pubkey.to_bytes(),
+                            ),
+                        })
+                        .collect();
+                    let payjoin_drain_script = payjoin::bitcoin::ScriptBuf::from_bytes(
+                        change_address.script_pubkey().to_bytes(),
+                    );
+                    // TODO provide a receiver only output list, ignore sender change
+                    let wants_inputs = wants_outputs
+                        .clone()
+                        .replace_receiver_outputs(replacement_outputs, &payjoin_drain_script)
+                        .unwrap()
+                        .commit_outputs();
 
-                    let inputs: Vec<_> = psbt.unsigned_tx.input.into_iter().zip(psbt.inputs).map(|(txin, psbt_input)| (
-                        payjoin::bitcoin::OutPoint::new(payjoin::bitcoin::Txid::from_str(&txin.previous_output.txid.to_string()).unwrap(), txin.previous_output.vout),
-                        payjoin::bitcoin::TxOut {
-                            value: payjoin::bitcoin::Amount::from_sat(psbt_input.witness_utxo.unwrap().value.into()),
-                            script_pubkey: payjoin::bitcoin::ScriptBuf::from_bytes(psbt_input.witness_utxo.unwrap().script_pubkey.to_bytes()),
-                        }
-                    )).collect();
-                    self.provisional_proposal = Some(wants_inputs.contribute_witness_inputs(inputs).unwrap().commit_inputs());
+                    let inputs: Vec<_> = psbt
+                        .unsigned_tx
+                        .input
+                        .clone()
+                        .into_iter()
+                        .zip(psbt.inputs.clone())
+                        .map(|(txin, psbt_input)| {
+                            (
+                                payjoin::bitcoin::OutPoint::new(
+                                    payjoin::bitcoin::Txid::from_str(
+                                        &txin.previous_output.txid.to_string(),
+                                    )
+                                    .unwrap(),
+                                    txin.previous_output.vout,
+                                ),
+                                payjoin::bitcoin::TxOut {
+                                    value: payjoin::bitcoin::Amount::from_sat(
+                                        psbt_input.witness_utxo.clone().unwrap().value.into(),
+                                    ),
+                                    script_pubkey: payjoin::bitcoin::ScriptBuf::from_bytes(
+                                        psbt_input.witness_utxo.unwrap().script_pubkey.to_bytes(),
+                                    ),
+                                },
+                            )
+                        })
+                        .collect();
+                    self.provisional_proposal = Some(
+                        wants_inputs
+                            .contribute_witness_inputs(inputs)
+                            .unwrap()
+                            .commit_inputs(),
+                    );
                 } // FIXME I think the fee is definitely wrong since proposal.apply_fee has not been called
                 let fee_satoshis = Satoshis::from(details.fee.expect("fee must be present"));
                 let current_wallet_fee = fee_satoshis - self.result.fee_satoshis;
@@ -640,9 +684,11 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
         let mut foreign_utxos = HashSet::new();
         // add foreign payjoin utxos
         // *try* Handle payjoin to see what happens. visit_bdk_wallet will actually use the state machine
-        if let Some(wants_outputs) = self.cfg.wants_outputs {
+        let payjoin_original_psbt = if let Some(wants_outputs) = &self.cfg.wants_outputs {
             use std::str::FromStr;
-            let mut payjoin_original_psbt = psbt::Psbt::from_str(&wants_outputs.original_psbt().to_string()).expect("failed to parse payjoin original psbt");
+            let mut payjoin_original_psbt =
+                psbt::Psbt::from_str(&wants_outputs.original_psbt().to_string())
+                    .expect("failed to parse payjoin original psbt");
             let current_wallet_owned_vouts = wants_outputs.owned_vouts();
             for i in (0..payjoin_original_psbt.unsigned_tx.output.len()).rev() {
                 if !current_wallet_owned_vouts.contains(&i) {
@@ -652,14 +698,20 @@ impl PsbtBuilder<AcceptingCurrentKeychainState> {
             }
             // for each remaining output, still pay that change
             for output in payjoin_original_psbt.unsigned_tx.output.iter() {
-                builder.add_recipient(output.script_pubkey, output.value);
+                builder.add_recipient(output.script_pubkey.clone(), output.value);
             }
 
             // add inputs in following loop
-            self.current_wallet_psbts.push((keychain_id, payjoin_original_psbt));
-        }
+            Some((keychain_id, payjoin_original_psbt))
+        } else {
+            None
+        };
 
-        for (_, psbt) in self.current_wallet_psbts.iter() {
+        let mut current_wallet_psbts = self.current_wallet_psbts.clone();
+        if let Some((keychain_id, payjoin_original_psbt)) = payjoin_original_psbt {
+            current_wallet_psbts.push((keychain_id, payjoin_original_psbt));
+        }
+        for (_, psbt) in current_wallet_psbts.iter() {
             for (input, psbt_input) in psbt.unsigned_tx.input.iter().zip(psbt.inputs.iter()) {
                 foreign_utxos.insert(input.previous_output);
                 builder.add_foreign_utxo(
