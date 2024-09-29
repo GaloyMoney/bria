@@ -3,6 +3,7 @@
 use anyhow::Context;
 use bdk::{
     bitcoin::{
+        psbt::PartiallySignedTransaction,
         secp256k1::{rand, Secp256k1},
         Address, Amount, PrivateKey,
     },
@@ -115,6 +116,24 @@ pub fn fund_addr(
         None,
     )?;
     Ok(tx_id)
+}
+
+pub fn create_funded_psbt(
+    bitcoind: &BitcoindClient,
+    addr: &Address,
+    amount_in_sats: u64,
+) -> anyhow::Result<String> {
+    use std::str::FromStr;
+    let amount = bitcoin::Amount::from_sat(amount_in_sats);
+    let outputs = std::collections::HashMap::from([(addr.to_string(), amount)]);
+    let options = bitcoincore_rpc::json::WalletCreateFundedPsbtOptions {
+        lock_unspent: Some(true),
+        fee_rate: Some(Amount::from_sat(100)),
+        ..Default::default()
+    };
+    Ok(bitcoind
+        .wallet_create_funded_psbt(&[], &outputs, None, Some(options), Some(true))?
+        .psbt)
 }
 
 pub fn lookup_tx_info(

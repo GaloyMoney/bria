@@ -58,7 +58,7 @@ tonic_lnd = { version = "0.2.0", package="fedimint-tonic-lnd", features = ["ligh
 
 [dev-dependencies]
 serial_test = "*"
-payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde"] }
+payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde", "test-util"] }
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
