@@ -660,6 +660,27 @@ impl From<(AccountId, PayoutQueueId)> for ProcessPayoutQueueData {
             payout_queue_id,
             account_id,
             batch_id: BatchId::new(),
+            payjoin_session: None,
+            tracing_data: crate::tracing::extract_tracing_data(),
+        }
+    }
+}
+
+impl From<(AccountId, PayoutQueueId, payjoin::receive::v2::WantsOutputs)>
+    for ProcessPayoutQueueData
+{
+    fn from(
+        (account_id, payout_queue_id, session): (
+            AccountId,
+            PayoutQueueId,
+            payjoin::receive::v2::WantsOutputs,
+        ),
+    ) -> Self {
+        Self {
+            payout_queue_id,
+            account_id,
+            batch_id: BatchId::new(),
+            payjoin_session: Some(session),
             tracing_data: crate::tracing::extract_tracing_data(),
         }
     }

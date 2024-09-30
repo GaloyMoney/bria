@@ -1,5 +1,6 @@
+use payjoin::receive::v2::{ActiveSession, ProvisionalProposal, UncheckedProposal, WantsOutputs};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 use tracing::instrument;
 
 use super::error::JobError;
@@ -12,6 +13,7 @@ pub struct ProcessPayoutQueueData {
     pub(super) payout_queue_id: PayoutQueueId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
+    pub(super) payjoin_session: Option<WantsOutputs>, // find by id?
     #[serde(flatten)]
     pub(super) tracing_data: HashMap<String, String>,
 }
@@ -61,6 +63,10 @@ pub(super) async fn execute<'a>(
     let fee_rate = fees_client
         .fee_rate(payout_queue.config.tx_priority)
         .await?;
+
+    // simplification: only payjoin when there is just one wallet
+    let is_payjoin_eligible =
+        data.payjoin_session.is_some() && unbatched_payouts.wallet_ids().len() == 1;
     let FinishedPsbtBuild {
         psbt,
         included_payouts,
@@ -68,18 +74,35 @@ pub(super) async fn execute<'a>(
         wallet_totals,
         tx_id,
         fee_satoshis,
+        provisional_proposal,
         ..
-    } = construct_psbt(
-        &pool,
-        &mut tx,
-        &unbatched_payouts,
-        &utxos,
-        &wallets,
-        payout_queue,
-        fee_rate,
-        false,
-    )
-    .await?;
+    } = if is_payjoin_eligible {
+        let wants_outputs = data.payjoin_session.clone().unwrap();
+        construct_payjoin_psbt(
+            &pool,
+            &mut tx,
+            &unbatched_payouts,
+            &utxos,
+            &wallets,
+            payout_queue,
+            fee_rate,
+            false,
+            wants_outputs,
+        )
+        .await?
+    } else {
+        construct_psbt(
+            &pool,
+            &mut tx,
+            &unbatched_payouts,
+            &utxos,
+            &wallets,
+            payout_queue,
+            fee_rate,
+            false,
+        )
+        .await?
+    };
 
     let span = tracing::Span::current();
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
@@ -112,6 +135,7 @@ pub(super) async fn execute<'a>(
             .tx_id(tx_id)
             .unsigned_psbt(psbt)
             .total_fee_sats(fee_satoshis)
+            .provisional_proposal(provisional_proposal)
             .wallet_summaries(
                 wallet_totals
                     .into_iter()
@@ -234,6 +258,82 @@ pub async fn construct_psbt(
     Ok(PsbtBuilder::construct_psbt(
         pool,
         cfg.for_estimation(for_estimation)
+            .build()
+            .expect("Couldn't build PsbtBuilderConfig"),
+        tx_payouts,
+        wallets,
+    )
+    .await?)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn construct_payjoin_psbt(
+    pool: &sqlx::Pool<sqlx::Postgres>,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    unbatched_payouts: &UnbatchedPayouts,
+    utxos: &Utxos,
+    wallets: &Wallets, // FIXME invariant where unbatched_payouts.wallet_ids().len() == 1
+    payout_queue: PayoutQueue,
+    fee_rate: bitcoin::FeeRate,
+    for_estimation: bool,
+    wants_outputs: WantsOutputs,
+) -> Result<FinishedPsbtBuild, JobError> {
+    let span = tracing::Span::current();
+    let PayoutQueue {
+        id: queue_id,
+        config: queue_cfg,
+        name: queue_name,
+        ..
+    } = payout_queue;
+    span.record("payout_queue_name", queue_name);
+    span.record("payout_queue_id", &tracing::field::display(queue_id));
+    span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
+
+    let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;
+    // inputs
+    let reserved_utxos = {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        utxos
+            .outpoints_bdk_should_not_select(tx, keychain_ids)
+            .await?
+    };
+    span.record(
+        "n_reserved_utxos",
+        reserved_utxos.values().fold(0, |acc, v| acc + v.len()),
+    );
+
+    span.record("n_cpfp_utxos", 0);
+
+    let mut cfg = PsbtBuilderConfig::builder()
+        .consolidate_deprecated_keychains(queue_cfg.consolidate_deprecated_keychains)
+        .fee_rate(fee_rate)
+        .reserved_utxos(reserved_utxos)
+        .force_min_change_output(queue_cfg.force_min_change_sats);
+    if !for_estimation && queue_cfg.should_cpfp() {
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        let utxos = utxos
+            .find_cpfp_utxos(
+                tx,
+                keychain_ids,
+                queue_id,
+                queue_cfg.cpfp_payouts_detected_before(),
+                queue_cfg
+                    .cpfp_payouts_detected_before_block(crate::bdk::last_sync_time(pool).await?),
+            )
+            .await?;
+        span.record(
+            "n_cpfp_utxos",
+            utxos.values().fold(0, |acc, v| acc + v.len()),
+        );
+        cfg = cfg.cpfp_utxos(utxos);
+    }
+
+    let tx_payouts = unbatched_payouts.into_tx_payouts();
+    // TODO add proposal tx_payouts
+    Ok(PsbtBuilder::construct_psbt(
+        pool,
+        cfg.for_estimation(for_estimation)
+            .wants_outputs(Some(wants_outputs))
             .build()
             .expect("Couldn't build PsbtBuilderConfig"),
         tx_payouts,

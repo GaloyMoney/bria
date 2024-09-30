@@ -31,14 +31,15 @@ impl Batches {
     ) -> Result<BatchId, BatchError> {
         let serializied_psbt = batch.unsigned_psbt.serialize();
         sqlx::query!(
-            r#"INSERT INTO bria_batches (id, account_id, payout_queue_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt)
-            VALUES ($1, $2, $3, $4, $5, $6)"#,
+            r#"INSERT INTO bria_batches (id, account_id, payout_queue_id, total_fee_sats, bitcoin_tx_id, unsigned_psbt, payjoin_proposal)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
             batch.id as BatchId,
             batch.account_id as AccountId,
             batch.payout_queue_id as PayoutQueueId,
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref() as &[u8],
             serializied_psbt.as_slice() as &[u8],
+            serde_json::to_value(batch.provisional_proposal).unwrap(),
         ).execute(&mut **tx).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -90,7 +91,8 @@ impl Batches {
                     payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id,
                     s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats,
                     total_spent_sats, change_sats, change_address, change_vout, s.total_fee_sats,
-                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
+                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id,
+                    payjoin_proposal
             FROM bria_batch_wallet_summaries s
             LEFT JOIN bria_batches b ON b.id = s.batch_id
             WHERE s.batch_id = $1 AND b.account_id = $2"#,
@@ -114,6 +116,10 @@ impl Batches {
             .map(|tx| bitcoin::consensus::deserialize(tx))
             .transpose()?;
         let payout_queue_id = PayoutQueueId::from(rows[0].payout_queue_id);
+        let provisional_proposal = <std::option::Option<sqlx::types::JsonValue> as Clone>::clone(
+            &rows[0].payjoin_proposal,
+        )
+        .map(|p| serde_json::from_value(p).unwrap());
 
         for row in rows.into_iter() {
             let wallet_id = WalletId::from(row.wallet_id);
@@ -160,6 +166,7 @@ impl Batches {
             unsigned_psbt,
             signed_tx,
             wallet_summaries,
+            provisional_proposal,
         })
     }
 

@@ -43,6 +43,7 @@ impl From<LedgerTransactionId> for PayoutId {
 }
 crate::entity_id! { BatchId }
 crate::entity_id! { OutboxEventId }
+crate::entity_id! { PayjoinProposalId }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -88,7 +89,7 @@ pub mod bitcoin {
             },
             consensus,
             hash_types::Txid,
-            psbt, Address as BdkAddress, Network,
+            psbt, Address as BdkAddress, Amount, Network,
         },
         descriptor::ExtendedDescriptor,
         BlockTime, FeeRate, KeychainKind,

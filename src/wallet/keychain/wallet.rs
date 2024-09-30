@@ -52,7 +52,7 @@ impl KeychainWallet {
                 if wallet.finalize_psbt(&mut psbt, SignOptions::default())? {
                     Ok::<_, BdkError>(Some(psbt))
                 } else {
-                    Ok::<_, BdkError>(None)
+                    Ok::<_, BdkError>(Some(psbt))
                 }
             })
             .await

@@ -42,6 +42,7 @@ tracing = "0.1.40"
 tracing-opentelemetry = "0.24.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
 serde_with = "3.8.1"
+payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde"] }
 electrum-client = "0.18.0"
 reqwest = { version = "0.12.5", default-features = false, features = ["json", "rustls-tls"] }
 async-trait = "0.1.80"
@@ -57,7 +58,12 @@ tonic_lnd = { version = "0.2.0", package="fedimint-tonic-lnd", features = ["ligh
 
 [dev-dependencies]
 serial_test = "*"
+payjoin = { version = "0.20.0", features = ["base64", "send", "receive", "v2", "io", "serde", "test-util"] }
 
 [build-dependencies]
 protobuf-src = { version = "1.1.0" }
 tonic-build = { version = "0.11.0", features = ["prost"] }
+
+
+[patch.crates-io.payjoin]
+path = "../payjoin/payjoin"

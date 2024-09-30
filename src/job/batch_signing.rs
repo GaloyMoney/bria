@@ -8,6 +8,9 @@ use crate::{
     app::BlockchainConfig, batch::*, primitives::*, signing_session::*, wallet::*, xpub::*,
 };
 
+use bdk::bitcoin::psbt::PartiallySignedTransaction as BdkPsbt;
+use payjoin::bitcoin::psbt::Psbt as PayjoinPsbt;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchSigningData {
     pub(super) account_id: AccountId,
@@ -44,6 +47,51 @@ pub async fn execute(
     let mut stalled = false;
     let mut last_err = None;
     let mut current_keychain = None;
+    // get provisional proposal psbt to replace batch.unsigned_psbt out with an mpsc channel, sign it, and replace it with the result with a channel back into the finalize_psbt wallet_process_psbt closure
+
+    let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
+    let (unsigned_tx, unsigned_rx) = std::sync::mpsc::channel();
+    let (signed_tx, signed_rx) = std::sync::mpsc::channel::<BdkPsbt>();
+    let (payjoin_tx, payjoin_rx) = std::sync::mpsc::channel();
+    // TODO get rt from PayjoinReceiver?
+    let pj_psbt = if let Some(proposal) = batch.provisional_proposal {
+        use std::str::FromStr;
+        //let proposal = proposals.find_by_id(provisional_proposal_id).await?; FIXME lookup proposal by id
+        tokio::spawn(async move {
+            let mut payjoin = proposal
+                .finalize_proposal(
+                    |psbt| {
+                        let _ = unsigned_tx.send(psbt.clone());
+                        let signed_psbt =
+                            PayjoinPsbt::from_str(&signed_rx.recv().unwrap().to_string()).unwrap();
+                        Ok(signed_psbt)
+                    },
+                    None,
+                    payjoin::bitcoin::FeeRate::from_sat_per_vb_unchecked(100),
+                )
+                .expect("payjoin failed"); // FIXME feerates
+                                           // Do HTTP for payjoin response, otherwise timeout and return original_psbt tx to broadcast
+            let (req, ohttp_ctx) = payjoin.extract_v2_req().expect("v2 req extraction failed");
+            println!("Got a request from the sender. Responding with a Payjoin proposal.");
+            let http = reqwest::Client::new();
+            let res = http
+                .post(req.url)
+                .header("Content-Type", req.content_type)
+                .body(req.body)
+                .send()
+                .await
+                .expect("payjoin request failed");
+            payjoin
+                .process_res(res.bytes().await.unwrap().to_vec(), ohttp_ctx)
+                .expect("Failed to deserialize response");
+            payjoin_tx.send(BdkPsbt::from_str(&payjoin.psbt().to_string()).unwrap());
+        });
+        let unsigned_payjoin_psbt = unsigned_rx.recv().unwrap();
+        Some(BdkPsbt::from_str(&unsigned_payjoin_psbt.to_string()).unwrap())
+    } else {
+        None
+    };
+
     let (mut sessions, mut account_xpub_cache) = if let Some(batch_session) = signing_sessions
         .list_for_batch(data.account_id, data.batch_id)
         .await?
@@ -55,6 +103,9 @@ pub async fn execute(
         let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
         span.record("tx_id", &tracing::field::display(batch.bitcoin_tx_id));
         let unsigned_psbt = batch.unsigned_psbt;
+        if let Some(ref pj_psbt) = pj_psbt {
+            assert_eq!(&unsigned_psbt, pj_psbt);
+        }
         for (wallet_id, summary) in batch.wallet_summaries {
             let wallet = wallets.find_by_id(wallet_id).await?;
             if current_keychain.is_none() {
@@ -112,6 +163,7 @@ pub async fn execute(
                 continue;
             }
         };
+        // switch session.unsigned_psbt to provisional_proposal.finalize_psbt(|psbt|)
         match client.sign_psbt(&session.unsigned_psbt).await {
             Ok(psbt) => {
                 session.remote_signing_complete(psbt);
@@ -146,14 +198,23 @@ pub async fn execute(
             let wallet = wallets.find_by_id(wallet_id).await?;
             current_keychain = Some(wallet.current_keychain_wallet(&pool));
         }
-        match (
+        let psbt = if let Some(pj_psbt) = pj_psbt {
+            assert_eq!(&first_signed_psbt, &pj_psbt);
+            signed_tx.send(first_signed_psbt).unwrap();
+            match payjoin_rx.recv() {
+                Ok(psbt) => Ok(Some(psbt)),
+                Err(_) => Err(JobError::Payjoin),
+            }
+        } else {
             current_keychain
                 .expect("keychain should always exist")
                 .finalize_psbt(first_signed_psbt)
-                .await,
-            last_err,
-        ) {
+                .await
+                .map_err(Into::into)
+        };
+        match (psbt, last_err) {
             (Ok(Some(finalized_psbt)), _) => {
+                // TODO we may need an "awaiting payjoin" status here
                 span.record("finalization_status", "complete");
                 let tx = finalized_psbt.extract_tx();
                 batches.set_signed_tx(data.batch_id, tx).await?;
@@ -173,7 +234,7 @@ pub async fn execute(
             }
             (Err(err), _) => {
                 span.record("finalization_status", "errored");
-                Err(err.into())
+                Err(err)
             }
         }
     } else if let Some(err) = last_err {

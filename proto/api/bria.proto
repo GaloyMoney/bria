@@ -23,6 +23,7 @@ service BriaService {
   rpc GetWalletBalanceSummary (GetWalletBalanceSummaryRequest) returns (GetWalletBalanceSummaryResponse) {}
 
   rpc NewAddress (NewAddressRequest) returns (NewAddressResponse) {}
+  rpc NewUri (NewAddressRequest) returns (NewUriResponse) {}
   rpc UpdateAddress (UpdateAddressRequest) returns (UpdateAddressResponse) {}
   rpc ListAddresses (ListAddressesRequest) returns (ListAddressesResponse) {}
   rpc GetAddress (GetAddressRequest) returns (GetAddressResponse) {}
@@ -184,6 +185,10 @@ message NewAddressRequest {
 
 message NewAddressResponse {
   string address = 1;
+}
+
+message NewUriResponse {
+  string uri = 1;
 }
 
 message UpdateAddressRequest {
