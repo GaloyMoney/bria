@@ -40,7 +40,6 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
         let raw_psbt = psbt.serialize();
         let hex_psbt = general_purpose::STANDARD.encode(raw_psbt);
         let sighash_type = Some(DEFAULT_SIGHASH_TYPE.into());
-        dbg!(&hex_psbt);
         let response = self
             .inner
             .wallet_process_psbt(&hex_psbt, None, sighash_type, None)
@@ -49,13 +48,11 @@ impl RemoteSigningClient for BitcoindRemoteSigner {
                     "Failed to sign psbt via bitcoind: {e}"
                 ))
             })?;
-        dbg!(&response);
         let signed_psbt = general_purpose::STANDARD
             .decode(response.psbt)
             .map_err(|e| {
                 SigningClientError::HexConvert(format!("Failed to convert psbt from bitcoind: {e}"))
             })?;
-        dbg!(&signed_psbt);
         let deserialized_psbt = psbt::PartiallySignedTransaction::deserialize(&signed_psbt)?;
         dbg!(&deserialized_psbt);
         Ok(deserialized_psbt)
