@@ -123,7 +123,6 @@ pub fn create_funded_psbt(
     addr: &Address,
     amount_in_sats: u64,
 ) -> anyhow::Result<String> {
-    use std::str::FromStr;
     let amount = bitcoin::Amount::from_sat(amount_in_sats);
     let outputs = std::collections::HashMap::from([(addr.to_string(), amount)]);
     let options = bitcoincore_rpc::json::WalletCreateFundedPsbtOptions {

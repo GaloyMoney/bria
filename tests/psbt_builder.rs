@@ -456,17 +456,20 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
         domain_current_keychain_id.into(),
         keychain_cfg,
     );
+    dbg!("new keychain");
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let domain_change_address = domain_current_keychain.new_internal_address().await?;
     let bitcoind = helpers::bitcoind_client().await?;
     let wallet_funding = 700_000_000;
     let wallet_funding_sats = Satoshis::from(wallet_funding);
+    dbg!("funding");
     let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
     helpers::fund_addr(
         &bitcoind,
         &domain_addr.address,
         wallet_funding - 200_000_000,
     )?;
+    dbg!("funded");
     helpers::gen_blocks(&bitcoind, 10)?;
     while !find_tx_id(&pool, domain_current_keychain_id, tx_id).await? {
         let blockchain = helpers::electrum_blockchain().await?;
@@ -476,19 +479,25 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     // Build WantsOutputs for payjoin
     // 1st build original_psbt for deposit depositor -> domain, not part of the builder (or a separate builder)
     let deposit_addr = domain_current_keychain.new_external_address().await?;
-    let deposit_sats = Satoshis::from(500_000_000);
+    let deposit_sats_u64 = 500_000_000;
+    let deposit_sats = Satoshis::from(deposit_sats_u64);
+    dbg!("creating funded psbt");
     let deposit_original_psbt =
         helpers::create_funded_psbt(&bitcoind, &deposit_addr.address, deposit_sats.into())?;
     use std::str::FromStr;
     let deposit_original_psbt =
         payjoin::bitcoin::Psbt::from_str(&deposit_original_psbt.to_string())?;
-    dbg!(&deposit_original_psbt);
-    let change_vout = 0;
-    let owned_vouts = vec![];
+    let owned_vout = deposit_original_psbt
+        .unsigned_tx
+        .output
+        .iter()
+        .position(|o| o.value.to_sat() == deposit_sats_u64)
+        .unwrap();
+    let change_vout = if owned_vout == 0 { 1 } else { 0 };
     let wants_outputs = WantsOutputs::for_psbt_mutation(
         deposit_original_psbt,
         change_vout,
-        owned_vouts,
+        vec![owned_vout],
         payjoin::bitcoin::Address::from_str(&domain_addr.address.to_string())?.assume_checked(),
     );
 
@@ -577,14 +586,15 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     // assert_eq!(unsigned_psbt.outputs.len(), 2);
 
     let mut bitcoind_client = helpers::bitcoind_signing_client().await?;
+    dbg!("signing with bitcoind");
     let signed_psbt = bitcoind_client.sign_psbt(&unsigned_psbt).await?;
-    let tx = domain_current_keychain
+    dbg!(&signed_psbt.to_string());
+    let _tx = domain_current_keychain
         .finalize_psbt(signed_psbt) // FIXME do we need to finalize before or after payjoin sender signs?
         .await?
         .expect("Finalize should have completed")
         .extract_tx();
-    helpers::electrum_blockchain().await?.broadcast(&tx)?;
-
+    // The tx won't be able to be broadcast because it's missing signature data from the payjoin sender
     Ok(())
 }
 
