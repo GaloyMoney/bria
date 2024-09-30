@@ -460,15 +460,10 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     let domain_addr = domain_current_keychain.new_external_address().await?;
     let domain_change_address = domain_current_keychain.new_internal_address().await?;
     let bitcoind = helpers::bitcoind_client().await?;
-    let wallet_funding = 700_000_000;
-    let wallet_funding_sats = Satoshis::from(wallet_funding);
+    let domain_funding = 300_000_000;
+    let domain_funding_sats = Satoshis::from(domain_funding);
     dbg!("funding");
-    let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, wallet_funding)?;
-    helpers::fund_addr(
-        &bitcoind,
-        &domain_addr.address,
-        wallet_funding - 200_000_000,
-    )?;
+    let tx_id = helpers::fund_addr(&bitcoind, &domain_addr, domain_funding)?;
     dbg!("funded");
     helpers::gen_blocks(&bitcoind, 10)?;
     while !find_tx_id(&pool, domain_current_keychain_id, tx_id).await? {
@@ -479,31 +474,31 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     // Build WantsOutputs for payjoin
     // 1st build original_psbt for deposit depositor -> domain, not part of the builder (or a separate builder)
     let deposit_addr = domain_current_keychain.new_external_address().await?;
-    let deposit_sats_u64 = 500_000_000;
-    let deposit_sats = Satoshis::from(deposit_sats_u64);
+    let deposit_funding = 200_000_000;
+    let deposit_funding_sats = Satoshis::from(deposit_funding);
     dbg!("creating funded psbt");
     let deposit_original_psbt =
-        helpers::create_funded_psbt(&bitcoind, &deposit_addr.address, deposit_sats.into())?;
+        helpers::create_funded_psbt(&bitcoind, &deposit_addr.address, deposit_funding)?;
     use std::str::FromStr;
     let deposit_original_psbt =
         payjoin::bitcoin::Psbt::from_str(&deposit_original_psbt.to_string())?;
-    let owned_vout = deposit_original_psbt
+    let domain_owned_vout = deposit_original_psbt
         .unsigned_tx
         .output
         .iter()
-        .position(|o| o.value.to_sat() == deposit_sats_u64)
+        .position(|o| o.value.to_sat() == deposit_funding)
         .unwrap();
-    let change_vout = if owned_vout == 0 { 1 } else { 0 };
+    let change_vout = if domain_owned_vout == 0 { 1 } else { 0 };
     let wants_outputs = WantsOutputs::for_psbt_mutation(
         deposit_original_psbt,
         change_vout,
-        vec![owned_vout],
-        payjoin::bitcoin::Address::from_str(&domain_addr.address.to_string())?.assume_checked(),
+        vec![domain_owned_vout],
+        payjoin::bitcoin::Address::from_str(&deposit_addr.address.to_string())?.assume_checked(),
     );
 
     let fee = FeeRate::from_sat_per_vb(1.0);
     let cfg = PsbtBuilderConfig::builder()
-        .consolidate_deprecated_keychains(true)
+        .consolidate_deprecated_keychains(false) // for simplicity, we don't consolidate here
         .fee_rate(fee)
         .wants_outputs(Some(wants_outputs))
         .build()
@@ -511,19 +506,15 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     let builder = PsbtBuilder::new(cfg);
 
     let domain_wallet_id = WalletId::new();
-    let withdrawal_amount = Satoshis::from(100_000_000);
-    let destination: Address = domain_current_keychain
-        .new_external_address()
-        .await?
-        .address
-        .into();
+    let withdrawal_funding = 400_000_000;
+    let withdrawal_funding_sats = Satoshis::from(withdrawal_funding);
     // Send funds from domain to an address associated with neither depositor nor withdrawer
     let withdrawer_destination =
         Address::parse_from_trusted_source("mgWUuj1J1N882jmqFxtDepEC73Rr22E9GU");
     let payouts = vec![(
         Uuid::new_v4(),
         withdrawer_destination.clone(),
-        withdrawal_amount,
+        withdrawal_funding_sats,
     )];
     let builder = builder
         .wallet_payouts(domain_wallet_id, payouts)
@@ -544,14 +535,14 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
         provisional_proposal,
         ..
     } = builder.finish();
-    // assert_eq!(
-    //     included_payouts
-    //         .get(&depositor_wallet_id)
-    //         .expect("wallet not included in payouts")
-    //         .len(),
-    //     1
-    // );
-    // assert_eq!(wallet_totals.len(), 1);
+    assert_eq!(
+        included_payouts
+            .get(&domain_wallet_id)
+            .expect("wallet not included in payouts")
+            .len(),
+        1
+    );
+    assert_eq!(wallet_totals.len(), 1);
     // let other_wallet_total = wallet_totals.get(&depositor_wallet_id).unwrap();
     // assert!(other_wallet_total.change_outpoint.is_none());
     // assert_eq!(other_wallet_total.change_address, other_change_address);
@@ -582,8 +573,8 @@ async fn build_psbt_with_payjoin() -> anyhow::Result<()> {
     //         acc + total.total_fee_satoshis
     //     });
     // assert_eq!(total_summary_fees, fee_satoshis);
-    // assert!(unsigned_psbt.inputs.len() >= 1);
-    // assert_eq!(unsigned_psbt.outputs.len(), 2);
+    assert!(unsigned_psbt.inputs.len() >= 1); // from payjoin sender only
+    assert_eq!(unsigned_psbt.outputs.len(), 3); // withdrawal, sender change, domain change
 
     let mut bitcoind_client = helpers::bitcoind_signing_client().await?;
     dbg!("signing with bitcoind");

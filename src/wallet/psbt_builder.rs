@@ -434,7 +434,6 @@ impl BdkWalletVisitor for PsbtBuilder<AcceptingCurrentKeychainState> {
                 .push(((payout_id, destination, satoshis), 0));
         }
 
-        dbg!("wantsOutputs: {:?}", &self.cfg.wants_outputs);
         // add foreign payjoin utxos
         // *try* Handle payjoin to see what happens. visit_bdk_wallet will actually use the state machine
         let payjoin_original_psbt = if let Some(ref wants_outputs) = self.cfg.wants_outputs {

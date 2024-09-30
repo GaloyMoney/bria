@@ -127,7 +127,7 @@ pub fn create_funded_psbt(
     let outputs = std::collections::HashMap::from([(addr.to_string(), amount)]);
     let options = bitcoincore_rpc::json::WalletCreateFundedPsbtOptions {
         lock_unspent: Some(true),
-        fee_rate: Some(Amount::from_sat(100)),
+        fee_rate: Some(Amount::from_sat(1000)),
         ..Default::default()
     };
     Ok(bitcoind
