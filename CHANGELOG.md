@@ -1,3 +1,14 @@
+# [bria release v0.1.108](https://github.com/GaloyMoney/bria/releases/tag/0.1.108)
+
+
+### Bug Fixes
+
+- Audit issues (#583)
+
+### Features
+
+- Add txid and vout to payout (#582)
+
 # [bria release v0.1.107](https://github.com/GaloyMoney/bria/releases/tag/0.1.107)
 
 
