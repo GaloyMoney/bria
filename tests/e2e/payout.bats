@@ -152,12 +152,12 @@ teardown_file() {
 
 @test "payout: Creates a manually triggered payout-queue and triggers it" {
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
-  bitcoin_cli -regtest sendtoaddress ${bria_address} 1 
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 1
   bitcoin_cli -generate 10
   bria_cmd create-payout-queue -n manual -m true
   bria_cmd submit-payout --wallet default --queue-name manual --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
 
-  for i in {1..20}; do  
+  for i in {1..20}; do
     batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
      [[ "${batch_id}" != "null" ]] && break;
     sleep 1
@@ -166,12 +166,22 @@ teardown_file() {
 
   bria_cmd trigger-payout-queue --name manual;
 
-  for i in {1..20}; do  
-    batch_id=$(bria_cmd list-payouts -w default | jq -r '.payouts[0].batchId')
-    [[ "${batch_id}" != "null" ]] && break
+  for i in {1..20}; do
+    payout=$(bria_cmd list-payouts -w default | jq -r '.payouts[0]')
+    payout_id=$(echo ${payout} | jq -r '.id')
+    batch_id=$(echo ${payout} | jq -r '.batchId')
+    tx_id=$(echo ${payout} | jq -r '.txId')
+    vout=$(echo ${payout} | jq -r '.vout')
+    [[ "${batch_id}" != "null" && "${tx_id}" != "null" && "${vout}" != "null" ]] && break
     sleep 1
   done
-  [[ "${batch_id}" != "null" ]] || exit 1
+  [[ "${batch_id}" != "null" && "${tx_id}" != "null" && "${vout}" != "null" ]] || exit 1
+
+  payout=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout')
+  batch_id=$(echo ${payout} | jq -r '.batchId')
+  tx_id=$(echo ${payout} | jq -r '.txId')
+  vout=$(echo ${payout} | jq -r '.vout')
+  [[ "${batch_id}" != "null" && "${tx_id}" != "null" && "${vout}" != "null" ]] || exit 1
 
   for i in {1..20}; do
     cache_wallet_balance
@@ -182,7 +192,7 @@ teardown_file() {
   [[ $(cached_pending_income) != 0 ]] || exit 1
 
   bitcoin_cli -generate 2
-  
+
   for i in {1..20}; do
     cache_wallet_balance
     [[ $(cached_pending_income) == 0 ]] && break;
