@@ -75,7 +75,7 @@ impl Outbox {
 
         current_span.record(
             "ledger_event",
-            &tracing::field::display(
+            tracing::field::display(
                 serde_json::to_string(&ledger_event).expect("Couldn't serialize JournalEvent"),
             ),
         );
@@ -83,7 +83,7 @@ impl Outbox {
         let sequences = self.sequences_for(ledger_event.account_id).await?;
         let mut write_sequences = sequences.write().await;
         let mut sequence = write_sequences.0;
-        current_span.record("next_sequence", &tracing::field::display(sequence));
+        current_span.record("next_sequence", tracing::field::display(sequence));
         let events: Vec<OutboxEvent<_>> = payloads
             .into_iter()
             .map(|payload| {

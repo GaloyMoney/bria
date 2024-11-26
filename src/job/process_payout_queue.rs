@@ -83,15 +83,15 @@ pub(super) async fn execute<'a>(
 
     let span = tracing::Span::current();
     if let (Some(tx_id), Some(psbt)) = (tx_id, psbt) {
-        span.record("tx_id", &tracing::field::display(tx_id));
-        span.record("psbt", &tracing::field::display(&psbt));
+        span.record("tx_id", tracing::field::display(tx_id));
+        span.record("psbt", tracing::field::display(&psbt));
 
         let wallet_ids = wallet_totals.keys().copied().collect();
-        span.record("batch_id", &tracing::field::display(data.batch_id));
-        span.record("total_fee_sats", &tracing::field::display(fee_satoshis));
+        span.record("batch_id", tracing::field::display(data.batch_id));
+        span.record("total_fee_sats", tracing::field::display(fee_satoshis));
         span.record(
             "total_change_sats",
-            &tracing::field::display(
+            tracing::field::display(
                 wallet_totals
                     .values()
                     .fold(Satoshis::ZERO, |acc, v| acc + v.change_satoshis),
@@ -99,7 +99,7 @@ pub(super) async fn execute<'a>(
         );
         span.record(
             "cpfp_fee_sats",
-            &tracing::field::display(
+            tracing::field::display(
                 wallet_totals
                     .values()
                     .fold(Satoshis::ZERO, |acc, v| acc + v.cpfp_fee_satoshis),
@@ -188,7 +188,7 @@ pub async fn construct_psbt(
         ..
     } = payout_queue;
     span.record("payout_queue_name", queue_name);
-    span.record("payout_queue_id", &tracing::field::display(queue_id));
+    span.record("payout_queue_id", tracing::field::display(queue_id));
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
     let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;

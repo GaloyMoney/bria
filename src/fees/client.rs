@@ -27,7 +27,7 @@ impl FeesClient {
         };
         tracing::Span::current().record(
             "fee_rate",
-            &tracing::field::display(format!("{:?}", fee_rate)),
+            tracing::field::display(format!("{:?}", fee_rate)),
         );
         Ok(fee_rate)
     }

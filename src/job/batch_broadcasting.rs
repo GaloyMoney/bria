@@ -30,7 +30,7 @@ pub async fn execute(
     let blockchain = init_electrum(&blockchain_cfg.electrum_url).await?;
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
     let span = tracing::Span::current();
-    span.record("txid", &tracing::field::display(batch.bitcoin_tx_id));
+    span.record("txid", tracing::field::display(batch.bitcoin_tx_id));
     if batch.accounting_complete() {
         if let Some(tx) = batch.signed_tx {
             blockchain.broadcast(&tx).map_err(BdkError::BdkLibError)?;
