@@ -100,17 +100,14 @@ impl<'a> JobExecutor<'a> {
     }
 
     async fn handle_error<E: JobExecutionError>(&mut self, meta: JobMeta, error: &E) {
-        Span::current().record("error", &tracing::field::display("true"));
-        Span::current().record("error.message", &tracing::field::display(&error));
+        Span::current().record("error", tracing::field::display("true"));
+        Span::current().record("error.message", tracing::field::display(&error));
         if meta.attempts <= self.warn_retries {
-            Span::current().record(
-                "error.level",
-                &tracing::field::display(tracing::Level::WARN),
-            );
+            Span::current().record("error.level", tracing::field::display(tracing::Level::WARN));
         } else {
             Span::current().record(
                 "error.level",
-                &tracing::field::display(tracing::Level::ERROR),
+                tracing::field::display(tracing::Level::ERROR),
             );
         }
     }
@@ -133,12 +130,12 @@ impl<'a> JobExecutor<'a> {
         data.job_meta.attempts += 1;
         data.job_meta.tracing_data = Some(extract_tracing_data());
 
-        span.record("job_id", &tracing::field::display(self.job.id()));
-        span.record("job_name", &tracing::field::display(self.job.name()));
-        span.record("attempt", &tracing::field::display(data.job_meta.attempts));
+        span.record("job_id", tracing::field::display(self.job.id()));
+        span.record("job_name", tracing::field::display(self.job.name()));
+        span.record("attempt", tracing::field::display(data.job_meta.attempts));
         span.record(
             "checkpoint_json",
-            &tracing::field::display(serde_json::to_string(&data).expect("Couldn't checkpoint")),
+            tracing::field::display(serde_json::to_string(&data).expect("Couldn't checkpoint")),
         );
 
         let mut checkpoint =
@@ -169,11 +166,11 @@ impl<'a> JobExecutor<'a> {
             .await?;
 
         if data.job_meta.attempts >= self.max_attempts {
-            span.record("last_attempt", &tracing::field::display(true));
+            span.record("last_attempt", tracing::field::display(true));
             self.job.complete().await?;
             Ok(true)
         } else {
-            span.record("last_attempt", &tracing::field::display(false));
+            span.record("last_attempt", tracing::field::display(false));
             Ok(false)
         }
     }

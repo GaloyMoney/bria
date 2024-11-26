@@ -1,6 +1,8 @@
+use opentelemetry::trace::TracerProvider as _;
 use opentelemetry::{propagation::TextMapPropagator, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{propagation::TraceContextPropagator, trace::Sampler};
+use opentelemetry_sdk::trace::{Config, Sampler, TracerProvider};
+use opentelemetry_sdk::{propagation::TraceContextPropagator, Resource};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tracing::Span;
@@ -30,23 +32,27 @@ impl Default for TracingConfig {
 
 pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
     let tracing_endpoint = format!("http://{}:{}", config.host, config.port);
+    let service_name = config.service_name;
     println!("Sending traces to {tracing_endpoint}");
-    let tracer = opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .tonic()
-                .with_endpoint(tracing_endpoint),
-        )
-        .with_trace_config(
-            opentelemetry_sdk::trace::config()
-                .with_sampler(Sampler::AlwaysOn)
-                .with_resource(opentelemetry_sdk::Resource::new(vec![KeyValue::new(
-                    "service.name",
-                    config.service_name,
-                )])),
-        )
-        .install_batch(opentelemetry_sdk::runtime::Tokio)?;
+
+    let exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_tonic()
+        .with_endpoint(tracing_endpoint)
+        .build()?;
+
+    let provider_config = Config::default()
+        .with_sampler(Sampler::AlwaysOn)
+        .with_resource(Resource::new(vec![KeyValue::new(
+            "service.name",
+            service_name.clone(),
+        )]));
+
+    let provider = TracerProvider::builder()
+        .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
+        .with_config(provider_config)
+        .build();
+    let tracer = provider.tracer(service_name);
+
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let fmt_layer = fmt::layer().json();
@@ -77,9 +83,9 @@ pub fn inject_tracing_data(span: &Span, tracing_data: &HashMap<String, String>) 
 }
 
 pub fn insert_error_fields(level: tracing::Level, error: impl std::fmt::Display) {
-    Span::current().record("error", &tracing::field::display("true"));
-    Span::current().record("error.level", &tracing::field::display(level));
-    Span::current().record("error.message", &tracing::field::display(error));
+    Span::current().record("error", tracing::field::display("true"));
+    Span::current().record("error.level", tracing::field::display(level));
+    Span::current().record("error.message", tracing::field::display(error));
 }
 
 pub async fn record_error<
