@@ -184,6 +184,10 @@ impl From<PayoutWithInclusionEstimate> for proto::Payout {
             }
         };
 
+        let (tx_id, vout) = payout.outpoint.map_or((None, None), |outpoint| {
+            (Some(outpoint.txid.to_string()), Some(outpoint.vout))
+        });
+
         let batch_inclusion_estimated_at =
             estimated_batch_inclusion.map(|time| time.timestamp() as u32);
         proto::Payout {
@@ -199,6 +203,8 @@ impl From<PayoutWithInclusionEstimate> for proto::Payout {
                 serde_json::from_value(json).expect("Could not transfer json -> struct")
             }),
             batch_inclusion_estimated_at,
+            tx_id,
+            vout,
         }
     }
 }
