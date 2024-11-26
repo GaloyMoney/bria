@@ -32,6 +32,7 @@ impl Default for TracingConfig {
 
 pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
     let tracing_endpoint = format!("http://{}:{}", config.host, config.port);
+    let service_name = config.service_name;
     println!("Sending traces to {tracing_endpoint}");
 
     let exporter = opentelemetry_otlp::SpanExporter::builder()
@@ -39,18 +40,18 @@ pub fn init_tracer(config: TracingConfig) -> anyhow::Result<()> {
         .with_endpoint(tracing_endpoint)
         .build()?;
 
-    let config = Config::default()
+    let provider_config = Config::default()
         .with_sampler(Sampler::AlwaysOn)
         .with_resource(Resource::new(vec![KeyValue::new(
             "service.name",
-            config.service_name,
+            service_name.clone(),
         )]));
 
     let provider = TracerProvider::builder()
         .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
-        .with_config(config)
+        .with_config(provider_config)
         .build();
-    let tracer = provider.tracer("readme_example");
+    let tracer = provider.tracer(service_name);
 
     let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
