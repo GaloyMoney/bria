@@ -946,7 +946,7 @@ pub fn extract_tracing<T>(request: &Request<T>) {
 
 struct RequestContextExtractor<'a, T>(&'a Request<T>);
 
-impl<'a, T> Extractor for RequestContextExtractor<'a, T> {
+impl<T> Extractor for RequestContextExtractor<'_, T> {
     fn get(&self, key: &str) -> Option<&str> {
         self.0.metadata().get(key).and_then(|s| s.to_str().ok())
     }
