@@ -8,12 +8,14 @@ use crate::{
     address::*,
     app::BlockchainConfig,
     batch::*,
-    bdk::error::BdkError,
-    bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
+    bdk::{
+        error::BdkError,
+        pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
+    },
     fees::{self, FeesClient},
     ledger::*,
     primitives::*,
-    utxo::{Utxos, WalletUtxo},
+    utxo::{error::UtxoError, Utxos, WalletUtxo},
     wallet::*,
 };
 use std::collections::HashMap;
@@ -507,10 +509,18 @@ pub async fn execute(
                 bdk_txs
                     .delete_transaction_if_no_more_utxos_exist(&mut tx, outpoint)
                     .await?;
-                let detected_txn_id = deps
+                let detected_txn_id = match deps
                     .bria_utxos
                     .delete_utxo(&mut tx, outpoint, keychain_id)
-                    .await?;
+                    .await
+                {
+                    Ok(txn_id) => txn_id,
+                    Err(UtxoError::UtxoDoesNotExistError) => {
+                        tx.commit().await?;
+                        continue;
+                    }
+                    Err(e) => return Err(e.into()),
+                };
                 match deps
                     .ledger
                     .utxo_dropped(tx, LedgerTransactionId::new(), detected_txn_id)
