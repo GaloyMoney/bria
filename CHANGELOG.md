@@ -1,3 +1,14 @@
+# [bria release v0.1.109](https://github.com/GaloyMoney/bria/releases/tag/0.1.109)
+
+
+### Features
+
+- Explicitly handle 'UtxoDoesNotExistError' from sync (#587)
+
+### Miscellaneous Tasks
+
+- Update rust and fix lints (#588)
+
 # [bria release v0.1.108](https://github.com/GaloyMoney/bria/releases/tag/0.1.108)
 
 
