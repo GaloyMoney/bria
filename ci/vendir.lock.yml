@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: check-code executable'
-      sha: cfd07211efb7ef9c986020d1d24069c820fd1717
+      commitTitle: 'fix: repo path'
+      sha: e5c633617958cca41982ea16c231aa78fc6122cd
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: check-code executable'
-      sha: cfd07211efb7ef9c986020d1d24069c820fd1717
+      commitTitle: 'fix: repo path'
+      sha: e5c633617958cca41982ea16c231aa78fc6122cd
     path: .
   path: vendor
 kind: LockConfig

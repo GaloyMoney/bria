@@ -1,11 +1,11 @@
 #@ load("@ytt:data", "data")
 
 #@ def public_docker_registry():
-#@  return "us.gcr.io/galoy-org"
+#@  return "us.gcr.io/galoyorg"
 #@ end
 
 #@ def private_docker_registry():
-#@  return "gcr.io/galoy-org"
+#@  return "gcr.io/galoyorg"
 #@ end
 
 #@ def nodejs_concourse_image():
