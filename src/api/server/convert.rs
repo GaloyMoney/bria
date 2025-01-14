@@ -362,17 +362,52 @@ impl From<(WalletSummary, Vec<Payout>)> for proto::BatchWalletSummary {
 
 impl From<WalletBalanceSummary> for proto::GetWalletBalanceSummaryResponse {
     fn from(balance: WalletBalanceSummary) -> Self {
+        let has_negative_balance = [
+            balance.utxo_settled.is_negative(),
+            balance.utxo_pending_incoming.is_negative(),
+            balance.utxo_pending_outgoing.is_negative(),
+            balance.utxo_encumbered_incoming.is_negative(),
+            balance.fees_pending.is_negative(),
+            balance.fees_encumbered.is_negative(),
+            balance.effective_settled.is_negative(),
+            balance.effective_pending_income.is_negative(),
+            balance.effective_pending_outgoing.is_negative(),
+            balance.effective_encumbered_outgoing.is_negative(),
+        ]
+        .iter()
+        .any(|&x| x);
+
+        if has_negative_balance {
+            tracing::Span::current().record("error", true);
+            tracing::Span::current().record(
+                "error.message",
+                "Negative balance values detected in wallet summary",
+            );
+            tracing::Span::current().record(
+                "error.level",
+                tracing::field::display(tracing::Level::ERROR),
+            );
+        }
+
         Self {
-            utxo_encumbered_incoming: u64::from(balance.utxo_encumbered_incoming),
-            utxo_pending_incoming: u64::from(balance.utxo_pending_incoming),
-            utxo_settled: u64::from(balance.utxo_settled),
-            utxo_pending_outgoing: u64::from(balance.utxo_pending_outgoing),
-            fees_pending: u64::from(balance.fees_pending),
-            fees_encumbered: u64::from(balance.fees_encumbered),
-            effective_pending_income: u64::from(balance.effective_pending_income),
-            effective_settled: u64::from(balance.effective_settled),
-            effective_pending_outgoing: u64::from(balance.effective_pending_outgoing),
-            effective_encumbered_outgoing: u64::from(balance.effective_encumbered_outgoing),
+            utxo_encumbered_incoming: u64::from(
+                balance.utxo_encumbered_incoming.max(Satoshis::ZERO),
+            ),
+            utxo_pending_incoming: u64::from(balance.utxo_pending_incoming.max(Satoshis::ZERO)),
+            utxo_settled: u64::from(balance.utxo_settled.max(Satoshis::ZERO)),
+            utxo_pending_outgoing: u64::from(balance.utxo_pending_outgoing.max(Satoshis::ZERO)),
+            fees_pending: u64::from(balance.fees_pending.max(Satoshis::ZERO)),
+            fees_encumbered: u64::from(balance.fees_encumbered.max(Satoshis::ZERO)),
+            effective_pending_income: u64::from(
+                balance.effective_pending_income.max(Satoshis::ZERO),
+            ),
+            effective_settled: u64::from(balance.effective_settled.max(Satoshis::ZERO)),
+            effective_pending_outgoing: u64::from(
+                balance.effective_pending_outgoing.max(Satoshis::ZERO),
+            ),
+            effective_encumbered_outgoing: u64::from(
+                balance.effective_encumbered_outgoing.max(Satoshis::ZERO),
+            ),
         }
     }
 }
