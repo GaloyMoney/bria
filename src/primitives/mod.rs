@@ -270,6 +270,10 @@ impl Satoshis {
     pub fn abs(&self) -> Self {
         Self(self.0.abs())
     }
+
+    pub fn is_negative(&self) -> bool {
+        self.0.is_sign_negative()
+    }
 }
 
 impl From<Decimal> for Satoshis {
