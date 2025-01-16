@@ -16,9 +16,6 @@
 #@   "rust_task_image_config",
 #@   "charts_repo_resource",
 #@   "charts_repo_bot_branch",
-#@   "slack_resource_type",
-#@   "slack_resource",
-#@   "slack_failure_notification"
 #@ )
 
 groups:
@@ -294,7 +291,6 @@ jobs:
 resources:
 - #@ repo_resource(True)
 - #@ pipeline_tasks_resource()
-- #@ slack_resource()
 - #@ version_resource()
 - #@ gh_release_resource()
 - #@ edge_image_resource()
@@ -308,6 +304,3 @@ resources:
 - #@ charts_repo_resource()
 - #@ charts_repo_bot_branch()
 - #@ docker_host_pool()
-
-resource_types:
-- #@ slack_resource_type()
