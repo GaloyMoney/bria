@@ -1,3 +1,11 @@
+# [bria release v0.1.110](https://github.com/GaloyMoney/bria/releases/tag/0.1.110)
+
+
+### Bug Fixes
+
+- Check code (#596)
+- Handle negative balances and trigger an alert (#594)
+
 # [bria release v0.1.109](https://github.com/GaloyMoney/bria/releases/tag/0.1.109)
 
 
