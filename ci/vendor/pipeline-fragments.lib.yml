@@ -50,16 +50,6 @@ source:
   repository: nixpkgs/nix-flakes
 #@ end
 
-#@ def slack_failure_notification():
-#@ fail_url = "<$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME| :face_with_symbols_on_mouth: $BUILD_JOB_NAME> failed!"
-put: slack
-params:
-  channel:  #@ data.values.slack_channel
-  username: concourse
-  icon_url: https://cl.ly/2F421Y300u07/concourse-logo-blue-transparent.png
-  text:    #@ fail_url
-#@ end
-
 #@ def check_code():
 name: check-code
 serial: true
@@ -76,7 +66,6 @@ plan:
     - name: repo
     run:
       path: pipeline-tasks/ci/vendor/tasks/check-code.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def nodejs_check_code():
@@ -97,7 +86,6 @@ plan:
     - name: repo
     run:
       path: pipeline-tasks/ci/vendor/tasks/nodejs-check-code.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def rust_check_code():
@@ -119,7 +107,6 @@ plan:
     - path: cargo-target-dir
     run:
       path: pipeline-tasks/ci/vendor/tasks/rust-check-code.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def install_yarn_deps():
@@ -144,7 +131,6 @@ plan:
 - put: bundled-deps
   params:
     file: bundled-deps/bundled-deps-*.tgz
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def test_on_docker_host(container, additional_params={}):
@@ -184,7 +170,6 @@ plan:
     put: docker-host
     params:
       release: docker-host
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def nodejs_integration_test():
@@ -215,7 +200,6 @@ plan:
       JEST_TIMEOUT: 90000
     run:
       path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def rust_integration_test():
@@ -246,7 +230,6 @@ plan:
       SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
     run:
       path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def nodejs_audit(level = "high"):
@@ -268,7 +251,6 @@ plan:
       REPO_ROOT: repo
     run:
       path: pipeline-tasks/ci/vendor/tasks/nodejs-audit.sh
-on_failure: #@ slack_failure_notification()
 #@ end
 
 #@ def build_edge_image():
@@ -481,13 +463,6 @@ source:
   regexp: #@ data.values.gh_repository + "-artifacts/deps/bundled-deps-v(.*)-.*.tgz"
 #@ end
 
-#@ def slack_resource():
-name: slack
-type: slack-notification
-source:
-  url: #@ data.values.slack_webhook_url
-#@ end
-
 #@ def version_resource():
 name: version
 type: semver
@@ -551,13 +526,6 @@ name: gcs-resource
 type: docker-image
 source:
   repository: frodenas/gcs-resource
-#@ end
-
-#@ def slack_resource_type():
-name: slack-notification
-type: docker-image
-source:
-  repository: cfcommunity/slack-notification-resource
 #@ end
 
 #@ def npm_resource_type():
