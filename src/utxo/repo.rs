@@ -25,10 +25,10 @@ impl UtxoRepo {
         Self { pool }
     }
 
-    pub async fn persist_utxo<'a>(
+    pub async fn persist_utxo(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        utxo: NewUtxo<'a>,
+        utxo: NewUtxo<'_>,
     ) -> Result<Option<LedgerTransactionId>, UtxoError> {
         let sats_per_vbyte = u64::from(utxo.origin_tx_fee) as f32 / utxo.origin_tx_vbytes as f32;
         let result = sqlx::query!(
