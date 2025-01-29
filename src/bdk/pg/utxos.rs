@@ -180,7 +180,7 @@ impl Utxos {
                 WHERE u.keychain_id = $1
                 AND u.deleted_at IS NULL
                 AND t.deleted_at IS NULL
-                AND utxo_json->>'keychain' = 'External'
+                AND (utxo_json->>'keychain' = 'External' OR (utxo_json->>'keychain' = 'Internal' AND sent = 0))
                 AND u.synced_to_bria = true
                 AND u.confirmation_synced_to_bria = false
                 AND (details_json->'confirmation_time'->'height')::INTEGER <= $2
