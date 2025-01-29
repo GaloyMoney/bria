@@ -1,3 +1,10 @@
+# [bria release v0.1.111](https://github.com/GaloyMoney/bria/releases/tag/0.1.111)
+
+
+### Bug Fixes
+
+- Handle deposits to internal addresses from external source (#597)
+
 # [bria release v0.1.110](https://github.com/GaloyMoney/bria/releases/tag/0.1.110)
 
 
