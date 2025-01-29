@@ -54,15 +54,15 @@ teardown_file() {
 
 @test "mutlisig_payout: Create payout queue and have a queued payout on it" {
   bria_cmd create-payout-queue --name high --interval-trigger 5
-  bria_cmd submit-payout --wallet multisig --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
+  bria_cmd submit-payout --wallet multisig --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 175000000
 
   n_payouts=$(bria_cmd list-payouts -w multisig | jq '.payouts | length')
   [[ "${n_payouts}" == "1" ]] || exit 1
   batch_id=$(bria_cmd list-payouts -w multisig | jq '.payouts[0].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
-  
+
   cache_wallet_balance multisig
-  [[ $(cached_encumbered_outgoing) == 75000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
+  [[ $(cached_encumbered_outgoing) == 175000000 && $(cached_pending_outgoing) == 0 ]] || exit 1
 }
 
 @test "multisig_payout: Signing unsigned psbt and submitting signed psbt" {
