@@ -29,10 +29,27 @@ teardown_file() {
     [[ "${n_utxos}" == "1" ]] && break
     sleep 1
   done
-  
+
   cache_wallet_balance multisig
   [[ $(cached_encumbered_fees) != 0 ]] || exit 1
   [[ $(cached_pending_income) == 100000000 ]] || exit 1;
+}
+
+@test "multisig_payout: Fund a change address and see if the balance is reflected" {
+  bitcoind_signer_address=$(bitcoin_signer_cli -rpcwallet=multisig getrawchangeaddress)
+
+  bitcoin_cli -regtest sendtoaddress ${bitcoind_signer_address} 1
+
+  for i in {1..30}; do
+  n_change_utxos=$(bria_cmd list-utxos -w multisig | jq '.keychains[0].utxos | map(select(.changeOutput == true)) | length')
+    [[ "${n_utxos}" == "1" ]] && break
+    sleep 1
+  done
+
+  cache_wallet_balance multisig
+  echo $(cached_pending_income)
+  [[ $(cached_encumbered_fees) != 0 ]] || exit 1
+  [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
 
 @test "mutlisig_payout: Create payout queue and have a queued payout on it" {

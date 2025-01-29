@@ -139,7 +139,8 @@ pub async fn execute(
             }
             txs_to_skip.clear();
             for output in unsynced_tx.outputs.drain(..) {
-                if output.0.keychain == bitcoin::KeychainKind::Internal {
+                // Adding `spend_tx` to this validation covers the edge case where someone sends funds to an internal address.
+                if spend_tx && output.0.keychain == bitcoin::KeychainKind::Internal {
                     change.push(output);
                     continue;
                 }
