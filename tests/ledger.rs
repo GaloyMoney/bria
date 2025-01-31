@@ -432,6 +432,138 @@ async fn create_batch() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn batch_dropped() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let ledger = Ledger::init(&pool).await?;
+
+    let account_id = AccountId::new();
+    let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
+    let mut tx = pool.begin().await?;
+    let journal_id = ledger
+        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .await?;
+    let wallet_id = WalletId::new();
+    let wallet_ledger_accounts = ledger
+        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .await?;
+
+    tx.commit().await?;
+
+    let batch_id = BatchId::new();
+    let fee_sats = Satoshis::from(2_346);
+    let total_spent_sats = Satoshis::from(100_000_000);
+    let total_utxo_in_sats = Satoshis::from(200_000_000);
+    let total_utxo_settled_in_sats = Satoshis::from(100_000_000);
+    let change_sats = total_utxo_in_sats - total_spent_sats - fee_sats;
+    let address = Address::parse_from_trusted_source("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa");
+    let outpoint = OutPoint {
+        txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+            .parse()
+            .unwrap(),
+        vout: 0,
+    };
+    let encumbered_fees = Satoshis::from(12_346);
+
+    // Create a batch
+    let created_tx_id = LedgerTransactionId::new();
+    let tx = pool.begin().await?;
+    ledger
+        .batch_created(
+            tx,
+            created_tx_id,
+            BatchCreatedParams {
+                journal_id,
+                ledger_account_ids: wallet_ledger_accounts,
+                encumbered_fees,
+                meta: BatchCreatedMeta {
+                    batch_info: BatchWalletInfo {
+                        account_id,
+                        wallet_id,
+                        batch_id,
+                        payout_queue_id: PayoutQueueId::new(),
+                        included_payouts: Vec::new(),
+                    },
+                    tx_summary: WalletTransactionSummary {
+                        account_id,
+                        wallet_id,
+                        bitcoin_tx_id:
+                            "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                                .parse()
+                                .unwrap(),
+                        total_utxo_settled_in_sats,
+                        total_utxo_in_sats,
+                        fee_sats,
+                        change_utxos: std::iter::once(ChangeOutput {
+                            outpoint,
+                            satoshis: change_sats,
+                            address,
+                        })
+                        .collect(),
+                        current_keychain_id: KeychainId::new(),
+                        cpfp_details: None,
+                        cpfp_fee_sats: None,
+                    },
+                },
+            },
+        )
+        .await?;
+
+    // Verify initial state
+    let balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
+    let summary = WalletBalanceSummary::from(balances);
+
+    assert_eq!(summary.effective_pending_outgoing, total_spent_sats);
+    assert_eq!(
+        summary.effective_settled.flip_sign(),
+        total_spent_sats + fee_sats
+    );
+    assert_eq!(
+        summary.effective_encumbered_outgoing.flip_sign(),
+        total_spent_sats
+    );
+    assert_eq!(summary.fees_encumbered.flip_sign(), encumbered_fees);
+    assert_eq!(summary.fees_pending, fee_sats);
+    assert_eq!(
+        summary.utxo_encumbered_incoming,
+        total_utxo_in_sats - fee_sats - total_spent_sats
+    );
+    assert_eq!(summary.utxo_settled.flip_sign(), total_utxo_settled_in_sats);
+    assert_eq!(summary.utxo_pending_outgoing, total_utxo_in_sats - fee_sats);
+
+    // Drop the batch
+    let tx = pool.begin().await?;
+    ledger
+        .batch_dropped(tx, LedgerTransactionId::new(), created_tx_id)
+        .await?;
+
+    // Verify state after dropping
+    let balances = ledger
+        .get_wallet_ledger_account_balances(journal_id, wallet_ledger_accounts)
+        .await?;
+    let summary = WalletBalanceSummary::from(balances);
+
+    assert_eq!(summary.effective_pending_outgoing, Satoshis::ZERO);
+    assert_eq!(summary.effective_settled, Satoshis::ZERO);
+    assert_eq!(summary.effective_encumbered_outgoing, Satoshis::ZERO);
+    assert_eq!(summary.fees_encumbered, Satoshis::ZERO);
+    assert_eq!(summary.fees_pending, Satoshis::ZERO);
+    assert_eq!(summary.utxo_encumbered_incoming, Satoshis::ZERO);
+    assert_eq!(summary.utxo_settled, Satoshis::ZERO);
+    assert_eq!(summary.utxo_pending_outgoing, Satoshis::ZERO);
+
+    let account_summary = AccountBalanceSummary::from(
+        ledger
+            .get_account_ledger_account_balances(journal_id)
+            .await?,
+    );
+    assert_summaries_match(summary, account_summary);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn spend_detected() -> anyhow::Result<()> {
     let pool = helpers::init_pool().await?;
 

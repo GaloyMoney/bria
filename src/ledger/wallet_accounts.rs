@@ -36,6 +36,21 @@ impl WalletLedgerAccountIds {
     }
 }
 
+impl Default for WalletLedgerAccountIds {
+    fn default() -> Self {
+        Self {
+            onchain_incoming_id: LedgerAccountId::from(ONCHAIN_UTXO_INCOMING_ID),
+            onchain_at_rest_id: LedgerAccountId::from(ONCHAIN_UTXO_AT_REST_ID),
+            onchain_outgoing_id: LedgerAccountId::from(ONCHAIN_UTXO_OUTGOING_ID),
+            effective_incoming_id: LedgerAccountId::from(EFFECTIVE_INCOMING_ID),
+            effective_at_rest_id: LedgerAccountId::from(EFFECTIVE_AT_REST_ID),
+            effective_outgoing_id: LedgerAccountId::from(EFFECTIVE_OUTGOING_ID),
+            fee_id: LedgerAccountId::from(ONCHAIN_FEE_ID),
+            dust_id: LedgerAccountId::from(Uuid::nil()),
+        }
+    }
+}
+
 fn derive_wallet_ledger_account_code(
     element: Element,
     sub_group: SubGroup,

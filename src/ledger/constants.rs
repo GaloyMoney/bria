@@ -37,6 +37,9 @@ pub(super) const BATCH_CREATED_ID: Uuid = uuid!("10000000-0000-0000-0000-0000000
 pub(super) const BATCH_BROADCAST_CODE: &str = "BATCH_BROADCAST";
 pub(super) const BATCH_BROADCAST_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000008");
 
+pub(super) const BATCH_DROPPED_CODE: &str = "BATCH_DROPPED";
+pub(super) const BATCH_DROPPED_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000011");
+
 // Onchain/Omnibus Ledger Accounts
 pub(super) const ONCHAIN_UTXO_INCOMING_CODE: &str = "ONCHAIN_UTXO_INCOMING";
 pub(super) const ONCHAIN_UTXO_INCOMING_ID: Uuid = uuid!("00000000-1910-0000-1000-000000000000");

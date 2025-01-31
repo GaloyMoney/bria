@@ -1,5 +1,6 @@
 mod batch_broadcast;
 mod batch_created;
+mod batch_dropped;
 mod payout_cancelled;
 mod payout_submitted;
 mod shared_meta;
@@ -12,6 +13,7 @@ mod utxo_settled;
 
 pub use batch_broadcast::*;
 pub use batch_created::*;
+pub use batch_dropped::*;
 pub use payout_cancelled::*;
 pub use payout_submitted::*;
 pub use shared_meta::*;
