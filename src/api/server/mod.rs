@@ -744,6 +744,7 @@ impl BriaService for Bria {
                     &profile,
                     id.parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                    false,
                 )
                 .await?;
             Ok(Response::new(CancelPayoutResponse {}))
@@ -873,6 +874,29 @@ impl BriaService for Bria {
                     })
                     .unwrap_or_default(),
             }))
+        })
+        .await
+    }
+
+    #[instrument(name = "bria.cancel_batch", skip_all, fields(error, error.level, error.message), err)]
+    async fn cancel_batch(
+        &self,
+        request: Request<CancelBatchRequest>,
+    ) -> Result<Response<CancelBatchResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let CancelBatchRequest { id } = request;
+            self.app
+                .cancel_batch(
+                    &profile,
+                    id.parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                )
+                .await?;
+            Ok(Response::new(CancelBatchResponse {}))
         })
         .await
     }

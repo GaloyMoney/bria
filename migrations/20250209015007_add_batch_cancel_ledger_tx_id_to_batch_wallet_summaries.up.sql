@@ -1,0 +1,2 @@
+ALTER TABLE bria_batch_wallet_summaries
+ADD COLUMN batch_cancel_ledger_tx_id UUID;

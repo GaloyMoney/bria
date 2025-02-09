@@ -31,11 +31,9 @@ pub async fn execute(
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
     let span = tracing::Span::current();
     span.record("txid", tracing::field::display(batch.bitcoin_tx_id));
-    if batch.accounting_complete() {
-        if let Some(tx) = batch.signed_tx {
-            blockchain.broadcast(&tx).map_err(BdkError::BdkLibError)?;
-            span.record("broadcast", true);
-        }
+    if let Some(tx) = batch.get_tx_to_broadcast() {
+        blockchain.broadcast(&tx).map_err(BdkError::BdkLibError)?;
+        span.record("broadcast", true);
     }
     Ok(data)
 }
