@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use crate::primitives::*;
 
+use super::error::BatchError;
+
 pub struct Batch {
     pub id: BatchId,
     pub account_id: AccountId,
@@ -15,10 +17,40 @@ pub struct Batch {
 }
 
 impl Batch {
+    pub fn get_tx_to_broadcast(&self) -> Option<bitcoin::Transaction> {
+        if self.accounting_complete() && self.is_signed() && !self.is_cancelled() {
+            self.signed_tx.clone()
+        } else {
+            None
+        }
+    }
+
     pub fn accounting_complete(&self) -> bool {
         self.wallet_summaries
             .values()
             .all(|s| s.batch_created_ledger_tx_id.is_some())
+    }
+
+    pub fn validate_cancellation(&self) -> Result<(), BatchError> {
+        if self.is_cancelled() {
+            return Err(BatchError::BatchAlreadyCancelled);
+        }
+
+        if self.is_signed() {
+            return Err(BatchError::BatchAlreadySigned);
+        }
+
+        Ok(())
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.wallet_summaries
+            .values()
+            .all(|s| s.batch_cancel_ledger_tx_id.is_some())
+    }
+
+    pub fn is_signed(&self) -> bool {
+        self.signed_tx.is_some()
     }
 }
 
@@ -61,4 +93,5 @@ pub struct WalletSummary {
     pub change_outpoint: Option<bitcoin::OutPoint>,
     pub batch_created_ledger_tx_id: Option<LedgerTransactionId>,
     pub batch_broadcast_ledger_tx_id: Option<LedgerTransactionId>,
+    pub batch_cancel_ledger_tx_id: Option<LedgerTransactionId>,
 }

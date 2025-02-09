@@ -12,7 +12,7 @@ use error::*;
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
-    batch::*,
+    batch::{error::BatchError, *},
     batch_inclusion::*,
     descriptor::*,
     fees::{self, *},
@@ -891,13 +891,14 @@ impl App {
         &self,
         profile: &Profile,
         id: PayoutId,
+        skip_committed_check: bool,
     ) -> Result<(), ApplicationError> {
         let mut tx = self.pool.begin().await?;
         let mut payout = self
             .payouts
             .find_by_id_for_cancellation(&mut tx, profile.account_id, id)
             .await?;
-        payout.cancel_payout(profile.id)?;
+        payout.cancel_payout(profile.id, skip_committed_check)?;
         self.payouts.update(&mut tx, payout).await?;
         self.ledger
             .payout_cancelled(tx, LedgerTransactionId::new(), id)
@@ -1023,6 +1024,50 @@ impl App {
             .list_for_batch(profile.account_id, batch_id)
             .await?;
         Ok((batch, payouts, signing_sessions))
+    }
+
+    #[allow(clippy::type_complexity)]
+    #[instrument(name = "app.cancel_batch", skip_all, err)]
+    pub async fn cancel_batch(
+        &self,
+        profile: &Profile,
+        batch_id: BatchId,
+    ) -> Result<(), ApplicationError> {
+        let batch = self
+            .batches
+            .find_by_id(profile.account_id, batch_id)
+            .await?;
+
+        batch
+            .validate_cancellation()
+            .map_err(ApplicationError::BatchError)?;
+
+        let (tx, batch_info, tx_id) = self
+            .batches
+            .set_batch_cancel_ledger_tx_id(batch.id)
+            .await?
+            .ok_or_else(|| {
+                ApplicationError::BatchError(BatchError::BatchIdNotFound(batch_id.to_string()))
+            })?;
+
+        self.ledger
+            .batch_dropped(tx, tx_id, batch_info.created_ledger_tx_id)
+            .await?;
+
+        let payouts = self
+            .payouts
+            .list_for_batch(profile.account_id, batch_id)
+            .await?;
+
+        for (_wallet_id, wallet_payouts) in payouts.iter() {
+            for payout in wallet_payouts {
+                // Skip committed check since we're cancelling the whole batch
+                // and we've already verified the batch isn't signed
+                self.cancel_payout(profile, payout.id, true).await.ok();
+            }
+        }
+
+        Ok(())
     }
 
     #[instrument(name = "app.subscribe_all", skip(self), err)]

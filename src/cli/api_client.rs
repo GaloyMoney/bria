@@ -626,6 +626,16 @@ impl ApiClient {
         output_json(response)
     }
 
+    pub async fn cancel_batch(&self, id: String) -> anyhow::Result<()> {
+        let request = tonic::Request::new(proto::CancelBatchRequest { id });
+        let response = self
+            .connect()
+            .await?
+            .cancel_batch(self.inject_auth_token(request)?)
+            .await?;
+        output_json(response)
+    }
+
     pub async fn watch_events(
         &self,
         one_shot: bool,

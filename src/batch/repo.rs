@@ -45,7 +45,7 @@ impl Batches {
             r#"INSERT INTO bria_batch_wallet_summaries (
                    batch_id, wallet_id, current_keychain_id, signing_keychains, total_in_sats,
                    total_spent_sats, change_sats, change_address, change_vout, total_fee_sats,
-                   cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
+                   cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id, batch_cancel_ledger_tx_id
                )"#,
         );
         query_builder.push_values(
@@ -71,6 +71,7 @@ impl Batches {
                 builder.push_bind(serde_json::to_value(summary.cpfp_details).unwrap());
                 builder.push_bind(summary.batch_created_ledger_tx_id);
                 builder.push_bind(summary.batch_broadcast_ledger_tx_id);
+                builder.push_bind(summary.batch_cancel_ledger_tx_id);
             },
         );
         let query = query_builder.build();
@@ -90,7 +91,7 @@ impl Batches {
                     payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id,
                     s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats,
                     total_spent_sats, change_sats, change_address, change_vout, s.total_fee_sats,
-                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id
+                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id, batch_cancel_ledger_tx_id
             FROM bria_batch_wallet_summaries s
             LEFT JOIN bria_batches b ON b.id = s.batch_id
             WHERE s.batch_id = $1 AND b.account_id = $2"#,
@@ -148,6 +149,7 @@ impl Batches {
                     batch_broadcast_ledger_tx_id: row
                         .batch_broadcast_ledger_tx_id
                         .map(LedgerTxId::from),
+                    batch_cancel_ledger_tx_id: row.batch_cancel_ledger_tx_id.map(LedgerTxId::from),
                 },
             );
         }
@@ -260,6 +262,66 @@ impl Batches {
             ledger_transaction_id as LedgerTxId,
             batch_id as BatchId,
             wallet_id as WalletId,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        Ok(Some((
+            tx,
+            BatchInfo {
+                id: batch_id,
+                payout_queue_id,
+                created_ledger_tx_id,
+            },
+            ledger_transaction_id,
+        )))
+    }
+
+    #[instrument(name = "batches.set_batch_cancel_ledger_tx_id", skip(self))]
+    pub async fn set_batch_cancel_ledger_tx_id(
+        &self,
+        batch_id: BatchId,
+    ) -> Result<Option<(Transaction<'_, Postgres>, BatchInfo, LedgerTxId)>, BatchError> {
+        let mut tx = self.pool.begin().await?;
+        let row = sqlx::query!(
+            r#"SELECT
+                bb.id,
+                bb.payout_queue_id,
+                bbws.batch_cancel_ledger_tx_id as "ledger_id?",
+                bbws.batch_created_ledger_tx_id
+            FROM bria_batches bb
+            INNER JOIN bria_batch_wallet_summaries bbws ON bb.id = bbws.batch_id
+            WHERE bb.id = $1
+            FOR UPDATE"#,
+            batch_id as BatchId,
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+        if row.is_none() || row.as_ref().unwrap().batch_created_ledger_tx_id.is_none() {
+            return Ok(None);
+        }
+        let row = row.unwrap();
+        let created_ledger_tx_id = LedgerTxId::from(row.batch_created_ledger_tx_id.unwrap());
+        let batch_id = BatchId::from(row.id);
+        let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
+        if row.ledger_id.is_some() {
+            return Ok(Some((
+                tx,
+                BatchInfo {
+                    id: batch_id,
+                    payout_queue_id,
+                    created_ledger_tx_id,
+                },
+                LedgerTxId::from(row.ledger_id.unwrap()),
+            )));
+        }
+        let ledger_transaction_id = LedgerTxId::new();
+        sqlx::query!(
+            r#"UPDATE bria_batch_wallet_summaries
+               SET batch_cancel_ledger_tx_id = $1
+               WHERE bria_batch_wallet_summaries.batch_id = $2"#,
+            ledger_transaction_id as LedgerTxId,
+            batch_id as BatchId,
         )
         .execute(&mut *tx)
         .await?;
