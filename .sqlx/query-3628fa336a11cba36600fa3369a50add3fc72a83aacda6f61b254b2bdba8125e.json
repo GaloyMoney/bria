@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bria_batch_wallet_summaries\n               SET batch_cancel_ledger_tx_id = $1\n               WHERE bria_batch_wallet_summaries.batch_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3628fa336a11cba36600fa3369a50add3fc72a83aacda6f61b254b2bdba8125e"
+}
