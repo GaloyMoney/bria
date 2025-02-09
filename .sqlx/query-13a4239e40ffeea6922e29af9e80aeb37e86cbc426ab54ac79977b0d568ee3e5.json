@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                bb.id,\n                bb.payout_queue_id,\n                bbws.batch_cancel_ledger_tx_id as \"ledger_id?\",\n                bbws.batch_created_ledger_tx_id\n            FROM bria_batches bb\n            INNER JOIN bria_batch_wallet_summaries bbws ON bb.id = bbws.batch_id\n            WHERE bb.id = $1\n            FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "payout_queue_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "ledger_id?",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "batch_created_ledger_tx_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "13a4239e40ffeea6922e29af9e80aeb37e86cbc426ab54ac79977b0d568ee3e5"
+}
