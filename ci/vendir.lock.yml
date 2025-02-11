@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: check-code executable'
-      sha: cfd07211efb7ef9c986020d1d24069c820fd1717
+      commitTitle: 'ci: fix concourse locks git uri'
+      sha: 0c18d91f1b5bff905eb5e14ee3ba7f1c2db2595b
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: check-code executable'
-      sha: cfd07211efb7ef9c986020d1d24069c820fd1717
+      commitTitle: 'ci: fix concourse locks git uri'
+      sha: 0c18d91f1b5bff905eb5e14ee3ba7f1c2db2595b
     path: .
   path: vendor
 kind: LockConfig
