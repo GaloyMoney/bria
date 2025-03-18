@@ -848,6 +848,7 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                 )
                 .await?;
+            let is_cancelled = batch.is_cancelled();
             let wallet_summaries = batch
                 .wallet_summaries
                 .into_iter()
@@ -863,6 +864,7 @@ impl BriaService for Bria {
                 payout_queue_id: batch.payout_queue_id.to_string(),
                 tx_id: batch.bitcoin_tx_id.to_string(),
                 unsigned_psbt: batch.unsigned_psbt.to_string(),
+                cancelled: is_cancelled,
                 wallet_summaries,
                 signing_sessions: sessions
                     .map(|sessions| {

@@ -433,6 +433,7 @@ message GetBatchResponse {
   string unsigned_psbt = 4;
   repeated BatchWalletSummary wallet_summaries = 5;
   repeated SigningSession signing_sessions = 6;
+  bool cancelled = 7;
 }
 
 message CancelBatchRequest {

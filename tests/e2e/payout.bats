@@ -303,12 +303,12 @@ teardown_file() {
 
   # Verify the batch exists
   batch=$(bria_cmd get-batch -b "${batch_id}")
-  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" ]] || exit 1
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "false" ]] || exit 1
 
   # Cancel the batch
   bria_cmd cancel-batch --batch-id "${batch_id}"
 
-  # Verify the batch was cancelled and payout is marked as cancelled
+  # Verify the payout is marked as cancelled
   for i in {1..20}; do
     payout=$(bria_cmd get-payout -i ${payout_id} | jq -r '.payout')
     batch_id_after=$(echo ${payout} | jq -r '.batchId')
@@ -317,6 +317,10 @@ teardown_file() {
     sleep 1
   done
   [[ "${batch_id_after}" == "${batch_id}" && "${cancelled}" == "true" ]] || exit 1
+
+  # Verify the batch is marked as cancelled
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "true" ]] || exit 1
 
   # Check that the funds are no longer encumbered
   for i in {1..20}; do
@@ -375,4 +379,8 @@ teardown_file() {
     sleep 1
   done
   [[ $(cached_encumbered_outgoing) == 0 ]] || exit 1
+
+  # Verify the batch is not marked as cancelled
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "false" ]] || exit 1
 }
