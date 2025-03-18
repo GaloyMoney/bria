@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                    payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id,\n                    s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats,\n                    total_spent_sats, change_sats, change_address, change_vout, s.total_fee_sats,\n                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id\n            FROM bria_batch_wallet_summaries s\n            LEFT JOIN bria_batches b ON b.id = s.batch_id\n            WHERE s.batch_id = $1 AND b.account_id = $2",
+  "query": "SELECT\n                    payout_queue_id, unsigned_psbt, signed_tx, bitcoin_tx_id, s.batch_id,\n                    s.wallet_id, s.current_keychain_id, s.signing_keychains, total_in_sats,\n                    total_spent_sats, change_sats, change_address, change_vout, s.total_fee_sats,\n                    cpfp_fee_sats, cpfp_details, batch_created_ledger_tx_id, batch_broadcast_ledger_tx_id, batch_cancel_ledger_tx_id\n            FROM bria_batch_wallet_summaries s\n            LEFT JOIN bria_batches b ON b.id = s.batch_id\n            WHERE s.batch_id = $1 AND b.account_id = $2",
   "describe": {
     "columns": [
       {
@@ -92,6 +92,11 @@
         "ordinal": 17,
         "name": "batch_broadcast_ledger_tx_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 18,
+        "name": "batch_cancel_ledger_tx_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -118,8 +123,9 @@
       false,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "40d91f489356af51ae859a2237fa85cc8f96a63c1dbc237d44a2d18a8a5b365a"
+  "hash": "1b498f21504b103acc70f14c6e08c5a6228dba61752561ea8668bfedae5aef26"
 }

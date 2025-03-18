@@ -52,11 +52,15 @@ pub struct Payout {
 }
 
 impl Payout {
-    pub fn cancel_payout(&mut self, profile_id: ProfileId) -> Result<(), PayoutError> {
+    pub fn cancel_payout(
+        &mut self,
+        profile_id: ProfileId,
+        skip_committed_check: bool,
+    ) -> Result<(), PayoutError> {
         if self.is_cancelled() {
             return Err(PayoutError::PayoutAlreadyCancelled);
         }
-        if self.is_already_committed() {
+        if !skip_committed_check && self.is_already_committed() {
             return Err(PayoutError::PayoutAlreadyCommitted);
         }
         self.events.push(PayoutEvent::Cancelled {
@@ -196,7 +200,7 @@ mod tests {
     #[test]
     fn cancel_payout() {
         let mut payout = Payout::try_from(init_events()).unwrap();
-        assert!(payout.cancel_payout(payout.profile_id).is_ok());
+        assert!(payout.cancel_payout(payout.profile_id, false).is_ok());
         assert!(matches!(
             payout.events.last(1)[0],
             PayoutEvent::Cancelled { .. }
@@ -210,7 +214,7 @@ mod tests {
             executed_by: ProfileId::new(),
         });
         let mut payout = Payout::try_from(events).unwrap();
-        let result = payout.cancel_payout(payout.profile_id);
+        let result = payout.cancel_payout(payout.profile_id, false);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCancelled)));
     }
 
@@ -229,7 +233,28 @@ mod tests {
 
         let mut payout = Payout::try_from(events).unwrap();
 
-        let result = payout.cancel_payout(payout.profile_id);
+        let result = payout.cancel_payout(payout.profile_id, false);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCommitted)));
+    }
+
+    #[test]
+    fn can_cancel_when_payout_already_committed_and_skip_true() {
+        let mut events = init_events();
+        events.push(PayoutEvent::CommittedToBatch {
+            batch_id: BatchId::new(),
+            outpoint: bitcoin::OutPoint {
+                txid: "4010e27ff7dc6d9c66a5657e6b3d94b4c4e394d968398d16fefe4637463d194d"
+                    .parse()
+                    .unwrap(),
+                vout: 0,
+            },
+        });
+
+        let mut payout = Payout::try_from(events).unwrap();
+        assert!(payout.cancel_payout(payout.profile_id, true).is_ok());
+        assert!(matches!(
+            payout.events.last(1)[0],
+            PayoutEvent::Cancelled { .. }
+        ));
     }
 }

@@ -552,6 +552,20 @@ enum Command {
         #[clap(short, long)]
         batch_id: String,
     },
+    CancelBatch {
+        #[clap(
+            short,
+            long,
+            value_parser,
+            default_value = "http://localhost:2742",
+            env = "BRIA_API_URL"
+        )]
+        url: Option<Url>,
+        #[clap(env = "BRIA_API_KEY", default_value = "")]
+        api_key: String,
+        #[clap(short, long)]
+        batch_id: String,
+    },
     /// Watch or fetch events
     WatchEvents {
         #[clap(
@@ -1027,6 +1041,14 @@ pub async fn run() -> anyhow::Result<()> {
         } => {
             let client = api_client(cli.bria_home, url, api_key);
             client.get_batch(batch_id).await?;
+        }
+        Command::CancelBatch {
+            url,
+            api_key,
+            batch_id,
+        } => {
+            let client = api_client(cli.bria_home, url, api_key);
+            client.cancel_batch(batch_id).await?;
         }
         Command::WatchEvents {
             url,
