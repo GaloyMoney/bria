@@ -61,12 +61,64 @@ teardown_file() {
   [[ $(cached_pending_income) == 200000000 ]] || exit 1;
 }
 
+@test "payout: medium-priority queue processes payout and it is cancelled successfully" {
+  queue_name="medium-priority"
+  priority="four-hours"
+  interval=30
+
+  echo "Checking if queue '${queue_name}' exists..."
+  if ! bria_cmd list-payout-queues | jq -r '.PayoutQueues[]?.name // empty' | grep -qx "${queue_name}"; then
+    echo "Creating queue '${queue_name}'..."
+    bria_cmd create-payout-queue -n "${queue_name}" --tx-priority "${priority}" --interval-trigger "${interval}" || {
+      echo "Failed to create queue '${queue_name}'"
+      exit 1
+    }
+  fi
+
+  payout_id=$(bria_cmd submit-payout --wallet default --queue-name "${queue_name}" \
+    --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 123456 | jq -r '.id')
+
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" != "null" ]] || exit 1
+
+  bria_cmd cancel-payout --id "${payout_id}" || true
+
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" = "null" ]] || exit 1
+}
+
+@test "payout: low-priority queue processes payout and it is cancelled successfully" {
+  queue_name="low-priority"
+  priority="next-day"
+  interval=60
+
+  echo "Checking if queue '${queue_name}' exists..."
+  if ! bria_cmd list-payout-queues | jq -r '.PayoutQueues[]?.name // empty' | grep -qx "${queue_name}"; then
+    echo "Creating queue '${queue_name}'..."
+    bria_cmd create-payout-queue -n "${queue_name}" --tx-priority "${priority}" --interval-trigger "${interval}" || {
+      echo "Failed to create queue '${queue_name}'"
+      exit 1
+    }
+  fi
+
+  payout_id=$(bria_cmd submit-payout --wallet default --queue-name "${queue_name}" \
+    --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 654321 | jq -r '.id')
+
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" != "null" ]] || exit 1
+
+  bria_cmd cancel-payout --id "${payout_id}" || true
+
+  estimated_at=$(bria_cmd get-payout --id ${payout_id} | jq -r '.payout.batchInclusionEstimatedAt')
+  [[ "${estimated_at}" = "null" ]] || exit 1
+}
+
 @test "payout: Create payout queue and have two queued payouts on it" {
   bria_cmd submit-payout --wallet default --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000
   bria_cmd submit-payout --wallet default --queue-name high --destination bcrt1q3rr02wkkvkwcj7h0nr9dqr9z3z3066pktat7kv --amount 75000000 --metadata '{"foo":{"bar":"baz"}}'
 
   n_payouts=$(bria_cmd list-payouts -w default | jq '.payouts | length')
-  [[ "${n_payouts}" == "3" ]] || exit 1
+  [[ "${n_payouts}" == "5" ]] || exit 1
   batch_id=$(bria_cmd list-payouts -w default | jq '.payouts[0].batchId')
   [[ "${batch_id}" == "null" ]] || exit 1
   cache_wallet_balance
