@@ -14,6 +14,10 @@ struct FeeEstimatesResponse {
     half_hour_fee: f32,
     #[serde(rename = "6")]
     hour_fee: f32,
+    #[serde(rename = "24")]
+    four_hours_fee: f32,
+    #[serde(rename = "144")]
+    next_day_fee: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -54,6 +58,8 @@ impl BlockstreamClient {
             TxPriority::HalfHour => Ok(FeeRate::from_sat_per_vb(fee_estimations.half_hour_fee)),
             TxPriority::OneHour => Ok(FeeRate::from_sat_per_vb(fee_estimations.hour_fee)),
             TxPriority::NextBlock => Ok(FeeRate::from_sat_per_vb(fee_estimations.next_block)),
+            TxPriority::FourHours => Ok(FeeRate::from_sat_per_vb(fee_estimations.four_hours_fee)),
+            TxPriority::NextDay => Ok(FeeRate::from_sat_per_vb(fee_estimations.next_day_fee)),
         }
     }
 }
