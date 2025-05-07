@@ -1,11 +1,11 @@
 #@ load("@ytt:data", "data")
 
 #@ def public_docker_registry():
-#@  return "us.gcr.io/galoy-org"
+#@  return "us.gcr.io/galoyorg"
 #@ end
 
 #@ def private_docker_registry():
-#@  return "gcr.io/galoy-org"
+#@  return "gcr.io/galoyorg"
 #@ end
 
 #@ def nodejs_concourse_image():
@@ -23,24 +23,24 @@
 #@ def nodejs_task_image_config():
 type: registry-image
 source:
-  username: ((docker-creds.username))
-  password: ((docker-creds.password))
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
   repository: #@ nodejs_concourse_image()
 #@ end
 
 #@ def rust_task_image_config():
 type: registry-image
 source:
-  username: ((docker-creds.username))
-  password: ((docker-creds.password))
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
   repository: #@ rust_concourse_image()
 #@ end
 
 #@ def release_task_image_config():
 type: registry-image
 source:
-  username: ((docker-creds.username))
-  password: ((docker-creds.password))
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
   repository: #@ release_concourse_image()
 #@ end
 
@@ -425,8 +425,8 @@ name: edge-image
 type: registry-image
 source:
   tag: edge
-  username: #@ data.values.docker_registry_user
-  password: #@ data.values.docker_registry_password
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
   repository: #@ public_docker_registry() + "/" + data.values.gh_repository if publicRepo else private_docker_registry() + "/" + data.values.gh_repository
 #@ end
 
@@ -488,8 +488,8 @@ source:
 name: versioned-image
 type: registry-image
 source:
-  username: #@ data.values.docker_registry_user
-  password: #@ data.values.docker_registry_password
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
   repository: #@ public_docker_registry() + "/" + data.values.gh_repository if publicRepo else private_docker_registry() + "/" + data.values.gh_repository
 #@ end
 
@@ -515,7 +515,7 @@ source:
 name: docker-host
 type: pool
 source:
-  uri: git@github.com:GaloyMoney/concourse-locks.git
+  uri: git@github.com:GaloyMoney/galoy-concourse-locks.git
   branch: main
   pool: docker-hosts
   private_key: #@ data.values.github_private_key
