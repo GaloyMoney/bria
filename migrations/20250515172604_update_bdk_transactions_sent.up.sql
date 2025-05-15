@@ -1,0 +1,2 @@
+ALTER TABLE bdk_transactions
+ALTER COLUMN sent TYPE BIGINT;
