@@ -1,3 +1,17 @@
+# [bria release v0.1.112](https://github.com/GaloyMoney/bria/releases/tag/0.1.112)
+
+
+### Bug Fixes
+
+- More warnings
+- Warnings
+- Udpate bdk_transactions sent type (#604)
+
+### Miscellaneous Tasks
+
+- Bump flake
+- Bump ring from 0.17.8 to 0.17.14 (#599)
+
 # [bria release v0.1.111](https://github.com/GaloyMoney/bria/releases/tag/0.1.111)
 
 
