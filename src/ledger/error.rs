@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum LedgerError {
     #[error("LedgerError - SqlxLedger: {0}")]
     SqlxLedger(#[from] sqlx_ledger::SqlxLedgerError),

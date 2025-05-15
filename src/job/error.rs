@@ -20,6 +20,7 @@ use crate::{
 };
 
 #[derive(Error, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum JobError {
     #[error("{0}")]
     BdkError(#[from] BdkError),

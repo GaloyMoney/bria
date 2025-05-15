@@ -133,7 +133,7 @@ pub fn lookup_tx_info(
         .0 as u32;
     Ok((
         bitcoin::OutPoint { txid: tx_id, vout },
-        Satoshis::from(info.fee.ok_or(anyhow::anyhow!("fee not found"))?.to_sat() * -1),
+        Satoshis::from(-info.fee.ok_or(anyhow::anyhow!("fee not found"))?.to_sat()),
         tx.vsize() as u64,
     ))
 }

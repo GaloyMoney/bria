@@ -927,6 +927,7 @@ pub(crate) async fn start(
     Ok(())
 }
 
+#[allow(clippy::result_large_err)]
 pub fn extract_api_token<T>(request: &Request<T>) -> Result<&str, Status> {
     match request.metadata().get(PROFILE_API_KEY_HEADER) {
         Some(value) => value

@@ -53,7 +53,7 @@ async fn external_id_already_exists() -> anyhow::Result<()> {
             None,
         )
         .await;
-    assert!(matches!(addr, Ok(_)));
+    assert!(addr.is_ok());
     let addr = app
         .new_address(&profile, wallet_name, Some(external_id), None)
         .await;

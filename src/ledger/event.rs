@@ -29,6 +29,7 @@ pub enum JournalEventMetadata {
     UnknownTransaction(Option<serde_json::Value>),
 }
 
+#[allow(clippy::large_enum_variant)]
 pub(super) enum MaybeIgnored {
     Ignored,
     Event(JournalEvent),

@@ -40,7 +40,7 @@ async fn build_psbt() -> anyhow::Result<()> {
     let external = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr";
     let internal = "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm";
     let domain_current_keychain_id = Uuid::new_v4();
-    let keychain_cfg = KeychainConfig::try_from((external.as_ref(), internal.as_ref()))?;
+    let keychain_cfg = KeychainConfig::try_from((external, internal))?;
     let domain_current_keychain = KeychainWallet::new(
         pool.clone(),
         Network::Regtest,
