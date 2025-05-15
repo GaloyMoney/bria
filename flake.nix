@@ -52,6 +52,7 @@
             packages = [
               alejandra
               sqlx-cli
+              bacon
               cargo-nextest
               cargo-audit
               cargo-watch
