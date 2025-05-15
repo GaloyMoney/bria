@@ -9,6 +9,7 @@ use crate::{entity::*, ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub
 
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum WalletEvent {
     Initialized {
         id: WalletId,
