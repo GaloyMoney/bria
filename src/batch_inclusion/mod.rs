@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::{
     payout::Payout,
-    payout_queue::{PayoutQueue, PayoutQueues},
+    payout_queue::{PayoutQueue, PayoutQueueRepo},
     primitives::*,
 };
 
@@ -38,11 +38,11 @@ impl From<(Payout, Option<&BatchInclusionEstimate>)> for PayoutWithInclusionEsti
 #[derive(Clone)]
 pub struct BatchInclusion {
     pool: sqlx::PgPool,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
 }
 
 impl BatchInclusion {
-    pub fn new(pool: sqlx::PgPool, payout_queues: PayoutQueues) -> Self {
+    pub fn new(pool: sqlx::PgPool, payout_queues: PayoutQueueRepo) -> Self {
         Self {
             payout_queues,
             pool,
