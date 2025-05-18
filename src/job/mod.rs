@@ -40,7 +40,7 @@ pub async fn start_job_runner(
     outbox: Outbox,
     wallets: Wallets,
     xpubs: XPubs,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
     batches: Batches,
     signing_sessions: SigningSessions,
     payouts: Payouts,
@@ -109,7 +109,7 @@ async fn sync_all_wallets(
 #[job(name = "process_all_payout_queues")]
 async fn process_all_payout_queues(
     mut current_job: CurrentJob,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
     JobsConfig {
         process_all_payout_queues_delay: delay,
         ..
@@ -261,7 +261,7 @@ async fn process_payout_queue(
     payouts: Payouts,
     wallets: Wallets,
     utxos: Utxos,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
     batches: Batches,
     fees_client: FeesClient,
 ) -> Result<(), JobError> {

@@ -1,12 +1,13 @@
+use super::config::*;
+use crate::primitives::*;
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use super::config::*;
-use crate::{entity::*, primitives::*};
-
-#[derive(Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "PayoutQueueId")]
 pub enum PayoutQueueEvent {
     Initialized {
         id: PayoutQueueId,
@@ -23,14 +24,13 @@ pub enum PayoutQueueEvent {
     },
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct PayoutQueue {
     pub id: PayoutQueueId,
     pub account_id: AccountId,
     pub name: String,
     pub config: PayoutQueueConfig,
-
     pub(super) events: EntityEvents<PayoutQueueEvent>,
 }
 
@@ -45,7 +45,7 @@ impl PayoutQueue {
 
     pub fn description(&self) -> Option<String> {
         let mut ret = None;
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             if let PayoutQueueEvent::DescriptionUpdated { description } = event {
                 ret = Some(description.as_str());
             }
@@ -67,7 +67,28 @@ impl PayoutQueue {
     }
 }
 
-#[derive(Debug, Builder, Clone)]
+impl TryFromEvents<PayoutQueueEvent> for PayoutQueue {
+    fn try_from_events(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, EsEntityError> {
+        let mut builder = PayoutQueueBuilder::default();
+        for event in events.iter_all() {
+            match event {
+                PayoutQueueEvent::Initialized { id, account_id } => {
+                    builder = builder.id(*id).account_id(*account_id);
+                }
+                PayoutQueueEvent::NameUpdated { name } => {
+                    builder = builder.name(name.clone());
+                }
+                PayoutQueueEvent::ConfigUpdated { config } => {
+                    builder = builder.config(config.clone());
+                }
+                _ => (),
+            }
+        }
+        builder.events(events).build()
+    }
+}
+
+#[derive(Debug, Builder)]
 pub struct NewPayoutQueue {
     #[builder(setter(into))]
     pub(super) id: PayoutQueueId,
@@ -79,7 +100,6 @@ pub struct NewPayoutQueue {
     #[builder(default)]
     pub(super) config: PayoutQueueConfig,
 }
-
 impl NewPayoutQueue {
     pub fn builder() -> NewPayoutQueueBuilder {
         let mut builder = NewPayoutQueueBuilder::default();
@@ -88,16 +108,19 @@ impl NewPayoutQueue {
     }
 
     pub(super) fn initial_events(self) -> EntityEvents<PayoutQueueEvent> {
-        let mut events = EntityEvents::init([
-            PayoutQueueEvent::Initialized {
-                id: self.id,
-                account_id: self.account_id,
-            },
-            PayoutQueueEvent::NameUpdated { name: self.name },
-            PayoutQueueEvent::ConfigUpdated {
-                config: self.config,
-            },
-        ]);
+        let mut events = EntityEvents::init(
+            self.id,
+            [
+                PayoutQueueEvent::Initialized {
+                    id: self.id,
+                    account_id: self.account_id,
+                },
+                PayoutQueueEvent::NameUpdated { name: self.name },
+                PayoutQueueEvent::ConfigUpdated {
+                    config: self.config,
+                },
+            ],
+        );
         if let Some(description) = self.description {
             events.push(PayoutQueueEvent::DescriptionUpdated { description });
         }
@@ -105,26 +128,38 @@ impl NewPayoutQueue {
     }
 }
 
-impl TryFrom<EntityEvents<PayoutQueueEvent>> for PayoutQueue {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, Self::Error> {
-        let mut builder = PayoutQueueBuilder::default();
-        use PayoutQueueEvent::*;
-        for event in events.iter() {
-            match event {
-                Initialized { id, account_id } => {
-                    builder = builder.id(*id).account_id(*account_id);
-                }
-                NameUpdated { name } => {
-                    builder = builder.name(name.clone());
-                }
-                ConfigUpdated { config } => {
-                    builder = builder.config(config.clone());
-                }
-                _ => (),
-            }
-        }
-        builder.events(events).build()
+impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
+    fn into_events(self) -> EntityEvents<PayoutQueueEvent> {
+        EntityEvents::init(
+            self.id,
+            [PayoutQueueEvent::Initialized {
+                id: self.id,
+                account_id: self.account_id,
+            }],
+        )
     }
 }
+
+// impl TryFrom<EntityEvents<PayoutQueueEvent>> for PayoutQueue {
+//     type Error = EntityError;
+
+//     fn try_from(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, Self::Error> {
+//         let mut builder = PayoutQueueBuilder::default();
+//         use PayoutQueueEvent::*;
+//         for event in events.iter() {
+//             match event {
+//                 Initialized { id, account_id } => {
+//                     builder = builder.id(*id).account_id(*account_id);
+//                 }
+//                 NameUpdated { name } => {
+//                     builder = builder.name(name.clone());
+//                 }
+//                 ConfigUpdated { config } => {
+//                     builder = builder.config(config.clone());
+//                 }
+//                 _ => (),
+//             }
+//         }
+//         builder.events(events).build()
+//     }
+// }
