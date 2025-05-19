@@ -37,7 +37,7 @@ pub struct App {
     xpubs: XPubs,
     descriptors: Descriptors,
     wallets: Wallets,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
     payouts: Payouts,
     batches: Batches,
     signing_sessions: SigningSessions,
@@ -54,7 +54,7 @@ impl App {
     pub async fn run(pool: sqlx::PgPool, config: AppConfig) -> Result<Self, ApplicationError> {
         let wallets = Wallets::new(&pool);
         let xpubs = XPubs::new(&pool);
-        let payout_queues = PayoutQueues::new(&pool);
+        let payout_queues = PayoutQueueRepo::new(&pool);
         let batches = Batches::new(&pool);
         let payouts = Payouts::new(&pool);
         let ledger = Ledger::init(&pool).await?;

@@ -39,7 +39,7 @@ pub(super) async fn execute<'a>(
     pool: sqlx::PgPool,
     payouts: Payouts,
     wallets: Wallets,
-    payout_queues: PayoutQueues,
+    payout_queues: PayoutQueueRepo,
     batches: Batches,
     utxos: Utxos,
     data: ProcessPayoutQueueData,

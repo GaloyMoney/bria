@@ -11,9 +11,8 @@ use es_entity::*;
 #[es_repo(
     entity = "PayoutQueue",
     err = "PayoutQueueError",
-    // findby
-    // update
-    columns(name(ty = "String", list_for, update(persist = false)), account_id(ty = "AccountId", list_by, update(persist = false))),
+    ÷
+    columns(name(ty = "String", list_for, account_id(ty = "AccountId"))),
     tbl_prefix = "bria"
 )]
 pub struct PayoutQueues {

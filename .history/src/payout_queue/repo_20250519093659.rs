@@ -4,26 +4,24 @@ use tracing::instrument;
 use std::collections::HashMap;
 
 use super::{entity::*, error::PayoutQueueError};
-use crate::primitives::*;
+use crate::{primitives::*};
 use es_entity::*;
 
 #[derive(EsRepo, Clone, Debug)]
 #[es_repo(
     entity = "PayoutQueue",
     err = "PayoutQueueError",
-    // findby
-    // update
-    columns(name(ty = "String", list_for, update(persist = false)), account_id(ty = "AccountId", list_by, update(persist = false))),
-    tbl_prefix = "bria"
-)]
-pub struct PayoutQueues {
+    columns(id(ty = "PayoutQueueId", list_for, update(persist = false))),
+    tbl_prefix = "core"
+)]pub struct PayoutQueueRepo {
     pool: Pool<Postgres>,
 }
 
-impl PayoutQueues {
-    // pub fn new(pool: &PgPool) -> Self {
-    //     Self { pool: pool.clone() }
-    // }
+impl PayoutQueueRepo {
+
+        // pub fn new(pool: &PgPool) -> Self {
+        //     Self { pool: pool.clone() }
+        // }
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self { pool: pool.clone() }
     }
