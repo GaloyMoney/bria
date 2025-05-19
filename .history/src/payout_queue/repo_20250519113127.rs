@@ -12,7 +12,6 @@ use es_entity::*;
     entity = "PayoutQueue",
     err = "PayoutQueueError",
     // findby
-    // update
     columns(name(ty = "String", list_for, update(persist = false)), account_id(ty = "AccountId", list_by, update(persist = false))),
     tbl_prefix = "bria"
 )]

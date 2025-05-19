@@ -1,9 +1,9 @@
+use super::config::*;
+use crate::primitives::*;
 use derive_builder::Builder;
 use es_entity::*;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;use crate::primitives::*;
-use super::config::*;
-
+use std::time::Duration;
 
 #[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
