@@ -27,7 +27,7 @@ impl PayoutQueues {
     ) -> Result<PayoutQueue, PayoutQueueError> {
         let payout_queue = self.find_by_id(id).await?;
 
-        if payout_queue.account_id == account_id {
+        if payout_queue.account_id != account_id {
             return Err(PayoutQueueError::EsEntityError(EsEntityError::NotFound));
         }
 
