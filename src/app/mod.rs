@@ -631,8 +631,10 @@ impl App {
             builder.config(config);
         }
         let payout_queue = builder.build().expect("Couldn't build NewPayoutQueue");
-        let payout_queue_id = self.payout_queues.create(payout_queue).await?;
-        Ok(payout_queue_id.id)
+        {
+            let payout_queue = self.payout_queues.create(payout_queue).await?;
+            Ok(payout_queue.id)
+        }
     }
 
     #[instrument(name = "app.trigger_payout_queue", skip(self), err)]
@@ -641,10 +643,10 @@ impl App {
         profile: &Profile,
         name: String,
     ) -> Result<(), ApplicationError> {
-        let payout_queue = self.payout_queues.find_by_name(name).await?;
-        if payout_queue.account_id != profile.account_id {
-            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
-        }
+        let payout_queue = self
+            .payout_queues
+            .find_by_name_and_account_id(name, profile.account_id)
+            .await?;
         job::spawn_process_payout_queue(&self.pool, (payout_queue.account_id, payout_queue.id))
             .await?;
         Ok(())
@@ -690,10 +692,10 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
-        if payout_queue.account_id != profile.account_id {
-            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
-        }
+        let payout_queue = self
+            .payout_queues
+            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .await?;
         let mut tx = self.pool.begin().await?;
         let mut unbatched_payouts = self
             .payouts
@@ -761,10 +763,10 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
-        if payout_queue.account_id != profile.account_id {
-            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
-        }
+        let payout_queue = self
+            .payout_queues
+            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .await?;
         let addr = Address::try_from((address, self.config.blockchain.network))?;
         self.submit_payout(
             profile,
@@ -795,10 +797,10 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
-        if payout_queue.account_id != profile.account_id {
-            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
-        }
+        let payout_queue = self
+            .payout_queues
+            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .await?;
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
             .new_address(

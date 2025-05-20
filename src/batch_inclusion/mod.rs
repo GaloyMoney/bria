@@ -69,11 +69,8 @@ impl BatchInclusion {
         }
         let queue = self
             .payout_queues
-            .find_by_id(payout.payout_queue_id)
+            .find_by_id_and_account_id(payout.payout_queue_id, account_id)
             .await?;
-        if queue.account_id != account_id {
-            return Err(BatchInclusionError::UnAuthorizedAccess(account_id));
-        }
         let estimate = self.estimate_next_queue_trigger(queue).await?;
         Ok(PayoutWithInclusionEstimate {
             estimated_batch_inclusion: estimate,

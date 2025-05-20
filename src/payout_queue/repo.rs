@@ -30,7 +30,19 @@ impl PayoutQueues {
         if payout_queue.account_id != account_id {
             return Err(PayoutQueueError::EsEntityError(EsEntityError::NotFound));
         }
+        Ok(payout_queue)
+    }
 
+    pub async fn find_by_name_and_account_id(
+        &self,
+        name: String,
+        account_id: AccountId,
+    ) -> Result<PayoutQueue, PayoutQueueError> {
+        let payout_queue = self.find_by_name(name).await?;
+
+        if payout_queue.account_id != account_id {
+            return Err(PayoutQueueError::EsEntityError(EsEntityError::NotFound));
+        }
         Ok(payout_queue)
     }
 }
