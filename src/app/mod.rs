@@ -641,10 +641,7 @@ impl App {
         profile: &Profile,
         name: String,
     ) -> Result<(), ApplicationError> {
-        let payout_queue = self
-            .payout_queues
-            .find_by_name(name)
-            .await?;
+        let payout_queue = self.payout_queues.find_by_name(name).await?;
         if payout_queue.account_id != profile.account_id {
             return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
         }
@@ -693,10 +690,7 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self
-            .payout_queues
-            .find_by_name(queue_name)
-            .await?;
+        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
         if payout_queue.account_id != profile.account_id {
             return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
         }
@@ -767,10 +761,7 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self
-            .payout_queues
-            .find_by_name(queue_name)
-            .await?;
+        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
         if payout_queue.account_id != profile.account_id {
             return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
         }
@@ -804,10 +795,7 @@ impl App {
             .wallets
             .find_by_name(profile.account_id, wallet_name)
             .await?;
-        let payout_queue = self
-            .payout_queues
-            .find_by_name(queue_name)
-            .await?;
+        let payout_queue = self.payout_queues.find_by_name(queue_name).await?;
         if payout_queue.account_id != profile.account_id {
             return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
         }
@@ -1001,11 +989,10 @@ impl App {
         new_description: Option<String>,
         new_config: Option<PayoutQueueConfig>,
     ) -> Result<(), ApplicationError> {
-        let mut payout_queue = self.payout_queues.find_by_id(id).await?;
-
-        if payout_queue.account_id != profile.account_id {
-            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
-        }
+        let mut payout_queue = self
+            .payout_queues
+            .find_by_id_and_account_id(id, profile.account_id)
+            .await?;
 
         if let Some(desc) = new_description {
             payout_queue.update_description(desc)
