@@ -13,7 +13,7 @@ use es_entity::*;
     err = "PayoutQueueError",
     // findby
     // update
-    columns(name(ty = "String", list_for, update(persist = false)), account_id(ty = "AccountId", list_by, update(persist = false))),
+    columns(name(ty = "String", list_for, update(persist = false)), account_id(ty = "AccountId", list_by, list_for, update(persist = false))),
     tbl_prefix = "bria"
 )]
 pub struct PayoutQueues {
@@ -27,6 +27,16 @@ impl PayoutQueues {
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self { pool: pool.clone() }
     }
+    // pub async fn find_em_all(
+    //     &self,
+    //     ids: &[PayoutQueueId],
+    // ) -> Result<HashMap<PayoutQueueId, PayoutQueue>, PayoutQueueError> {
+    //     let vec = self.find_many(FindManyPayoutQueues::NoFilter, Sort {
+    //         by: PayoutQueuesSortBy::CreatedAt,
+    //         direction: ListDirection::Descending,
+    //     }, Default::default()).await;
+    //     vec
+    // }
 
     // #[instrument(name = "payout_queues.create", skip(self))]
     // pub async fn create(&self, queue: NewPayoutQueue) -> Result<PayoutQueueId, PayoutQueueError> {
@@ -121,16 +131,16 @@ impl PayoutQueues {
     //     )
     //     .fetch_all(&self.pool)
     //     .await?;
-    //     let mut entity_events = HashMap::new();
-    //     for row in rows {
-    //         let id = PayoutQueueId::from(row.id);
-    //         let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-    //         events.load_event(row.sequence as usize, row.event)?;
-    //     }
-    //     Ok(entity_events
-    //         .into_values()
-    //         .map(PayoutQueue::try_from_events)
-    //         .collect::<Result<Vec<_>, _>>()?)
+    // let mut entity_events = HashMap::new();
+    // for row in rows {
+    //     let id = PayoutQueueId::from(row.id);
+    //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+    //     events.load_event(row.sequence as usize, row.event)?;
+    // }
+    // Ok(entity_events
+    //     .into_values()
+    //     .map(PayoutQueue::try_from_events)
+    //     .collect::<Result<Vec<_>, _>>()?)
     // }
 
     // pub async fn all(&self) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
@@ -143,16 +153,16 @@ impl PayoutQueues {
     //     )
     //     .fetch_all(&self.pool)
     //     .await?;
-    //     let mut entity_events = HashMap::new();
-    //     for row in rows {
-    //         let id = PayoutQueueId::from(row.id);
-    //         let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-    //         events.load_event(row.sequence as usize, row.event)?;
-    //     }
-    //     Ok(entity_events
-    //         .into_values()
-    //         .map(PayoutQueue::try_from_events)
-    //         .collect::<Result<Vec<_>, _>>()?)
+    // let mut entity_events = HashMap::new();
+    // for row in rows {
+    //     let id = PayoutQueueId::from(row.id);
+    //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+    //     events.load_event(row.sequence as usize, row.event)?;
+    // }
+    // Ok(entity_events
+    //     .into_values()
+    //     .map(PayoutQueue::try_from_events)
+    //     .collect::<Result<Vec<_>, _>>()?)
     // }
 
     // pub async fn update(&self, payout_queue: PayoutQueue) -> Result<(), PayoutQueueError> {

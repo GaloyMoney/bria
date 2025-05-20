@@ -11,6 +11,7 @@ pub mod process_payout_queue;
 
 pub use config::*;
 
+use es_entity::Sort;
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, JobRunnerHandle};
 use tracing::instrument;
 use uuid::{uuid, Uuid};
@@ -120,7 +121,24 @@ async fn process_all_payout_queues(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            for group in payout_queues.all().await? {
+            let mut has_next_page = true;
+            let mut queues = Vec::new();
+            while has_next_page {
+                let paginated_queues = payout_queues
+                    .find_many(
+                        FindManyPayoutQueues::NoFilter,
+                        Sort {
+                            by: PayoutQueuesSortBy::Id,
+                            direction: Default::default(),
+                        },
+                        Default::default(),
+                    )
+                    .await?;
+                has_next_page = paginated_queues.has_next_page;
+                queues.extend(paginated_queues.entities.into_iter());
+            }
+
+            for group in queues.into_iter() {
                 if let Some(delay) = group.spawn_in() {
                     let _ = spawn_schedule_process_payout_queue(
                         &pool,
