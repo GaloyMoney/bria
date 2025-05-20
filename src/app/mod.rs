@@ -643,8 +643,11 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, name)
+            .find_by_name(name)
             .await?;
+        if payout_queue.account_id != profile.account_id {
+            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
+        }
         job::spawn_process_payout_queue(&self.pool, (payout_queue.account_id, payout_queue.id))
             .await?;
         Ok(())
@@ -692,8 +695,11 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name(queue_name)
             .await?;
+        if payout_queue.account_id != profile.account_id {
+            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
+        }
         let mut tx = self.pool.begin().await?;
         let mut unbatched_payouts = self
             .payouts
@@ -763,8 +769,11 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name(queue_name)
             .await?;
+        if payout_queue.account_id != profile.account_id {
+            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
+        }
         let addr = Address::try_from((address, self.config.blockchain.network))?;
         self.submit_payout(
             profile,
@@ -797,8 +806,11 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name(queue_name)
             .await?;
+        if payout_queue.account_id != profile.account_id {
+            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
+        }
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
             .new_address(

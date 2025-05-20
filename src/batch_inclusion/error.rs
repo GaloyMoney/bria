@@ -8,4 +8,6 @@ pub enum BatchInclusionError {
     Sqlx(#[from] sqlx::Error),
     #[error("{0}")]
     PayoutQueueError(#[from] PayoutQueueError),
+    #[error("BatchInclusionError - UnAuthorizedAccess: account-id-{0}")]
+    UnAuthorizedAccess(crate::primitives::AccountId)
 }
