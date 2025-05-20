@@ -969,29 +969,16 @@ impl App {
         &self,
         profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
-
-        let mut has_next_page = true;
-        let mut queues = Vec::new();
-        while has_next_page {
-            let paginated_queues = self.payout_queues
-                .find_many(
-                    FindManyPayoutQueues::WithAccountId(profile.account_id),
-                    Sort {
-                        by: PayoutQueuesSortBy::Id,
-                        direction: Default::default(),
-                    },
-                    Default::default(),
-                )
-                .await?;
-            has_next_page = paginated_queues.has_next_page;
-            queues.extend(paginated_queues.entities.into_iter());
-        }
-        Ok(queues)
-        // let payout_queues = self
-        //     .payout_queues
-        //     .list_by_account_id(profile.account_id)
-        //     .await?;
-        // Ok(payout_queues)
+        let cursor = es_entity::PaginatedQueryArgs::default();
+        let res = self
+            .payout_queues
+            .list_for_account_id_by_created_at(
+                profile.account_id,
+                cursor,
+                es_entity::ListDirection::Descending,
+            )
+            .await?;
+        Ok(res.entities)
     }
 
     #[instrument(name = "app.update_payout_queue", skip(self), err)]
@@ -1002,17 +989,19 @@ impl App {
         new_description: Option<String>,
         new_config: Option<PayoutQueueConfig>,
     ) -> Result<(), ApplicationError> {
-        let mut payout_queue = self
-            .payout_queues
-            .find_by_id(profile.account_id, id)
-            .await?;
+        let mut payout_queue = self.payout_queues.find_by_id(id).await?;
+
+        if payout_queue.account_id != profile.account_id {
+            return Err(ApplicationError::UnAuthorizedAccess(profile.account_id));
+        }
+
         if let Some(desc) = new_description {
             payout_queue.update_description(desc)
         }
         if let Some(config) = new_config {
             payout_queue.update_config(config)
         }
-        self.payout_queues.update(payout_queue).await?;
+        self.payout_queues.update(&mut payout_queue).await?;
         Ok(())
     }
 
