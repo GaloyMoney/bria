@@ -9,6 +9,8 @@ use std::collections::HashMap;
 pub use config::*;
 use error::*;
 
+use es_entity::Sort;
+
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
@@ -967,11 +969,29 @@ impl App {
         &self,
         profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
-        let payout_queues = self
-            .payout_queues
-            .list_by_account_id(profile.account_id)
-            .await?;
-        Ok(payout_queues)
+
+        let mut has_next_page = true;
+        let mut queues = Vec::new();
+        while has_next_page {
+            let paginated_queues = self.payout_queues
+                .find_many(
+                    FindManyPayoutQueues::WithAccountId(profile.account_id),
+                    Sort {
+                        by: PayoutQueuesSortBy::Id,
+                        direction: Default::default(),
+                    },
+                    Default::default(),
+                )
+                .await?;
+            has_next_page = paginated_queues.has_next_page;
+            queues.extend(paginated_queues.entities.into_iter());
+        }
+        Ok(queues)
+        // let payout_queues = self
+        //     .payout_queues
+        //     .list_by_account_id(profile.account_id)
+        //     .await?;
+        // Ok(payout_queues)
     }
 
     #[instrument(name = "app.update_payout_queue", skip(self), err)]
