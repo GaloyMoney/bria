@@ -58,8 +58,6 @@ pub enum JobError {
     PsbtMissingInSigningSessions,
     #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
-    #[error("JobError - UnAuthorizedAccess: account-id-{0}")]
-    UnAuthorizedAccess(crate::primitives::AccountId),
 }
 
 impl JobExecutionError for JobError {}

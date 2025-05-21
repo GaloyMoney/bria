@@ -83,7 +83,6 @@ impl BatchInclusion {
         account_id: AccountId,
         payouts: Vec<Payout>,
     ) -> Result<Vec<PayoutWithInclusionEstimate>, BatchInclusionError> {
-        // let queues = self.payout_queues.list_by_account_id(account_id).await?;
         let mut queues = Vec::new();
         let mut query = Default::default();
 
