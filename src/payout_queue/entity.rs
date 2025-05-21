@@ -113,12 +113,21 @@ impl NewPayoutQueue {
 
 impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
     fn into_events(self) -> EntityEvents<PayoutQueueEvent> {
-        EntityEvents::init(
-            self.id,
-            [PayoutQueueEvent::Initialized {
+        let mut events = vec![
+            PayoutQueueEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
-            }],
-        )
+            },
+            PayoutQueueEvent::NameUpdated { name: self.name },
+            PayoutQueueEvent::ConfigUpdated {
+                config: self.config,
+            },
+        ];
+        if let Some(description) = self.description {
+            events.push(PayoutQueueEvent::DescriptionUpdated {
+                description: description,
+            });
+        }
+        EntityEvents::init(self.id, events)
     }
 }
