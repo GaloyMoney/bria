@@ -11,7 +11,6 @@ pub mod process_payout_queue;
 
 pub use config::*;
 
-use es_entity::Sort;
 use sqlxmq::{job, CurrentJob, JobBuilder, JobRegistry, JobRunnerHandle};
 use tracing::instrument;
 use uuid::{uuid, Uuid};
