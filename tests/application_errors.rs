@@ -93,7 +93,7 @@ async fn payout_queue_id_not_found() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::PayoutQueueError(
-            PayoutQueueError::PayoutQueueIdNotFound(_)
+            PayoutQueueError::EsEntityError(_)
         ))
     ));
     Ok(())
@@ -141,7 +141,7 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::PayoutQueueError(
-            PayoutQueueError::PayoutQueueNameNotFound(_)
+            PayoutQueueError::EsEntityError(_)
         ))
     ));
 
