@@ -84,16 +84,22 @@ impl BatchInclusion {
         payouts: Vec<Payout>,
     ) -> Result<Vec<PayoutWithInclusionEstimate>, BatchInclusionError> {
         // let queues = self.payout_queues.list_by_account_id(account_id).await?;
-    let mut has_next_page = true;
         let mut queues = Vec::new();
-        while has_next_page {
-            let paginated_queues = self
+        let mut query = Default::default();
+
+        loop {
+            let mut paginated_queues = self
                 .payout_queues
-                .list_for_account_id_by_id(account_id, Default::default(), Default::default())
+                .list_for_account_id_by_id(account_id, query, Default::default())
                 .await?;
-            has_next_page = paginated_queues.has_next_page;
-            queues.extend(paginated_queues.entities.into_iter());
+            queues.append(&mut paginated_queues.entities);
+            if let Some(q) = paginated_queues.into_next_query() {
+                query = q;
+            } else {
+                break;
+            };
         }
+
         let next_queue_trigger_times = self.next_queue_trigger_times(queues).await?;
         Ok(payouts
             .into_iter()
