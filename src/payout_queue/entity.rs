@@ -1,9 +1,12 @@
 use derive_builder::Builder;
 use es_entity::*;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;use crate::primitives::*;
-use super::config::*;
 
+use std::time::Duration;
+
+use crate::primitives::*;
+
+use super::config::*;
 
 #[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -106,26 +109,6 @@ impl NewPayoutQueue {
         builder.id(PayoutQueueId::new());
         builder
     }
-
-    pub(super) fn initial_events(self) -> EntityEvents<PayoutQueueEvent> {
-        let mut events = EntityEvents::init(
-            self.id,
-            [
-                PayoutQueueEvent::Initialized {
-                    id: self.id,
-                    account_id: self.account_id,
-                },
-                PayoutQueueEvent::NameUpdated { name: self.name },
-                PayoutQueueEvent::ConfigUpdated {
-                    config: self.config,
-                },
-            ],
-        );
-        if let Some(description) = self.description {
-            events.push(PayoutQueueEvent::DescriptionUpdated { description });
-        }
-        events
-    }
 }
 
 impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
@@ -139,27 +122,3 @@ impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
         )
     }
 }
-
-// impl TryFrom<EntityEvents<PayoutQueueEvent>> for PayoutQueue {
-//     type Error = EntityError;
-
-//     fn try_from(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, Self::Error> {
-//         let mut builder = PayoutQueueBuilder::default();
-//         use PayoutQueueEvent::*;
-//         for event in events.iter() {
-//             match event {
-//                 Initialized { id, account_id } => {
-//                     builder = builder.id(*id).account_id(*account_id);
-//                 }
-//                 NameUpdated { name } => {
-//                     builder = builder.name(name.clone());
-//                 }
-//                 ConfigUpdated { config } => {
-//                     builder = builder.config(config.clone());
-//                 }
-//                 _ => (),
-//             }
-//         }
-//         builder.events(events).build()
-//     }
-// }
