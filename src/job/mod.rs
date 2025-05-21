@@ -121,21 +121,17 @@ async fn process_all_payout_queues(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            let mut has_next_page = true;
             let mut queues = Vec::new();
-            while has_next_page {
-                let paginated_queues = payout_queues
-                    .find_many(
-                        FindManyPayoutQueues::NoFilter,
-                        Sort {
-                            by: PayoutQueuesSortBy::Id,
-                            direction: Default::default(),
-                        },
-                        Default::default(),
-                    )
-                    .await?;
-                has_next_page = paginated_queues.has_next_page;
-                queues.extend(paginated_queues.entities.into_iter());
+            let mut query = Default::default();
+            loop {
+                let mut paginated_queues =
+                    payout_queues.list_by_id(query, Default::default()).await?;
+                queues.extend(paginated_queues.entities.drain(..));
+                if let Some(q) = paginated_queues.into_next_query() {
+                    query = q;
+                } else {
+                    break;
+                };
             }
 
             for group in queues.into_iter() {
