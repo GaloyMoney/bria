@@ -9,7 +9,6 @@ use std::collections::HashMap;
 pub use config::*;
 use error::*;
 
-
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,

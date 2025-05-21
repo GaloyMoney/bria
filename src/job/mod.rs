@@ -125,7 +125,7 @@ async fn process_all_payout_queues(
             loop {
                 let mut paginated_queues =
                     payout_queues.list_by_id(query, Default::default()).await?;
-                queues.extend(paginated_queues.entities.drain(..));
+                queues.append(&mut paginated_queues.entities);
                 if let Some(q) = paginated_queues.into_next_query() {
                     query = q;
                 } else {

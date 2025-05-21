@@ -124,9 +124,7 @@ impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
             },
         ];
         if let Some(description) = self.description {
-            events.push(PayoutQueueEvent::DescriptionUpdated {
-                description: description,
-            });
+            events.push(PayoutQueueEvent::DescriptionUpdated { description });
         }
         EntityEvents::init(self.id, events)
     }

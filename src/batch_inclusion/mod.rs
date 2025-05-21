@@ -92,7 +92,7 @@ impl BatchInclusion {
                 .payout_queues
                 .list_for_account_id_by_id(account_id, query, Default::default())
                 .await?;
-            queues.extend(paginated_queues.entities.drain(..));
+            queues.append(&mut paginated_queues.entities);
             if let Some(q) = paginated_queues.into_next_query() {
                 query = q;
             } else {
