@@ -1,5 +1,5 @@
 mod helpers;
-
+use es_entity::EsEntityError;
 use rand::distributions::{Alphanumeric, DistString};
 
 use bria::{
@@ -93,7 +93,7 @@ async fn payout_queue_id_not_found() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::PayoutQueueError(
-            PayoutQueueError::EsEntityError(_)
+            PayoutQueueError::EsEntityError(EsEntityError::NotFound)
         ))
     ));
     Ok(())
@@ -141,7 +141,7 @@ async fn payout_queue_name_not_found() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::PayoutQueueError(
-            PayoutQueueError::EsEntityError(_)
+            PayoutQueueError::EsEntityError(EsEntityError::NotFound)
         ))
     ));
 

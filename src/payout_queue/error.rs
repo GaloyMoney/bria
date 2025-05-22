@@ -10,8 +10,6 @@ pub enum PayoutQueueError {
     CursorDestructureError(#[from] es_entity::CursorDestructureError),
     #[error("PayoutQueueError - Could not find payout queue with name: {0}")]
     PayoutQueueNameNotFound(String),
-    #[error("PayoutQueueError - Could not find payout queue with id: {0}")]
-    PayoutQueueIdNotFound(String),
 }
 
 es_entity::from_es_entity_error!(PayoutQueueError);
