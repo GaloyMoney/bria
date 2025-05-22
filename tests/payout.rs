@@ -4,6 +4,7 @@ use rand::distributions::{Alphanumeric, DistString};
 
 use bria::{
     app::{error::ApplicationError, *},
+    payout_queue::{PayoutQueueConfig, PayoutQueueTrigger},
     primitives::*,
     profile::SpendingPolicy,
     xpub::*,
@@ -52,6 +53,56 @@ async fn payout() -> anyhow::Result<()> {
             None,
         )
         .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn payout_queue_with_four_hours_priority() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
+
+    let queue_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+
+    let config = PayoutQueueConfig {
+        trigger: PayoutQueueTrigger::Interval {
+            seconds: std::time::Duration::from_secs(30),
+        },
+        tx_priority: TxPriority::FourHours,
+        ..PayoutQueueConfig::default()
+    };
+
+    let result = app
+        .create_payout_queue(&profile, queue_name, None, Some(config))
+        .await;
+
+    assert!(result.is_ok());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn payout_queue_with_nex_day_priority() -> anyhow::Result<()> {
+    let pool = helpers::init_pool().await?;
+    let profile = helpers::create_test_account(&pool).await?;
+    let app = App::run(pool, AppConfig::default()).await?;
+
+    let queue_name = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+
+    let config = PayoutQueueConfig {
+        trigger: PayoutQueueTrigger::Interval {
+            seconds: std::time::Duration::from_secs(60),
+        },
+        tx_priority: TxPriority::NextDay,
+        ..PayoutQueueConfig::default()
+    };
+
+    let result = app
+        .create_payout_queue(&profile, queue_name, None, Some(config))
+        .await;
+
+    assert!(result.is_ok());
 
     Ok(())
 }

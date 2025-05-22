@@ -11,8 +11,8 @@ struct RecommendedFeesResponse {
     fastest_fee: u64,
     half_hour_fee: u64,
     hour_fee: u64,
-    // economy_fee: u64,
-    // minimum_fee: u64,
+    economy_fee: u64,
+    minimum_fee: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -57,6 +57,10 @@ impl MempoolSpaceClient {
             TxPriority::NextBlock => {
                 Ok(FeeRate::from_sat_per_vb(fee_estimations.fastest_fee as f32))
             }
+            TxPriority::FourHours => {
+                Ok(FeeRate::from_sat_per_vb(fee_estimations.economy_fee as f32))
+            }
+            TxPriority::NextDay => Ok(FeeRate::from_sat_per_vb(fee_estimations.minimum_fee as f32)),
         }
     }
 }
