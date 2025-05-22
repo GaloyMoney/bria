@@ -298,8 +298,8 @@ resources:
   type: registry-image
   source:
     tag: latest
-    username: #@ data.values.docker_registry_user
-    password: #@ data.values.docker_registry_password
+    username: #@ data.values.gar_registry_user
+    password: #@ data.values.gar_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository
 - #@ charts_repo_resource()
 - #@ charts_repo_bot_branch()

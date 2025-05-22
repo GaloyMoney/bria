@@ -22,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
   e2e-tests:
-    image: us.gcr.io/galoy-org/rust-concourse
+    image: us.gcr.io/galoyorg/rust-concourse
     depends_on:
       - postgres
     command: [ "make", "e2e-tests-in-container" ]
@@ -47,7 +47,7 @@ services:
       - ELECTRUM_HOST=fulcrum
       - CARGO_TARGET_DIR=/usr/local/cargo-target
   integration-tests:
-    image: us.gcr.io/galoy-org/rust-concourse
+    image: us.gcr.io/galoyorg/rust-concourse
     depends_on:
       - integration-deps
     command: [ "make", "integration-tests-in-container" ]
