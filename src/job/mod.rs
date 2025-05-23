@@ -120,19 +120,7 @@ async fn process_all_payout_queues(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            let mut queues = Vec::new();
-            let mut query = Default::default();
-            loop {
-                let mut paginated_queues =
-                    payout_queues.list_by_id(query, Default::default()).await?;
-                queues.append(&mut paginated_queues.entities);
-                if let Some(q) = paginated_queues.into_next_query() {
-                    query = q;
-                } else {
-                    break;
-                };
-            }
-
+            let queues = payout_queues.list_all().await?;
             for group in queues.into_iter() {
                 if let Some(delay) = group.spawn_in() {
                     let _ = spawn_schedule_process_payout_queue(

@@ -45,4 +45,41 @@ impl PayoutQueues {
         }
         Ok(payout_queue)
     }
+
+    pub async fn list_for_account_id(
+        &self,
+        account_id: AccountId,
+    ) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
+        let mut queues = Vec::new();
+        let mut query = Default::default();
+
+        loop {
+            let mut paginated_queues = self
+                .list_for_account_id_by_id(account_id, query, Default::default())
+                .await?;
+            queues.append(&mut paginated_queues.entities);
+            if let Some(q) = paginated_queues.into_next_query() {
+                query = q;
+            } else {
+                break;
+            };
+        }
+        Ok(queues)
+    }
+
+    pub async fn list_all(&self) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
+        let mut queues = Vec::new();
+        let mut query = Default::default();
+
+        loop {
+            let mut paginated_queues = self.list_by_id(query, Default::default()).await?;
+            queues.append(&mut paginated_queues.entities);
+            if let Some(q) = paginated_queues.into_next_query() {
+                query = q;
+            } else {
+                break;
+            };
+        }
+        Ok(queues)
+    }
 }
