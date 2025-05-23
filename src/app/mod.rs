@@ -629,8 +629,8 @@ impl App {
             builder.config(config);
         }
         let payout_queue = builder.build().expect("Couldn't build NewPayoutQueue");
-        let payout_queue_id = self.payout_queues.create(payout_queue).await?;
-        Ok(payout_queue_id)
+        let payout_queue = self.payout_queues.create(payout_queue).await?;
+        Ok(payout_queue.id)
     }
 
     #[instrument(name = "app.trigger_payout_queue", skip(self), err)]
@@ -641,7 +641,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, name)
+            .find_by_name_and_account_id(name, profile.account_id)
             .await?;
         job::spawn_process_payout_queue(&self.pool, (payout_queue.account_id, payout_queue.id))
             .await?;
@@ -690,7 +690,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name_and_account_id(queue_name, profile.account_id)
             .await?;
         let mut tx = self.pool.begin().await?;
         let mut unbatched_payouts = self
@@ -761,7 +761,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name_and_account_id(queue_name, profile.account_id)
             .await?;
         let addr = Address::try_from((address, self.config.blockchain.network))?;
         self.submit_payout(
@@ -795,7 +795,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name(profile.account_id, queue_name)
+            .find_by_name_and_account_id(queue_name, profile.account_id)
             .await?;
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
@@ -967,11 +967,10 @@ impl App {
         &self,
         profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
-        let payout_queues = self
+        Ok(self
             .payout_queues
-            .list_by_account_id(profile.account_id)
-            .await?;
-        Ok(payout_queues)
+            .list_for_account_id(profile.account_id)
+            .await?)
     }
 
     #[instrument(name = "app.update_payout_queue", skip(self), err)]
@@ -984,15 +983,16 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let mut payout_queue = self
             .payout_queues
-            .find_by_id(profile.account_id, id)
+            .find_by_id_and_account_id(id, profile.account_id)
             .await?;
+
         if let Some(desc) = new_description {
             payout_queue.update_description(desc)
         }
         if let Some(config) = new_config {
             payout_queue.update_config(config)
         }
-        self.payout_queues.update(payout_queue).await?;
+        self.payout_queues.update(&mut payout_queue).await?;
         Ok(())
     }
 
