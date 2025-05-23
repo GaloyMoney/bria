@@ -1,8 +1,9 @@
+use es_entity::*;
 use sqlx::{Pool, Postgres};
 
 use super::{entity::*, error::PayoutQueueError};
+
 use crate::primitives::*;
-use es_entity::*;
 
 #[derive(EsRepo, Clone, Debug)]
 #[es_repo(
