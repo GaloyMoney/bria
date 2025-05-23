@@ -1,6 +1,7 @@
 mod config;
 pub mod error;
 
+use es_entity::*;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
 
@@ -629,10 +630,8 @@ impl App {
             builder.config(config);
         }
         let payout_queue = builder.build().expect("Couldn't build NewPayoutQueue");
-        {
-            let payout_queue = self.payout_queues.create(payout_queue).await?;
-            Ok(payout_queue.id)
-        }
+        let payout_queue = self.payout_queues.create(payout_queue).await?;
+        Ok(payout_queue.id)
     }
 
     #[instrument(name = "app.trigger_payout_queue", skip(self), err)]
@@ -969,16 +968,25 @@ impl App {
         &self,
         profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
-        let cursor = es_entity::PaginatedQueryArgs::default();
-        let res = self
-            .payout_queues
-            .list_for_account_id_by_created_at(
-                profile.account_id,
-                cursor,
-                es_entity::ListDirection::Descending,
-            )
-            .await?;
-        Ok(res.entities)
+        let mut cursor = PaginatedQueryArgs::default();
+        let mut payout_queues = Vec::new();
+        loop {
+            let mut paginated_queues = self
+                .payout_queues
+                .list_for_account_id_by_created_at(
+                    profile.account_id,
+                    cursor,
+                    ListDirection::Descending,
+                )
+                .await?;
+            payout_queues.append(&mut paginated_queues.entities);
+            if let Some(q) = paginated_queues.into_next_query() {
+                cursor = q;
+            } else {
+                break;
+            }
+        }
+        Ok(payout_queues)
     }
 
     #[instrument(name = "app.update_payout_queue", skip(self), err)]

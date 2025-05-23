@@ -8,7 +8,7 @@ use es_entity::*;
 #[es_repo(
     entity = "PayoutQueue",
     err = "PayoutQueueError",
-    columns(name(ty = "String",), account_id(ty = "AccountId", list_for)),
+    columns(name(ty = "String"), account_id(ty = "AccountId", list_for)),
     tbl_prefix = "bria"
 )]
 pub struct PayoutQueues {
