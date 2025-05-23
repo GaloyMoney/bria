@@ -52,35 +52,31 @@ impl PayoutQueues {
         account_id: AccountId,
     ) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
         let mut queues = Vec::new();
-        let mut query = Default::default();
+        let mut next = Some(PaginatedQueryArgs::default());
 
-        loop {
-            let mut paginated_queues = self
-                .list_for_account_id_by_id(account_id, query, Default::default())
+        while let Some(query) = next.take() {
+            let mut ret = self
+                .list_for_account_id_by_created_at(account_id, query, Default::default())
                 .await?;
-            queues.append(&mut paginated_queues.entities);
-            if let Some(q) = paginated_queues.into_next_query() {
-                query = q;
-            } else {
-                break;
-            };
+
+            queues.append(&mut ret.entities);
+            next = ret.into_next_query();
         }
+
         Ok(queues)
     }
 
     pub async fn list_all(&self) -> Result<Vec<PayoutQueue>, PayoutQueueError> {
         let mut queues = Vec::new();
-        let mut query = Default::default();
+        let mut next = Some(PaginatedQueryArgs::default());
 
-        loop {
-            let mut paginated_queues = self.list_by_id(query, Default::default()).await?;
-            queues.append(&mut paginated_queues.entities);
-            if let Some(q) = paginated_queues.into_next_query() {
-                query = q;
-            } else {
-                break;
-            };
+        while let Some(query) = next.take() {
+            let mut ret = self.list_by_id(query, Default::default()).await?;
+
+            queues.append(&mut ret.entities);
+            next = ret.into_next_query();
         }
+
         Ok(queues)
     }
 }

@@ -1,7 +1,6 @@
 mod config;
 pub mod error;
 
-use es_entity::*;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
 
@@ -968,25 +967,10 @@ impl App {
         &self,
         profile: &Profile,
     ) -> Result<Vec<PayoutQueue>, ApplicationError> {
-        let mut cursor = PaginatedQueryArgs::default();
-        let mut payout_queues = Vec::new();
-        loop {
-            let mut paginated_queues = self
-                .payout_queues
-                .list_for_account_id_by_created_at(
-                    profile.account_id,
-                    cursor,
-                    ListDirection::Descending,
-                )
-                .await?;
-            payout_queues.append(&mut paginated_queues.entities);
-            if let Some(q) = paginated_queues.into_next_query() {
-                cursor = q;
-            } else {
-                break;
-            }
-        }
-        Ok(payout_queues)
+        Ok(self
+            .payout_queues
+            .list_for_account_id(profile.account_id)
+            .await?)
     }
 
     #[instrument(name = "app.update_payout_queue", skip(self), err)]

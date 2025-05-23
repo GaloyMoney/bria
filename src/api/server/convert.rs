@@ -1,4 +1,3 @@
-use es_entity::EsEntityError;
 use std::time::Duration;
 
 use super::proto;
@@ -678,7 +677,7 @@ impl From<ApplicationError> for tonic::Status {
                 tonic::Status::already_exists(err.to_string())
             }
             ApplicationError::PayoutQueueError(PayoutQueueError::EsEntityError(
-                EsEntityError::NotFound,
+                es_entity::EsEntityError::NotFound,
             )) => tonic::Status::not_found(err.to_string()),
             ApplicationError::ProfileError(ProfileError::ProfileNameNotFound(_)) => {
                 tonic::Status::not_found(err.to_string())
