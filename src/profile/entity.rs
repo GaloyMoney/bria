@@ -1,10 +1,12 @@
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{entity::*, primitives::*};
+use crate::primitives::*;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "ProfileId")]
 pub enum ProfileEvent {
     Initialized {
         id: ProfileId,
@@ -19,15 +21,14 @@ pub enum ProfileEvent {
     SpendingPolicyRemoved {},
 }
 
-#[derive(Debug, Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct Profile {
     pub id: ProfileId,
     pub account_id: AccountId,
     pub name: String,
     #[builder(default)]
     pub spending_policy: Option<SpendingPolicy>,
-
     pub(super) events: EntityEvents<ProfileEvent>,
 }
 
@@ -60,6 +61,26 @@ impl Profile {
     }
 }
 
+impl TryFromEvents<ProfileEvent> for Profile {
+    fn try_from_events(events: EntityEvents<ProfileEvent>) -> Result<Self, EsEntityError> {
+        let mut builder = ProfileBuilder::default();
+        for event in events.iter_all() {
+            match event {
+                ProfileEvent::Initialized { id, account_id } => {
+                    builder = builder.id(*id).account_id(*account_id);
+                }
+                ProfileEvent::NameUpdated { name } => {
+                    builder = builder.name(name.clone());
+                }
+                ProfileEvent::SpendingPolicyUpdated { spending_policy } => {
+                    builder = builder.spending_policy(Some(spending_policy.clone()));
+                }
+                ProfileEvent::SpendingPolicyRemoved {} => builder = builder.spending_policy(None),
+            }
+        }
+        builder.events(events).build()
+    }
+}
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SpendingPolicy {
     pub allowed_payout_addresses: Vec<Address>,
@@ -104,44 +125,21 @@ impl NewProfile {
         builder.id(ProfileId::new());
         builder
     }
+}
 
-    pub(super) fn initial_events(self) -> EntityEvents<ProfileEvent> {
-        let mut events = EntityEvents::init([
+impl IntoEvents<ProfileEvent> for NewProfile {
+    fn into_events(self) -> EntityEvents<ProfileEvent> {
+        let mut events = vec![
             ProfileEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
             },
             ProfileEvent::NameUpdated { name: self.name },
-        ]);
-        if self.spending_policy.is_some() {
-            events.push(ProfileEvent::SpendingPolicyUpdated {
-                spending_policy: self.spending_policy.unwrap(),
-            });
+        ];
+        if let Some(spending_policy) = self.spending_policy {
+            events.push(ProfileEvent::SpendingPolicyUpdated { spending_policy });
         }
-        events
-    }
-}
-
-impl TryFrom<EntityEvents<ProfileEvent>> for Profile {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<ProfileEvent>) -> Result<Self, Self::Error> {
-        let mut builder = ProfileBuilder::default();
-        for event in events.iter() {
-            match event {
-                ProfileEvent::Initialized { id, account_id } => {
-                    builder = builder.id(*id).account_id(*account_id)
-                }
-                ProfileEvent::NameUpdated { name } => {
-                    builder = builder.name(name.clone());
-                }
-                ProfileEvent::SpendingPolicyUpdated { spending_policy } => {
-                    builder = builder.spending_policy(Some(spending_policy.clone()));
-                }
-                ProfileEvent::SpendingPolicyRemoved {} => builder = builder.spending_policy(None),
-            }
-        }
-        builder.events(events).build()
+        EntityEvents::init(self.id, events)
     }
 }
 
