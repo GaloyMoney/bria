@@ -162,7 +162,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let mut target_profile = self
             .profiles
-            .find_by_id(profile.account_id, profile_id)
+            .find_by_id_and_account_id(profile_id, profile.account_id)
             .await?;
         target_profile.update_spending_policy(spending_policy);
         let mut tx = self.pool.begin().await?;
@@ -185,7 +185,7 @@ impl App {
     ) -> Result<ProfileApiKey, ApplicationError> {
         let found_profile = self
             .profiles
-            .find_by_name(profile.account_id, profile_name)
+            .find_by_name_and_account_id(profile_name, profile.account_id)
             .await?;
         let mut tx = self.pool.begin().await?;
         let key = self

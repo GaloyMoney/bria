@@ -1,7 +1,6 @@
 use es_entity::*;
 use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{Pool, Postgres, Transaction};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
@@ -53,28 +52,6 @@ impl Profiles {
         &self,
         account_id: AccountId,
     ) -> Result<Vec<Profile>, ProfileError> {
-        // let rows = sqlx::query!(
-        //     r#"SELECT p.id, e.sequence, e.event_type, e.event
-        //        FROM bria_profiles p
-        //        JOIN bria_profile_events e ON p.id = e.id
-        //        WHERE p.account_id = $1
-        //        ORDER BY p.id, sequence"#,
-        //     account_id as AccountId
-        // )
-        // .fetch_all(&self.pool)
-        // .await?;
-        // let mut entity_events = HashMap::new();
-        // for row in rows {
-        //     let id = SigningSessionId::from(row.id);
-        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-        //     events.load_event(row.sequence as usize, row.event)?;
-        // }
-        // let mut profiles = Vec::new();
-        // for (_, events) in entity_events {
-        //     let profile = Profile::try_from(events)?;
-        //     profiles.push(profile);
-        // }
-
         let mut profiles = Vec::new();
         let mut next = Some(PaginatedQueryArgs::default());
 
@@ -90,60 +67,30 @@ impl Profiles {
         Ok(profiles)
     }
 
-    pub async fn find_by_id(
+    pub async fn find_by_id_and_account_id(
         &self,
-        account_id: AccountId,
         id: ProfileId,
+        account_id: AccountId,
     ) -> Result<Profile, ProfileError> {
-        let rows = sqlx::query!(
-            r#"SELECT p.id, e.sequence, e.event_type, e.event
-               FROM bria_profiles p
-               JOIN bria_profile_events e ON p.id = e.id
-               WHERE p.account_id = $1 AND p.id = $2
-               ORDER BY p.id, sequence"#,
-            account_id as AccountId,
-            id as ProfileId
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let profile = self.find_by_id(id).await?;
 
-        if !rows.is_empty() {
-            let mut events = EntityEvents::new();
-            for row in rows {
-                events.load_event(row.sequence as usize, row.event)?;
-            }
-            Ok(Profile::try_from(events)?)
-        } else {
-            Err(ProfileError::ProfileIdNotFound(id))
+        if profile.account_id != account_id {
+            return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
         }
+        Ok(profile)
     }
 
-    pub async fn find_by_name(
+    pub async fn find_by_name_and_account_id(
         &self,
-        account_id: AccountId,
         name: String,
+        account_id: AccountId,
     ) -> Result<Profile, ProfileError> {
-        let rows = sqlx::query!(
-            r#"SELECT p.id, e.sequence, e.event_type, e.event
-               FROM bria_profiles p
-               JOIN bria_profile_events e ON p.id = e.id
-               WHERE p.account_id = $1 AND p.name = $2
-               ORDER BY p.id, sequence"#,
-            account_id as AccountId,
-            name
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let profile = self.find_by_name(name).await?;
 
-        if !rows.is_empty() {
-            let mut events = EntityEvents::new();
-            for row in rows {
-                events.load_event(row.sequence as usize, row.event)?;
-            }
-            Ok(Profile::try_from(events)?)
-        } else {
-            Err(ProfileError::ProfileNameNotFound(name))
+        if profile.account_id != account_id {
+            return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
         }
+        Ok(profile)
     }
 
     pub async fn create_key_for_profile_in_tx(
