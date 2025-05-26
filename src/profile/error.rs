@@ -12,6 +12,10 @@ pub enum ProfileError {
     ProfileIdNotFound(ProfileId),
     #[error("ProfileError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("ProfileError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
+    #[error("ProfileError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
+    #[error("ProfileError - CursorDestructureError: {0}")]
+    CursorDestructureError(#[from] es_entity::CursorDestructureError),
 }
+
+es_entity::from_es_entity_error!(ProfileError);

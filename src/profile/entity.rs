@@ -32,6 +32,17 @@ pub struct Profile {
     pub(super) events: EntityEvents<ProfileEvent>,
 }
 
+impl std::fmt::Debug for Profile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Profile")
+            .field("id", &self.id)
+            .field("account_id", &self.account_id)
+            .field("name", &self.name)
+            .field("spending_policy", &self.spending_policy)
+            .finish()
+    }
+}
+
 impl Profile {
     pub fn update_spending_policy(&mut self, policy: Option<SpendingPolicy>) {
         if self.spending_policy != policy {

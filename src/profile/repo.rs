@@ -1,11 +1,19 @@
+use es_entity::*;
 use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{Pool, Postgres, Transaction};
 use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
-use crate::{dev_constants, entity::*, primitives::*};
+use crate::{dev_constants, primitives::*};
 
+#[derive(EsRepo, Clone, Debug)]
+#[es_repo(
+    entity = "Profile",
+    err = "ProfileError",
+    columns(name(ty = "String"), account_id(ty = "AccountId", list_for)),
+    tbl_prefix = "bria"
+)]
 pub struct Profiles {
     pool: Pool<Postgres>,
 }
@@ -30,14 +38,14 @@ impl Profiles {
         )
         .execute(&mut **tx)
         .await?;
-        let events = profile.initial_events();
+        let events = profile.into_events();
         EntityEvents::<ProfileEvent>::persist(
             "bria_profile_events",
             &mut *tx,
             events.new_serialized_events(id),
         )
         .await?;
-        let res = Profile::try_from(events)?;
+        let res = Profile::try_from_events(events)?;
         Ok(res)
     }
 
@@ -45,26 +53,38 @@ impl Profiles {
         &self,
         account_id: AccountId,
     ) -> Result<Vec<Profile>, ProfileError> {
-        let rows = sqlx::query!(
-            r#"SELECT p.id, e.sequence, e.event_type, e.event
-               FROM bria_profiles p
-               JOIN bria_profile_events e ON p.id = e.id
-               WHERE p.account_id = $1
-               ORDER BY p.id, sequence"#,
-            account_id as AccountId
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        let mut entity_events = HashMap::new();
-        for row in rows {
-            let id = SigningSessionId::from(row.id);
-            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-            events.load_event(row.sequence as usize, row.event)?;
-        }
+        // let rows = sqlx::query!(
+        //     r#"SELECT p.id, e.sequence, e.event_type, e.event
+        //        FROM bria_profiles p
+        //        JOIN bria_profile_events e ON p.id = e.id
+        //        WHERE p.account_id = $1
+        //        ORDER BY p.id, sequence"#,
+        //     account_id as AccountId
+        // )
+        // .fetch_all(&self.pool)
+        // .await?;
+        // let mut entity_events = HashMap::new();
+        // for row in rows {
+        //     let id = SigningSessionId::from(row.id);
+        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+        //     events.load_event(row.sequence as usize, row.event)?;
+        // }
+        // let mut profiles = Vec::new();
+        // for (_, events) in entity_events {
+        //     let profile = Profile::try_from(events)?;
+        //     profiles.push(profile);
+        // }
+
         let mut profiles = Vec::new();
-        for (_, events) in entity_events {
-            let profile = Profile::try_from(events)?;
-            profiles.push(profile);
+        let mut next = Some(PaginatedQueryArgs::default());
+
+        while let Some(query) = next.take() {
+            let mut res = self
+                .list_for_account_id_by_id(account_id, query, Default::default())
+                .await?;
+
+            profiles.append(&mut res.entities);
+            next = res.into_next_query();
         }
 
         Ok(profiles)
