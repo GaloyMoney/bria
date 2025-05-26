@@ -1,8 +1,6 @@
-use std::thread::sleep;
-
 use es_entity::*;
 use rand::distributions::{Alphanumeric, DistString};
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::{entity::*, error::ProfileError};
@@ -24,31 +22,31 @@ impl Profiles {
         Self { pool: pool.clone() }
     }
 
-    pub async fn create_in_tx(
-        &self,
-        tx: &mut Transaction<'_, Postgres>,
-        profile: NewProfile,
-    ) -> Result<Profile, ProfileError> {
-        let id = profile.id;
-        sqlx::query!(
-            r#"INSERT INTO bria_profiles (id, account_id, name)
-            VALUES ($1, $2, $3)"#,
-            profile.id as ProfileId,
-            profile.account_id as AccountId,
-            profile.name,
-        )
-        .execute(&mut **tx)
-        .await?;
-        let events = profile.into_events();
-        EntityEvents::<ProfileEvent>::persist(
-            "bria_profile_events",
-            &mut *tx,
-            events.new_serialized_events(id),
-        )
-        .await?;
-        let res = Profile::try_from_events(events)?;
-        Ok(res)
-    }
+    // pub async fn create_in_tx(
+    //     &self,
+    //     tx: &mut Transaction<'_, Postgres>,
+    //     profile: NewProfile,
+    // ) -> Result<Profile, ProfileError> {
+    //     let id = profile.id;
+    //     sqlx::query!(
+    //         r#"INSERT INTO bria_profiles (id, account_id, name)
+    //         VALUES ($1, $2, $3)"#,
+    //         profile.id as ProfileId,
+    //         profile.account_id as AccountId,
+    //         profile.name,
+    //     )
+    //     .execute(&mut **tx)
+    //     .await?;
+    //     let events = profile.into_events();
+    //     EntityEvents::<ProfileEvent>::persist(
+    //         "bria_profile_events",
+    //         &mut *tx,
+    //         events.new_serialized_events(id),
+    //     )
+    //     .await?;
+    //     let res = Profile::try_from_events(events)?;
+    //     Ok(res)
+    // }
 
     pub async fn list_for_account(
         &self,
@@ -56,7 +54,6 @@ impl Profiles {
     ) -> Result<Vec<Profile>, ProfileError> {
         let mut profiles = Vec::new();
         let mut next = Some(PaginatedQueryArgs::default());
-
         while let Some(query) = next.take() {
             let mut res = self
                 .list_for_account_id_by_id(account_id, query, Default::default())
@@ -67,6 +64,19 @@ impl Profiles {
         }
 
         Ok(profiles)
+    }
+
+    pub async fn persist_profile_events(
+        &self,
+        op: &mut es_entity::DbOp<'_>,
+        events: &mut EntityEvents<ProfileEvent>,
+    ) -> Result<usize, ProfileError> {
+        let size = self.persist_events(op, events).await?;
+        Ok(size)
+    }
+
+    pub async fn create_profile_in_tx(){
+
     }
 
     pub async fn find_by_id_and_account_id(
@@ -88,7 +98,7 @@ impl Profiles {
         account_id: AccountId,
     ) -> Result<Profile, ProfileError> {
         let profile = self.find_by_name(name).await?;
-
+        // THIS REQUIRES A REVIEW
         if profile.account_id != account_id {
             return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
         }
@@ -137,40 +147,10 @@ impl Profiles {
         .await?;
 
         if let Some(record) = record {
-            // let rows = sqlx::query!(
-            //     r#"SELECT sequence, event_type, event FROM bria_profile_events
-            //    WHERE id = $1
-            //    ORDER BY sequence"#,
-            //     record.id
-            // )
-            // .fetch_all(&mut *tx)
-            // .await?;
-            // let mut events = EntityEvents::new();
-            // for row in rows {
-            //     events.load_event(row.sequence as usize, row.event)?;
-            // }
-            // Ok(Profile::try_from(events)?)
             let profile = self.find_by_id(ProfileId::from(record.id)).await;
             profile
         } else {
             Err(ProfileError::ProfileKeyNotFound)
         }
-    }
-
-    pub async fn update(
-        &self,
-        tx: &mut Transaction<'_, Postgres>,
-        profile: Profile,
-    ) -> Result<(), ProfileError> {
-        if !profile.events.is_dirty() {
-            return Ok(());
-        }
-        EntityEvents::<ProfileEvent>::persist(
-            "bria_profile_events",
-            tx,
-            profile.events.new_serialized_events(profile.id),
-        )
-        .await?;
-        Ok(())
     }
 }
