@@ -1,3 +1,5 @@
+use std::thread::sleep;
+
 use es_entity::*;
 use rand::distributions::{Alphanumeric, DistString};
 use sqlx::{Pool, Postgres, Transaction};
@@ -135,19 +137,21 @@ impl Profiles {
         .await?;
 
         if let Some(record) = record {
-            let rows = sqlx::query!(
-                r#"SELECT sequence, event_type, event FROM bria_profile_events
-               WHERE id = $1
-               ORDER BY sequence"#,
-                record.id
-            )
-            .fetch_all(&mut *tx)
-            .await?;
-            let mut events = EntityEvents::new();
-            for row in rows {
-                events.load_event(row.sequence as usize, row.event)?;
-            }
-            Ok(Profile::try_from(events)?)
+            // let rows = sqlx::query!(
+            //     r#"SELECT sequence, event_type, event FROM bria_profile_events
+            //    WHERE id = $1
+            //    ORDER BY sequence"#,
+            //     record.id
+            // )
+            // .fetch_all(&mut *tx)
+            // .await?;
+            // let mut events = EntityEvents::new();
+            // for row in rows {
+            //     events.load_event(row.sequence as usize, row.event)?;
+            // }
+            // Ok(Profile::try_from(events)?)
+            let profile = self.find_by_id(ProfileId::from(record.id)).await;
+            profile
         } else {
             Err(ProfileError::ProfileKeyNotFound)
         }
