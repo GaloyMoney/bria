@@ -69,7 +69,7 @@ impl BatchInclusion {
         }
         let queue = self
             .payout_queues
-            .find_by_id_and_account_id(payout.payout_queue_id, account_id)
+            .find_by_id(account_id, payout.payout_queue_id)
             .await?;
         let estimate = self.estimate_next_queue_trigger(queue).await?;
         Ok(PayoutWithInclusionEstimate {
@@ -83,7 +83,7 @@ impl BatchInclusion {
         account_id: AccountId,
         payouts: Vec<Payout>,
     ) -> Result<Vec<PayoutWithInclusionEstimate>, BatchInclusionError> {
-        let queues = self.payout_queues.list_for_account_id(account_id).await?;
+        let queues = self.payout_queues.list_by_account_id(account_id).await?;
         let next_queue_trigger_times = self.next_queue_trigger_times(queues).await?;
         Ok(payouts
             .into_iter()

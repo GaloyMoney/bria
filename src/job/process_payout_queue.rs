@@ -52,7 +52,7 @@ pub(super) async fn execute<'a>(
     JobError,
 > {
     let payout_queue = payout_queues
-        .find_by_id_and_account_id(data.payout_queue_id, data.account_id)
+        .find_by_id(data.account_id, data.payout_queue_id)
         .await?;
     let mut tx = pool.begin().await?;
     let mut unbatched_payouts = payouts

@@ -120,7 +120,7 @@ async fn process_all_payout_queues(
         .build()
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
-            for group in payout_queues.list_all().await? {
+            for group in payout_queues.all().await? {
                 if let Some(delay) = group.spawn_in() {
                     let _ = spawn_schedule_process_payout_queue(
                         &pool,

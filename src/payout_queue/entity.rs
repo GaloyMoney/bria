@@ -1,16 +1,12 @@
 use derive_builder::Builder;
-use es_entity::*;
 use serde::{Deserialize, Serialize};
-
 use std::time::Duration;
 
-use crate::primitives::*;
-
 use super::config::*;
+use crate::{entity::*, primitives::*};
 
-#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[es_event(id = "PayoutQueueId")]
 pub enum PayoutQueueEvent {
     Initialized {
         id: PayoutQueueId,
@@ -27,13 +23,14 @@ pub enum PayoutQueueEvent {
     },
 }
 
-#[derive(EsEntity, Builder)]
-#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
+#[derive(Builder)]
+#[builder(pattern = "owned", build_fn(error = "EntityError"))]
 pub struct PayoutQueue {
     pub id: PayoutQueueId,
     pub account_id: AccountId,
     pub name: String,
     pub config: PayoutQueueConfig,
+
     pub(super) events: EntityEvents<PayoutQueueEvent>,
 }
 
@@ -48,7 +45,7 @@ impl PayoutQueue {
 
     pub fn description(&self) -> Option<String> {
         let mut ret = None;
-        for event in self.events.iter_all() {
+        for event in self.events.iter() {
             if let PayoutQueueEvent::DescriptionUpdated { description } = event {
                 ret = Some(description.as_str());
             }
@@ -70,28 +67,7 @@ impl PayoutQueue {
     }
 }
 
-impl TryFromEvents<PayoutQueueEvent> for PayoutQueue {
-    fn try_from_events(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, EsEntityError> {
-        let mut builder = PayoutQueueBuilder::default();
-        for event in events.iter_all() {
-            match event {
-                PayoutQueueEvent::Initialized { id, account_id } => {
-                    builder = builder.id(*id).account_id(*account_id);
-                }
-                PayoutQueueEvent::NameUpdated { name } => {
-                    builder = builder.name(name.clone());
-                }
-                PayoutQueueEvent::ConfigUpdated { config } => {
-                    builder = builder.config(config.clone());
-                }
-                _ => (),
-            }
-        }
-        builder.events(events).build()
-    }
-}
-
-#[derive(Debug, Builder)]
+#[derive(Debug, Builder, Clone)]
 pub struct NewPayoutQueue {
     #[builder(setter(into))]
     pub(super) id: PayoutQueueId,
@@ -103,17 +79,16 @@ pub struct NewPayoutQueue {
     #[builder(default)]
     pub(super) config: PayoutQueueConfig,
 }
+
 impl NewPayoutQueue {
     pub fn builder() -> NewPayoutQueueBuilder {
         let mut builder = NewPayoutQueueBuilder::default();
         builder.id(PayoutQueueId::new());
         builder
     }
-}
 
-impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
-    fn into_events(self) -> EntityEvents<PayoutQueueEvent> {
-        let mut events = vec![
+    pub(super) fn initial_events(self) -> EntityEvents<PayoutQueueEvent> {
+        let mut events = EntityEvents::init([
             PayoutQueueEvent::Initialized {
                 id: self.id,
                 account_id: self.account_id,
@@ -122,10 +97,34 @@ impl IntoEvents<PayoutQueueEvent> for NewPayoutQueue {
             PayoutQueueEvent::ConfigUpdated {
                 config: self.config,
             },
-        ];
+        ]);
         if let Some(description) = self.description {
             events.push(PayoutQueueEvent::DescriptionUpdated { description });
         }
-        EntityEvents::init(self.id, events)
+        events
+    }
+}
+
+impl TryFrom<EntityEvents<PayoutQueueEvent>> for PayoutQueue {
+    type Error = EntityError;
+
+    fn try_from(events: EntityEvents<PayoutQueueEvent>) -> Result<Self, Self::Error> {
+        let mut builder = PayoutQueueBuilder::default();
+        use PayoutQueueEvent::*;
+        for event in events.iter() {
+            match event {
+                Initialized { id, account_id } => {
+                    builder = builder.id(*id).account_id(*account_id);
+                }
+                NameUpdated { name } => {
+                    builder = builder.name(name.clone());
+                }
+                ConfigUpdated { config } => {
+                    builder = builder.config(config.clone());
+                }
+                _ => (),
+            }
+        }
+        builder.events(events).build()
     }
 }
