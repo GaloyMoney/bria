@@ -116,7 +116,6 @@ impl App {
             config,
             _runner: runner,
         };
-        crate::profile::migration::profile_event_migration(&app.pool).await?;
         if let Some(deprecrated_encryption_key) = app.config.deprecated_encryption_key.as_ref() {
             app.rotate_encryption_key(deprecrated_encryption_key)
                 .await?;
@@ -141,16 +140,13 @@ impl App {
         name: String,
         spending_policy: Option<SpendingPolicy>,
     ) -> Result<Profile, ApplicationError> {
-        let mut tx = self.pool.begin().await?;
-        let mut op = self.profiles.begin_op().await?;
         let new_profile = NewProfile::builder()
             .account_id(profile.account_id)
             .name(name)
             .spending_policy(spending_policy)
             .build()
             .expect("Couldn't build NewProfile");
-        let new_profile = self.profiles.create_in_op(&mut op, new_profile).await?;
-        op.commit().await?;
+        let new_profile = self.profiles.create(new_profile).await?;
         Ok(new_profile)
     }
 
@@ -166,11 +162,7 @@ impl App {
             .find_by_id_and_account_id(profile_id, profile.account_id)
             .await?;
         target_profile.update_spending_policy(spending_policy);
-        let mut op = self.profiles.begin_op().await?;
-        self.profiles
-            .update_in_op(&mut op, &mut target_profile)
-            .await?;
-        op.commit().await?;
+        self.profiles.update(&mut target_profile).await?;
         Ok(())
     }
 

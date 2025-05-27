@@ -22,32 +22,6 @@ impl Profiles {
         Self { pool: pool.clone() }
     }
 
-    // pub async fn create_in_tx(
-    //     &self,
-    //     tx: &mut Transaction<'_, Postgres>,
-    //     profile: NewProfile,
-    // ) -> Result<Profile, ProfileError> {
-    //     let id = profile.id;
-    //     sqlx::query!(
-    //         r#"INSERT INTO bria_profiles (id, account_id, name)
-    //         VALUES ($1, $2, $3)"#,
-    //         profile.id as ProfileId,
-    //         profile.account_id as AccountId,
-    //         profile.name,
-    //     )
-    //     .execute(&mut **tx)
-    //     .await?;
-    //     let events = profile.into_events();
-    //     EntityEvents::<ProfileEvent>::persist(
-    //         "bria_profile_events",
-    //         &mut *tx,
-    //         events.new_serialized_events(id),
-    //     )
-    //     .await?;
-    //     let res = Profile::try_from_events(events)?;
-    //     Ok(res)
-    // }
-
     pub async fn list_for_account(
         &self,
         account_id: AccountId,
@@ -73,10 +47,6 @@ impl Profiles {
     ) -> Result<usize, ProfileError> {
         let size = self.persist_events(op, events).await?;
         Ok(size)
-    }
-
-    pub async fn create_profile_in_tx(){
-
     }
 
     pub async fn find_by_id_and_account_id(
