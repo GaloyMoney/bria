@@ -40,15 +40,6 @@ impl Profiles {
         Ok(profiles)
     }
 
-    pub async fn persist_profile_events(
-        &self,
-        op: &mut es_entity::DbOp<'_>,
-        events: &mut EntityEvents<ProfileEvent>,
-    ) -> Result<usize, ProfileError> {
-        let size = self.persist_events(op, events).await?;
-        Ok(size)
-    }
-
     pub async fn find_by_id_and_account_id(
         &self,
         id: ProfileId,
@@ -68,7 +59,6 @@ impl Profiles {
         account_id: AccountId,
     ) -> Result<Profile, ProfileError> {
         let profile = self.find_by_name(name).await?;
-        // THIS REQUIRES A REVIEW
         if profile.account_id != account_id {
             return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
         }
