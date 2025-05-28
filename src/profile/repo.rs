@@ -43,7 +43,7 @@ impl Profiles {
         Ok(profiles)
     }
 
-    pub async fn find_by_id_and_account_id(
+    pub async fn find_by_account_id_and_id(
         &self,
         account_id: AccountId,
         id: ProfileId,
@@ -56,7 +56,7 @@ impl Profiles {
         Ok(profile)
     }
 
-    pub async fn find_by_name_and_account_id(
+    pub async fn find_by_account_id_and_name(
         &self,
         account_id: AccountId,
         name: String,
