@@ -10,7 +10,10 @@ use crate::{dev_constants, primitives::*};
 #[es_repo(
     entity = "Profile",
     err = "ProfileError",
-    columns(name(ty = "String"), account_id(ty = "AccountId", list_for)),
+    columns(
+        name(ty = "String"),
+        account_id(ty = "AccountId", list_for, update(persist = false))
+    ),
     tbl_prefix = "bria"
 )]
 pub struct Profiles {
