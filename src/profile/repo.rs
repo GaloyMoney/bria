@@ -45,8 +45,8 @@ impl Profiles {
 
     pub async fn find_by_id_and_account_id(
         &self,
-        id: ProfileId,
         account_id: AccountId,
+        id: ProfileId,
     ) -> Result<Profile, ProfileError> {
         let profile = self.find_by_id(id).await?;
 
@@ -58,8 +58,8 @@ impl Profiles {
 
     pub async fn find_by_name_and_account_id(
         &self,
-        name: String,
         account_id: AccountId,
+        name: String,
     ) -> Result<Profile, ProfileError> {
         let profile = self.find_by_name(name).await?;
         if profile.account_id != account_id {

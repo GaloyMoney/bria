@@ -159,7 +159,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let mut target_profile = self
             .profiles
-            .find_by_id_and_account_id(profile_id, profile.account_id)
+            .find_by_id_and_account_id(profile.account_id, profile_id)
             .await?;
         target_profile.update_spending_policy(spending_policy);
         self.profiles.update(&mut target_profile).await?;
@@ -180,7 +180,7 @@ impl App {
     ) -> Result<ProfileApiKey, ApplicationError> {
         let found_profile = self
             .profiles
-            .find_by_name_and_account_id(profile_name, profile.account_id)
+            .find_by_name_and_account_id(profile.account_id, profile_name)
             .await?;
         let mut tx = self.pool.begin().await?;
         let key = self
@@ -636,7 +636,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let payout_queue = self
             .payout_queues
-            .find_by_name_and_account_id(name, profile.account_id)
+            .find_by_name_and_account_id(profile.account_id, name)
             .await?;
         job::spawn_process_payout_queue(&self.pool, (payout_queue.account_id, payout_queue.id))
             .await?;
@@ -685,7 +685,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .find_by_name_and_account_id(profile.account_id, queue_name)
             .await?;
         let mut tx = self.pool.begin().await?;
         let mut unbatched_payouts = self
@@ -756,7 +756,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .find_by_name_and_account_id(profile.account_id, queue_name)
             .await?;
         let addr = Address::try_from((address, self.config.blockchain.network))?;
         self.submit_payout(
@@ -790,7 +790,7 @@ impl App {
             .await?;
         let payout_queue = self
             .payout_queues
-            .find_by_name_and_account_id(queue_name, profile.account_id)
+            .find_by_name_and_account_id(profile.account_id, queue_name)
             .await?;
         let payout_id = PayoutId::new();
         let (wallet_id, address) = self
@@ -978,7 +978,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let mut payout_queue = self
             .payout_queues
-            .find_by_id_and_account_id(id, profile.account_id)
+            .find_by_id_and_account_id(profile.account_id, id)
             .await?;
 
         if let Some(desc) = new_description {

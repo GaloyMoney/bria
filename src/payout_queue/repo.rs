@@ -23,8 +23,8 @@ impl PayoutQueues {
 
     pub async fn find_by_id_and_account_id(
         &self,
-        id: PayoutQueueId,
         account_id: AccountId,
+        id: PayoutQueueId,
     ) -> Result<PayoutQueue, PayoutQueueError> {
         let payout_queue = self.find_by_id(id).await?;
 
@@ -36,8 +36,8 @@ impl PayoutQueues {
 
     pub async fn find_by_name_and_account_id(
         &self,
-        name: String,
         account_id: AccountId,
+        name: String,
     ) -> Result<PayoutQueue, PayoutQueueError> {
         let payout_queue = self.find_by_name(name).await?;
 
