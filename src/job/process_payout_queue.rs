@@ -291,6 +291,7 @@ impl From<WalletTotals> for WalletSummary {
             current_keychain_id: wt.change_keychain_id,
             batch_created_ledger_tx_id: None,
             batch_broadcast_ledger_tx_id: None,
+            batch_cancel_ledger_tx_id: None,
         }
     }
 }

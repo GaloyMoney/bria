@@ -12,6 +12,7 @@ use sqlx_ledger::{
 use tokio_stream::{wrappers::BroadcastStream, Stream, StreamExt};
 use tracing::instrument;
 
+use rust_decimal::Decimal;
 use std::collections::HashMap;
 
 use crate::{account::balance::*, primitives::*};
@@ -58,6 +59,7 @@ impl Ledger {
         if templates::BatchCreated::init(&inner).await? {
             templates::fix::legacy_batch_created(&inner).await?;
         }
+        templates::BatchDropped::init(&inner).await?;
         templates::BatchBroadcast::init(&inner).await?;
 
         Ok(Self {
@@ -319,6 +321,76 @@ impl Ledger {
         self.inner
             .post_transaction_in_tx(tx, tx_id, BATCH_CREATED_CODE, Some(params))
             .await?;
+        Ok(())
+    }
+
+    #[instrument(name = "ledger.batch_dropped", skip(self, tx))]
+    pub async fn batch_dropped(
+        &self,
+        tx: Transaction<'_, Postgres>,
+        tx_id: LedgerTransactionId,
+        created_batch_tx_id: LedgerTransactionId,
+    ) -> Result<(), LedgerError> {
+        let txs = self
+            .inner
+            .transactions()
+            .list_by_ids(std::iter::once(created_batch_tx_id))
+            .await?;
+        let txn = txs.first().ok_or(LedgerError::TransactionNotFound)?;
+
+        let BatchCreatedMeta {
+            batch_info,
+            tx_summary,
+        } = txn.metadata()?.ok_or(LedgerError::MissingTxMetadata)?;
+
+        let entries = self
+            .inner
+            .entries()
+            .list_by_transaction_ids(std::iter::once(created_batch_tx_id))
+            .await?;
+
+        let mut ledger_account_ids = WalletLedgerAccountIds::default();
+        let mut encumbered_fees: Satoshis = Satoshis::from_btc(Decimal::ZERO);
+        for entry in entries.into_values().flatten() {
+            match entry.entry_type.as_str() {
+                "BATCH_CREATED_LOG_OUT_ENC_DR" => {
+                    ledger_account_ids.effective_outgoing_id = entry.account_id;
+                }
+                "BATCH_CREATED_LOG_SET_DR" => {
+                    ledger_account_ids.effective_at_rest_id = entry.account_id;
+                }
+                "BATCH_CREATED_FR_ENC_CR" => {
+                    ledger_account_ids.fee_id = entry.account_id;
+                    encumbered_fees = Satoshis::from_btc(entry.units);
+                }
+                "BATCH_CREATED_UTX_OUT_PEN_CR" => {
+                    ledger_account_ids.onchain_outgoing_id = entry.account_id;
+                }
+                "BATCH_CREATED_CHG_ENC_CR" => {
+                    ledger_account_ids.onchain_incoming_id = entry.account_id;
+                }
+                "BATCH_CREATED_UTX_SET_DR" => {
+                    ledger_account_ids.onchain_at_rest_id = entry.account_id;
+                }
+                _ => {}
+            }
+        }
+
+        let params = BatchDroppedParams {
+            journal_id: txn.journal_id,
+            ledger_account_ids,
+            encumbered_fees,
+            meta: BatchDroppedMeta {
+                batch_info,
+                tx_summary,
+                created_txn_id: created_batch_tx_id,
+            },
+        };
+
+        self.inner
+            .post_transaction_in_tx(tx, tx_id, BATCH_DROPPED_CODE, Some(params))
+            .await?;
+
         Ok(())
     }
 
