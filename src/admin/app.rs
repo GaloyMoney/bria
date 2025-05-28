@@ -10,7 +10,6 @@ pub struct AdminApp {
     accounts: Accounts,
     profiles: Profiles,
     ledger: Ledger,
-    pool: sqlx::PgPool,
     network: bitcoin::Network,
 }
 
@@ -21,7 +20,6 @@ impl AdminApp {
             accounts: Accounts::new(&pool),
             profiles: Profiles::new(&pool),
             ledger: Ledger::new(&pool),
-            pool,
             network,
         }
     }
@@ -34,26 +32,26 @@ impl AdminApp {
             return Err(AdminApiError::BadNetworkForDev);
         }
         let admin_key = self.bootstrap().await?;
+        let mut db = self.profiles.begin_op().await?;
 
-        let mut tx = self.pool.begin().await?;
         let account = self
             .accounts
-            .create_in_tx(&mut tx, dev_constants::DEV_ACCOUNT_NAME.to_owned())
+            .create_in_tx(db.tx(), dev_constants::DEV_ACCOUNT_NAME.to_owned())
             .await?;
         self.ledger
-            .create_journal_for_account(&mut tx, account.id, account.name.clone())
+            .create_journal_for_account(db.tx(), account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
             .name(account.name)
             .build()
             .expect("Couldn't build NewProfile");
-        let profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
+        let profile = self.profiles.create_in_op(&mut db, new_profile).await?;
         let profile_key = self
             .profiles
-            .create_key_for_profile_in_tx(&mut tx, profile, true)
+            .create_key_for_profile_in_tx(db.tx(), profile, true)
             .await?;
-        tx.commit().await?;
+        db.commit().await?;
         Ok((admin_key, profile_key))
     }
 
@@ -73,25 +71,25 @@ impl AdminApp {
         &self,
         account_name: String,
     ) -> Result<ProfileApiKey, AdminApiError> {
-        let mut tx = self.pool.begin().await?;
+        let mut db = self.profiles.begin_op().await?;
         let account = self
             .accounts
-            .create_in_tx(&mut tx, account_name.clone())
+            .create_in_tx(db.tx(), account_name.clone())
             .await?;
         self.ledger
-            .create_journal_for_account(&mut tx, account.id, account.name.clone())
+            .create_journal_for_account(db.tx(), account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
             .name(account.name)
             .build()
             .expect("Couldn't build NewProfile");
-        let profile = self.profiles.create_in_tx(&mut tx, new_profile).await?;
+        let profile = self.profiles.create_in_op(&mut db, new_profile).await?;
         let key = self
             .profiles
-            .create_key_for_profile_in_tx(&mut tx, profile, false)
+            .create_key_for_profile_in_tx(db.tx(), profile, false)
             .await?;
-        tx.commit().await?;
+        db.commit().await?;
         Ok(key)
     }
 

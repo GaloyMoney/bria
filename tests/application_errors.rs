@@ -159,9 +159,9 @@ async fn profile_name_not_found() -> anyhow::Result<()> {
         .await;
     assert!(matches!(
         err,
-        Err(ApplicationError::ProfileError(
-            ProfileError::ProfileNameNotFound(_)
-        ))
+        Err(ApplicationError::ProfileError(ProfileError::EsEntityError(
+            EsEntityError::NotFound
+        )))
     ));
     Ok(())
 }

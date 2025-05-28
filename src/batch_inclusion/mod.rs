@@ -69,7 +69,7 @@ impl BatchInclusion {
         }
         let queue = self
             .payout_queues
-            .find_by_id_and_account_id(payout.payout_queue_id, account_id)
+            .find_by_account_id_and_id(account_id, payout.payout_queue_id)
             .await?;
         let estimate = self.estimate_next_queue_trigger(queue).await?;
         Ok(PayoutWithInclusionEstimate {
