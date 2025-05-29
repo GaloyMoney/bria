@@ -1,12 +1,14 @@
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{entity::*, primitives::*};
+use crate::primitives::*;
 
 use super::error::PayoutError;
 
-#[derive(Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "PayoutId")]
 pub enum PayoutEvent {
     Initialized {
         id: PayoutId,
@@ -31,8 +33,8 @@ pub enum PayoutEvent {
     },
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct Payout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
@@ -66,7 +68,7 @@ impl Payout {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             if let PayoutEvent::Cancelled { .. } = event {
                 return true;
             }
@@ -79,59 +81,10 @@ impl Payout {
     }
 }
 
-#[derive(Debug, Builder, Clone)]
-pub struct NewPayout {
-    #[builder(setter(into))]
-    pub(super) id: PayoutId,
-    #[builder(setter(into))]
-    pub(super) account_id: AccountId,
-    #[builder(setter(into))]
-    pub(super) wallet_id: WalletId,
-    #[builder(setter(into))]
-    pub(super) payout_queue_id: PayoutQueueId,
-    pub(super) profile_id: ProfileId,
-    pub(super) satoshis: Satoshis,
-    pub(super) destination: PayoutDestination,
-    #[builder(setter(into))]
-    pub(super) external_id: String,
-    #[builder(default, setter(into))]
-    pub(super) metadata: Option<serde_json::Value>,
-}
-
-impl NewPayout {
-    pub fn builder(id: PayoutId) -> NewPayoutBuilder {
-        let mut builder = NewPayoutBuilder::default();
-        builder.external_id(id.to_string()).id(id);
-        builder
-    }
-
-    pub(super) fn initial_events(self) -> EntityEvents<PayoutEvent> {
-        let mut events = EntityEvents::init([
-            PayoutEvent::Initialized {
-                id: self.id,
-                wallet_id: self.wallet_id,
-                payout_queue_id: self.payout_queue_id,
-                profile_id: self.profile_id,
-                destination: self.destination,
-                satoshis: self.satoshis,
-            },
-            PayoutEvent::ExternalIdUpdated {
-                external_id: self.external_id,
-            },
-        ]);
-        if let Some(metadata) = self.metadata {
-            events.push(PayoutEvent::MetadataUpdated { metadata });
-        }
-        events
-    }
-}
-
-impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<PayoutEvent>) -> Result<Self, Self::Error> {
+impl TryFromEvents<PayoutEvent> for Payout {
+    fn try_from_events(events: EntityEvents<PayoutEvent>) -> Result<Self, EsEntityError> {
         let mut builder = PayoutBuilder::default();
-        for event in events.iter() {
+        for event in events.iter_all() {
             match event {
                 PayoutEvent::Initialized {
                     id,
@@ -167,6 +120,55 @@ impl TryFrom<EntityEvents<PayoutEvent>> for Payout {
     }
 }
 
+#[derive(Debug, Builder, Clone)]
+pub struct NewPayout {
+    #[builder(setter(into))]
+    pub(super) id: PayoutId,
+    #[builder(setter(into))]
+    pub(super) account_id: AccountId,
+    #[builder(setter(into))]
+    pub(super) wallet_id: WalletId,
+    #[builder(setter(into))]
+    pub(super) payout_queue_id: PayoutQueueId,
+    pub(super) profile_id: ProfileId,
+    pub(super) satoshis: Satoshis,
+    pub(super) destination: PayoutDestination,
+    #[builder(setter(into))]
+    pub(super) external_id: String,
+    #[builder(default, setter(into))]
+    pub(super) metadata: Option<serde_json::Value>,
+}
+
+impl NewPayout {
+    pub fn builder(id: PayoutId) -> NewPayoutBuilder {
+        let mut builder = NewPayoutBuilder::default();
+        builder.external_id(id.to_string()).id(id);
+        builder
+    }
+}
+
+impl IntoEvents<PayoutEvent> for NewPayout {
+    fn into_events(self) -> EntityEvents<PayoutEvent> {
+        let mut events = vec![
+            PayoutEvent::Initialized {
+                id: self.id,
+                wallet_id: self.wallet_id,
+                payout_queue_id: self.payout_queue_id,
+                profile_id: self.profile_id,
+                destination: self.destination,
+                satoshis: self.satoshis,
+            },
+            PayoutEvent::ExternalIdUpdated {
+                external_id: self.external_id,
+            },
+        ];
+        if let Some(metadata) = self.metadata {
+            events.push(PayoutEvent::MetadataUpdated { metadata });
+        }
+        EntityEvents::init(self.id, events)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rust_decimal::Decimal;
@@ -174,31 +176,35 @@ mod tests {
     use super::*;
 
     fn init_events() -> EntityEvents<PayoutEvent> {
-        EntityEvents::init([
-            PayoutEvent::Initialized {
-                id: PayoutId::new(),
-                wallet_id: WalletId::new(),
-                profile_id: ProfileId::new(),
-                payout_queue_id: PayoutQueueId::new(),
-                destination: PayoutDestination::OnchainAddress {
-                    value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
-                        .parse::<Address>()
-                        .unwrap(),
+        let id = PayoutId::new();
+        EntityEvents::init(
+            id,
+            [
+                PayoutEvent::Initialized {
+                    id: id,
+                    wallet_id: WalletId::new(),
+                    profile_id: ProfileId::new(),
+                    payout_queue_id: PayoutQueueId::new(),
+                    destination: PayoutDestination::OnchainAddress {
+                        value: "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej"
+                            .parse::<Address>()
+                            .unwrap(),
+                    },
+                    satoshis: Satoshis::from(Decimal::from(21)),
                 },
-                satoshis: Satoshis::from(Decimal::from(21)),
-            },
-            PayoutEvent::ExternalIdUpdated {
-                external_id: "external_id".to_string(),
-            },
-        ])
+                PayoutEvent::ExternalIdUpdated {
+                    external_id: "external_id".to_string(),
+                },
+            ],
+        )
     }
 
     #[test]
     fn cancel_payout() {
-        let mut payout = Payout::try_from(init_events()).unwrap();
+        let mut payout = Payout::try_from_events(init_events()).unwrap();
         assert!(payout.cancel_payout(payout.profile_id).is_ok());
         assert!(matches!(
-            payout.events.last(1)[0],
+            payout.events.last_persisted(1).next().unwrap().event,
             PayoutEvent::Cancelled { .. }
         ));
     }
@@ -209,7 +215,7 @@ mod tests {
         events.push(PayoutEvent::Cancelled {
             executed_by: ProfileId::new(),
         });
-        let mut payout = Payout::try_from(events).unwrap();
+        let mut payout = Payout::try_from_events(events).unwrap();
         let result = payout.cancel_payout(payout.profile_id);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCancelled)));
     }
@@ -227,7 +233,7 @@ mod tests {
             },
         });
 
-        let mut payout = Payout::try_from(events).unwrap();
+        let mut payout = Payout::try_from_events(events).unwrap();
 
         let result = payout.cancel_payout(payout.profile_id);
         assert!(matches!(result, Err(PayoutError::PayoutAlreadyCommitted)));
