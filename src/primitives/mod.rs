@@ -1,4 +1,3 @@
-use es_entity::entity_id;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -22,7 +21,7 @@ impl From<AccountId> for LedgerJournalId {
         Self::from(uuid::Uuid::from(id))
     }
 }
-entity_id! { ProfileId, PayoutQueueId }
+es_entity::entity_id! { ProfileId, PayoutQueueId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }
