@@ -1,12 +1,20 @@
-use sqlx::{Pool, Postgres, Transaction};
+use anyhow::Ok;
+use es_entity::*;
+use sqlx::{query_file_as, Pool, Postgres, Transaction};
 use tracing::instrument;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, thread::panicking};
 
 use super::{entity::*, error::*, unbatched::*};
-use crate::{entity::*, primitives::*};
+use crate::primitives::*;
 
-#[derive(Debug, Clone)]
+#[derive(EsRepo, Clone, Debug)]
+#[es_repo(
+    entity = "Payout",
+    err = "PayoutError",
+    columns(account_id(ty = "AccountId", list_for, update(persist = false)),),
+    tbl_prefix = "bria"
+)]
 pub struct Payouts {
     pool: Pool<Postgres>,
 }
@@ -16,90 +24,103 @@ impl Payouts {
         Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "payouts.create", skip(self, tx))]
-    pub async fn create_in_tx(
-        &self,
-        tx: &mut Transaction<'_, Postgres>,
-        new_payout: NewPayout,
-    ) -> Result<PayoutId, PayoutError> {
-        sqlx::query!(
-            r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
-               VALUES ($1, $2, $3, $4, $5, $6)"#,
-            new_payout.id as PayoutId,
-            new_payout.account_id as AccountId,
-            new_payout.wallet_id as WalletId,
-            new_payout.payout_queue_id as PayoutQueueId,
-            new_payout.profile_id as ProfileId,
-            new_payout.external_id,
-        ).execute(&mut **tx).await?;
-        let id = new_payout.id;
-        EntityEvents::<PayoutEvent>::persist(
-            "bria_payout_events",
-            tx,
-            new_payout.initial_events().new_serialized_events(id),
-        )
-        .await?;
-        Ok(id)
-    }
+    // #[instrument(name = "payouts.create", skip(self, tx))]
+    // pub async fn create_in_tx(
+    //     &self,
+    //     tx: &mut Transaction<'_, Postgres>,
+    //     new_payout: NewPayout,
+    // ) -> Result<PayoutId, PayoutError> {
+    //     sqlx::query!(
+    //         r#"INSERT INTO bria_payouts (id, account_id, wallet_id, payout_queue_id, profile_id, external_id)
+    //            VALUES ($1, $2, $3, $4, $5, $6)"#,
+    //         new_payout.id as PayoutId,
+    //         new_payout.account_id as AccountId,
+    //         new_payout.wallet_id as WalletId,
+    //         new_payout.payout_queue_id as PayoutQueueId,
+    //         new_payout.profile_id as ProfileId,
+    //         new_payout.external_id,
+    //     ).execute(&mut **tx).await?;
+    //     let id = new_payout.id;
+    //     EntityEvents::<PayoutEvent>::persist(
+    //         "bria_payout_events",
+    //         tx,
+    //         new_payout.initial_events().new_serialized_events(id),
+    //     )
+    //     .await?;
+    //     Ok(id)
+    // }
 
-    #[instrument(name = "payouts.find_by_id", skip(self))]
-    pub async fn find_by_id(
+    pub async fn find_by_account_id_and_id(
         &self,
         account_id: AccountId,
-        payout_id: PayoutId,
+        id: PayoutId,
     ) -> Result<Payout, PayoutError> {
-        let rows = sqlx::query!(
-            r#"
-          SELECT b.*, e.sequence, e.event
-          FROM bria_payouts b
-          JOIN bria_payout_events e ON b.id = e.id
-          WHERE account_id = $1 AND b.id = $2
-          ORDER BY b.created_at, b.id, e.sequence"#,
-            account_id as AccountId,
-            payout_id as PayoutId,
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let mut payouts = Vec::new();
+        let mut next = Some(PaginatedQueryArgs::default());
 
-        if rows.is_empty() {
-            return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
+        while let Some(query) = next.take() {
+            let mut ret = self
+                .list_for_account_id_by_id(account_id, query, Default::default())
+                .await?;
+            payouts.append(&mut ret.entities);
+            next = ret.into_next_query();
         }
-
-        let mut entity_events = EntityEvents::new();
-        for row in rows {
-            entity_events.load_event(row.sequence as usize, row.event)?;
-        }
-        Ok(Payout::try_from(entity_events)?)
+        payouts
+            .into_iter()
+            .find(|payout| payout.id == id)
+            .ok_or(PayoutError::EsEntityError(EsEntityError::NotFound))
     }
+    // #[instrument(name = "payouts.find_by_id", skip(self))]
+    // pub async fn find_by_id(
+    //     &self,
+    //     account_id: AccountId,
+    //     payout_id: PayoutId,
+    // ) -> Result<Payout, PayoutError> {
+    //     let rows = sqlx::query!(
+    //         r#"
+    //       SELECT b.*, e.sequence, e.event
+    //       FROM bria_payouts b
+    //       JOIN bria_payout_events e ON b.id = e.id
+    //       WHERE account_id = $1 AND b.id = $2
+    //       ORDER BY b.created_at, b.id, e.sequence"#,
+    //         account_id as AccountId,
+    //         payout_id as PayoutId,
+    //     )
+    //     .fetch_all(&self.pool)
+    //     .await?;
+
+    //     if rows.is_empty() {
+    //         return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
+    //     }
+
+    //     let mut entity_events = EntityEvents::new();
+    //     for row in rows {
+    //         entity_events.load_event(row.sequence as usize, row.event)?;
+    //     }
+    //     Ok(Payout::try_from(entity_events)?)
+    // }
 
     #[instrument(name = "payouts.find_by_external_id", skip(self))]
-    pub async fn find_by_external_id(
+    // order by in each, list by, list for
+    pub async fn find_by_account_id_and_external_id(
         &self,
         account_id: AccountId,
         external_id: String,
     ) -> Result<Payout, PayoutError> {
-        let rows = sqlx::query!(
-            r#"
-          SELECT b.*, e.sequence, e.event
-          FROM bria_payouts b
-          JOIN bria_payout_events e ON b.id = e.id
-          WHERE account_id = $1 AND b.external_id = $2
-          ORDER BY b.created_at, b.id, e.sequence"#,
-            account_id as AccountId,
-            external_id
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let mut payouts = Vec::new();
+        let mut next = Some(PaginatedQueryArgs::default());
 
-        if rows.is_empty() {
-            return Err(PayoutError::ExternalIdNotFound);
+        while let Some(query) = next.take() {
+            let mut ret = self
+                .list_for_account_id_by_id(account_id, query, Default::default())
+                .await?;
+            payouts.append(&mut ret.entities);
+            next = ret.into_next_query();
         }
-
-        let mut entity_events = EntityEvents::new();
-        for row in rows {
-            entity_events.load_event(row.sequence as usize, row.event)?;
-        }
-        Ok(Payout::try_from(entity_events)?)
+        payouts
+            .into_iter()
+            .find(|payout| payout.external_id == external_id)
+            .ok_or(PayoutError::EsEntityError(EsEntityError::NotFound))
     }
 
     #[instrument(name = "payouts.list_unbatched", skip(self))]
@@ -335,20 +356,20 @@ impl Payouts {
         Ok(Payout::try_from(entity_events)?)
     }
 
-    pub async fn update(
-        &self,
-        tx: &mut Transaction<'_, Postgres>,
-        payout: Payout,
-    ) -> Result<(), PayoutError> {
-        if !payout.events.is_dirty() {
-            return Ok(());
-        }
-        EntityEvents::<PayoutEvent>::persist(
-            "bria_payout_events",
-            tx,
-            payout.events.new_serialized_events(payout.id),
-        )
-        .await?;
-        Ok(())
-    }
+    // pub async fn update(
+    //     &self,
+    //     tx: &mut Transaction<'_, Postgres>,
+    //     payout: Payout,
+    // ) -> Result<(), PayoutError> {
+    //     if !payout.events.is_dirty() {
+    //         return Ok(());
+    //     }
+    //     EntityEvents::<PayoutEvent>::persist(
+    //         "bria_payout_events",
+    //         tx,
+    //         payout.events.new_serialized_events(payout.id),
+    //     )
+    //     .await?;
+    //     Ok(())
+    // }
 }
