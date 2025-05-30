@@ -852,11 +852,11 @@ impl App {
             builder.external_id(external_id);
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
-        let mut tx = self.pool.begin().await?;
-        let id = self.payouts.create_in_tx(&mut tx, new_payout).await?;
+        let mut db = self.payouts.begin_op().await?;
+        let id = self.payouts.create_in_op(&mut db, new_payout).await?.id;
         self.ledger
             .payout_submitted(
-                tx,
+                db.into_tx(),
                 id,
                 PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
@@ -887,15 +887,15 @@ impl App {
         profile: &Profile,
         id: PayoutId,
     ) -> Result<(), ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut db = self.payouts.begin_op().await?;
         let mut payout = self
             .payouts
-            .find_by_id_for_cancellation(&mut tx, profile.account_id, id)
+            .find_by_id_for_cancellation(db.tx(), profile.account_id, id)
             .await?;
         payout.cancel_payout(profile.id)?;
-        self.payouts.update(&mut tx, payout).await?;
+        self.payouts.update_in_op(&mut db, &mut payout).await?;
         self.ledger
-            .payout_cancelled(tx, LedgerTransactionId::new(), id)
+            .payout_cancelled(db.into_tx(), LedgerTransactionId::new(), id)
             .await?;
         Ok(())
     }
@@ -913,7 +913,7 @@ impl App {
     ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
         let payout = self
             .payouts
-            .find_by_external_id(profile.account_id, external_id)
+            .find_by_account_id_and_external_id(profile.account_id, external_id)
             .await?;
         Ok(self
             .batch_inclusion
@@ -927,7 +927,10 @@ impl App {
         profile: &Profile,
         id: PayoutId,
     ) -> Result<PayoutWithInclusionEstimate, ApplicationError> {
-        let payout = self.payouts.find_by_id(profile.account_id, id).await?;
+        let payout = self
+            .payouts
+            .find_by_account_id_and_id(profile.account_id, id)
+            .await?;
         Ok(self
             .batch_inclusion
             .include_estimate(profile.account_id, payout)

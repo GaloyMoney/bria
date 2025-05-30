@@ -682,9 +682,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::ProfileError(ProfileError::EsEntityError(
                 es_entity::EsEntityError::NotFound,
             )) => tonic::Status::not_found(err.to_string()),
-            ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
+            ApplicationError::PayoutError(PayoutError::EsEntityError(
+                es_entity::EsEntityError::NotFound,
+            )) => tonic::Status::not_found(err.to_string()),
             ApplicationError::PayoutError(PayoutError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
             }
@@ -694,9 +694,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseIncomingUuid(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
-            ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
-                tonic::Status::not_found(err.to_string())
-            }
+            // ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
+            //     tonic::Status::not_found(err.to_string())
+            // }
             ApplicationError::DestinationBlocked(_) => {
                 tonic::Status::permission_denied(err.to_string())
             }

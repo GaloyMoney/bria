@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n          SELECT b.*, e.sequence, e.event\n          FROM bria_payouts b\n          JOIN bria_payout_events e ON b.id = e.id\n          WHERE account_id = $1 AND b.id = $2\n          ORDER BY b.created_at, b.id, e.sequence",
+  "query": "SELECT id, version, journal_id, tx_template_id, effective, correlation_id, external_id, description, metadata, created_at, modified_at\n            FROM sqlx_ledger_transactions\n            WHERE id = ANY($1)",
   "describe": {
     "columns": [
       {
@@ -10,27 +10,27 @@
       },
       {
         "ordinal": 1,
-        "name": "account_id",
-        "type_info": "Uuid"
+        "name": "version",
+        "type_info": "Int4"
       },
       {
         "ordinal": 2,
-        "name": "wallet_id",
+        "name": "journal_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 3,
-        "name": "payout_queue_id",
+        "name": "tx_template_id",
         "type_info": "Uuid"
       },
       {
         "ordinal": 4,
-        "name": "batch_id",
-        "type_info": "Uuid"
+        "name": "effective",
+        "type_info": "Date"
       },
       {
         "ordinal": 5,
-        "name": "profile_id",
+        "name": "correlation_id",
         "type_info": "Uuid"
       },
       {
@@ -40,24 +40,28 @@
       },
       {
         "ordinal": 7,
+        "name": "description",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
-        "name": "sequence",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 9,
-        "name": "event",
-        "type_info": "Jsonb"
+        "ordinal": 10,
+        "name": "modified_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Uuid"
+        "UuidArray"
       ]
     },
     "nullable": [
@@ -65,13 +69,14 @@
       false,
       false,
       false,
+      false,
+      false,
+      false,
       true,
-      false,
-      false,
-      false,
+      true,
       false,
       false
     ]
   },
-  "hash": "bac453e06ae1ceebef3012cf0119ec13fcc982c544b3fde38f557b264dea6e9a"
+  "hash": "97e0b4c922ce1927e58ed4836ee5f403d6ca6274a0d7816a8a2979943159c062"
 }
