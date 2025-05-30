@@ -70,6 +70,7 @@ impl Payouts {
             .find(|payout| payout.id == id)
             .ok_or(PayoutError::EsEntityError(EsEntityError::NotFound))
     }
+    
     // #[instrument(name = "payouts.find_by_id", skip(self))]
     // pub async fn find_by_id(
     //     &self,
@@ -168,7 +169,7 @@ impl Payouts {
                     .filter(|payout| {
                         !payout
                             .events
-                            .iter()
+                            .iter_all()
                             .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
                     })
                     .collect();
@@ -220,7 +221,7 @@ impl Payouts {
         let mut payouts = Vec::new();
         for id in wallet_payouts {
             if let Some(events) = entity_events.remove(&id) {
-                payouts.push(Payout::try_from(events)?);
+                payouts.push(Payout::try_from_events(events)?);
             }
         }
         Ok(payouts)
@@ -255,7 +256,7 @@ impl Payouts {
         let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
         for id in payout_ids {
             if let Some(events) = entity_events.remove(&id) {
-                let payout = Payout::try_from(events)?;
+                let payout = Payout::try_from_events(events)?;
                 payouts.entry(payout.wallet_id).or_default().push(payout);
             }
         }
@@ -346,14 +347,14 @@ impl Payouts {
         .await?;
 
         if rows.is_empty() {
-            return Err(PayoutError::PayoutIdNotFound(payout_id.to_string()));
+            return Err(PayoutError::EsEntityError(EsEntityError::NotFound));
         }
 
-        let mut entity_events = EntityEvents::new();
+        let mut entity_events = EntityEvents::<PayoutEvent>::init(payout_id, vec![]);
         for row in rows {
-            entity_events.load_event(row.sequence as usize, row.event)?;
+            entity_events.push(row.event as PayoutEvent);
         }
-        Ok(Payout::try_from(entity_events)?)
+        Ok(Payout::try_from_events(entity_events)?)
     }
 
     // pub async fn update(
