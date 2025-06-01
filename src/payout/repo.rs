@@ -29,32 +29,18 @@ impl Payouts {
         id: PayoutId,
     ) -> Result<Payout, PayoutError> {
         let payout = es_entity::es_query!(
+            "bria",
             &self.pool,
             r#"
-            SELECT
+            SELECT *
             FROM bria_payouts
             WHERE account_id = $1 AND id = $2"#,
             account_id as AccountId,
-            payout_id as PayoutId,
+            id as PayoutId,
         )
         .fetch_one()
         .await?;
         Ok(payout)
-
-        // let mut payouts = Vec::new();
-        // let mut next = Some(PaginatedQueryArgs::default());
-
-        // while let Some(query) = next.take() {
-        //     let mut ret = self
-        //         .list_for_account_id_by_id(account_id, query, Default::default())
-        //         .await?;
-        //     payouts.append(&mut ret.entities);
-        //     next = ret.into_next_query();
-        // }
-        // payouts
-        //     .into_iter()
-        //     .find(|payout| payout.id == id)
-        //     .ok_or(PayoutError::EsEntityError(EsEntityError::NotFound))
     }
 
     #[instrument(name = "payouts.find_by_external_id", skip(self))]
@@ -64,37 +50,15 @@ impl Payouts {
         external_id: String,
     ) -> Result<Payout, PayoutError> {
         let payout = es_entity::es_query!(
+            "bria",
             &self.pool,
-            r#"
-            SELECT
-            FROM bria_payouts
-            WHERE account_id = $1 AND external_id = $2"#,
+            r#"SELECT * FROM bria_payouts WHERE account_id = $1 AND external_id = $2"#,
             account_id as AccountId,
-            external_id,
+            external_id as String
         )
         .fetch_one()
         .await?;
         Ok(payout)
-
-        // let mut entity_events = EntityEvents::new();
-        // for row in rows {
-        //     entity_events.load_event(row.sequence as usize, row.event)?;
-        // }
-        // Ok(Payout::try_from(entity_events)?)
-        // let mut payouts = Vec::new();
-        // let mut next = Some(PaginatedQueryArgs::default());
-
-        // while let Some(query) = next.take() {
-        //     let mut ret = self
-        //         .list_for_account_id_by_id(account_id, query, Default::default())
-        //         .await?;
-        //     payouts.append(&mut ret.entities);
-        //     next = ret.into_next_query();
-        // }
-        // payouts
-        //     .into_iter()
-        //     .find(|payout| payout.external_id == external_id)
-        //     .ok_or(PayoutError::EsEntityError(EsEntityError::NotFound))
     }
 
     #[instrument(name = "payouts.list_unbatched", skip(self))]
@@ -122,12 +86,8 @@ impl Payouts {
             let wallet_id = WalletId::from(row.wallet_id);
             let id = WalletId::from(row.id);
             wallet_payouts.push((id, wallet_id));
-            let events = entity_events.entry(id).or_insert_with(|| {
-                EntityEvents::<PayoutEvent>::init(PayoutId::from(row.id), vec![])
-            });
-            events.push(PayoutEvent::MetadataUpdated {
-                metadata: row.event,
-            });
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
         }
         let mut payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = HashMap::new();
         for (id, wallet_id) in wallet_payouts {
@@ -146,7 +106,7 @@ impl Payouts {
                     .filter(|payout| {
                         !payout
                             .events
-                            .iter_all()
+                            .iter()
                             .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
                     })
                     .collect();
@@ -192,17 +152,13 @@ impl Payouts {
         for row in rows {
             let id = WalletId::from(row.id);
             wallet_payouts.push(id);
-            let events = entity_events.entry(id).or_insert_with(|| {
-                EntityEvents::<PayoutEvent>::init(PayoutId::from(row.id), vec![])
-            });
-            events.push(PayoutEvent::MetadataUpdated {
-                metadata: row.event,
-            });
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
         }
         let mut payouts = Vec::new();
         for id in wallet_payouts {
             if let Some(events) = entity_events.remove(&id) {
-                payouts.push(Payout::try_from_events(events)?);
+                payouts.push(Payout::try_from(events)?);
             }
         }
         Ok(payouts)
@@ -231,17 +187,13 @@ impl Payouts {
         for row in rows {
             let id = PayoutId::from(row.id);
             payout_ids.push(id);
-            let events = entity_events.entry(id).or_insert_with(|| {
-                EntityEvents::<PayoutEvent>::init(PayoutId::from(row.id), vec![])
-            });
-            events.push(PayoutEvent::MetadataUpdated {
-                metadata: row.event,
-            });
+            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+            events.load_event(row.sequence as usize, row.event)?;
         }
         let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
         for id in payout_ids {
             if let Some(events) = entity_events.remove(&id) {
-                let payout = Payout::try_from_events(events)?;
+                let payout = Payout::try_from(events)?;
                 payouts.entry(payout.wallet_id).or_default().push(payout);
             }
         }
@@ -257,22 +209,15 @@ impl Payouts {
             return Ok(());
         }
         let mut ids = Vec::new();
-        for p in payouts.batched.into_iter() {
-            ids.push(uuid::Uuid::from(p.id));
-        }
-        // let mut events = payouts.batched.into_iter().map(|p| p.events).collect();
-        // self.persist_events(tx, events).await?;
-        // use a single es query? how?
-
-        // EntityEvents::<PayoutEvent>::persist(
-        //     "bria_payout_events",
-        //     tx,
-        //     payouts
-        //         .batched
-        //         .into_iter()
-        //         .flat_map(|p| p.events.into_new_serialized_events(p.id)),
-        // )
-        // .await?;
+        EntityEvents::<PayoutEvent>::persist(
+            "bria_payout_events",
+            tx,
+            payouts.batched.into_iter().flat_map(|p| {
+                ids.push(uuid::Uuid::from(p.id));
+                p.events.into_new_serialized_events(p.id)
+            }),
+        )
+        .await?;
         sqlx::query!(
             r#"UPDATE bria_payouts SET batch_id = $1 WHERE id = ANY($2)"#,
             payouts.batch_id.unwrap() as BatchId,
@@ -324,47 +269,21 @@ impl Payouts {
         account_id: AccountId,
         payout_id: PayoutId,
     ) -> Result<Payout, PayoutError> {
-        let rows = sqlx::query!(
+        let payout = es_entity::es_query!(
+            "bria",
+            &mut **tx,
             r#"
-        SELECT b.*, e.sequence, e.event
-        FROM bria_payouts b
-        JOIN bria_payout_events e ON b.id = e.id
-        WHERE account_id = $1 AND b.id = $2
-        ORDER BY b.created_at, b.id, e.sequence
-        FOR UPDATE"#,
+            SELECT p.*
+            FROM bria_payouts p
+            JOIN bria_payout_events e ON p.id = e.id
+            WHERE p.account_id = $1 AND p.id = $2
+            ORDER BY p.created_at, p.id, e.sequence
+            FOR UPDATE OF p, e"#,
             account_id as AccountId,
             payout_id as PayoutId,
         )
-        .fetch_all(&mut **tx)
+        .fetch_one()
         .await?;
-
-        if rows.is_empty() {
-            return Err(PayoutError::EsEntityError(EsEntityError::NotFound));
-        }
-
-        let mut entity_events = EntityEvents::<PayoutEvent>::init(payout_id, vec![]);
-        for row in rows {
-            entity_events.push(PayoutEvent::MetadataUpdated {
-                metadata: row.event,
-            });
-        }
-        Ok(Payout::try_from_events(entity_events)?)
+        Ok(payout)
     }
-
-    // pub async fn update(
-    //     &self,
-    //     tx: &mut Transaction<'_, Postgres>,
-    //     payout: Payout,
-    // ) -> Result<(), PayoutError> {
-    //     if !payout.events.is_dirty() {
-    //         return Ok(());
-    //     }
-    //     EntityEvents::<PayoutEvent>::persist(
-    //         "bria_payout_events",
-    //         tx,
-    //         payout.events.new_serialized_events(payout.id),
-    //     )
-    //     .await?;
-    //     Ok(())
-    // }
 }

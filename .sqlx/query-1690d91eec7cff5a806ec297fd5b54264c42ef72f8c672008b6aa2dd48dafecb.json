@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH entities AS (\n            SELECT p.*\n            FROM bria_payouts p\n            JOIN bria_payout_events e ON p.id = e.id\n            WHERE p.account_id = $1 AND p.id = $2\n            ORDER BY p.created_at, p.id, e.sequence\n            FOR UPDATE OF p, e) SELECT i.id AS \"entity_id: PayoutId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_payout_events e ON i.id = e.id ORDER BY i.id, e.sequence",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "entity_id: PayoutId",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sequence",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "event",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "recorded_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1690d91eec7cff5a806ec297fd5b54264c42ef72f8c672008b6aa2dd48dafecb"
+}
