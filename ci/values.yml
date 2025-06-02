@@ -11,9 +11,9 @@ git_charts_uri: git@github.com:GaloyMoney/charts.git
 git_charts_branch: main
 git_charts_bot_branch: bot-bump-bria-image
 
-docker_registry: us.gcr.io/galoy-org
-docker_registry_user: ((docker-creds.username))
-docker_registry_password: ((docker-creds.password))
+docker_registry: us.gcr.io/galoyorg
+gar_registry_user: ((gar-creds.username))
+gar_registry_password: ((gar-creds.password))
 osxcross_docker_username: ((osxcross-image.username))
 osxcross_docker_password: ((osxcross-image.password))
 osxcross_repository: ((osxcross-image.repository))
