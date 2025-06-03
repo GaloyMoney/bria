@@ -2,12 +2,13 @@ use derive_builder::Builder;
 use es_entity::{EntityEvents, EsEntity, EsEvent, TryFromEvents, EsEntityError, IntoEvents};
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
+
 use std::collections::HashMap;
 
 use super::{config::*, keychain::*};
 use crate::{ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub};
 
-#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
+#[derive(EsEvent, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "WalletId")]
 pub enum WalletEvent {
@@ -187,8 +188,10 @@ impl NewWallet {
         builder.id(WalletId::new());
         builder
     }
+}
 
-    pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
+impl IntoEvents<WalletEvent> for NewWallet {
+    fn into_events(self) -> EntityEvents<WalletEvent> {
         let keychain_id = KeychainId::new();
         EntityEvents::init(self.id, vec![
             WalletEvent::Initialized {
@@ -216,12 +219,5 @@ impl NewWallet {
             },
             WalletEvent::KeychainActivated { keychain_id },
         ])
-    }
-}
-
-
-impl IntoEvents<WalletEvent> for NewWallet {
-    fn into_events(self) -> EntityEvents<WalletEvent> {
-        self.initial_events()
     }
 }

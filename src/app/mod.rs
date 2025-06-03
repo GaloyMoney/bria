@@ -421,7 +421,8 @@ impl App {
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
-        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
+        let wallet = self.wallets.create(new_wallet).await?;
+        let wallet_id = wallet.id;
         let descriptors = vec![
             NewDescriptor::builder()
                 .account_id(profile.account_id)
@@ -654,7 +655,7 @@ impl App {
     ) -> Result<Satoshis, ApplicationError> {
         let destination_wallet = self
             .wallets
-            .find_by_account_id_and_name(profile.account_id, wallet_name.clone())
+            .find_by_account_id_and_name(profile.account_id, destination_wallet_name.clone())
             .await?;
         let destination = destination_wallet
             .current_keychain_wallet(&self.pool)
