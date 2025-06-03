@@ -56,7 +56,7 @@ pub(super) async fn execute<'a>(
         .await?;
     let mut db = payouts.begin_op().await?;
     let mut unbatched_payouts = payouts
-        .list_unbatched(&mut db.tx(), data.account_id, data.payout_queue_id)
+        .list_unbatched(db.tx(), data.account_id, data.payout_queue_id)
         .await?;
     let fee_rate = fees_client
         .fee_rate(payout_queue.config.tx_priority)
@@ -71,7 +71,7 @@ pub(super) async fn execute<'a>(
         ..
     } = construct_psbt(
         &pool,
-        &mut db.tx(),
+        db.tx(),
         &unbatched_payouts,
         &utxos,
         &wallets,
@@ -134,10 +134,10 @@ pub(super) async fn execute<'a>(
             }));
 
         let batch_id = batch.id;
-        batches.create_in_tx(&mut db.tx(), batch).await?;
+        batches.create_in_tx(db.tx(), batch).await?;
         utxos
             .reserve_utxos_in_batch(
-                &mut db.tx(),
+                db.tx(),
                 data.account_id,
                 batch_id,
                 data.payout_queue_id,
