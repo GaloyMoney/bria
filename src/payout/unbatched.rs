@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use es_entity::*;
 use std::collections::{HashMap, HashSet};
 
-use super::entity::PayoutEvent;
+use super::entity::{Payout, PayoutEvent};
 use crate::primitives::*;
 
 pub struct UnbatchedPayouts {
@@ -139,5 +139,19 @@ impl From<&UnbatchedPayout> for TxPayout {
             payout.destination.onchain_address().clone(),
             payout.satoshis,
         )
+    }
+}
+
+impl TryFrom<Payout> for UnbatchedPayout {
+    type Error = EsEntityError;
+    fn try_from(payout: Payout) -> Result<Self, Self::Error> {
+        let mut builder = UnbatchedPayoutBuilder::default();
+        builder = builder
+            .id(payout.id)
+            .wallet_id(payout.wallet_id)
+            .destination(payout.destination)
+            .satoshis(payout.satoshis)
+            .events(payout.events);
+        builder.build()
     }
 }
