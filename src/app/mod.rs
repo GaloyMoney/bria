@@ -853,7 +853,6 @@ impl App {
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
         let mut db = self.payouts.begin_op().await?;
-        dbg!("new payout is: {:?}", &new_payout);
         let id = self.payouts.create_in_op(&mut db, new_payout).await?.id;
         self.ledger
             .payout_submitted(
