@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bria_payouts SET wallet_id = $2, payout_queue_id = $3, profile_id = $4, external_id = $5 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3c8a9f228930fcb8716045ea7cf80312403cbb363f3e8a11938e32fdfa00793"
+}
