@@ -1,15 +1,15 @@
 use derive_builder::Builder;
+use es_entity::{EntityEvents, EsEntity, EsEvent, TryFromEvents, EsEntityError, IntoEvents};
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
-
 use std::collections::HashMap;
 
 use super::{config::*, keychain::*};
-use crate::{entity::*, ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub};
+use crate::{ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub};
 
-#[derive(Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[allow(clippy::large_enum_variant)]
+#[es_event(id = "WalletId")]
 pub enum WalletEvent {
     Initialized {
         id: WalletId,
@@ -41,33 +41,37 @@ pub enum WalletEvent {
     },
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct Wallet {
     pub id: WalletId,
+    pub account_id: AccountId,
     pub ledger_account_ids: WalletLedgerAccountIds,
     pub journal_id: JournalId,
     pub config: WalletConfig,
     pub network: bitcoin::Network,
     pub name: String,
 
-    events: EntityEvents<WalletEvent>,
+    pub(super) events: EntityEvents<WalletEvent>,
 }
 
 impl Wallet {
     fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &KeychainConfig)> + '_ {
-        self.events.iter().rev().filter_map(|e| {
-            if let WalletEvent::KeychainAdded {
-                keychain_id,
-                keychain_config: config,
-                ..
-            } = e
-            {
-                Some((keychain_id, config))
-            } else {
-                None
-            }
-        })
+        self.events
+            .iter_all()
+            .rev()
+            .filter_map(|e| {
+                if let WalletEvent::KeychainAdded {
+                    keychain_id,
+                    keychain_config,
+                    ..
+                } = e
+                {
+                    Some((keychain_id, keychain_config))
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
@@ -126,6 +130,57 @@ pub struct NewWallet {
     config: WalletConfig,
 }
 
+impl TryFromEvents<WalletEvent> for Wallet {
+    fn try_from_events(events: EntityEvents<WalletEvent>) -> Result<Self, EsEntityError> {
+        let mut builder = WalletBuilder::default();
+        use WalletEvent::*;
+        for event in events.iter_all() {
+            match event {
+                Initialized {
+                    id,
+                    network,
+                    account_id,
+                    journal_id,
+                    onchain_incoming_ledger_account_id,
+                    onchain_at_rest_ledger_account_id,
+                    onchain_outgoing_ledger_account_id,
+                    onchain_fee_ledger_account_id,
+                    effective_incoming_ledger_account_id,
+                    effective_at_rest_ledger_account_id,
+                    effective_outgoing_ledger_account_id,
+                    dust_ledger_account_id,
+                    ..
+                } => {
+                    builder = builder
+                        .id(*id)
+                        .account_id(*account_id)
+                        .network(*network)
+                        .journal_id(*journal_id)
+                        .ledger_account_ids(WalletLedgerAccountIds {
+                            onchain_incoming_id: *onchain_incoming_ledger_account_id,
+                            onchain_at_rest_id: *onchain_at_rest_ledger_account_id,
+                            onchain_outgoing_id: *onchain_outgoing_ledger_account_id,
+                            fee_id: *onchain_fee_ledger_account_id,
+                            effective_incoming_id: *effective_incoming_ledger_account_id,
+                            effective_at_rest_id: *effective_at_rest_ledger_account_id,
+                            effective_outgoing_id: *effective_outgoing_ledger_account_id,
+                            dust_id: *dust_ledger_account_id,
+                        });
+                }
+                NameUpdated { name } => {
+                    builder = builder.name(name.clone());
+                }
+                ConfigUpdated { wallet_config: config } => {
+                    builder = builder.config(config.clone());
+                }
+                _ => {}
+            }
+        }
+        builder.events(events).build()
+    }
+    
+}
+
 impl NewWallet {
     pub fn builder() -> NewWalletBuilder {
         let mut builder = NewWalletBuilder::default();
@@ -135,7 +190,7 @@ impl NewWallet {
 
     pub(super) fn initial_events(self) -> EntityEvents<WalletEvent> {
         let keychain_id = KeychainId::new();
-        EntityEvents::init([
+        EntityEvents::init(self.id, vec![
             WalletEvent::Initialized {
                 id: self.id,
                 network: self.network,
@@ -164,54 +219,9 @@ impl NewWallet {
     }
 }
 
-impl TryFrom<EntityEvents<WalletEvent>> for Wallet {
-    type Error = EntityError;
 
-    fn try_from(events: EntityEvents<WalletEvent>) -> Result<Self, Self::Error> {
-        let mut builder = WalletBuilder::default();
-        use WalletEvent::*;
-        for event in events.iter() {
-            match event {
-                Initialized {
-                    id,
-                    network,
-                    journal_id,
-                    onchain_incoming_ledger_account_id,
-                    onchain_at_rest_ledger_account_id,
-                    onchain_outgoing_ledger_account_id,
-                    onchain_fee_ledger_account_id,
-                    effective_incoming_ledger_account_id,
-                    effective_at_rest_ledger_account_id,
-                    effective_outgoing_ledger_account_id,
-                    dust_ledger_account_id,
-                    ..
-                } => {
-                    builder = builder
-                        .id(*id)
-                        .network(*network)
-                        .journal_id(*journal_id)
-                        .ledger_account_ids(WalletLedgerAccountIds {
-                            onchain_incoming_id: *onchain_incoming_ledger_account_id,
-                            onchain_at_rest_id: *onchain_at_rest_ledger_account_id,
-                            onchain_outgoing_id: *onchain_outgoing_ledger_account_id,
-                            fee_id: *onchain_fee_ledger_account_id,
-                            effective_incoming_id: *effective_incoming_ledger_account_id,
-                            effective_at_rest_id: *effective_at_rest_ledger_account_id,
-                            effective_outgoing_id: *effective_outgoing_ledger_account_id,
-                            dust_id: *dust_ledger_account_id,
-                        });
-                }
-                ConfigUpdated {
-                    wallet_config: config,
-                } => {
-                    builder = builder.config(config.clone());
-                }
-                NameUpdated { name } => {
-                    builder = builder.name(name.clone());
-                }
-                _ => (),
-            }
-        }
-        builder.events(events).build()
+impl IntoEvents<WalletEvent> for NewWallet {
+    fn into_events(self) -> EntityEvents<WalletEvent> {
+        self.initial_events()
     }
 }

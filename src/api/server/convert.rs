@@ -661,12 +661,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::ProfileError(ProfileError::ProfileKeyNotFound) => {
                 tonic::Status::unauthenticated(err.to_string())
             }
-            ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
-            ApplicationError::WalletError(WalletError::WalletIdNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
+            ApplicationError::WalletError(WalletError::EsEntityError(
+                es_entity::EsEntityError::NotFound,
+            )) => tonic::Status::not_found(err.to_string()),
             ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }

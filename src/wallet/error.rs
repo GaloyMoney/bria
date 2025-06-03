@@ -1,15 +1,16 @@
 use thiserror::Error;
+use es_entity::EsEntityError;
+use es_entity::CursorDestructureError;
+use serde_json::Error as SerdeJsonError;
 
 #[derive(Error, Debug)]
 pub enum WalletError {
-    #[error("WalletError - Could not find wallet with name: {0}")]
-    WalletNameNotFound(String),
-    #[error("WalletError - Could not find wallet with id: {0}")]
-    WalletIdNotFound(String),
     #[error("WalletError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("WalletError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
+    #[error("WalletError - EsEntityError: {0}")]
+    EsEntityError(#[from] EsEntityError),
+    #[error("WalletError - CursorDestructureError: {0}")]
+    CursorDestructureError(#[from] CursorDestructureError),
     #[error("WalletError - UnsupportedPubKeyType")]
     UnsupportedPubKeyType,
     #[error("WalletError - BdkMiniscriptError: {0}")]
@@ -18,4 +19,6 @@ pub enum WalletError {
     PsbtDoesNotHaveValidSignatures,
     #[error("WalletError - Unsigned txn in signed and unsigned psbt don't match")]
     UnsignedTxnMismatch,
+    #[error("WalletError - SerdeJson: {0}")]
+    SerdeJson(#[from] SerdeJsonError),
 }
