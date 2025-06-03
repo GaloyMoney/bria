@@ -113,30 +113,6 @@ impl Payouts {
             query.after = end_cursor;
         }
 
-        let mut next = Some(PaginatedQueryArgs::default());
-        while let Some(query) = next.take() {
-            let (mut paginated_unbatched_payouts, has_next_page) = es_entity::es_query!(
-                "bria",
-                &mut **tx,
-                r#"
-                SELECT *
-                FROM bria_payouts
-                WHERE account_id = $1 AND payout_queue_id = $2
-                ORDER BY created_at, id
-                FOR UPDATE"#,
-                account_id as AccountId,
-                payout_queue_id as PayoutQueueId,
-            )
-            .fetch_n(query.first)
-            .await?;
-            unbatched_payouts.append(&mut paginated_unbatched_payouts);
-            if has_next_page {
-                next = Some(PaginatedQueryArgs {
-                    first: query.first,
-                    after: Some(paginated_unbatched_payouts.last().unwrap().id),
-                });
-            }
-        }
         let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
         for payout in unbatched_payouts {
             payouts.entry(payout.wallet_id).or_default().push(payout);
