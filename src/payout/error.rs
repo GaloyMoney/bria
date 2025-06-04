@@ -4,8 +4,6 @@ use thiserror::Error;
 pub enum PayoutError {
     #[error("PayoutError - Sqlx: {0}")]
     Sqlx(sqlx::Error),
-    // #[error("PayoutError - External Id does not exists")]
-    // ExternalIdNotFound,
     #[error("PayoutError - Payout is already committed to batch")]
     PayoutAlreadyCommitted,
     #[error("PayoutError - Payout is already cancelled")]

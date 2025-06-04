@@ -13,10 +13,10 @@ use crate::primitives::*;
     err = "PayoutError",
     columns(
         account_id(ty = "AccountId", list_for, update(persist = false)),
-        wallet_id(ty = "WalletId"),
+        wallet_id(ty = "WalletId", update(persist = false)),
         payout_queue_id(ty = "PayoutQueueId"),
-        profile_id(ty = "ProfileId"),
-        external_id(ty = "String")
+        profile_id(ty = "ProfileId", update(persist = false)),
+        external_id(ty = "String"),
     ),
     tbl_prefix = "bria"
 )]
