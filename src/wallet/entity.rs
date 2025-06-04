@@ -1,5 +1,5 @@
 use derive_builder::Builder;
-use es_entity::{EntityEvents, EsEntity, EsEvent, TryFromEvents, EsEntityError, IntoEvents};
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 use sqlx_ledger::{AccountId as LedgerAccountId, JournalId};
 
@@ -168,18 +168,19 @@ impl TryFromEvents<WalletEvent> for Wallet {
                             dust_id: *dust_ledger_account_id,
                         });
                 }
+                ConfigUpdated {
+                    wallet_config: config,
+                } => {
+                    builder = builder.config(config.clone());
+                }
                 NameUpdated { name } => {
                     builder = builder.name(name.clone());
                 }
-                ConfigUpdated { wallet_config: config } => {
-                    builder = builder.config(config.clone());
-                }
-                _ => {}
+                _ => (),
             }
         }
         builder.events(events).build()
     }
-    
 }
 
 impl NewWallet {
