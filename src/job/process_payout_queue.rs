@@ -191,11 +191,16 @@ pub async fn construct_psbt(
     span.record("payout_queue_id", tracing::field::display(queue_id));
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
-    let wallet_ids = unbatched_payouts.wallet_ids(); 
-    let wallet_ids_vec: Vec<WalletId> = wallet_ids.into_iter().collect();
-    let wallet_map: HashMap<WalletId, Wallet> = wallets.find_all(&wallet_ids_vec).await?;
+    let wallets: HashMap<WalletId, Wallet> = wallets
+        .find_all(
+            &unbatched_payouts
+                .wallet_ids()
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .await?;
     let reserved_utxos = {
-        let keychain_ids = wallet_map.values().flat_map(|w| w.keychain_ids());
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
         utxos
             .outpoints_bdk_should_not_select(tx, keychain_ids)
             .await?
@@ -213,7 +218,7 @@ pub async fn construct_psbt(
         .reserved_utxos(reserved_utxos)
         .force_min_change_output(queue_cfg.force_min_change_sats);
     if !for_estimation && queue_cfg.should_cpfp() {
-        let keychain_ids = wallet_map.values().flat_map(|w| w.keychain_ids());
+        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
         let utxos = utxos
             .find_cpfp_utxos(
                 tx,
@@ -239,7 +244,7 @@ pub async fn construct_psbt(
             .build()
             .expect("Couldn't build PsbtBuilderConfig"),
         tx_payouts,
-        wallet_map,
+        wallets,
     )
     .await?)
 }
