@@ -191,12 +191,9 @@ pub async fn construct_psbt(
     span.record("payout_queue_id", tracing::field::display(queue_id));
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
-    let wallet_ids = unbatched_payouts.wallet_ids();
-    let mut wallet_map = HashMap::new();
-    for id in wallet_ids {
-        let wallet = wallets.find_by_id(id).await?;
-        wallet_map.insert(id, wallet);
-    }
+    let wallet_ids = unbatched_payouts.wallet_ids(); 
+    let wallet_ids_vec: Vec<WalletId> = wallet_ids.into_iter().collect();
+    let wallet_map: HashMap<WalletId, Wallet> = wallets.find_all(&wallet_ids_vec).await?;
     let reserved_utxos = {
         let keychain_ids = wallet_map.values().flat_map(|w| w.keychain_ids());
         utxos
