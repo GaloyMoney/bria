@@ -1052,9 +1052,8 @@ dependencies = [
 
 [[package]]
 name = "es-entity"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "509c112d61f3f9ff0a1d81ffb36a76a800865fcffd50151e0e6027b961343e76"
+version = "0.5.4-dev"
+source = "git+https://github.com/galoymoney/cala.git?branch=main#a134b5cce80879fa15494d822814645549be3ce2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1069,9 +1068,8 @@ dependencies = [
 
 [[package]]
 name = "es-entity-macros"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88935765e36f62a52d4070cffd2dd7afb92fe23991d4d7e4e6490f8872fb60bf"
+version = "0.5.4-dev"
+source = "git+https://github.com/galoymoney/cala.git?branch=main#a134b5cce80879fa15494d822814645549be3ce2"
 dependencies = [
  "convert_case",
  "darling",
