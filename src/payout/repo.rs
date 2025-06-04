@@ -2,7 +2,7 @@ use es_entity::*;
 use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::{entity::*, error::*, unbatched::*};
 use crate::primitives::*;
@@ -20,7 +20,7 @@ use crate::primitives::*;
         batch_id(
             ty = "Option<BatchId>",
             create(persist = false),
-            update(accessor = "update_batch_id()")
+            update(persist = true)
         )
     ),
     tbl_prefix = "bria"
@@ -79,26 +79,49 @@ impl Payouts {
         account_id: AccountId,
         payout_queue_id: PayoutQueueId,
     ) -> Result<UnbatchedPayouts, PayoutError> {
-        let rows = sqlx::query_as!(
-            GenericEvent,
-            r#"
-              SELECT e.recorded_at as recorded_at, e.sequence as sequence, e.id as entity_id, e.event
-              FROM bria_payouts b
-              JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.batch_id IS NULL AND b.account_id = $1 AND b.payout_queue_id = $2
-              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            account_id as AccountId,
-            payout_queue_id as PayoutQueueId,
-        )        .fetch_all(&mut **tx)
-        .await?;
-        let mut count = 0;
-        let mut unique_ids = HashSet::new();
-        for row in &rows {
-            if unique_ids.insert(row.entity_id) {
-                count += 1;
+        let mut unbatched_payouts = Vec::new();
+        let mut query = es_entity::PaginatedQueryArgs::<payout_cursor::PayoutsByCreatedAtCursor> {
+            first: Default::default(),
+            after: None,
+        };
+
+        loop {
+            let es_entity::PaginatedQueryArgs { first, after } = query;
+            let (id, created_at) = if let Some(after) = after {
+                (Some(after.id), Some(after.created_at))
+            } else {
+                (None, None)
+            };
+
+            let (entities, has_next_page) = es_entity::es_query!(
+                "bria",
+                &mut **tx,
+                r#"
+                SELECT *
+                FROM bria_payouts
+                WHERE account_id = $1 AND payout_queue_id = $2 AND batch_id is NULL
+                AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))
+                ORDER BY created_at, id
+                FOR UPDATE"#,
+                account_id as AccountId,
+                payout_queue_id as PayoutQueueId,
+                id as Option<PayoutId>,
+                created_at as Option<chrono::DateTime<chrono::Utc>>,
+            )
+            .fetch_n(first)
+            .await?;
+
+            unbatched_payouts.extend(entities);
+
+            if !has_next_page {
+                break;
             }
+            let end_cursor = unbatched_payouts
+                .last()
+                .map(payout_cursor::PayoutsByCreatedAtCursor::from);
+
+            query.after = end_cursor;
         }
-        let (unbatched_payouts, _) = EntityEvents::load_n::<Payout>(rows, count)?;
 
         let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
         for payout in unbatched_payouts {
@@ -298,26 +321,20 @@ impl Payouts {
         account_id: AccountId,
         payout_id: PayoutId,
     ) -> Result<Payout, PayoutError> {
-        let rows = sqlx::query_as!(
-            es_entity::GenericEvent,
+        let payout = es_entity::es_query!(
+            "bria",
+            &mut **tx,
             r#"
-    SELECT e.recorded_at as recorded_at, e.sequence as sequence, e.id as entity_id, e.event
-    FROM bria_payouts b
-    JOIN bria_payout_events e ON b.id = e.id
-    WHERE account_id = $1 AND b.id = $2
-    ORDER BY b.created_at, b.id, e.sequence
-    FOR UPDATE"#,
+             SELECT *
+            FROM bria_payouts
+            WHERE account_id = $1 AND id = $2
+            ORDER BY created_at, id
+            FOR UPDATE"#,
             account_id as AccountId,
             payout_id as PayoutId,
         )
-        .fetch_all(&mut **tx)
+        .fetch_one()
         .await?;
-
-        if rows.is_empty() {
-            return Err(PayoutError::EsEntityError(EsEntityError::NotFound));
-        }
-
-        let payout = EntityEvents::load_first::<Payout>(rows)?;
 
         Ok(payout)
     }

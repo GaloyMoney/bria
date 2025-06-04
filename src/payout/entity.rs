@@ -79,13 +79,6 @@ impl Payout {
     fn is_already_committed(&self) -> bool {
         self.batch_id.is_some()
     }
-
-    pub fn update_batch_id(&self) -> Option<BatchId> {
-        self.events.iter_all().rev().find_map(|event| match event {
-            PayoutEvent::CommittedToBatch { batch_id, .. } => Some(*batch_id),
-            _ => None,
-        })
-    }
 }
 
 impl TryFromEvents<PayoutEvent> for Payout {
