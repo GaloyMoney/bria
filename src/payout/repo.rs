@@ -17,6 +17,11 @@ use crate::primitives::*;
         payout_queue_id(ty = "PayoutQueueId"),
         profile_id(ty = "ProfileId", update(persist = false)),
         external_id(ty = "String"),
+        batch_id(
+            ty = "Option<BatchId>",
+            create(persist = false),
+            update(accessor = "update_batch_id()")
+        )
     ),
     tbl_prefix = "bria"
 )]
