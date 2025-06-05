@@ -381,7 +381,7 @@ impl App {
         wallet_name: String,
         keychain: KeychainConfig,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut op = self.wallets.begin_op().await?;
         let xpubs = keychain.xpubs();
         let mut xpub_ids = Vec::new();
         for xpub in xpubs {
@@ -402,14 +402,14 @@ impl App {
                         .value(xpub)
                         .build()
                         .expect("Couldn't build xpub");
-                    xpub_ids.push(self.xpubs.persist_in_tx(&mut tx, xpub).await?);
+                    xpub_ids.push(self.xpubs.persist_in_tx(op.tx(), xpub).await?);
                 }
             }
         }
         let wallet_id = WalletId::new();
         let wallet_ledger_accounts = self
             .ledger
-            .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+            .create_ledger_accounts_for_wallet(op.tx(), wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
@@ -421,7 +421,7 @@ impl App {
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
-        let wallet = self.wallets.create(new_wallet).await?;
+        let wallet = self.wallets.create_in_op(&mut op, new_wallet).await?;
         let wallet_id = wallet.id;
         let descriptors = vec![
             NewDescriptor::builder()
@@ -440,9 +440,9 @@ impl App {
                 .expect("Could not build descriptor"),
         ];
         self.descriptors
-            .persist_all_in_tx(&mut tx, descriptors)
+            .persist_all_in_tx(op.tx(), descriptors)
             .await?;
-        tx.commit().await?;
+        op.commit().await?;
         Ok((wallet_id, xpub_ids))
     }
 
