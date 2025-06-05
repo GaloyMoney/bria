@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
 use super::{entity::*, error::WalletError};
-use crate::{primitives::*};
+use crate::primitives::*;
 
 #[derive(EsRepo, Clone, Debug)]
 #[es_repo(
@@ -12,7 +12,7 @@ use crate::{primitives::*};
     err = "WalletError",
     columns(
         name(ty = "String"),
-        account_id(ty = "AccountId", list_for)
+        account_id(ty = "AccountId", list_for, update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
@@ -64,7 +64,7 @@ impl Wallets {
             return Err(WalletError::EsEntityError(EsEntityError::NotFound));
         }
         Ok(wallet)
-    }  
+    }
 
     pub async fn all_ids(
         &self,
