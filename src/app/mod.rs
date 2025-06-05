@@ -422,7 +422,6 @@ impl App {
             .build()
             .expect("Couldn't build NewWallet");
         let wallet = self.wallets.create_in_op(&mut op, new_wallet).await?;
-        let wallet_id = wallet.id;
         let descriptors = vec![
             NewDescriptor::builder()
                 .account_id(profile.account_id)
@@ -443,7 +442,7 @@ impl App {
             .persist_all_in_tx(op.tx(), descriptors)
             .await?;
         op.commit().await?;
-        Ok((wallet_id, xpub_ids))
+        Ok((wallet.id, xpub_ids))
     }
 
     #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]

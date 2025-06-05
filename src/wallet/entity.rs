@@ -11,6 +11,7 @@ use crate::{ledger::WalletLedgerAccountIds, primitives::*, xpub::XPub};
 #[derive(EsEvent, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "WalletId")]
+#[allow(clippy::large_enum_variant)]
 pub enum WalletEvent {
     Initialized {
         id: WalletId,
@@ -58,21 +59,18 @@ pub struct Wallet {
 
 impl Wallet {
     fn iter_keychains(&self) -> impl Iterator<Item = (&KeychainId, &KeychainConfig)> + '_ {
-        self.events
-            .iter_all()
-            .rev()
-            .filter_map(|e| {
-                if let WalletEvent::KeychainAdded {
-                    keychain_id,
-                    keychain_config,
-                    ..
-                } = e
-                {
-                    Some((keychain_id, keychain_config))
-                } else {
-                    None
-                }
-            })
+        self.events.iter_all().rev().filter_map(|e| {
+            if let WalletEvent::KeychainAdded {
+                keychain_id,
+                keychain_config,
+                ..
+            } = e
+            {
+                Some((keychain_id, keychain_config))
+            } else {
+                None
+            }
+        })
     }
 
     pub fn keychain_ids(&self) -> impl Iterator<Item = KeychainId> + '_ {
@@ -194,31 +192,40 @@ impl NewWallet {
 impl IntoEvents<WalletEvent> for NewWallet {
     fn into_events(self) -> EntityEvents<WalletEvent> {
         let keychain_id = KeychainId::new();
-        EntityEvents::init(self.id, vec![
-            WalletEvent::Initialized {
-                id: self.id,
-                network: self.network,
-                account_id: self.account_id,
-                journal_id: self.journal_id,
-                onchain_incoming_ledger_account_id: self.ledger_account_ids.onchain_incoming_id,
-                onchain_at_rest_ledger_account_id: self.ledger_account_ids.onchain_at_rest_id,
-                onchain_outgoing_ledger_account_id: self.ledger_account_ids.onchain_outgoing_id,
-                onchain_fee_ledger_account_id: self.ledger_account_ids.fee_id,
-                effective_incoming_ledger_account_id: self.ledger_account_ids.effective_incoming_id,
-                effective_at_rest_ledger_account_id: self.ledger_account_ids.effective_at_rest_id,
-                effective_outgoing_ledger_account_id: self.ledger_account_ids.effective_outgoing_id,
-                dust_ledger_account_id: self.ledger_account_ids.dust_id,
-            },
-            WalletEvent::NameUpdated { name: self.name },
-            WalletEvent::ConfigUpdated {
-                wallet_config: self.config,
-            },
-            WalletEvent::KeychainAdded {
-                keychain_id,
-                idx: 0,
-                keychain_config: self.keychain,
-            },
-            WalletEvent::KeychainActivated { keychain_id },
-        ])
+        EntityEvents::init(
+            self.id,
+            vec![
+                WalletEvent::Initialized {
+                    id: self.id,
+                    network: self.network,
+                    account_id: self.account_id,
+                    journal_id: self.journal_id,
+                    onchain_incoming_ledger_account_id: self.ledger_account_ids.onchain_incoming_id,
+                    onchain_at_rest_ledger_account_id: self.ledger_account_ids.onchain_at_rest_id,
+                    onchain_outgoing_ledger_account_id: self.ledger_account_ids.onchain_outgoing_id,
+                    onchain_fee_ledger_account_id: self.ledger_account_ids.fee_id,
+                    effective_incoming_ledger_account_id: self
+                        .ledger_account_ids
+                        .effective_incoming_id,
+                    effective_at_rest_ledger_account_id: self
+                        .ledger_account_ids
+                        .effective_at_rest_id,
+                    effective_outgoing_ledger_account_id: self
+                        .ledger_account_ids
+                        .effective_outgoing_id,
+                    dust_ledger_account_id: self.ledger_account_ids.dust_id,
+                },
+                WalletEvent::NameUpdated { name: self.name },
+                WalletEvent::ConfigUpdated {
+                    wallet_config: self.config,
+                },
+                WalletEvent::KeychainAdded {
+                    keychain_id,
+                    idx: 0,
+                    keychain_config: self.keychain,
+                },
+                WalletEvent::KeychainActivated { keychain_id },
+            ],
+        )
     }
 }
