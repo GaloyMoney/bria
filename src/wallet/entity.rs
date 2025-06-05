@@ -53,7 +53,7 @@ pub struct Wallet {
     pub network: bitcoin::Network,
     pub name: String,
 
-    pub(super) events: EntityEvents<WalletEvent>,
+    events: EntityEvents<WalletEvent>,
 }
 
 impl Wallet {
