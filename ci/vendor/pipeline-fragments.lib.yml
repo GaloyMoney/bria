@@ -47,7 +47,7 @@ source:
 #@ def nix_task_image_config():
 type: registry-image
 source:
-  repository: nixpkgs/nix-flakes
+  repository: ghcr.io/nix-community/docker-nixpkgs/cachix-flakes
 #@ end
 
 #@ def check_code():
