@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 
-use std::collections::{HashMap};
+use std::collections::HashMap;
 
 use super::entity::PayoutEvent;
 use crate::{entity::*, primitives::*};
