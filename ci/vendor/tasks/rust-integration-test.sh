@@ -28,7 +28,7 @@ echo "{\"default\": [{\"type\": \"insecureAcceptAnything\"}]}" > /etc/containers
 echo "unqualified-search-registries = [\"docker.io\"]" > /etc/containers/registries.conf
 
 echo "--- Starting Dependencies with Podman Compose ---"
-ENGINE_DEFAULT=podman bin/docker-compose-up.sh integration-deps
+podman compose up -d integration-deps
 echo "--- Podman-compose up done ---"
 
 make setup-db
@@ -38,7 +38,7 @@ cargo nextest run --verbose --locked
 echo "--- Tests done ---"
 
 echo "--- Cleaning up dependencies ---"
-ENGINE_DEFAULT=podman bin/clean-deps.sh
+podman compose down
 echo "--- Cleanup done ---"
 
 echo "--- All steps completed ---"
