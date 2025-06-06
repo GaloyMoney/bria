@@ -59,6 +59,8 @@
               docker-compose
               bats
               jq
+              podman
+              podman-compose
             ];
           });
 
