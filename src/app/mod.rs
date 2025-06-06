@@ -654,7 +654,7 @@ impl App {
     ) -> Result<Satoshis, ApplicationError> {
         let destination_wallet = self
             .wallets
-            .find_by_account_id_and_name(profile.account_id, destination_wallet_name.clone())
+            .find_by_account_id_and_name(profile.account_id, destination_wallet_name)
             .await?;
         let destination = destination_wallet
             .current_keychain_wallet(&self.pool)
