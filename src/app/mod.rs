@@ -381,7 +381,7 @@ impl App {
         wallet_name: String,
         keychain: KeychainConfig,
     ) -> Result<(WalletId, Vec<XPubId>), ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut op = self.wallets.begin_op().await?;
         let xpubs = keychain.xpubs();
         let mut xpub_ids = Vec::new();
         for xpub in xpubs {
@@ -402,14 +402,14 @@ impl App {
                         .value(xpub)
                         .build()
                         .expect("Couldn't build xpub");
-                    xpub_ids.push(self.xpubs.persist_in_tx(&mut tx, xpub).await?);
+                    xpub_ids.push(self.xpubs.persist_in_tx(op.tx(), xpub).await?);
                 }
             }
         }
         let wallet_id = WalletId::new();
         let wallet_ledger_accounts = self
             .ledger
-            .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+            .create_ledger_accounts_for_wallet(op.tx(), wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
@@ -421,7 +421,7 @@ impl App {
             .ledger_account_ids(wallet_ledger_accounts)
             .build()
             .expect("Couldn't build NewWallet");
-        let wallet_id = self.wallets.create_in_tx(&mut tx, new_wallet).await?;
+        let wallet = self.wallets.create_in_op(&mut op, new_wallet).await?;
         let descriptors = vec![
             NewDescriptor::builder()
                 .account_id(profile.account_id)
@@ -439,10 +439,10 @@ impl App {
                 .expect("Could not build descriptor"),
         ];
         self.descriptors
-            .persist_all_in_tx(&mut tx, descriptors)
+            .persist_all_in_tx(op.tx(), descriptors)
             .await?;
-        tx.commit().await?;
-        Ok((wallet_id, xpub_ids))
+        op.commit().await?;
+        Ok((wallet.id, xpub_ids))
     }
 
     #[instrument(name = "app.get_wallet_balance_summary", skip(self), err)]
@@ -453,7 +453,7 @@ impl App {
     ) -> Result<WalletBalanceSummary, ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let wallet_ledger_account_balances = self
             .ledger
@@ -487,7 +487,7 @@ impl App {
     ) -> Result<(WalletId, Address), ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
@@ -541,7 +541,7 @@ impl App {
     ) -> Result<(WalletId, Vec<WalletAddress>), ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let addresses = self
             .addresses
@@ -594,7 +594,7 @@ impl App {
     ) -> Result<(WalletId, Vec<KeychainUtxos>), ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let mut utxos = self
             .utxos
@@ -654,7 +654,7 @@ impl App {
     ) -> Result<Satoshis, ApplicationError> {
         let destination_wallet = self
             .wallets
-            .find_by_name(profile.account_id, destination_wallet_name)
+            .find_by_account_id_and_name(profile.account_id, destination_wallet_name)
             .await?;
         let destination = destination_wallet
             .current_keychain_wallet(&self.pool)
@@ -681,7 +681,7 @@ impl App {
     ) -> Result<Satoshis, ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let payout_queue = self
             .payout_queues
@@ -752,7 +752,7 @@ impl App {
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let payout_queue = self
             .payout_queues
@@ -786,7 +786,7 @@ impl App {
     ) -> Result<(PayoutId, Option<chrono::DateTime<chrono::Utc>>), ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let payout_queue = self
             .payout_queues
@@ -902,7 +902,7 @@ impl App {
 
     #[instrument(name = "app.list_wallets", skip_all, err)]
     pub async fn list_wallets(&self, profile: &Profile) -> Result<Vec<Wallet>, ApplicationError> {
-        Ok(self.wallets.list_by_account_id(profile.account_id).await?)
+        Ok(self.wallets.list_for_account(profile.account_id).await?)
     }
 
     #[instrument(name = "app.find_payout_by_external_id", skip_all, err)]
@@ -944,7 +944,7 @@ impl App {
     ) -> Result<Vec<PayoutWithInclusionEstimate>, ApplicationError> {
         let wallet = self
             .wallets
-            .find_by_name(profile.account_id, wallet_name)
+            .find_by_account_id_and_name(profile.account_id, wallet_name)
             .await?;
         let payouts = self
             .payouts

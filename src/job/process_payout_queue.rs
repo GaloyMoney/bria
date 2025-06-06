@@ -191,9 +191,9 @@ pub async fn construct_psbt(
     span.record("payout_queue_id", tracing::field::display(queue_id));
     span.record("n_unbatched_payouts", unbatched_payouts.n_payouts());
 
-    let wallets = wallets.find_by_ids(unbatched_payouts.wallet_ids()).await?;
+    let wallets = wallets.find_all(&unbatched_payouts.wallet_ids()).await?;
     let reserved_utxos = {
-        let keychain_ids = wallets.values().flat_map(|w| w.keychain_ids());
+        let keychain_ids = wallets.values().flat_map(|w: &Wallet| w.keychain_ids());
         utxos
             .outpoints_bdk_should_not_select(tx, keychain_ids)
             .await?
