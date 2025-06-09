@@ -5,7 +5,7 @@ pub enum WalletError {
     #[error("WalletError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
     #[error("WalletError - EsEntityError: {0}")]
-    EsEntityError(#[from] es_entity::EsEntityError),
+    EsEntityError(es_entity::EsEntityError),
     #[error("WalletError - CursorDestructureError: {0}")]
     CursorDestructureError(#[from] es_entity::CursorDestructureError),
     #[error("WalletError - UnsupportedPubKeyType")]
@@ -17,3 +17,5 @@ pub enum WalletError {
     #[error("WalletError - Unsigned txn in signed and unsigned psbt don't match")]
     UnsignedTxnMismatch,
 }
+
+es_entity::from_es_entity_error!(WalletError);
