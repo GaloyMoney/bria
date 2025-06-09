@@ -1,6 +1,6 @@
 use derive_builder::Builder;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::entity::PayoutEvent;
 use crate::{entity::*, primitives::*};
@@ -24,7 +24,7 @@ impl UnbatchedPayouts {
         }
     }
 
-    pub fn wallet_ids(&self) -> HashSet<WalletId> {
+    pub fn wallet_ids(&self) -> Vec<WalletId> {
         std::iter::once(self.simulated_payout.as_ref())
             .filter_map(|p| p.map(|(id, _)| id))
             .chain(self.inner.keys())

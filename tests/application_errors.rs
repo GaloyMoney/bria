@@ -109,9 +109,9 @@ async fn wallet_name_not_found() -> anyhow::Result<()> {
     let err = app.new_address(&profile, wallet_name, None, None).await;
     assert!(matches!(
         err,
-        Err(ApplicationError::WalletError(
-            WalletError::WalletNameNotFound(_)
-        ))
+        Err(ApplicationError::WalletError(WalletError::EsEntityError(
+            EsEntityError::NotFound
+        )))
     ));
     Ok(())
 }
