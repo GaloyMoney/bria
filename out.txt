@@ -1,0 +1,354 @@
+1..8
+not ok 1 setup_file failed
+# (from function `bria_cmd' in file tests/e2e/helpers.bash, line 18,
+#  from function `bria_init' in file tests/e2e/helpers.bash, line 143,
+#  from function `setup_file' in test file tests/e2e/payout.bats, line 10)
+#   `bria_init' failed with status 127
+# time="2025-06-09T20:56:18+05:30" level=warning msg="The \"HONEYCOMB_DATASET\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:18+05:30" level=warning msg="The \"HONEYCOMB_API_KEY\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:18+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+# time="2025-06-09T20:56:18+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.override.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#  Container bria-lnd-1  Stopping
+#  Container bria-fulcrum-1  Stopping
+#  Container bria-mempool-1  Stopping
+#  Container bria-bitcoind-signer-1  Stopping
+#  Container bria-mempool-1  Stopped
+#  Container bria-fulcrum-1  Stopped
+#  Container bria-lnd-1  Stopped
+#  Container bria-bitcoind-signer-1  Stopped
+#  Container bria-bitcoind-1  Stopping
+#  Container bria-bitcoind-1  Stopped
+# Going to remove bria-mempool-1, bria-fulcrum-1, bria-bitcoind-signer-1, bria-lnd-1, bria-bitcoind-1
+#  Container bria-mempool-1  Removing
+#  Container bria-fulcrum-1  Removing
+#  Container bria-bitcoind-signer-1  Removing
+#  Container bria-bitcoind-1  Removing
+#  Container bria-lnd-1  Removing
+#  Container bria-fulcrum-1  Removed
+#  Container bria-lnd-1  Removed
+#  Container bria-mempool-1  Removed
+#  Container bria-bitcoind-signer-1  Removed
+#  Container bria-bitcoind-1  Removed
+# time="2025-06-09T20:56:32+05:30" level=warning msg="The \"HONEYCOMB_DATASET\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:32+05:30" level=warning msg="The \"HONEYCOMB_API_KEY\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:32+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+# time="2025-06-09T20:56:32+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.override.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+# No stopped containers
+# time="2025-06-09T20:56:32+05:30" level=warning msg="The \"HONEYCOMB_DATASET\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:32+05:30" level=warning msg="The \"HONEYCOMB_API_KEY\" variable is not set. Defaulting to a blank string."
+# time="2025-06-09T20:56:32+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+# time="2025-06-09T20:56:32+05:30" level=warning msg="/Users/lakshyasingh/Projects/galoy/bria/docker-compose.override.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+#  Container bria-bitcoind-1  Creating
+#  Container bria-bitcoind-1  Created
+#  Container bria-fulcrum-1  Creating
+#  Container bria-lnd-1  Creating
+#  Container bria-mempool-1  Creating
+#  Container bria-bitcoind-signer-1  Creating
+#  Container bria-fulcrum-1  Created
+#  Container bria-lnd-1  Created
+#  Container bria-bitcoind-signer-1  Created
+#  Container bria-mempool-1  Created
+#  Container bria-bitcoind-1  Starting
+#  Container bria-bitcoind-1  Started
+#  Container bria-fulcrum-1  Starting
+#  Container bria-mempool-1  Starting
+#  Container bria-bitcoind-signer-1  Starting
+#  Container bria-lnd-1  Starting
+#  Container bria-bitcoind-signer-1  Started
+#  Container bria-mempool-1  Started
+#  Container bria-fulcrum-1  Started
+#  Container bria-lnd-1  Started
+# NOTICE:  drop cascades to 63 other objects
+# DETAIL:  drop cascades to table _sqlx_migrations
+# drop cascades to extension uuid-ossp
+# drop cascades to type mq_new_t
+# drop cascades to table mq_msgs
+# drop cascades to function mq_uuid_exists(uuid)
+# drop cascades to table mq_payloads
+# drop cascades to function mq_latest_message(text,text)
+# drop cascades to function mq_active_channels(text[],integer)
+# drop cascades to function mq_poll(text[],integer)
+# drop cascades to function mq_insert(mq_new_t[])
+# drop cascades to function mq_commit(uuid[])
+# drop cascades to function mq_delete(uuid[])
+# drop cascades to function mq_keep_alive(uuid[],interval)
+# drop cascades to function mq_checkpoint(uuid,interval,text,bytea,integer)
+# drop cascades to function mq_clear(text[])
+# drop cascades to function mq_clear_all()
+# drop cascades to type debitorcredit
+# drop cascades to type status
+# drop cascades to type layer
+# drop cascades to table sqlx_ledger_accounts
+# drop cascades to table sqlx_ledger_journals
+# drop cascades to table sqlx_ledger_tx_templates
+# drop cascades to table sqlx_ledger_transactions
+# drop cascades to table sqlx_ledger_entries
+# drop cascades to table sqlx_ledger_balances
+# drop cascades to table sqlx_ledger_current_balances
+# drop cascades to table sqlx_ledger_events
+# drop cascades to function sqlx_ledger_transactions_event()
+# drop cascades to function sqlx_ledger_balances_event()
+# drop cascades to function notify_sqlx_ledger_events()
+# drop cascades to extension pgcrypto
+# drop cascades to type keychainkind
+# drop cascades to table bria_admin_api_keys
+# drop cascades to table bria_accounts
+# drop cascades to table bria_profiles
+# drop cascades to table bria_profile_api_keys
+# drop cascades to table bria_xpubs
+# drop cascades to table bria_xpub_events
+# drop cascades to table bria_xpub_signer_configs
+# drop cascades to table bria_wallets
+# drop cascades to table bria_wallet_events
+# drop cascades to table bria_descriptors
+# drop cascades to table bria_addresses
+# drop cascades to table bria_address_events
+# drop cascades to table bria_payout_queues
+# drop cascades to table bria_payout_queue_events
+# drop cascades to table bria_batches
+# drop cascades to table bria_batch_wallet_summaries
+# drop cascades to table bria_payouts
+# drop cascades to table bria_payout_events
+# drop cascades to table bria_utxos
+# drop cascades to table bria_signing_sessions
+# drop cascades to table bria_signing_session_events
+# drop cascades to table bria_outbox_events
+# drop cascades to function notify_bria_outbox_events()
+# drop cascades to type bdkkeychainkind
+# drop cascades to table bdk_descriptor_checksums
+# drop cascades to table bdk_script_pubkeys
+# drop cascades to table bdk_indexes
+# drop cascades to table bdk_utxos
+# drop cascades to table bdk_transactions
+# drop cascades to table bdk_sync_times
+# drop cascades to table bria_profile_events
+# DROP SCHEMA
+# CREATE SCHEMA
+# {
+#   "name": "default",
+#   "warning": ""
+# }
+# [
+#   "5e3b5a6018e6cc748b875abc77f0d3f99f6bc51c87db041893f372f454413c7c",
+#   "3bd1bcbc18fce010ca910395b37dc0ab875bbca81501b7e5bbf22cb5b45a4660",
+#   "3fa2fc502df9ed3a4f533cf098e3b33dfbab21f9e13e739f407bca2530c427c5",
+#   "657fe88fff5df001826e4067bd766a37d95693aa683fe122d6988fab91534cfb",
+#   "2ae8564626e05ad73eea8982d41de60317b94ecd3648de4ad09e17b0e9573096",
+#   "0d2004b0c03b2d177cb6732e1417b0c6f4b6c11e374ad7c9ef11f4fb629c6770",
+#   "216683c6e8a07f6d3370c65d1a2885853ff8078c51ea398234e0b1affe9b3711",
+#   "3158fe6cb3d33553eee2ec38dc30470352e18899d1c7154da9359f4524851f64",
+#   "250e9ab35531f12af653b0968ce4cf9eb17cbafa34ebd74ffb598d46839522db",
+#   "5eb9386f9424cea8dea66203870a00baffe3bc5b7a72f6fdb8e7938ab4e6cf39",
+#   "4db968835a09a962dcc2077cab534494e91dce99c578c5d1a1ab0de927cdf012",
+#   "35c156290ac917d02230252cf51c7e1afad33b5dcd5e2681d3486001790c4d60",
+#   "10dcdd84e5cc1770564e99313d9fbf35df708e39ebd057f393d647f95a5e86c6",
+#   "11f8f8d39f79049575edefa422c4ef8c7f424a314b4455514311f22b3204da08",
+#   "0fb75dd917ba31973bc83afdbfdc5bac5906fbe87c09119a84775fc2906c9c17",
+#   "5abd562aff73d2f1e9a5f50fb33d1e01b4d660a1b69fb0be4f3e08994c8140d3",
+#   "2070c601271eda326082cab99d6fce2a59dd0ce1df2a48e8c998ceda60bb6a9c",
+#   "3b71e95294e23c283534ac26a6f6d157884a7078cc1f10c08fe192c505f65fd9",
+#   "44294bdbf2c6d50cde9bd3af0d59be00c9207fa50adf299f4103cd8fb1e34821",
+#   "0a9084b5a2e68c634685dd9c6383336b174f5372ac1262e023686df94449f0f0",
+#   "60149e7e177c523e2c0deb6780d0853423ca1b9fcbadd55676ef8d4ca8db81cb",
+#   "1d27036f295fbeca4ee6ebd5ae009242aafe7ac4dc0b4084f8f75967d90a7936",
+#   "2837be53ded4b74e7d16b9d4c637401ed7aa5a7c9050770b1e619afa48b95d55",
+#   "260fdbffa8fa2d33dfc8a52c342f4252e1d314369f945849059bad8dc1ee1638",
+#   "44cea8b9bce0334031420148491b6be9481d5d9da8524c0449b7b41163200d97",
+#   "297cc9bf6054410cb54888bd9959d3ffbbd5c4f0a85fd9b9983c4b7adb0493bc",
+#   "159f8e55cba865be213bc3a8a68647b94c8f5b0b070492a45b7d93380521a5ff",
+#   "38a5899366bd6f9d7ef8a97dc0480f301086c990806dff27a515b14cef5152e9",
+#   "204efcd39ee1e295ef4219ebd9e0c778d4148bebb3741e41fc9beba2c65c633a",
+#   "271764ecadcd60f65d267019c1c1af60a3e397a5b002646052d7362d285bb2bb",
+#   "13b362c59c0541374d6002d54bd71bbe0d0e1f295cb8db56e06840c5400c80ae",
+#   "5c74d4ee468f932dd5fc93c5473d3c2f26c433893eb3308053ededda6aae0d19",
+#   "6ba984c60c084e2a1c4c643c64f36cb36180ed723cff18abb9105e866ccbc4f1",
+#   "086c88421d41e8d2e6960cb525a9e4834ddef748bb5c79ac3ab6f7f9d677bb9f",
+#   "4b7f03326c3b830d3b02b29112b70b171f840a828abf877063beb46c21bf2a9f",
+#   "62860b2c6a7318fface715e4f29813aa89cea11493d0f471f8f08e475f92e1ba",
+#   "6b0e087a3c91c032300b9f10d88d00f694a6743396f34daacf63d26167f62fc7",
+#   "3f3a5a3cf6836105fd629e5a5573c518e9a2c64ea385acdd49b6da46eea6a61a",
+#   "5daa99300c27a11c06712e19b00d292b077891818a547cc00c621ef9a8b75bd1",
+#   "58fb2f431163ab6d62da5bad90300bb33b9d50bdf50f70d8183a4f96cebbfca5",
+#   "08b8bebbce5377e0484fdd4da80de1a1299044ccd56158f6fcb9a31d222984aa",
+#   "586a56fd19a5427d78131c2781134bc12632b3a33e7e75429b0e80651433dfea",
+#   "3d704aeed4e1a2b7a38539da9d34c404f8e7f6f566f36495abb91ee9f0972345",
+#   "2904e673c98376ac9d5bd2592c2565b20f5ffdb2b4961b75ed572f3d84b1c39b",
+#   "401a97a35fe5a9a3f96da7c0df7e61b5cee0a171a1b825131f96805d596f2280",
+#   "3fcaeb06205d65fc24cc9fb7a56d50910c03810a65e349c37c238c79b738b60c",
+#   "062be3abaca37a95594d1e456cb4b58b887147fe24f719df91f9a66cb350cd28",
+#   "7d8834ce997334bb1b44db346d978bd55d4f0f6b5b4e080dcc5619077ae7903a",
+#   "28dabd8df3b154dfaf5ceb158edd455b65b6e485503056bb519955d956a70245",
+#   "0b8a167b87008901413ff42bf3e2bdabd8eac366cd4568380e08d9283ec89968",
+#   "0a44dc01c73b8b41b0198c017ac7c908f898e0a5514087340da3dbcf4bfcb1c3",
+#   "15a0a2b8822f38f4e406bb3bd5fb41ce153c2de73ab9b23312b4301192e26108",
+#   "5cf31ce3571053c1016461c26ee0f36f954164f189846c4d1b7644e9d45e4029",
+#   "1689bc8dfca768ff00fdc2d8d81dd050eed4ebc8c3eff7eabd05ff0da1f7927a",
+#   "6973b06424f7130aa00d7c9ea4705a85b0dfe5a15beaf47c365be0bd8b7c5471",
+#   "005d8f8013df347b5b86506c2ccd5b141af4564196620f9649cad37269a09a6b",
+#   "4dc5c7eca195c3f2a38e6d2789fd9a03602aae21aa7a50985495ff37ce380d19",
+#   "2dc4033005916bb8905ea849e5df1b488dbb76612826d91eff5f44425d19e318",
+#   "14a8da2f0e185f03cef382273be39752e3a5707a2e6393e29db87cff952aed48",
+#   "6a07df41e9f102152ebc2b8a359298ebd7407bc7b5c45beee6d01d791031ac91",
+#   "6e9799fe83fb14d7bd1c56cb614c1c39d02b516a58ec67231e05c18274bbbd8e",
+#   "68e5be2a5c766e6b590bcdff549341d245376c82bea5501a285deb8e3bd5d3ba",
+#   "7fcb13c2fdf10790c12a3241d3d34c55b90c36398215f7ca7b16e20059ccc540",
+#   "0ada7b58d7263a9c79a63f29796ec501ec7e4968180a6e461dbefce87c676db3",
+#   "4cdccf9ac67a42f8b74b8309b7ea0823c3aa615a37e6775d54d9043bc5f04326",
+#   "42bcee3cd22e254b703efed348fe1e87a2b4b6434f04d740ff3fa8aaf3cf98a5",
+#   "3ab72f3519f094eb3d57ac2ae7a1f98fd92c3adf2c12fe784cc2eecaac7d60b7",
+#   "79f2d53fa17ea8e6d808c749d8e675727c7358610feb8c7f300a7cfbeb038d14",
+#   "1d62f7ebe8a9a27009a4cfeb089211cadb3ef1f960191c00748084307bc4510a",
+#   "40d61815b83d29d600c9984c0c809397cfc63b4888905208c21781502a3dc9ff",
+#   "5cc9ef2301b6cc4b2c049bc3d5a1f37c7fa41d8e840b2486f418a19eb95737d1",
+#   "76aa78a19aa5f6a318b2affefcb157b42f15d75558da0534e68f91eb3629914a",
+#   "3a912949592e9824c841d3bc1f7b112f4b08b42b61c232ff2fe05db4f47d9596",
+#   "0d6cf2997d14a1eb65b35a864986af54c1a813df13beb224400f8dcfa3c6abe3",
+#   "7d83e3c4b0d57f3c29e5f80c22073811ee6bf2e4c007c73efea0e882e6e75211",
+#   "36e62d8a95ae2a6b5c3a6cb356780c0e1c938c4c17af4f93f243305879c05628",
+#   "43a01f847f9e13232dd8016852471da045c3e8523d4def3858b46f3d14993d10",
+#   "05bbfc3e48f0c7277cdea54bc0b3915457d46b6add9d1c5ac04fb4bbe43028ab",
+#   "45cb7f3631b4b3b53b6c8b337b7737f3dcb469b701a0857fb6ed89b42c82a44a",
+#   "39fecbba6c1ab7886c83f980927abf978a2ca02752e1cbaadf29d68cfd9de010",
+#   "2625fe307dd31f1865162e3032dc11d9b16c583b39e98bbbee56129deb6a1a45",
+#   "61247d4df8dc53f4c16a0d9e82852d6726604266086d4463d86361b45b274e5b",
+#   "0b8ceaf2ded4dc71a0a23433f2b1487b09407d57ce8e90de609a015623ded72a",
+#   "670a559a9cf78a1d17e8e07c98d03849df46aae58a24fa4394b10a98ab0c2060",
+#   "6c15c4e12165c0937a6a7c29ded3c7bc98fbf073724545688b1572b4d8f0ff78",
+#   "435a7b09a35b768650826ee46a04fae086883aba014d4baf31b0cc2d4cf77648",
+#   "4923e2c21cde99c17e021b37f7b65a155f97d2f58a06fe8a0a114f67ef549491",
+#   "3f12305e7e59ea6aa53c50767aba33370348b74b6684a5acba1c94d796b74962",
+#   "6068283b2354fa8d93d0804893c29a09c63d04e0f8b53b9bf369b293a2df394d",
+#   "6e2a4351cbb386a80cc9aa5c17f32df4d77b0fc95a7f5a4c180c02fa7375aaec",
+#   "78c7d593e802d6b4df62abb3780be05bce2500b9726bde5f012c25b1f4f189e1",
+#   "099eaa89b396b04c0f969ccb3860d60389922197f8efead3b29812222caf4ed7",
+#   "3d1d2c440d55bffe67b1d04bc97c13f4b162fc517a50690d37b030bdbf1d41ac",
+#   "4cb450ae27ead2404f29b2c76aca88d1666a8f61a854c47cdb535e09928a331a",
+#   "3dc6760959c6a1d7d2545060e3e50e76a55bfe189c8fad88db3e0608924cf0d1",
+#   "6cb9db7c04cfe3bfd4d8dc42e0571dfeceedb63e54950ab7acea691de31a223d",
+#   "6ad4511d0bf21d7df401494b2f91039e7efb0123bdc012c862324cd2bfd11a65",
+#   "0284da5fd9f1d9c53dcad4be73b2ffaf1f2cde925e0d4769239df1086d9bc41a",
+#   "56e9bb4fbd1a481b89a8cc67588cfe669a40298228ee9567c7edd9776c8fbab5",
+#   "3244ebe5cf614749a84d53267ebeedfc4193fd6906a507da4b2bd347c9d52fac",
+#   "3bc87e088db61e91aa71e6613ea34b01da26528bf81cbdd58968ae38f0a334d2",
+#   "58e9dd5e1eab6f302f3320a8cf7da740bafe52ec6bf9c3a8bc2d6296ead08ca1",
+#   "2f2f23864d05a2cce262a82da9ff1f68b5b765b2a1dbb8408f0ae8b10f03bbae",
+#   "3e92d52fd09a215a4529868e66126ce69b1371cb07cc9c8a8f04476683b82c21",
+#   "023579f4280433ccf5552db76ae6ffe9b4be605b6bcc56bf22927db14ce89d44",
+#   "22fc8ad88f66683e68ba680f06dfd5e628d25e17bfb7212c78f36368e91bab77",
+#   "0428aba2376cf5f9cd8ccc9c1e340d70f485000a0799614fd931064fb6ef55ae",
+#   "08f697e519e1ec475efaab81576365c72418bec8a4ceae2bfbf759e28d113eea",
+#   "0c62d7a73a261c6f114cc501df57939fbfe89046345f591a9c711252b4e44efd",
+#   "3738c815d36327fb03ad7d4e6dd5264fe5230ea73880e8b8c13910bd67be7a6c",
+#   "75ecc5cc6a91973b155a2b4ff109c6ec1427555b709154961d06843e12be8b76",
+#   "33eca843893fd7a8fbadb3d3d4e7b0e34bdd362683dda45d206c214d2cc6da27",
+#   "2d63e3dc06dffc1e751d48b9d8d427965d2ce541987d4908dc2116f271b3e0e2",
+#   "42556a018c8ba547d06a18410ad1fcb48634f98161b9ca5c5213e9feaea76adf",
+#   "481678c8d24c0378c5fb2dd13db27e65354cd815aa6ee885db118b3f85c36b08",
+#   "57327d3f29b8db72fc8bb901400c97c1412714bbda95baf7d4a625a334fc9fa4",
+#   "3732be6cdc33091759712b47655ae91aec429e2c104eae5760269035afb1c99f",
+#   "01ec88c910784b87dd55951976ba2a69c5f3d543b0c03dba82b865c5ff5136d7",
+#   "11f8df1f73c5cd2109174cc438809bb33d1d1c235a086722799bb58b80aa6b53",
+#   "59b20b73609ae59c7c88ce5b3a706d4f8bb3bc39fd7fcdd9a177c1e2760713d2",
+#   "2dbc4995ea9d6b3b8aa9fa4729e2d5c780551027a73c0d8edd2ec01da55a0d4e",
+#   "3c40efd6731646c031bd583ed36e55b086a693176e6d782258cf802446c1101c",
+#   "2881c71c294d47a3e970a884d420d8ee612b4eaf6a741aa7d9610c6b8406f190",
+#   "24dbbe2a0df79fb957d642a959b8c78d03899245dd7cbac31bebd189eac641be",
+#   "551c4e6cdd60e443c46fa4c0fbced9ad8e44b5327a8902a224bae0297cebc279",
+#   "15b42546eb8ac395bfec17efafa1b609fdc3d7096948b007ca45e93d9409828c",
+#   "68cc05664e88d09b63eebca0d4b478ce38cc973ae5f2f53f01e5adce3dced4c8",
+#   "10c1fbbbd8fdcb2f52a13579be8c9c5ea2bcc90e45afb73f614323c3985db53a",
+#   "15a337ab5b86b1a0dfb9fae16167a34c6ad19e7f5784b3ab98d290cc9bee30b1",
+#   "75925a4895b83d91123bdb53d100e5fd11b57f2f52764809dfe9052cffbbfe6d",
+#   "489000da2c5a76e593827ca45098d5ddebdcdc74bf3b63062c2bfec1c8b4b753",
+#   "529dd44a1224163952ccc9ffc9da01aeef446143d955125bd2ded41db53d02c6",
+#   "0e894c41084e7d86b7c28857a4771d2e6cc9e24c5759fc86645fdbb985f36907",
+#   "6dd701e3d52ddee0426e7bb4879b362797334fdd0131dcefbed6ccce3da0698f",
+#   "168ff6b150efc1769c228d98ea24bff165cc783c9953bc483c277f6261ad71dd",
+#   "465bb608868c9daf20b4e93615fed1ebd81d64c7d314c3d3872e72bf0c13d32d",
+#   "75137bc5085baa82a0b3df145292b8c626b952a0b498174235eda9b8767f2b3c",
+#   "2510970c236b9703c16d18b25dea0d762c443ec7fc8c168bc37b795d1fb09aa0",
+#   "492ffb22ae502bda7ea429d58fc2b9c075910c0279351c04e5ceca403179f99d",
+#   "2ebdbbfd7c206cf21e3371f2d16e4d4a241f6ca016cb496e8677aeb452dc4303",
+#   "108523e96e296c3b218800ea6a866e94433f511a0084786117d0121ffd119ce9",
+#   "264af87f0ec7860fa7085fe0932eee228cb0a5c3c5f4fe36fd2b76986979ead4",
+#   "3d1a293621f752e0c304d6502f0d1746a3f76c22eb984d8e3b50396c29e95cd0",
+#   "30be99a0b46875883ed78f2a2fa19c63fbd54a55074a3ac479541d0a6a185607",
+#   "15037eda244d357dc158900bead3824a20bd20cfdba1cd07382e95d206e14753",
+#   "1a12f677055937aeebc77331f60fa311b87e9645f17d537e79e7099ca220aea3",
+#   "7f39ec427b8b27978e7f7feff57dab341358664a03f4f9e0f04c120048b39963",
+#   "108e699e613ff4eb010ea7adbd71c845f400384b470cb448027ba9a493fa6538",
+#   "23121a42f0804026ea27a14d136b7e33b42512eb2070b22a865af766b1ae0be9",
+#   "7358abd30c93f65bed413c47ed06cf646ff2609a50f40bcb7d6351e2ddd225e2",
+#   "72a1ce01b16ead1b9ad22247cdfbcd7621f3bed80774b1669f74916d45c94d5b",
+#   "1497e3b14246d53cc467c66d05764ac4dbb77d02e2cd45b5bf01d844d736ad3f",
+#   "1d12515b8003aebe8c95d796d1f99ec0ca730e09115c221bcd8315f9af3089cb",
+#   "5f742c0990d5f251f57220d0476968ccd30591cfb48d0b3faffc03284ef089f0",
+#   "461b81154986ef9219d6cd10f85b38457719c56ad23566ecf4e2f64063c40410",
+#   "5e012685ea818218645471b3c091417ff571558488d382c7cf17168523c0e205",
+#   "0195c2f34a20a1db14bd8b42e1c081c95e98e9dcb39062d2d42989f31beb7be9",
+#   "3b7fb76ad7fe906facda20bfe78e52c196d30a55f557fd4aabf73233e020dfa4",
+#   "250752191406dc0074e51b964043d1d7278561de110a97225b00b27b1e6304d2",
+#   "12b58a20b04a61d1f14214bd49ead24796db4539b80089c7f535a55f7e3a0807",
+#   "7594524eb2d45603719f17c5518f07c5b403eefeaee5e9bb8695cbb1c6e9d3cf",
+#   "668e145fa6d2420689754117c5b8af15bb38964cf11e746c61c369d2c70b8b3c",
+#   "2820fdb7bc47db0e928ed2d905956b1bad9686ce088dbba5175b3a1a9243d78b",
+#   "72069ba430f8e87f955cb09221e769c9f9d44f5f17cb6081aa8d0948459c4ec7",
+#   "524f040cf3279743c4a0e8c968c1f77d9698461a5837e6a133d8d024b05b6436",
+#   "156043521ebbdf3a7c4a8b033cf757445e9c425d04270797dd38f7e3ad53ba45",
+#   "3ed6681d4ed14577ebd4f4f54f16d3568774afa93bfc33a42f58dab20a42fce1",
+#   "05691fb8fd030afa8684b5dd670a964f90dbab9ad115404c42be67183f38507a",
+#   "5ad65a835ab04ff49f6570dec65fed2d69f38e6a957a94f80663e5a6cdca7721",
+#   "7f9263339b1c3ef72ec2ce27f9abd38e55f3b421e523022653601f349e04dd75",
+#   "0ea0bc9d263a827f7c7e83a1d78034663a1bed1b330620042d91b2661641aac4",
+#   "2be5aeb286df45865a54d783e98ea03315981ed1f3796dfd6f882c8dba609836",
+#   "59ccd9c56c095ee9e17643a7a5cb72fdfb8d8f71d2d957d66b64d648c71ac56e",
+#   "31fc03b8f172ac95e1cb5a6255487d65d64ed493ed24a69e242713251d587d25",
+#   "67710f560ddb3ad350eeb7ded3ae70056aca1f60ce8d360edc24d908b9d85483",
+#   "45d56c0719a5fe5cc2a6db1e4bebe7f65015c1990dd7bcec7800ad9afca8d768",
+#   "1d1b63d8ed67751e8303db9ce03464a9d0a441ad5fcc4d521669436210cff53c",
+#   "2c61c23d9587d4cc19ad542bd4346e6fac7e31f5bd7a48c0051974f98c5abb70",
+#   "137de43747269f45063cf481cf2a8324da25252beb13926fa6e4c8bc72929839",
+#   "3038a47361478c3226a2289b0ec1e6418b77cd0fc7b2d29a00ab675ff41e7268",
+#   "03b19e2e4afd3c5e011155e5b6e448a28b8ab20bdbe4238d5f8ebef528484860",
+#   "3216dbafbef9ddf673df1b205c4c38a984a0486d5c1c7673c0254b7720f13ef2",
+#   "0799c608c2717f1ab92f7a07a40519afbc7d4258d580282468993703d9d3194e",
+#   "27ec3fd386ff5cb0480afc3ae5fde31b2eb5c7dd748c999b0b17ae23f57545fa",
+#   "61f65ac9f89e7ffdd53c9201a85dd4d13de0a95123c56869f0f7f15a9cbbad1b",
+#   "46a7de39b459eb93b4863fbb88f5cb7ce7bdb4d1d8571c02abd1747bca3d7401",
+#   "592f2d0c64adfbba47ecfc43f19e3fcd8142e45aa11b793ea5b7cfc62be04204",
+#   "01db1e7da46eca43f0a3a4520a46acafaf9deced6c6df1ff8335953bbebe6e84",
+#   "5b161944cb97cb74f1412e1b5f1f51ec00e7fdee096e3ac659887690d5d8c097",
+#   "1bb2d70f4e2839078f9aebfe3c33b48e6aa0eeaf0d4b8bbe481a8925a0eddba7",
+#   "0441679a546a2e5712a6b6cfab9cdef9b805ecd39583991c5ea28247e294c613",
+#   "2fd7227dc19e5c4b6769426a65fcfaa14e457b6f57cc2483fb9e20dde4bcebbd",
+#   "401bd0bba3b691b9281094c80b08758fa6bf3cd54fd504b19aab32375dfa79e4",
+#   "373d0e5616ebcb4451b27275bd210a324dc3f05b71244274484ae42f65b994b5",
+#   "76e1b8679ac1544a3961ce7e92de6ed71a6fe5d9c7c4b0220b609ef42645ad9c",
+#   "0ccf2e0d05c9d0f054ace83dac444ca5eff4ed1dd844300ea5b54697a351d80f",
+#   "09b2a4ccff60b55aeb71f7eb82a60f761a2f2991ddc739c052412e23ce5941fc",
+#   "1fa01c032644e7f769724d0924ecfea19f4eb6a83d0f5144be7cd49029202b3c",
+#   "28b3e0a6f956a78c7a8e50a45d0a030d3875253d091d5a42e4409700182c91eb",
+#   "7160246574fb696c08399ea31326c1914ebfcbefe734dd0b89395af046a34430"
+# ]
+# {
+#   "name": "default",
+#   "warning": ""
+# }
+# [
+#   {
+#     "success": true,
+#     "warnings": [
+#       "Range not given, using default keypool range"
+#     ]
+#   },
+#   {
+#     "success": true,
+#     "warnings": [
+#       "Range not given, using default keypool range"
+#     ]
+#   }
+# ]
+# /Users/lakshyasingh/Projects/galoy/bria/tests/e2e/helpers.bash: line 18: /Users/lakshyasingh/Projects/galoy/bria/target/debug/bria: No such file or directory
+# /Users/lakshyasingh/Projects/galoy/bria/tests/e2e/helpers.bash: line 18: /Users/lakshyasingh/Projects/galoy/bria/target/debug/bria: No such file or directory
+# /Users/lakshyasingh/Projects/galoy/bria/tests/e2e/helpers.bash: line 130: kill: (37773) - No such process
+# bats warning: Executed 1 instead of expected 8 tests
