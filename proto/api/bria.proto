@@ -41,6 +41,7 @@ service BriaService {
   rpc CancelPayout(CancelPayoutRequest) returns (CancelPayoutResponse) {}
 
   rpc GetBatch (GetBatchRequest) returns (GetBatchResponse) {}
+  rpc CancelBatch (CancelBatchRequest) returns (CancelBatchResponse) {}
 
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
 
@@ -432,7 +433,14 @@ message GetBatchResponse {
   string unsigned_psbt = 4;
   repeated BatchWalletSummary wallet_summaries = 5;
   repeated SigningSession signing_sessions = 6;
+  bool cancelled = 7;
 }
+
+message CancelBatchRequest {
+  string id = 1;
+}
+
+message CancelBatchResponse {}
 
 message BatchWalletSummary {
   string wallet_id = 1;

@@ -14,8 +14,7 @@ teardown_file() {
   stop_daemon
 }
 
-
-@test "payout: Batch inclusion and cancellation" {
+@test "payout: Batch inclusion and payout cancellation" {
   bria_cmd create-payout-queue --name high --interval-trigger 5
   payout_id=$(bria_cmd submit-payout -w default --queue-name high --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 75000000 | jq -r '.id')
   for i in {1..20}; do
@@ -267,4 +266,121 @@ teardown_file() {
 
   cache_wallet_balance
   [[ $(cached_encumbered_outgoing) == 0 ]] && break;
+}
+
+@test "payout: Create and cancel an unsigned batch" {
+  # invalidates signer to allow cancel the batch
+  bria_cmd set-signer-config \
+    --xpub "68bfb290" bitcoind \
+    --endpoint "${BITCOIND_SIGNER_ENDPOINT}" \
+    --rpc-user "rpcuser" \
+    --rpc-password "invalidpassword"
+
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 1
+  bitcoin_cli -generate 10
+
+  bria_cmd create-payout-queue -n cancel_queue -m true
+  payout_id=$(bria_cmd submit-payout -w default --queue-name cancel_queue --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 1300000 | jq -r '.id')
+
+  # Wait for payout to be encumbered
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_encumbered_outgoing) == 1300000 && $(cached_effective_settled) -ge 100000000 ]] && break
+    sleep 2
+  done
+  [[ $(cached_encumbered_outgoing) == 1300000 && $(cached_effective_settled) -ge 100000000 ]] || exit 1
+  effective_settled=$(cached_effective_settled)
+
+  # Wait for the batch to be created
+  for i in {1..20}; do
+    bria_cmd trigger-payout-queue --name cancel_queue
+    batch_id=$(bria_cmd get-payout -i "${payout_id}" | jq -r '.payout.batchId')
+    [[ "${batch_id}" != "null" ]] && break
+    sleep 2
+  done
+  [[ "${batch_id}" != "null" ]] || exit 1
+
+  # Verify the batch exists
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "false" ]] || exit 1
+
+  # Cancel the batch
+  bria_cmd cancel-batch --batch-id "${batch_id}"
+
+  # Verify the payout is marked as cancelled
+  for i in {1..20}; do
+    payout=$(bria_cmd get-payout -i ${payout_id} | jq -r '.payout')
+    batch_id_after=$(echo ${payout} | jq -r '.batchId')
+    cancelled=$(echo ${payout} | jq -r '.cancelled')
+    [[ "${batch_id_after}" == "${batch_id}" && "${cancelled}" == "true" ]] && break
+    sleep 1
+  done
+  [[ "${batch_id_after}" == "${batch_id}" && "${cancelled}" == "true" ]] || exit 1
+
+  # Verify the batch is marked as cancelled
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "true" ]] || exit 1
+
+  # Check that the funds are no longer encumbered
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_encumbered_outgoing) == 0 && $(cached_effective_settled) == ${effective_settled} ]] && break
+    sleep 1
+  done
+  [[ $(cached_encumbered_outgoing) == 0 ]] || exit 1
+  [[ $(cached_effective_settled) == ${effective_settled} ]] || exit 1
+}
+
+@test "payout: Error when try to create and cancel a signed batch" {
+  bria_cmd set-signer-config \
+    --xpub "68bfb290" bitcoind \
+    --endpoint "${BITCOIND_SIGNER_ENDPOINT}" \
+    --rpc-user "rpcuser" \
+    --rpc-password "rpcpassword"
+
+  bria_address=$(bria_cmd new-address -w default | jq -r '.address')
+  bitcoin_cli -regtest sendtoaddress ${bria_address} 1
+  bitcoin_cli -generate 10
+
+  bria_cmd create-payout-queue -n cancel_queue -m true || true
+  payout_id=$(bria_cmd submit-payout -w default --queue-name cancel_queue --destination bcrt1q208tuy5rd3kvy8xdpv6yrczg7f3mnlk3lql7ej --amount 1300000 | jq -r '.id')
+
+  # Wait for payout to be encumbered
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_encumbered_outgoing) == 1300000 && $(cached_effective_settled) -ge 100000000 ]] && break
+    sleep 2
+  done
+  [[ $(cached_encumbered_outgoing) == 1300000 && $(cached_effective_settled) -ge 100000000 ]] || exit 1
+
+  # Wait for the batch to be created
+  for i in {1..20}; do
+    bria_cmd trigger-payout-queue --name cancel_queue
+    batch_id=$(bria_cmd get-payout -i "${payout_id}" | jq -r '.payout.batchId')
+    [[ "${batch_id}" != "null" ]] && break
+    sleep 2
+  done
+  [[ "${batch_id}" != "null" ]] || exit 1
+
+  # Verify the batch exists
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" ]] || exit 1
+
+  # Try to cancel the batch
+  run bria_cmd cancel-batch --batch-id "${batch_id}"
+  [[ "$status" -ne 0 ]]
+  [[ "$output" == *"BatchError - Batch is already signed and can't be cancelled"* ]]
+
+  # Check that the funds are no longer encumbered
+  for i in {1..20}; do
+    cache_wallet_balance
+    [[ $(cached_encumbered_outgoing) == 0 ]] && break
+    sleep 1
+  done
+  [[ $(cached_encumbered_outgoing) == 0 ]] || exit 1
+
+  # Verify the batch is not marked as cancelled
+  batch=$(bria_cmd get-batch -b "${batch_id}")
+  [[ $(echo ${batch} | jq -r '.id') == "${batch_id}" && $(echo ${batch} | jq -r '.cancelled') == "false" ]] || exit 1
 }

@@ -744,6 +744,7 @@ impl BriaService for Bria {
                     &profile,
                     id.parse()
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                    false,
                 )
                 .await?;
             Ok(Response::new(CancelPayoutResponse {}))
@@ -847,6 +848,7 @@ impl BriaService for Bria {
                         .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
                 )
                 .await?;
+            let is_cancelled = batch.is_cancelled();
             let wallet_summaries = batch
                 .wallet_summaries
                 .into_iter()
@@ -862,6 +864,7 @@ impl BriaService for Bria {
                 payout_queue_id: batch.payout_queue_id.to_string(),
                 tx_id: batch.bitcoin_tx_id.to_string(),
                 unsigned_psbt: batch.unsigned_psbt.to_string(),
+                cancelled: is_cancelled,
                 wallet_summaries,
                 signing_sessions: sessions
                     .map(|sessions| {
@@ -873,6 +876,29 @@ impl BriaService for Bria {
                     })
                     .unwrap_or_default(),
             }))
+        })
+        .await
+    }
+
+    #[instrument(name = "bria.cancel_batch", skip_all, fields(error, error.level, error.message), err)]
+    async fn cancel_batch(
+        &self,
+        request: Request<CancelBatchRequest>,
+    ) -> Result<Response<CancelBatchResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            extract_tracing(&request);
+            let key = extract_api_token(&request)?;
+            let profile = self.app.authenticate(key).await?;
+            let request = request.into_inner();
+            let CancelBatchRequest { id } = request;
+            self.app
+                .cancel_batch(
+                    &profile,
+                    id.parse()
+                        .map_err(ApplicationError::CouldNotParseIncomingUuid)?,
+                )
+                .await?;
+            Ok(Response::new(CancelBatchResponse {}))
         })
         .await
     }
