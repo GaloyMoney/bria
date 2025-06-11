@@ -104,17 +104,17 @@ bitcoind_init() {
 
   if [[ "${wallet}" == "default" ]]; then 
     bitcoin_signer_cli createwallet "default" || true
-    bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_signer_descriptors.json)"
+    bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat ${REPO_ROOT}/bats/bitcoind_signer_descriptors.json)"
   elif [[ "${wallet}" == "multisig" ]]; then
     bitcoin_signer_cli createwallet "multisig" || true 
-    bitcoin_signer_cli -rpcwallet=multisig importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_multisig_signer_descriptors.json)"
+    bitcoin_signer_cli -rpcwallet=multisig importdescriptors "$(cat ${REPO_ROOT}/bats/bitcoind_multisig_signer_descriptors.json)"
     bitcoin_signer_cli createwallet "multisig2" || true 
-    bitcoin_signer_cli -rpcwallet=multisig2 importdescriptors "$(cat ${REPO_ROOT}/tests/e2e/bitcoind_multisig2_signer_descriptors.json)"
+    bitcoin_signer_cli -rpcwallet=multisig2 importdescriptors "$(cat ${REPO_ROOT}/bats/bitcoind_multisig2_signer_descriptors.json)"
   fi
 }
 
 start_daemon() {
-  SIGNER_ENCRYPTION_KEY="${SIGNER_ENCRYPTION_KEY}" background bria_cmd daemon --config ./tests/e2e/bria.${BRIA_CONFIG:-local}.yml run > .e2e-logs
+  SIGNER_ENCRYPTION_KEY="${SIGNER_ENCRYPTION_KEY}" background bria_cmd daemon --config ./bats/bria.${BRIA_CONFIG:-local}.yml run > .e2e-logs
   for i in {1..20}
   do
     if head .e2e-logs | grep -q 'Starting main server on port'; then
