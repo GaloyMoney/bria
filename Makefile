@@ -10,6 +10,9 @@ watch:
 next-watch:
 	cargo watch -s 'cargo nextest run'
 
+test-integration: reset-deps
+	cargo nextest run --verbose --locked
+
 check-code:
 	SQLX_OFFLINE=true cargo fmt --check --all
 	SQLX_OFFLINE=true cargo clippy --all-features
