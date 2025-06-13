@@ -4,7 +4,7 @@
 #@   "build_edge_image",
 #@   "public_docker_registry",
 #@   "nodejs_task_image_config",
-#@   "rust_check_code",
+#@   "check_code",
 #@   "repo_resource",
 #@   "edge_image_resource",
 #@   "version_resource",
@@ -31,7 +31,7 @@ groups:
   - build-edge-image
 
 jobs:
-- #@ rust_check_code()
+- #@ check_code()
 - #@ integration_test()
 - #@ bats_test()
 
