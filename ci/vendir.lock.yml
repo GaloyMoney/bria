@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'refactor: script and job naming'
-      sha: 9b10794e73f3f0c016c63621363ef82af19cf984
+      commitTitle: 'fix: make integration and bats test scripts executable'
+      sha: 221be356913c9b3fd2794abf43ab97a200167f0a
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'refactor: script and job naming'
-      sha: 9b10794e73f3f0c016c63621363ef82af19cf984
+      commitTitle: 'fix: make integration and bats test scripts executable'
+      sha: 221be356913c9b3fd2794abf43ab97a200167f0a
     path: .
   path: vendor
 kind: LockConfig
