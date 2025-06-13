@@ -26,3 +26,6 @@ staging_ssh_pub_key: ((staging-ssh.ssh_public_key))
 git_version_branch: version
 gh_org: GaloyMoney
 gh_repository: bria
+
+cachix_auth_token: ((cachix-token.token))
+cachix_cache_name: bria-ci
