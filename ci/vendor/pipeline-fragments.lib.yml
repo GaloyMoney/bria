@@ -172,74 +172,14 @@ plan:
       release: docker-host
 #@ end
 
-#@ def nodejs_integration_test():
-name: test-integration
-serial: true
-plan:
-- in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-  - { get: bundled-deps, tags: ["galoy-staging"], trigger: true}
-- task: test-integration
-  timeout: 12m
-  tags: ["galoy-staging"]
-  config:
-    platform: linux
-    image_resource: #@ nodejs_task_image_config()
-    inputs:
-    - name: bundled-deps
-    - name: pipeline-tasks
-    - name: repo
-      path: #@ data.values.gh_repository + "-integration"
-    params:
-      REPO_PATH: #@ data.values.gh_repository + "-integration"
-      DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
-      GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
-      SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
-      SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
-      JEST_TIMEOUT: 90000
-    run:
-      path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
-#@ end
-
-#@ def rust_integration_test():
-name: test-integration
-serial: true
-plan:
-- in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-- task: test-integration
-  timeout: 12m
-  tags: ["galoy-staging"]
-  config:
-    platform: linux
-    image_resource: #@ rust_task_image_config()
-    inputs:
-    - name: pipeline-tasks
-    - name: repo
-      path: #@ data.values.gh_repository + "-integration"
-    caches:
-    - path: cargo-home
-    - path: cargo-target-dir
-    params:
-      REPO_PATH: #@ data.values.gh_repository + "-integration"
-      DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
-      GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
-      SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
-      SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
-    run:
-      path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
-#@ end
-
 #@ def integration_test():
-name: integration-tests
+name: integration-test
 plan:
   - in_parallel:
     - get: repo
       trigger: true
     - { get: pipeline-tasks }
-  - task: integration-tests
+  - task: integration-test
     attempts: 2
     privileged: true
     config:
@@ -249,20 +189,20 @@ plan:
         - name: pipeline-tasks
         - name: repo
       run:
-        path: pipeline-tasks/ci/vendor/tasks/integration-tests.sh
+        path: pipeline-tasks/ci/vendor/tasks/test-integration.sh
       params:
         CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
         CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
 #@ end
 
 #@ def bats_test():
-name: bats-tests
+name: bats-test
 plan:
 - in_parallel:
   - get: repo
     trigger: true
   - get: pipeline-tasks
-- task: bats-tests
+- task: bats-test
   privileged: true
   config:
     platform: linux
@@ -271,7 +211,7 @@ plan:
     - name: pipeline-tasks
     - name: repo
     run:
-      path: pipeline-tasks/ci/vendor/tasks/bats-tests.sh
+      path: pipeline-tasks/ci/vendor/tasks/test-bats.sh
     params:
       CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
       CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name

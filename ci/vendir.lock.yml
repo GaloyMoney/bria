@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'Merge pull request #5 from GaloyMoney/feat--nix-test...'
-      sha: 37bc289ad8cc7509f844541a729efbc5c5e4d252
+      commitTitle: 'refactor: script and job naming'
+      sha: 9b10794e73f3f0c016c63621363ef82af19cf984
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'Merge pull request #5 from GaloyMoney/feat--nix-test...'
-      sha: 37bc289ad8cc7509f844541a729efbc5c5e4d252
+      commitTitle: 'refactor: script and job naming'
+      sha: 9b10794e73f3f0c016c63621363ef82af19cf984
     path: .
   path: vendor
 kind: LockConfig
