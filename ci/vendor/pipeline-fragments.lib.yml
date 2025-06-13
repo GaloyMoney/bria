@@ -47,7 +47,7 @@ source:
 #@ def nix_task_image_config():
 type: registry-image
 source:
-  repository: nixpkgs/nix-flakes
+  repository: ghcr.io/nix-community/docker-nixpkgs/cachix-flakes
 #@ end
 
 #@ def check_code():
@@ -230,6 +230,51 @@ plan:
       SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
     run:
       path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
+#@ end
+
+#@ def integration_test():
+name: integration-tests
+plan:
+  - in_parallel:
+    - get: repo
+      trigger: true
+    - { get: pipeline-tasks }
+  - task: integration-tests
+    attempts: 2
+    privileged: true
+    config:
+      platform: linux
+      image_resource: #@ nix_task_image_config()
+      inputs:
+        - name: pipeline-tasks
+        - name: repo
+      run:
+        path: pipeline-tasks/ci/vendor/tasks/integration-tests.sh
+      params:
+        CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
+        CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
+#@ end
+
+#@ def bats_test():
+name: bats-tests
+plan:
+- in_parallel:
+  - get: repo
+    trigger: true
+  - get: pipeline-tasks
+- task: bats-tests
+  privileged: true
+  config:
+    platform: linux
+    image_resource: #@ nix_task_image_config()
+    inputs:
+    - name: pipeline-tasks
+    - name: repo
+    run:
+      path: pipeline-tasks/ci/vendor/tasks/bats-tests.sh
+    params:
+      CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
+      CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
 #@ end
 
 #@ def nodejs_audit(level = "high"):
