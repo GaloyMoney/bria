@@ -905,6 +905,30 @@ impl BriaService for Bria {
                 .fuse(),
         )))
     }
+
+    #[instrument(name = "bria.propose_payjoin", skip_all, fields(error, error.level, error.message), err)]
+    async fn propose_payjoin(
+        &self,
+        request: Request<ProposePayjoinRequest>,
+    ) -> Result<Response<ProposePayjoinResponse>, Status> {
+        crate::tracing::record_error(|| async move {
+            let req = request.into_inner();
+            // TODO: Use real handler logic
+            let handler = crate::payjoin::handler::PayjoinHandler;
+            let proposal = handler
+                .propose_payjoin(
+                    req.wallet_id,
+                    req.original_psbt,
+                    self.app.pool()
+                )
+                .await
+                .map_err(|e| Status::internal(e.to_string()))?;
+            Ok(Response::new(ProposePayjoinResponse {
+                payjoin_psbt: proposal.payjoin_psbt,
+            }))
+        })
+        .await
+    }
 }
 
 pub(crate) async fn start(

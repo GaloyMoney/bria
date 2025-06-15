@@ -45,6 +45,7 @@ service BriaService {
   rpc GetAccountBalanceSummary (GetAccountBalanceSummaryRequest) returns (GetAccountBalanceSummaryResponse) {}
 
   rpc SubscribeAll (SubscribeAllRequest) returns (stream BriaEvent) {}
+  rpc ProposePayjoin (ProposePayjoinRequest) returns (ProposePayjoinResponse) {}
 }
 
 message CreateProfileRequest {
@@ -585,4 +586,14 @@ message PayoutSettled {
     BriaWalletDestination wallet = 9;
   };
   uint64 proportional_fee_sats = 8;
+}
+
+// ProposePayjoin API
+message ProposePayjoinRequest {
+  string wallet_id = 1;
+  bytes original_psbt = 2;
+}
+
+message ProposePayjoinResponse {
+  bytes payjoin_psbt = 1;
 }
