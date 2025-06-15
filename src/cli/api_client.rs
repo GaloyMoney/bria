@@ -357,6 +357,8 @@ impl ApiClient {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
             TxPriority::HalfHour => proto::TxPriority::HalfHour as i32,
             TxPriority::OneHour => proto::TxPriority::OneHour as i32,
+            TxPriority::FourHours => proto::TxPriority::FourHours as i32,
+            TxPriority::NextDay => proto::TxPriority::NextDay as i32,
         };
         let trigger = match (interval_trigger, manual_trigger) {
             (Some(interval), None) | (Some(interval), Some(false)) => {
@@ -585,6 +587,8 @@ impl ApiClient {
             TxPriority::NextBlock => proto::TxPriority::NextBlock as i32,
             TxPriority::HalfHour => proto::TxPriority::HalfHour as i32,
             TxPriority::OneHour => proto::TxPriority::OneHour as i32,
+            TxPriority::FourHours => proto::TxPriority::FourHours as i32,
+            TxPriority::NextDay => proto::TxPriority::NextDay as i32,
         });
 
         let trigger = interval_trigger.map(proto::payout_queue_config::Trigger::IntervalSecs);

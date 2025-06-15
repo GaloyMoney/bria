@@ -127,6 +127,8 @@ pub enum TxPriority {
     NextBlock,
     HalfHour,
     OneHour,
+    FourHours,
+    NextDay,
 }
 
 impl TxPriority {
@@ -135,6 +137,8 @@ impl TxPriority {
             Self::NextBlock => 1,
             Self::HalfHour => 3,
             Self::OneHour => 6,
+            Self::FourHours => 24,
+            Self::NextDay => 144,
         }
     }
 }
