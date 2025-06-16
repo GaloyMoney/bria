@@ -62,6 +62,7 @@ make build
 
 # --- Run Bats Tests ---
 echo "--- Running BATS tests ---"
+export DOCKER_ENGINE=podman
 bats -t bats
 
 echo "--- e2e Tests done ---"
