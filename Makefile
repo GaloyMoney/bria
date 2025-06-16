@@ -1,3 +1,11 @@
+# Detect Docker engine (Docker or Podman)
+DOCKER_ENGINE ?= $(shell if command -v podman >/dev/null 2>&1 && podman info >/dev/null 2>&1; then echo "podman"; else echo "docker"; fi)
+
+# Verify the detected engine is available
+check-engine:
+	@echo "Using $(DOCKER_ENGINE) as container engine"
+	@$(DOCKER_ENGINE) --version >/dev/null 2>&1 || (echo "Error: $(DOCKER_ENGINE) is not available or not working properly" && exit 1)
+
 install-dev-deps:
 	cargo install cargo-nextest cargo-watch cargo-audit sqlx-cli
 
@@ -28,11 +36,11 @@ build-x86_64-unknown-linux-musl-release:
 build-x86_64-apple-darwin-release:
 	bin/osxcross-compile.sh
 
-clean-deps:
-	docker compose down
+clean-deps: check-engine
+	$(DOCKER_ENGINE) compose down
 
-start-deps:
-	docker compose up -d integration-deps && sleep 2
+start-deps: check-engine
+	$(DOCKER_ENGINE) compose up -d integration-deps && sleep 2
 
 reset-deps: clean-deps start-deps setup-db
 
