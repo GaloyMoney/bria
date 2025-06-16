@@ -1,5 +1,6 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-${REPO_ROOT##*/}}"
+DOCKER_ENGINE="${DOCKER_ENGINE:-docker}"
 SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
 BRIA_HOME="${BRIA_HOME:-.bria}"
 export PG_CON="${PG_CON:-${DATABASE_URL}}"
@@ -52,11 +53,11 @@ cached_encumbered_outgoing() {
 }
 
 bitcoin_cli() {
-  docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
+  ${DOCKER_ENGINE} exec "${COMPOSE_PROJECT_NAME}-bitcoind-1" bitcoin-cli $@
 }
 
 bitcoin_signer_cli() {
-  docker exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
+  ${DOCKER_ENGINE} exec "${COMPOSE_PROJECT_NAME}-bitcoind-signer-1" bitcoin-cli $@
 }
 
 convert_btc_to_sats() {
@@ -80,19 +81,19 @@ bitcoin_signer_cli_send_all_utxos () {
 
 
 lnd_cli() {
-  docker exec "${COMPOSE_PROJECT_NAME}-lnd-1" lncli -n regtest $@
+  ${DOCKER_ENGINE} exec "${COMPOSE_PROJECT_NAME}-lnd-1" lncli -n regtest $@
 }
 
 reset_pg() {
-  docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "DROP SCHEMA public CASCADE"
-  docker exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "CREATE SCHEMA public"
+  ${DOCKER_ENGINE} exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "DROP SCHEMA public CASCADE"
+  ${DOCKER_ENGINE} exec "${COMPOSE_PROJECT_NAME}-postgres-1" psql $PG_CON -c "CREATE SCHEMA public"
 }
 
 restart_bitcoin_stack() {
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum mempool || true
+  ${DOCKER_ENGINE} compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum mempool || true
   # Running this twice has sometimes bitcoind is dangling in CI
-  docker compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum mempool || true
-  docker compose ${COMPOSE_FILE_ARG} up -d bitcoind bitcoind-signer lnd fulcrum mempool
+  ${DOCKER_ENGINE} compose ${COMPOSE_FILE_ARG} rm -sfv bitcoind bitcoind-signer lnd fulcrum mempool || true
+  ${DOCKER_ENGINE} compose ${COMPOSE_FILE_ARG} up -d bitcoind bitcoind-signer lnd fulcrum mempool
   retry 10 1 lnd_cli getinfo
 }
 
