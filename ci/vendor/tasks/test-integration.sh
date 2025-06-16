@@ -39,7 +39,7 @@ echo "{\"default\": [{\"type\": \"insecureAcceptAnything\"}]}" > /etc/containers
 echo "unqualified-search-registries = [\"docker.io\"]" > /etc/containers/registries.conf
 
 echo "--- Starting Dependencies with Podman Compose ---"
-ENGINE_DEFAULT=podman bin/docker-compose-up.sh integration-deps
+podman compose up -d integration-deps
 echo "--- Podman-compose up done ---"
 
 make setup-db

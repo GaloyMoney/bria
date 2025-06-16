@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: make integration and bats test scripts executable'
-      sha: 221be356913c9b3fd2794abf43ab97a200167f0a
+      commitTitle: 'refactor: call podman directly in test scripts'
+      sha: 42cda64ff87789ee478aceea611fa6252a6fd346
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: make integration and bats test scripts executable'
-      sha: 221be356913c9b3fd2794abf43ab97a200167f0a
+      commitTitle: 'refactor: call podman directly in test scripts'
+      sha: 42cda64ff87789ee478aceea611fa6252a6fd346
     path: .
   path: vendor
 kind: LockConfig
