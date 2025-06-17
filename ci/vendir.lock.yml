@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'refactor: call podman directly in test scripts'
-      sha: 42cda64ff87789ee478aceea611fa6252a6fd346
+      commitTitle: 'feat: add concourse cargo caching'
+      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'refactor: call podman directly in test scripts'
-      sha: 42cda64ff87789ee478aceea611fa6252a6fd346
+      commitTitle: 'feat: add concourse cargo caching'
+      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
     path: .
   path: vendor
 kind: LockConfig

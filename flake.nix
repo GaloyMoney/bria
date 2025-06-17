@@ -61,6 +61,7 @@
               jq
               podman
               podman-compose
+              bc
             ];
           });
 
