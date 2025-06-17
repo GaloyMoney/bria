@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+#! Auto synced from Shared CI Resources repository
+#! Don't change this file, instead change it in github.com/GaloyMoney/concourse-shared
+
 set -euo pipefail
 
 # Change to repo directory
@@ -16,6 +20,10 @@ cachix push "${CACHIX_CACHE_NAME}" dev-profile
 echo "--- Running integration tests in Nix environment ---"
 nix -L develop --command sh -exc '
 set -euo pipefail
+
+cd ..
+source pipeline-tasks/ci/vendor/tasks/helpers.sh
+pushd repo
 
 echo "--- Checking for Podman (via nix) ---"
 command -v podman
