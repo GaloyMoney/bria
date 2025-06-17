@@ -1,3 +1,25 @@
+# [bria release v0.1.113](https://github.com/GaloyMoney/bria/releases/tag/0.1.113)
+
+
+### Bug Fixes
+
+- Use entity_id macro from es_entity (#611)
+
+### Miscellaneous Tasks
+
+- Add bc to flake (#626)
+- Allow settings docker engine in bats helpers (#625)
+- Add podman and compose to flake (#622)
+- Add test integration makefile target (#615)
+- Run sqlx-prepare (#608)
+
+### Refactor
+
+- Move e2e tests to bats directory (#614)
+- Migrate wallet entity to es_entity (#613)
+- Use es_entity framework for profile entity (#609)
+- Use es_entity framework for payout_queue entity (#606)
+
 # [bria release v0.1.112](https://github.com/GaloyMoney/bria/releases/tag/0.1.112)
 
 
