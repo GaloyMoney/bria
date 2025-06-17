@@ -16,7 +16,7 @@ use crate::{
     signing_session::error::SigningSessionError,
     utxo::error::UtxoError,
     wallet::error::WalletError,
-    xpub::{error::XPubError, SigningClientError},
+    xpub::{error::XpubError, SigningClientError},
 };
 
 #[derive(Error, Debug)]
@@ -37,7 +37,7 @@ pub enum JobError {
     #[error("{0}")]
     LedgerError(#[from] LedgerError),
     #[error("{0}")]
-    XPubError(#[from] XPubError),
+    XPubError(#[from] XpubError),
     #[error("{0}")]
     UtxoError(#[from] UtxoError),
     #[error("{0}")]

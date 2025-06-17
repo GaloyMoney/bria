@@ -1,12 +1,25 @@
+use es_entity::*;
 use sqlx::{Pool, Postgres, Transaction};
+use std::collections::HashMap;
 use tracing::instrument;
 use uuid::Uuid;
 
-use super::{entity::*, error::XPubError, reference::*, signer_config::*};
-use crate::{entity::*, primitives::*};
-use std::collections::HashMap;
+use super::{entity::*, error::XpubError, reference::*, signer_config::*};
+use crate::primitives::*;
 
-#[derive(Clone)]
+#[derive(EsRepo, Clone, Debug)]
+#[es_repo(
+    entity = "Xpub",
+    err = "XpubError",
+    columns(
+        // name VARCHAR NOT NULL,
+        // fingerprint BYTEA NOT NULL,
+        account_id(ty = "AccountId", list_for),
+        name(ty = "String"),
+        fingerprint(ty = "String")
+    ),
+    tbl_prefix = "bria"
+)]
 pub struct XPubs {
     pool: Pool<Postgres>,
 }
@@ -17,7 +30,7 @@ impl XPubs {
     }
 
     #[instrument(name = "xpubs.persist", skip(self))]
-    pub async fn persist(&self, xpub: NewAccountXPub) -> Result<XPubId, XPubError> {
+    pub async fn persist(&self, xpub: NewXpub) -> Result<XPubId, XpubError> {
         let mut tx = self.pool.begin().await?;
         let ret = self.persist_in_tx(&mut tx, xpub).await?;
         tx.commit().await?;
@@ -28,8 +41,8 @@ impl XPubs {
     pub async fn persist_in_tx(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        xpub: NewAccountXPub,
-    ) -> Result<XPubId, XPubError> {
+        xpub: NewXpub,
+    ) -> Result<XPubId, XpubError> {
         let xpub_id = xpub.id();
         sqlx::query!(
             r#"INSERT INTO bria_xpubs
@@ -43,7 +56,7 @@ impl XPubs {
         .execute(&mut **tx)
         .await?;
         let id = xpub.db_uuid;
-        EntityEvents::<XPubEvent>::persist(
+        EntityEvents::<XpubEvent>::persist(
             "bria_xpub_events",
             &mut *tx,
             xpub.initial_events().new_serialized_events(id),
@@ -55,10 +68,10 @@ impl XPubs {
     pub async fn persist_updated(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        xpub: AccountXPub,
-    ) -> Result<(), XPubError> {
+        xpub: Xpub,
+    ) -> Result<(), XpubError> {
         if xpub.events.is_dirty() {
-            EntityEvents::<XPubEvent>::persist(
+            EntityEvents::<XpubEvent>::persist(
                 "bria_xpub_events",
                 tx,
                 xpub.events.new_serialized_events(xpub.db_uuid),
@@ -92,7 +105,7 @@ impl XPubs {
         &self,
         account_id: AccountId,
         xpub_ref: impl Into<XPubRef>,
-    ) -> Result<AccountXPub, XPubError> {
+    ) -> Result<Xpub, XpubError> {
         let xpub_ref = xpub_ref.into();
         let mut tx = self.pool.begin().await?;
         let db_uuid = match xpub_ref {
@@ -147,10 +160,10 @@ impl XPubs {
             None => None,
         };
 
-        Ok(AccountXPub::try_from((events, config))?)
+        Ok(Xpub::try_from((events, config))?)
     }
 
-    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, XPubError> {
+    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<Xpub>, XpubError> {
         let rows = sqlx::query!(
             r#"SELECT b.*, e.sequence, e.event
             FROM bria_xpubs b
@@ -190,14 +203,14 @@ impl XPubs {
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
             let config = config_map.remove(&id);
-            let xpub = AccountXPub::try_from((events, config))?;
+            let xpub = Xpub::try_from((events, config))?;
             xpubs.push(xpub);
         }
 
         Ok(xpubs)
     }
 
-    pub async fn list_all_xpubs(&self) -> Result<Vec<AccountXPub>, XPubError> {
+    pub async fn list_all_xpubs(&self) -> Result<Vec<Xpub>, XpubError> {
         let rows = sqlx::query!(
             r#"SELECT b.*, e.sequence, e.event
             FROM bria_xpubs b
@@ -230,7 +243,7 @@ impl XPubs {
         let mut xpubs = Vec::new();
         for (id, events) in entity_events {
             let config = config_map.remove(&id);
-            let xpub = AccountXPub::try_from((events, config))?;
+            let xpub = Xpub::try_from((events, config))?;
             xpubs.push(xpub);
         }
 
