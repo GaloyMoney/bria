@@ -2,7 +2,7 @@ use bdk::descriptor::DescriptorPublicKey;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use super::error::XPubError;
+use super::error::XpubError;
 use crate::primitives::{
     bitcoin::{DerivationPath, ExtendedPubKey},
     XPubId,
@@ -39,38 +39,38 @@ impl fmt::Display for XPub {
 }
 
 impl TryFrom<&DescriptorPublicKey> for XPub {
-    type Error = XPubError;
+    type Error = XpubError;
 
     fn try_from(pk: &DescriptorPublicKey) -> Result<Self, Self::Error> {
         let derivation_path = pk.full_derivation_path();
         match pk {
-            DescriptorPublicKey::Single(_) => Err(XPubError::UnsupportedPubKeyType),
+            DescriptorPublicKey::Single(_) => Err(XpubError::UnsupportedPubKeyType),
             DescriptorPublicKey::XPub(inner) => Ok(Self {
                 derivation: derivation_path,
                 inner: inner.xkey,
             }),
-            DescriptorPublicKey::MultiXPub(_) => Err(XPubError::UnsupportedPubKeyType),
+            DescriptorPublicKey::MultiXPub(_) => Err(XpubError::UnsupportedPubKeyType),
         }
     }
 }
 
 impl<O: AsRef<str>, D: AsRef<str>> TryFrom<(O, Option<D>)> for XPub {
-    type Error = XPubError;
+    type Error = XpubError;
 
     fn try_from((original, derivation): (O, Option<D>)) -> Result<Self, Self::Error> {
         let derivation: Option<DerivationPath> =
             derivation.map(|d| d.as_ref().parse()).transpose()?;
         use bdk::bitcoin::base58;
         let mut xpub_data =
-            base58::decode_check(original.as_ref()).map_err(XPubError::XPubParseError)?;
+            base58::decode_check(original.as_ref()).map_err(XpubError::XPubParseError)?;
         fix_version_bits_for_rust_bitcoin(&mut xpub_data);
         let inner = ExtendedPubKey::decode(&xpub_data)?;
         if let Some(ref d) = derivation {
             if d.len() != inner.depth as usize {
-                return Err(XPubError::XPubDepthMismatch(inner.depth, d.len()));
+                return Err(XpubError::XPubDepthMismatch(inner.depth, d.len()));
             }
         } else if inner.depth > 0 {
-            return Err(XPubError::XPubDepthMismatch(inner.depth, 0));
+            return Err(XpubError::XPubDepthMismatch(inner.depth, 0));
         }
 
         Ok(Self { derivation, inner })

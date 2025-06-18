@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-use crate::api::proto::Xpub;
-
 #[derive(Error, Debug)]
 pub enum XpubError {
     #[error("XpubError - Sqlx: {0}")]

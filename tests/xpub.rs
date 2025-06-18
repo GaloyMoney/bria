@@ -13,11 +13,12 @@ async fn test_xpub() -> anyhow::Result<()> {
     let repo = XPubs::new(&pool);
     let _ = repo
         .persist(
-            NewAccountXPub::builder()
+            NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
-                .key_name("name")
-                .value(xpub)
+                .name("name")
+                .value(xpub.clone())
+                .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
         )

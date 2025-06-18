@@ -200,11 +200,12 @@ impl App {
         derivation: Option<String>,
     ) -> Result<XPubId, ApplicationError> {
         let value = XPub::try_from((&xpub, derivation))?;
-        let xpub = NewAccountXPub::builder()
+        let xpub = NewXpub::builder()
             .account_id(profile.account_id)
             .original(xpub)
-            .key_name(key_name)
-            .value(value)
+            .name(key_name)
+            .value(value.clone())
+            .fingerprint(value.id())
             .build()
             .expect("Couldn't build xpub");
         let id = self.xpubs.persist(xpub).await?;
@@ -395,11 +396,12 @@ impl App {
                 }
                 Err(_) => {
                     let original = xpub.inner().to_string();
-                    let xpub = NewAccountXPub::builder()
+                    let xpub = NewXpub::builder()
                         .account_id(profile.account_id)
-                        .key_name(format!("{wallet_name}-{}", xpub.id()))
+                        .name(format!("{wallet_name}-{}", xpub.id()))
                         .original(original)
-                        .value(xpub)
+                        .value(xpub.clone())
+                        .fingerprint(xpub.id())
                         .build()
                         .expect("Couldn't build xpub");
                     xpub_ids.push(self.xpubs.persist_in_tx(op.tx(), xpub).await?);
@@ -578,10 +580,7 @@ impl App {
     }
 
     #[instrument(name = "app.list_xpubs", skip(self), err)]
-    pub async fn list_xpubs(
-        &self,
-        profile: &Profile,
-    ) -> Result<Vec<AccountXPub>, ApplicationError> {
+    pub async fn list_xpubs(&self, profile: &Profile) -> Result<Vec<Xpub>, ApplicationError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
         Ok(xpubs)
     }

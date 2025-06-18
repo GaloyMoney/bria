@@ -24,7 +24,7 @@ async fn payout() -> anyhow::Result<()> {
             NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
-                .key_name(wallet_name.clone())
+                .name(wallet_name.clone())
                 .value(xpub)
                 .build()
                 .unwrap(),
@@ -71,7 +71,7 @@ async fn spending_policy() -> anyhow::Result<()> {
             NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
-                .key_name(wallet_name.clone())
+                .name(wallet_name.clone())
                 .value(xpub)
                 .build()
                 .unwrap(),

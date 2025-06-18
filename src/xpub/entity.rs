@@ -27,11 +27,11 @@ pub enum XpubEvent {
 #[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct Xpub {
     pub account_id: AccountId,
-    pub key_name: String,
+    pub name: String,
     pub value: XPubValue,
     pub original: String,
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
-    pub(super) db_uuid: uuid::Uuid,
+    pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<XpubEvent>,
 }
 
@@ -44,7 +44,7 @@ impl Xpub {
         &mut self,
         config: SignerConfig,
         secret: &EncryptionKey,
-    ) -> Result<(), XPubError> {
+    ) -> Result<(), XpubError> {
         self.encrypted_signer_config = Some(config.encrypt(secret)?);
         Ok(())
     }
@@ -84,49 +84,32 @@ impl Xpub {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewXpub {
-    pub(super) db_uuid: uuid::Uuid,
+    pub(super) id: uuid::Uuid,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
-    pub(super) key_name: String,
+    pub(super) name: String,
     pub(super) original: String,
     pub(super) value: XPubValue,
+    pub(super) fingerprint: XPubId,
 }
 
 impl NewXpub {
     pub fn builder() -> NewXpubBuilder {
         let mut builder = NewXpubBuilder::default();
-        builder.db_uuid(uuid::Uuid::new_v4());
+        builder.id(uuid::Uuid::new_v4());
         builder
     }
 
     pub fn id(&self) -> XPubId {
         self.value.id()
     }
-
-    // pub(super) fn initial_events(self) -> EntityEvents<AccountXPubEvent> {
-    //     let xpub = self.value.inner;
-    //     EntityEvents::init([
-    // AccountXPubEvent::Initialized {
-    //     db_uuid: self.db_uuid,
-    //     account_id: self.account_id,
-    //     fingerprint: xpub.fingerprint(),
-    //     parent_fingerprint: xpub.parent_fingerprint,
-    //     xpub,
-    //     original: self.original,
-    //     derivation_path: self.value.derivation,
-    // },
-    // AccountXPubEvent::NameUpdated {
-    //     name: self.key_name,
-    // },
-    //     ])
-    // }
 }
 impl IntoEvents<XpubEvent> for NewXpub {
     fn into_events(self) -> EntityEvents<XpubEvent> {
         let xpub = self.value.inner;
         let events = vec![
             XpubEvent::Initialized {
-                db_uuid: self.db_uuid,
+                db_uuid: self.id,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
                 parent_fingerprint: xpub.parent_fingerprint,
@@ -134,11 +117,9 @@ impl IntoEvents<XpubEvent> for NewXpub {
                 original: self.original,
                 derivation_path: self.value.derivation,
             },
-            XpubEvent::NameUpdated {
-                name: self.key_name,
-            },
+            XpubEvent::NameUpdated { name: self.name },
         ];
-        EntityEvents::init(self.db_uuid, events)
+        EntityEvents::init(self.id, events)
     }
 }
 
@@ -161,7 +142,7 @@ impl TryFrom<(EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>)> for Xpub {
                         ..
                     } => {
                         builder = builder
-                            .db_uuid(*db_uuid)
+                            .id(*db_uuid)
                             .account_id(*account_id)
                             .value(XPubValue {
                                 inner: *xpub,
@@ -170,7 +151,7 @@ impl TryFrom<(EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>)> for Xpub {
                             .original(original.clone());
                     }
                     XpubEvent::NameUpdated { name } => {
-                        builder = builder.key_name(name.clone());
+                        builder = builder.name(name.clone());
                     }
                 }
             }
@@ -199,7 +180,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
                     ..
                 } => {
                     builder = builder
-                        .db_uuid(*db_uuid)
+                        .id(*db_uuid)
                         .account_id(*account_id)
                         .value(XPubValue {
                             inner: *xpub,
@@ -208,7 +189,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
                         .original(original.clone());
                 }
                 XpubEvent::NameUpdated { name } => {
-                    builder = builder.key_name(name.clone());
+                    builder = builder.name(name.clone());
                 }
             }
         }

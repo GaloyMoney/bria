@@ -12,11 +12,10 @@ use crate::primitives::*;
     entity = "Xpub",
     err = "XpubError",
     columns(
-        // name VARCHAR NOT NULL,
-        // fingerprint BYTEA NOT NULL,
         account_id(ty = "AccountId", list_for),
         name(ty = "String"),
-        fingerprint(ty = "String")
+        // this or [u8;4] and have fingerprint in Xpub too?
+        fingerprint(ty = "XPubId", update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
@@ -43,14 +42,14 @@ impl XPubs {
         tx: &mut Transaction<'_, Postgres>,
         xpub: NewXpub,
     ) -> Result<XPubId, XpubError> {
-        let xpub_id = xpub.id();
+        let xpub_id = xpub.value.id();
         sqlx::query!(
             r#"INSERT INTO bria_xpubs
             (id, account_id, name, fingerprint)
             VALUES ($1, $2, $3, $4)"#,
             xpub.db_uuid,
             Uuid::from(xpub.account_id),
-            xpub.key_name,
+            xpub.name,
             xpub_id.as_bytes()
         )
         .execute(&mut **tx)
@@ -87,7 +86,7 @@ impl XPubs {
                 r#"
                 INSERT INTO bria_xpub_signer_configs (id, cypher, nonce, created_at, modified_at)
                 VALUES ($1, $2, $3, NOW(), NOW())
-                ON CONFLICT (id) DO UPDATE 
+                ON CONFLICT (id) DO UPDATE
                 SET cypher = $2, nonce = $3, modified_at = NOW()
                 "#,
                 xpub.db_uuid,
@@ -106,147 +105,150 @@ impl XPubs {
         account_id: AccountId,
         xpub_ref: impl Into<XPubRef>,
     ) -> Result<Xpub, XpubError> {
-        let xpub_ref = xpub_ref.into();
-        let mut tx = self.pool.begin().await?;
-        let db_uuid = match xpub_ref {
-            XPubRef::Id(fp) => {
-                let record = sqlx::query!(
-                    r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
-                    Uuid::from(account_id),
-                    fp.as_bytes()
-                )
-                .fetch_one(&mut *tx)
-                .await?;
-                record.id
-            }
-            XPubRef::Name(name) => {
-                let record = sqlx::query!(
-                    r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
-                    Uuid::from(account_id),
-                    name
-                )
-                .fetch_one(&mut *tx)
-                .await?;
-                record.id
-            }
-        };
+        // let xpub_ref = xpub_ref.into();
+        // let mut tx = self.pool.begin().await?;
+        // let db_uuid = match xpub_ref {
+        //     XPubRef::Id(fp) => {
+        //         let record = sqlx::query!(
+        //             r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
+        //             Uuid::from(account_id),
+        //             fp.as_bytes()
+        //         )
+        //         .fetch_one(&mut *tx)
+        //         .await?;
+        //         record.id
+        //     }
+        //     XPubRef::Name(name) => {
+        //         let record = sqlx::query!(
+        //             r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
+        //             Uuid::from(account_id),
+        //             name
+        //         )
+        //         .fetch_one(&mut *tx)
+        //         .await?;
+        //         record.id
+        //     }
+        // };
 
-        let rows = sqlx::query!(
-            r#"SELECT sequence, event_type, event FROM bria_xpub_events
-               WHERE id = $1
-               ORDER BY sequence"#,
-            db_uuid
-        )
-        .fetch_all(&mut *tx)
-        .await?;
-        let mut events = EntityEvents::new();
-        for row in rows {
-            events.load_event(row.sequence as usize, row.event)?;
-        }
+        // let rows = sqlx::query!(
+        //     r#"SELECT sequence, event_type, event FROM bria_xpub_events
+        //        WHERE id = $1
+        //        ORDER BY sequence"#,
+        //     db_uuid
+        // )
+        // .fetch_all(&mut *tx)
+        // .await?;
+        // let mut events = EntityEvents::new();
+        // for row in rows {
+        //     events.load_event(row.sequence as usize, row.event)?;
+        // }
 
-        let config_row = sqlx::query!(
-            r#"
-            SELECT cypher, nonce
-            FROM bria_xpub_signer_configs
-            WHERE id = $1
-            "#,
-            db_uuid
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        // let config_row = sqlx::query!(
+        //     r#"
+        //     SELECT cypher, nonce
+        //     FROM bria_xpub_signer_configs
+        //     WHERE id = $1
+        //     "#,
+        //     db_uuid
+        // )
+        // .fetch_optional(&self.pool)
+        // .await?;
 
-        let config = match config_row {
-            Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
-            None => None,
-        };
+        // let config = match config_row {
+        //     Some(row) => Some((ConfigCyper(row.cypher), Nonce(row.nonce))),
+        //     None => None,
+        // };
 
-        Ok(Xpub::try_from((events, config))?)
+        // Ok(Xpub::try_from((events, config))?)
+        !unimplemented!();
     }
 
     pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<Xpub>, XpubError> {
-        let rows = sqlx::query!(
-            r#"SELECT b.*, e.sequence, e.event
-            FROM bria_xpubs b
-            JOIN bria_xpub_events e ON b.id = e.id
-            WHERE account_id = $1
-            ORDER BY b.id, e.sequence"#,
-            account_id as AccountId,
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        // let rows = sqlx::query!(
+        //     r#"SELECT b.*, e.sequence, e.event
+        //     FROM bria_xpubs b
+        //     JOIN bria_xpub_events e ON b.id = e.id
+        //     WHERE account_id = $1
+        //     ORDER BY b.id, e.sequence"#,
+        //     account_id as AccountId,
+        // )
+        // .fetch_all(&self.pool)
+        // .await?;
 
-        let ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
+        // let ids: Vec<Uuid> = rows.iter().map(|row| row.id).collect();
 
-        let config_rows = sqlx::query!(
-            r#"
-            SELECT id, cypher, nonce
-            FROM bria_xpub_signer_configs
-            WHERE id = ANY($1)
-            "#,
-            &ids
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        // let config_rows = sqlx::query!(
+        //     r#"
+        //     SELECT id, cypher, nonce
+        //     FROM bria_xpub_signer_configs
+        //     WHERE id = ANY($1)
+        //     "#,
+        //     &ids
+        // )
+        // .fetch_all(&self.pool)
+        // .await?;
 
-        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
-            .into_iter()
-            .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
-            .collect();
+        // let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+        //     .into_iter()
+        //     .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
+        //     .collect();
 
-        let mut entity_events = HashMap::new();
-        for row in rows {
-            let id = row.id;
-            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-            events.load_event(row.sequence as usize, row.event)?;
-        }
+        // let mut entity_events = HashMap::new();
+        // for row in rows {
+        //     let id = row.id;
+        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+        //     events.load_event(row.sequence as usize, row.event)?;
+        // }
 
-        let mut xpubs = Vec::new();
-        for (id, events) in entity_events {
-            let config = config_map.remove(&id);
-            let xpub = Xpub::try_from((events, config))?;
-            xpubs.push(xpub);
-        }
+        // let mut xpubs = Vec::new();
+        // for (id, events) in entity_events {
+        //     let config = config_map.remove(&id);
+        //     let xpub = Xpub::try_from((events, config))?;
+        //     xpubs.push(xpub);
+        // }
 
-        Ok(xpubs)
+        // Ok(xpubs)
+        !unimplemented!();
     }
 
     pub async fn list_all_xpubs(&self) -> Result<Vec<Xpub>, XpubError> {
-        let rows = sqlx::query!(
-            r#"SELECT b.*, e.sequence, e.event
-            FROM bria_xpubs b
-            JOIN bria_xpub_events e ON b.id = e.id
-            ORDER BY b.id, e.sequence"#,
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        let config_rows = sqlx::query!(
-            r#"
-            SELECT id, cypher, nonce
-            FROM bria_xpub_signer_configs
-            "#,
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        // let rows = sqlx::query!(
+        //     r#"SELECT b.*, e.sequence, e.event
+        //     FROM bria_xpubs b
+        //     JOIN bria_xpub_events e ON b.id = e.id
+        //     ORDER BY b.id, e.sequence"#,
+        // )
+        // .fetch_all(&self.pool)
+        // .await?;
+        // let config_rows = sqlx::query!(
+        //     r#"
+        //     SELECT id, cypher, nonce
+        //     FROM bria_xpub_signer_configs
+        //     "#,
+        // )
+        // .fetch_all(&self.pool)
+        // .await?;
 
-        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
-            .into_iter()
-            .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
-            .collect();
+        // let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+        //     .into_iter()
+        //     .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
+        //     .collect();
 
-        let mut entity_events = HashMap::new();
-        for row in rows {
-            let id = row.id;
-            let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-            events.load_event(row.sequence as usize, row.event)?;
-        }
+        // let mut entity_events = HashMap::new();
+        // for row in rows {
+        //     let id = row.id;
+        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
+        //     events.load_event(row.sequence as usize, row.event)?;
+        // }
 
-        let mut xpubs = Vec::new();
-        for (id, events) in entity_events {
-            let config = config_map.remove(&id);
-            let xpub = Xpub::try_from((events, config))?;
-            xpubs.push(xpub);
-        }
+        // let mut xpubs = Vec::new();
+        // for (id, events) in entity_events {
+        //     let config = config_map.remove(&id);
+        //     let xpub = Xpub::try_from((events, config))?;
+        //     xpubs.push(xpub);
+        // }
 
-        Ok(xpubs)
+        // Ok(xpubs)
+        !unimplemented!();
     }
 }
