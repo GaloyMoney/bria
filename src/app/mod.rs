@@ -219,6 +219,7 @@ impl App {
         xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), ApplicationError> {
+        let mut db = self.xpubs.begin_op().await?;
         let mut xpub = self
             .xpubs
             .find_from_ref(
@@ -230,14 +231,17 @@ impl App {
             .await?;
         let xpub_id = xpub.id();
         xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
-        let mut tx = self.pool.begin().await?;
-        self.xpubs.persist_updated(&mut tx, xpub).await?;
+        // let mut tx = self.pool.begin().await?;
+        self.xpubs.persist_updated(&mut db, xpub).await?;
         let batch_ids = self
             .signing_sessions
-            .list_batch_ids_for(&mut tx, profile.account_id, xpub_id)
+            .list_batch_ids_for(&mut db.tx(), profile.account_id, xpub_id)
             .await?;
-        job::spawn_all_batch_signings(tx, batch_ids.into_iter().map(|b| (profile.account_id, b)))
-            .await?;
+        job::spawn_all_batch_signings(
+            db.into_tx(),
+            batch_ids.into_iter().map(|b| (profile.account_id, b)),
+        )
+        .await?;
         Ok(())
     }
 
@@ -258,14 +262,14 @@ impl App {
             cipher.decrypt(nonce, deprecated_encrypted_key_bytes.as_slice())?;
         let deprecated_key = chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
         let xpubs = self.xpubs.list_all_xpubs().await?;
-        let mut tx = self.pool.begin().await?;
+        let mut db = self.xpubs.begin_op().await?;
         for mut xpub in xpubs {
             if let Some(signing_cfg) = xpub.signing_cfg(deprecated_key) {
                 xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
-                self.xpubs.persist_updated(&mut tx, xpub).await?;
+                self.xpubs.persist_updated(&mut db, xpub).await?;
             }
         }
-        tx.commit().await?;
+        db.commit().await?;
         Ok(())
     }
 
@@ -404,7 +408,7 @@ impl App {
                         .fingerprint(xpub.id())
                         .build()
                         .expect("Couldn't build xpub");
-                    xpub_ids.push(self.xpubs.persist_in_tx(op.tx(), xpub).await?);
+                    xpub_ids.push(self.xpubs.persist_in_tx(&mut op, xpub).await?);
                 }
             }
         }

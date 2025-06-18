@@ -18,11 +18,12 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
 
     let id = repo
         .persist(
-            NewAccountXPub::builder()
+            NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(name.clone())
                 .value(xpub)
+                .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
         )

@@ -21,11 +21,12 @@ async fn payout() -> anyhow::Result<()> {
 
     let id = repo
         .persist(
-            NewAccountXPub::builder()
+            NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(wallet_name.clone())
                 .value(xpub)
+                .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
         )
@@ -68,11 +69,12 @@ async fn spending_policy() -> anyhow::Result<()> {
 
     let id = repo
         .persist(
-            NewAccountXPub::builder()
+            NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(wallet_name.clone())
                 .value(xpub)
+                .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
         )
