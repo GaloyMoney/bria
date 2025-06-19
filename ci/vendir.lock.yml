@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'feat: add concourse cargo caching'
-      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
+      commitTitle: 'fix: check code script'
+      sha: 6c5be6f1ad65a3c9dc2e8ddb330f4a7c33a8450d
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'feat: add concourse cargo caching'
-      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
+      commitTitle: 'fix: check code script'
+      sha: 6c5be6f1ad65a3c9dc2e8ddb330f4a7c33a8450d
     path: .
   path: vendor
 kind: LockConfig
