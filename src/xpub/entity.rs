@@ -10,7 +10,7 @@ use crate::primitives::*;
 #[es_event(id = "XpubId")]
 pub enum XpubEvent {
     Initialized {
-        db_id: XpubId,
+        db_uuid: XpubId,
         account_id: AccountId,
         fingerprint: bitcoin::Fingerprint,
         parent_fingerprint: bitcoin::Fingerprint,
@@ -110,7 +110,7 @@ impl IntoEvents<XpubEvent> for NewXpub {
         let xpub = self.value.inner;
         let events = vec![
             XpubEvent::Initialized {
-                db_id: self.id,
+                db_uuid: self.id,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
                 parent_fingerprint: xpub.parent_fingerprint,
@@ -130,7 +130,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
         for event in events.iter_all() {
             match event {
                 XpubEvent::Initialized {
-                    db_id,
+                    db_uuid,
                     account_id,
                     xpub,
                     derivation_path,
@@ -138,7 +138,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
                     ..
                 } => {
                     builder = builder
-                        .id(*db_id)
+                        .id(*db_uuid)
                         .account_id(*account_id)
                         .value(XPubValue {
                             inner: *xpub,
