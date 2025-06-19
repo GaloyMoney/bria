@@ -14,7 +14,6 @@ use crate::primitives::*;
     columns(
         account_id(ty = "AccountId", list_for),
         name(ty = "String"),
-        // this or [u8;4] and have fingerprint in Xpub too?
         fingerprint(ty = "XPubId", update(persist = false))
     ),
     tbl_prefix = "bria"

@@ -124,49 +124,6 @@ impl IntoEvents<XpubEvent> for NewXpub {
     }
 }
 
-impl TryFrom<(EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>)> for Xpub {
-    type Error = EsEntityError;
-
-    fn try_from(
-        (events, config): (EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>),
-    ) -> Result<Self, Self::Error> {
-        let mut xpub = {
-            let mut builder = XpubBuilder::default();
-            for event in events.iter_all() {
-                match event {
-                    XpubEvent::Initialized {
-                        db_id,
-                        account_id,
-                        xpub,
-                        derivation_path,
-                        original,
-                        ..
-                    } => {
-                        builder = builder
-                            .id(*db_id)
-                            .account_id(*account_id)
-                            .value(XPubValue {
-                                inner: *xpub,
-                                derivation: derivation_path.as_ref().cloned(),
-                            })
-                            .original(original.clone());
-                    }
-                    XpubEvent::NameUpdated { name } => {
-                        builder = builder.name(name.clone());
-                    }
-                }
-            }
-            builder.events(events).build()?
-        };
-        if let Some((encrypted_config, nonce)) = config {
-            xpub.encrypted_signer_config = Some((encrypted_config, nonce));
-        } else {
-            xpub.encrypted_signer_config = None;
-        }
-        Ok(xpub)
-    }
-}
-
 impl TryFromEvents<XpubEvent> for Xpub {
     fn try_from_events(events: EntityEvents<XpubEvent>) -> Result<Self, EsEntityError> {
         let mut builder = XpubBuilder::default();
