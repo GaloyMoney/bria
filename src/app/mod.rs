@@ -231,7 +231,6 @@ impl App {
             .await?;
         let xpub_id = xpub.id();
         xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
-        // let mut tx = self.pool.begin().await?;
         self.xpubs.persist_updated(&mut db, xpub).await?;
         let batch_ids = self
             .signing_sessions

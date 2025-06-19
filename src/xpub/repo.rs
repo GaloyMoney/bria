@@ -44,38 +44,17 @@ impl XPubs {
     ) -> Result<XPubId, XpubError> {
         let xpub_id = xpub.value.id();
         self.create_in_op(op, xpub).await?;
-        // sqlx::query!(
-        //     r#"INSERT INTO bria_xpubs
-        //     (id, account_id, name, fingerprint)
-        //     VALUES ($1, $2, $3, $4)"#,
-        //     xpub.db_uuid,
-        //     Uuid::from(xpub.account_id),
-        //     xpub.name,
-        //     xpub_id.as_bytes()
-        // )
-        // .execute(&mut **tx)
-        // .await?;
-        // let id = xpub.db_uuid;
-        // EntityEvents::<XpubEvent>::persist(
-        //     "bria_xpub_events",
-        //     &mut *tx,
-        //     xpub.initial_events().new_serialized_events(id),
-        // )
-        // .await?;
         Ok(xpub_id)
     }
 
-    pub async fn persist_updated(&self, op: &mut DbOp<'_>, xpub: Xpub) -> Result<(), XpubError> {
-        if xpub.events.is_dirty() {
-            // EntityEvents::<XpubEvent>::persist(
-            //     "bria_xpub_events",
-            //     tx,
-            //     xpub.events.new_serialized_events(xpub.db_uuid),
-            // )
-            // .await?;
+    pub async fn persist_updated(
+        &self,
+        op: &mut DbOp<'_>,
+        mut xpub: Xpub,
+    ) -> Result<(), XpubError> {
+        if xpub.events.any_new() {
             self.persist_events(op, &mut xpub.events).await?;
         }
-
         if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
             let cypher_bytes = &cypher.0;
             let nonce_bytes = &nonce.0;
@@ -86,7 +65,7 @@ impl XPubs {
                 ON CONFLICT (id) DO UPDATE
                 SET cypher = $2, nonce = $3, modified_at = NOW()
                 "#,
-                xpub.db_uuid,
+                xpub.id,
                 cypher_bytes,
                 nonce_bytes,
             )
@@ -106,14 +85,6 @@ impl XPubs {
         let mut db = self.begin_op().await?;
         let xpub = match xpub_ref {
             XPubRef::Id(fp) => {
-                // let record = sqlx::query!(
-                //     r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND fingerprint = $2"#,
-                //     Uuid::from(account_id),
-                //     fp.as_bytes()
-                // )
-                // .fetch_one(&mut *db.tx())
-                // .await?;
-                // record.id
                 let xpub = es_entity::es_query!(
                     "bria",
                     &self.pool,
@@ -122,21 +93,13 @@ impl XPubs {
                 FROM bria_xpubs
                 WHERE account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
-                    fp
+                    fp.as_bytes()
                 )
                 .fetch_one()
                 .await?;
                 xpub
             }
             XPubRef::Name(name) => {
-                // let record = sqlx::query!(
-                //     r#"SELECT id FROM bria_xpubs WHERE account_id = $1 AND name = $2"#,
-                //     Uuid::from(account_id),
-                //     name
-                // )
-                // .fetch_one(&mut *db.tx())
-                // .await?;
-                // record.id
                 let xpub = es_entity::es_query!(
                     "bria",
                     &self.pool,
@@ -152,19 +115,6 @@ impl XPubs {
                 xpub
             }
         };
-
-        // let rows = sqlx::query!(
-        //     r#"SELECT sequence, event_type, event FROM bria_xpub_events
-        //        WHERE id = $1
-        //        ORDER BY sequence"#,
-        //     db_uuid
-        // )
-        // .fetch_all(&mut *db.tx())
-        // .await?;
-        // let mut events = EntityEvents::new();
-        // for row in rows {
-        //     events.load_event(row.sequence as usize, row.event)?;
-        // }
 
         let config_row = sqlx::query!(
             r#"
@@ -184,36 +134,20 @@ impl XPubs {
             None => xpub.encrypted_signer_config = None,
         };
 
-        // if let Some((encrypted_config, nonce)) = config {
-        //     xpub.encrypted_signer_config = Some((encrypted_config, nonce));
-        // } else {
-        //     xpub.encrypted_signer_config = None;
-        // }
-
         Ok(xpub)
     }
 
     pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<Xpub>, XpubError> {
-        let mut xpubs: Vec<Xpub>;
+        let mut xpubs = vec![];
         let mut next = Some(PaginatedQueryArgs::default());
         while let Some(query) = next.take() {
-            let paginated_xpub = self
+            let mut paginated_xpub = self
                 .list_for_account_id_by_id(account_id, query, es_entity::ListDirection::Ascending)
                 .await?;
 
             xpubs.append(&mut paginated_xpub.entities);
             next = paginated_xpub.into_next_query();
         }
-        // let rows = sqlx::query!(
-        //     r#"SELECT b.*, e.sequence, e.event
-        //     FROM bria_xpubs b
-        //     JOIN bria_xpub_events e ON b.id = e.id
-        //     WHERE account_id = $1
-        //     ORDER BY b.id, e.sequence"#,
-        //     account_id as AccountId,
-        // )
-        // .fetch_all(&self.pool)
-        // .await?;
 
         let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id).collect();
 
@@ -242,41 +176,19 @@ impl XPubs {
             }
         }
 
-        // let mut entity_events = HashMap::new();
-        // for row in rows {
-        //     let id = row.id;
-        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-        //     events.load_event(row.sequence as usize, row.event)?;
-        // }
-
-        // let mut xpubs = Vec::new();
-        // for (id, events) in config_map {
-        //     let config = config_map.remove(&id);
-        //     let xpub = Xpub::try_from((events, config))?;
-        //     xpubs.push(xpub);
-        // }
-
         Ok(xpubs)
     }
 
     pub async fn list_all_xpubs(&self) -> Result<Vec<Xpub>, XpubError> {
-        let mut xpubs: Vec<Xpub>;
+        let mut xpubs = vec![];
         let mut next = Some(PaginatedQueryArgs::default());
         while let Some(query) = next.take() {
-            let paginated_xpub = self
+            let mut paginated_xpub = self
                 .list_by_id(query, es_entity::ListDirection::default())
                 .await?;
             xpubs.append(&mut paginated_xpub.entities);
             next = paginated_xpub.into_next_query();
         }
-        // let rows = sqlx::query!(
-        //     r#"SELECT b.*, e.sequence, e.event
-        //     FROM bria_xpubs b
-        //     JOIN bria_xpub_events e ON b.id = e.id
-        //     ORDER BY b.id, e.sequence"#,
-        // )
-        // .fetch_all(&self.pool)
-        // .await?;
         let config_rows = sqlx::query!(
             r#"
             SELECT id, cypher, nonce
@@ -297,20 +209,6 @@ impl XPubs {
                 xpub.encrypted_signer_config = None;
             }
         }
-
-        // let mut entity_events = HashMap::new();
-        // for row in rows {
-        //     let id = row.id;
-        //     let events = entity_events.entry(id).or_insert_with(EntityEvents::new);
-        //     events.load_event(row.sequence as usize, row.event)?;
-        // }
-
-        // let mut xpubs = Vec::new();
-        // for (id, events) in entity_events {
-        //     let config = config_map.remove(&id);
-        //     let xpub = Xpub::try_from((events, config))?;
-        //     xpubs.push(xpub);
-        // }
 
         Ok(xpubs)
     }
