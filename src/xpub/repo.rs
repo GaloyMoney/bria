@@ -65,7 +65,7 @@ impl XPubs {
                 ON CONFLICT (id) DO UPDATE
                 SET cypher = $2, nonce = $3, modified_at = NOW()
                 "#,
-                xpub.id,
+                xpub.id as XpubId,
                 cypher_bytes,
                 nonce_bytes,
             )
@@ -82,8 +82,7 @@ impl XPubs {
         xpub_ref: impl Into<XPubRef>,
     ) -> Result<Xpub, XpubError> {
         let xpub_ref = xpub_ref.into();
-        let mut db = self.begin_op().await?;
-        let xpub = match xpub_ref {
+        let mut xpub = match xpub_ref {
             XPubRef::Id(fp) => {
                 let xpub = es_entity::es_query!(
                     "bria",
@@ -122,7 +121,7 @@ impl XPubs {
             FROM bria_xpub_signer_configs
             WHERE id = $1
             "#,
-            xpub.id
+            xpub.id as XpubId,
         )
         .fetch_optional(&self.pool)
         .await?;
@@ -149,7 +148,7 @@ impl XPubs {
             next = paginated_xpub.into_next_query();
         }
 
-        let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id).collect();
+        let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id.into()).collect();
 
         let config_rows = sqlx::query!(
             r#"
@@ -169,7 +168,7 @@ impl XPubs {
             .collect();
 
         for xpub in &mut xpubs {
-            if let Some(config) = config_map.remove(&xpub.id) {
+            if let Some(config) = config_map.remove(&xpub.id.into()) {
                 xpub.encrypted_signer_config = Some(config);
             } else {
                 xpub.encrypted_signer_config = None;
@@ -198,9 +197,9 @@ impl XPubs {
         .fetch_all(&self.pool)
         .await?;
 
-        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
+        let mut config_map: HashMap<XpubId, (ConfigCyper, Nonce)> = config_rows
             .into_iter()
-            .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
+            .map(|row| (row.id.into(), (ConfigCyper(row.cypher), Nonce(row.nonce))))
             .collect();
         for xpub in &mut xpubs {
             if let Some(config) = config_map.remove(&xpub.id) {

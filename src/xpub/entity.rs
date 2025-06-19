@@ -7,10 +7,10 @@ use crate::primitives::*;
 
 #[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[es_event(id = "uuid::Uuid")]
+#[es_event(id = "XpubId")]
 pub enum XpubEvent {
     Initialized {
-        db_uuid: uuid::Uuid,
+        db_id: XpubId,
         account_id: AccountId,
         fingerprint: bitcoin::Fingerprint,
         parent_fingerprint: bitcoin::Fingerprint,
@@ -31,7 +31,7 @@ pub struct Xpub {
     pub value: XPubValue,
     pub original: String,
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
-    pub(super) id: uuid::Uuid,
+    pub(super) id: XpubId,
     pub(super) events: EntityEvents<XpubEvent>,
 }
 
@@ -84,7 +84,7 @@ impl Xpub {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewXpub {
-    pub(super) id: uuid::Uuid,
+    pub(super) id: XpubId,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
@@ -96,7 +96,7 @@ pub struct NewXpub {
 impl NewXpub {
     pub fn builder() -> NewXpubBuilder {
         let mut builder = NewXpubBuilder::default();
-        builder.id(uuid::Uuid::new_v4());
+        builder.id(XpubId::new());
         builder
     }
 
@@ -109,7 +109,7 @@ impl IntoEvents<XpubEvent> for NewXpub {
         let xpub = self.value.inner;
         let events = vec![
             XpubEvent::Initialized {
-                db_uuid: self.id,
+                db_id: self.id,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
                 parent_fingerprint: xpub.parent_fingerprint,
@@ -134,7 +134,7 @@ impl TryFrom<(EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>)> for Xpub {
             for event in events.iter_all() {
                 match event {
                     XpubEvent::Initialized {
-                        db_uuid,
+                        db_id,
                         account_id,
                         xpub,
                         derivation_path,
@@ -142,7 +142,7 @@ impl TryFrom<(EntityEvents<XpubEvent>, Option<(ConfigCyper, Nonce)>)> for Xpub {
                         ..
                     } => {
                         builder = builder
-                            .id(*db_uuid)
+                            .id(*db_id)
                             .account_id(*account_id)
                             .value(XPubValue {
                                 inner: *xpub,
@@ -172,7 +172,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
         for event in events.iter_all() {
             match event {
                 XpubEvent::Initialized {
-                    db_uuid,
+                    db_id,
                     account_id,
                     xpub,
                     derivation_path,
@@ -180,7 +180,7 @@ impl TryFromEvents<XpubEvent> for Xpub {
                     ..
                 } => {
                     builder = builder
-                        .id(*db_uuid)
+                        .id(*db_id)
                         .account_id(*account_id)
                         .value(XPubValue {
                             inner: *xpub,

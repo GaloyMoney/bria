@@ -234,7 +234,7 @@ impl App {
         self.xpubs.persist_updated(&mut db, xpub).await?;
         let batch_ids = self
             .signing_sessions
-            .list_batch_ids_for(&mut db.tx(), profile.account_id, xpub_id)
+            .list_batch_ids_for(db.tx(), profile.account_id, xpub_id)
             .await?;
         job::spawn_all_batch_signings(
             db.into_tx(),
