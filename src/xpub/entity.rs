@@ -30,6 +30,7 @@ pub struct Xpub {
     pub name: String,
     pub value: XPubValue,
     pub original: String,
+    #[builder(default)]
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) id: XpubId,
     pub(super) events: EntityEvents<XpubEvent>,

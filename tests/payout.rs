@@ -25,7 +25,7 @@ async fn payout() -> anyhow::Result<()> {
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(wallet_name.clone())
-                .value(xpub)
+                .value(xpub.clone())
                 .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
@@ -73,7 +73,7 @@ async fn spending_policy() -> anyhow::Result<()> {
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(wallet_name.clone())
-                .value(xpub)
+                .value(xpub.clone())
                 .fingerprint(xpub.id())
                 .build()
                 .unwrap(),

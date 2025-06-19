@@ -22,7 +22,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(name.clone())
-                .value(xpub)
+                .value(xpub.clone())
                 .fingerprint(xpub.id())
                 .build()
                 .unwrap(),
