@@ -204,8 +204,7 @@ impl App {
             .account_id(profile.account_id)
             .original(xpub)
             .name(key_name)
-            .value(value.clone())
-            .fingerprint(value.id())
+            .value(value)
             .build()
             .expect("Couldn't build xpub");
         let id = self.xpubs.persist(xpub).await?;
@@ -403,8 +402,7 @@ impl App {
                         .account_id(profile.account_id)
                         .name(format!("{wallet_name}-{}", xpub.id()))
                         .original(original)
-                        .value(xpub.clone())
-                        .fingerprint(xpub.id())
+                        .value(xpub)
                         .build()
                         .expect("Couldn't build xpub");
                     xpub_ids.push(self.xpubs.persist_in_tx(&mut op, xpub).await?);

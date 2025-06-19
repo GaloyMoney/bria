@@ -14,7 +14,7 @@ use crate::primitives::*;
     columns(
         account_id(ty = "AccountId", list_for),
         name(ty = "String"),
-        fingerprint(ty = "XPubId", update(persist = false))
+        fingerprint(ty = "XPubId", create(accessor=id()), update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
@@ -29,10 +29,8 @@ impl XPubs {
 
     #[instrument(name = "xpubs.persist", skip(self))]
     pub async fn persist(&self, xpub: NewXpub) -> Result<XPubId, XpubError> {
-        let mut op = self.begin_op().await?;
-        let ret = self.persist_in_tx(&mut op, xpub).await?;
-        op.commit().await?;
-        Ok(ret)
+        let xpub = self.create(xpub).await?;
+        Ok(xpub.id())
     }
 
     #[instrument(name = "xpubs.persist_in_tx", skip(self, op))]

@@ -91,7 +91,6 @@ pub struct NewXpub {
     pub(super) name: String,
     pub(super) original: String,
     pub(super) value: XPubValue,
-    pub(super) fingerprint: XPubId,
 }
 
 impl NewXpub {

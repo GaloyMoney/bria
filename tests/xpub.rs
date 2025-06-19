@@ -17,8 +17,7 @@ async fn test_xpub() -> anyhow::Result<()> {
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name("name")
-                .value(xpub.clone())
-                .fingerprint(xpub.id())
+                .value(xpub)
                 .build()
                 .unwrap(),
         )
