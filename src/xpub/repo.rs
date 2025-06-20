@@ -27,17 +27,6 @@ impl XPubs {
         Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "xpubs.persist_in_tx", skip(self, op))]
-    pub async fn persist_in_tx(
-        &self,
-        op: &mut DbOp<'_>,
-        xpub: NewXpub,
-    ) -> Result<XPubId, XpubError> {
-        let xpub_id = xpub.value.id();
-        self.create_in_op(op, xpub).await?;
-        Ok(xpub_id)
-    }
-
     pub async fn persist_updated(
         &self,
         op: &mut DbOp<'_>,

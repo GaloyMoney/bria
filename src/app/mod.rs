@@ -405,7 +405,7 @@ impl App {
                         .value(xpub)
                         .build()
                         .expect("Couldn't build xpub");
-                    xpub_ids.push(self.xpubs.persist_in_tx(&mut op, xpub).await?);
+                    xpub_ids.push(self.xpubs.create_in_op(&mut op, xpub).await?.id());
                 }
             }
         }
