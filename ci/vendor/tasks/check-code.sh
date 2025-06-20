@@ -8,7 +8,6 @@ set -euo pipefail
 nix -L develop ./repo -c sh -exc '
 set -euo pipefail
 
-cd ..
 source pipeline-tasks/ci/vendor/tasks/helpers.sh
 pushd repo
 
