@@ -1,7 +1,6 @@
 use es_entity::*;
 use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
-use tracing::instrument;
 use uuid::Uuid;
 
 use super::{entity::*, error::XpubError, reference::*, signer_config::*};
