@@ -27,12 +27,6 @@ impl XPubs {
         Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "xpubs.persist", skip(self))]
-    pub async fn persist(&self, xpub: NewXpub) -> Result<XPubId, XpubError> {
-        let xpub = self.create(xpub).await?;
-        Ok(xpub.id())
-    }
-
     #[instrument(name = "xpubs.persist_in_tx", skip(self, op))]
     pub async fn persist_in_tx(
         &self,

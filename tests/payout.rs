@@ -20,7 +20,7 @@ async fn payout() -> anyhow::Result<()> {
     let repo = XPubs::new(&pool);
 
     let id = repo
-        .persist(
+        .create(
             NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
@@ -29,7 +29,8 @@ async fn payout() -> anyhow::Result<()> {
                 .build()
                 .unwrap(),
         )
-        .await?;
+        .await?
+        .id();
 
     let app = App::run(pool, AppConfig::default()).await?;
     app.create_wpkh_wallet(&profile, wallet_name.clone(), id.to_string(), None)
@@ -67,7 +68,7 @@ async fn spending_policy() -> anyhow::Result<()> {
     let repo = XPubs::new(&pool);
 
     let id = repo
-        .persist(
+        .create(
             NewXpub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
@@ -76,7 +77,8 @@ async fn spending_policy() -> anyhow::Result<()> {
                 .build()
                 .unwrap(),
         )
-        .await?;
+        .await?
+        .id();
 
     let app = App::run(pool, AppConfig::default()).await?;
     app.create_wpkh_wallet(&profile, wallet_name.clone(), id.to_string(), None)

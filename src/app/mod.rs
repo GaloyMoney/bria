@@ -207,7 +207,7 @@ impl App {
             .value(value)
             .build()
             .expect("Couldn't build xpub");
-        let id = self.xpubs.persist(xpub).await?;
+        let id = self.xpubs.create(xpub).await?.id();
         Ok(id)
     }
 
