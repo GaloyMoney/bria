@@ -40,7 +40,7 @@ pub enum ApplicationError {
     #[error("{0}")]
     LedgerError(#[from] LedgerError),
     #[error("{0}")]
-    XPubError(#[from] XpubError),
+    XpubError(#[from] XpubError),
     #[error("{0}")]
     JobError(#[from] JobError),
     #[error("{0}")]

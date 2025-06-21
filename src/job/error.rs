@@ -37,7 +37,7 @@ pub enum JobError {
     #[error("{0}")]
     LedgerError(#[from] LedgerError),
     #[error("{0}")]
-    XPubError(#[from] XpubError),
+    XpubError(#[from] XpubError),
     #[error("{0}")]
     UtxoError(#[from] UtxoError),
     #[error("{0}")]
@@ -51,7 +51,7 @@ pub enum JobError {
     #[error("{0}")]
     OutboxError(#[from] OutboxError),
     #[error("{0}")]
-    SigningClientError(#[from] SigningClientError),
+    SigningtError(#[from] SigningClientError),
     #[error("JobError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
     #[error("JobError - PsbtMissingInSigningSessions")]
