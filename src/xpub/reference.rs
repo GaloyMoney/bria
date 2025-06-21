@@ -6,7 +6,7 @@ pub enum XPubRef {
 }
 
 impl std::str::FromStr for XPubRef {
-    type Err = super::error::XPubError;
+    type Err = super::error::XpubError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(id) = XPubId::from_str(s) {

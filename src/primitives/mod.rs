@@ -1,6 +1,7 @@
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Deserializer, Serialize};
+use sqlx::{Database, Encode, Postgres};
 pub use sqlx_ledger::{
     event::SqlxLedgerEventId, AccountId as LedgerAccountId, JournalId as LedgerJournalId,
     TransactionId as LedgerTransactionId,
@@ -21,7 +22,8 @@ impl From<AccountId> for LedgerJournalId {
         Self::from(uuid::Uuid::from(id))
     }
 }
-es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId }
+
+es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, XpubId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }
@@ -72,6 +74,22 @@ impl std::ops::Deref for XPubId {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Encode<'_, Postgres> for XPubId {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Postgres as Database>::ArgumentBuffer<'_>,
+    ) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + Send + Sync>> {
+        let bytes = self.0.to_bytes();
+        bytes.encode_by_ref(buf)
+    }
+}
+
+impl sqlx::Type<Postgres> for XPubId {
+    fn type_info() -> <Postgres as Database>::TypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("BYTEA")
     }
 }
 

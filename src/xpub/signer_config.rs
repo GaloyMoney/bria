@@ -1,4 +1,4 @@
-use super::{error::XPubError, signing_client::*};
+use super::{error::XpubError, signing_client::*};
 use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     ChaCha20Poly1305,
@@ -26,7 +26,7 @@ pub enum SignerConfig {
 }
 
 impl SignerConfig {
-    pub(super) fn encrypt(&self, key: &EncryptionKey) -> Result<(ConfigCyper, Nonce), XPubError> {
+    pub(super) fn encrypt(&self, key: &EncryptionKey) -> Result<(ConfigCyper, Nonce), XpubError> {
         let cipher = ChaCha20Poly1305::new(key);
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
         let encrypted_config = cipher
@@ -40,14 +40,14 @@ impl SignerConfig {
         key: &EncryptionKey,
         encrypted_config: &ConfigCyper,
         nonce: &Nonce,
-    ) -> Result<Self, XPubError> {
+    ) -> Result<Self, XpubError> {
         let cipher = ChaCha20Poly1305::new(key);
         let decrypted_config = cipher
             .decrypt(
                 chacha20poly1305::Nonce::from_slice(nonce.0.as_slice()),
                 encrypted_config.0.as_slice(),
             )
-            .map_err(XPubError::CouldNotDecryptSignerConfig)?;
+            .map_err(XpubError::CouldNotDecryptSignerConfig)?;
         let config: SignerConfig = serde_json::from_slice(decrypted_config.as_slice())?;
         Ok(config)
     }
@@ -66,7 +66,7 @@ impl From<SignerEncryptionConfig> for RawSignerEncryptionConfig {
 }
 
 impl TryFrom<RawSignerEncryptionConfig> for SignerEncryptionConfig {
-    type Error = XPubError;
+    type Error = XpubError;
 
     fn try_from(raw: RawSignerEncryptionConfig) -> Result<Self, Self::Error> {
         let key_vec = hex::decode(raw.key)?;
