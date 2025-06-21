@@ -51,7 +51,7 @@ pub enum JobError {
     #[error("{0}")]
     OutboxError(#[from] OutboxError),
     #[error("{0}")]
-    SigningtError(#[from] SigningClientError),
+    SigningClientError(#[from] SigningClientError),
     #[error("JobError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
     #[error("JobError - PsbtMissingInSigningSessions")]
