@@ -207,7 +207,7 @@ impl App {
             .value(value)
             .build()
             .expect("Couldn't build xpub");
-        let id = self.xpubs.create(xpub).await?.id();
+        let id = self.xpubs.create(xpub).await?.fingerprint();
         Ok(id)
     }
 
@@ -228,7 +228,7 @@ impl App {
                     .expect("ref should always parse"),
             )
             .await?;
-        let xpub_id = xpub.id();
+        let xpub_id = xpub.fingerprint();
         xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
         self.xpubs.persist_updated(&mut db, xpub).await?;
         let batch_ids = self
@@ -288,7 +288,7 @@ impl App {
                     .expect("ref should always parse"),
             )
             .await?;
-        let xpub_id = xpub.id();
+        let xpub_id = xpub.fingerprint();
         let xpub = xpub.value;
         let unsigned_psbt = self
             .batches
@@ -394,7 +394,7 @@ impl App {
                 .await
             {
                 Ok(xpub) => {
-                    xpub_ids.push(xpub.id());
+                    xpub_ids.push(xpub.fingerprint());
                 }
                 Err(_) => {
                     let original = xpub.inner().to_string();
@@ -405,7 +405,7 @@ impl App {
                         .value(xpub)
                         .build()
                         .expect("Couldn't build xpub");
-                    xpub_ids.push(self.xpubs.create_in_op(&mut op, xpub).await?.id());
+                    xpub_ids.push(self.xpubs.create_in_op(&mut op, xpub).await?.fingerprint());
                 }
             }
         }

@@ -23,7 +23,7 @@ impl From<AccountId> for LedgerJournalId {
     }
 }
 
-es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, XpubId }
+es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }

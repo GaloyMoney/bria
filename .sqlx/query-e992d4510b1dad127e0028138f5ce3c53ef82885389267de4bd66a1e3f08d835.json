@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id AS \"id: XpubId\", e.sequence, e.event, e.recorded_at FROM bria_xpubs i JOIN bria_xpub_events e ON i.id = e.id WHERE i.id = ANY($1) ORDER BY i.id, e.sequence",
+  "query": "SELECT i.id AS \"id: Uuid\", e.sequence, e.event, e.recorded_at FROM bria_xpubs i JOIN bria_xpub_events e ON i.id = e.id WHERE i.id = ANY($1) ORDER BY i.id, e.sequence",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id: XpubId",
+        "name": "id: Uuid",
         "type_info": "Uuid"
       },
       {
@@ -36,5 +36,5 @@
       false
     ]
   },
-  "hash": "bb9550ecd70ff0a99ebaa1683472eb0e513b8a5eef3c333811e9c62d158489f8"
+  "hash": "e992d4510b1dad127e0028138f5ce3c53ef82885389267de4bd66a1e3f08d835"
 }

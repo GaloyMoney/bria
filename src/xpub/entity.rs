@@ -7,10 +7,10 @@ use crate::primitives::*;
 
 #[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-#[es_event(id = "XpubId")]
+#[es_event(id = "uuid::Uuid")]
 pub enum XpubEvent {
     Initialized {
-        db_uuid: XpubId,
+        db_uuid: uuid::Uuid,
         account_id: AccountId,
         fingerprint: bitcoin::Fingerprint,
         parent_fingerprint: bitcoin::Fingerprint,
@@ -32,12 +32,12 @@ pub struct Xpub {
     pub original: String,
     #[builder(default)]
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
-    pub(super) id: XpubId,
+    pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<XpubEvent>,
 }
 
 impl Xpub {
-    pub fn id(&self) -> XPubId {
+    pub fn fingerprint(&self) -> XPubId {
         self.value.id()
     }
 
@@ -85,7 +85,7 @@ impl Xpub {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewXpub {
-    pub(super) id: XpubId,
+    pub(super) id: uuid::Uuid,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) name: String,
@@ -96,11 +96,11 @@ pub struct NewXpub {
 impl NewXpub {
     pub fn builder() -> NewXpubBuilder {
         let mut builder = NewXpubBuilder::default();
-        builder.id(XpubId::new());
+        builder.id(uuid::Uuid::new_v4());
         builder
     }
 
-    pub fn id(&self) -> XPubId {
+    pub fn fingerprint(&self) -> XPubId {
         self.value.id()
     }
 }

@@ -10,10 +10,11 @@ use crate::primitives::*;
 #[es_repo(
     entity = "Xpub",
     err = "XpubError",
+    id = "Uuid",
     columns(
         account_id(ty = "AccountId", list_for),
         name(ty = "String"),
-        fingerprint(ty = "XPubId", create(accessor=id()), update(persist = false))
+        fingerprint(ty = "XPubId", create(accessor=fingerprint()), update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
@@ -44,7 +45,7 @@ impl XPubs {
                 ON CONFLICT (id) DO UPDATE
                 SET cypher = $2, nonce = $3, modified_at = NOW()
                 "#,
-                xpub.id as XpubId,
+                xpub.id as Uuid,
                 cypher_bytes,
                 nonce_bytes,
             )
@@ -100,7 +101,7 @@ impl XPubs {
             FROM bria_xpub_signer_configs
             WHERE id = $1
             "#,
-            xpub.id as XpubId,
+            xpub.id as Uuid,
         )
         .fetch_optional(&self.pool)
         .await?;
@@ -176,7 +177,7 @@ impl XPubs {
         .fetch_all(&self.pool)
         .await?;
 
-        let mut config_map: HashMap<XpubId, (ConfigCyper, Nonce)> = config_rows
+        let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
             .into_iter()
             .map(|row| (row.id.into(), (ConfigCyper(row.cypher), Nonce(row.nonce))))
             .collect();

@@ -71,8 +71,8 @@ pub async fn execute(
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");
-                    new_sessions.insert(account_xpub.id(), new_session);
-                    account_xpubs.insert(account_xpub.id(), account_xpub);
+                    new_sessions.insert(account_xpub.fingerprint(), new_session);
+                    account_xpubs.insert(account_xpub.fingerprint(), account_xpub);
                 }
             }
         }

@@ -132,7 +132,7 @@ impl From<Xpub> for proto::Xpub {
     fn from(xpub: Xpub) -> Self {
         Self {
             name: xpub.name.to_string(),
-            id: xpub.id().to_string(),
+            id: xpub.fingerprint().to_string(),
             xpub: xpub.original.clone(),
             derivation_path: xpub
                 .derivation_path()
