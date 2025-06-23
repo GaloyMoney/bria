@@ -65,6 +65,7 @@ impl XPubs {
         let mut xpub = match xpub_ref {
             XPubRef::Id(fp) => {
                 let xpub = es_entity::es_query!(
+                    id_ty = Uuid,
                     "bria",
                     &self.pool,
                     r#"
@@ -80,6 +81,7 @@ impl XPubs {
             }
             XPubRef::Name(name) => {
                 let xpub = es_entity::es_query!(
+                    id_ty = Uuid,
                     "bria",
                     &self.pool,
                     r#"
