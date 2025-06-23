@@ -11,7 +11,7 @@ use crate::primitives::*;
     entity = "AccountXPub",
     err = "XPubError",
     id = "Uuid",
-    tbl= "bria_xpubs",
+    tbl = "bria_xpubs",
     events_tbl = "bria_xpub_events",
     columns(
         account_id(ty = "AccountId", list_for),
@@ -67,6 +67,7 @@ impl XPubs {
         let mut xpub = match xpub_ref {
             XPubRef::Id(fp) => {
                 let xpub = es_entity::es_query!(
+                    entity_ty = AccountXPub,
                     id_ty = Uuid,
                     "bria",
                     &self.pool,
@@ -83,6 +84,7 @@ impl XPubs {
             }
             XPubRef::Name(name) => {
                 let xpub = es_entity::es_query!(
+                    entity_ty = AccountXPub,
                     id_ty = Uuid,
                     "bria",
                     &self.pool,
