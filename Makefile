@@ -2,7 +2,7 @@ install-dev-deps:
 	cargo install cargo-nextest cargo-watch cargo-audit sqlx-cli
 
 build:
-	SQLX_OFFLINE=true cargo build --locked
+	nix build
 
 watch:
 	RUST_BACKTRACE=full cargo watch -s 'cargo test -- --nocapture'
@@ -14,13 +14,11 @@ test-integration: reset-deps
 	cargo nextest run --verbose --locked
 
 check-code:
-	SQLX_OFFLINE=true cargo fmt --check --all
-	SQLX_OFFLINE=true cargo clippy --all-features
-	SQLX_OFFLINE=true cargo audit
+	nix build .#check-code
 
 local-daemon:
 	SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000" \
-														cargo run --bin bria daemon --config ./bats/bria.local.yml run
+cargo run --bin bria daemon --config ./bats/bria.local.yml run
 
 build-x86_64-unknown-linux-musl-release:
 	SQLX_OFFLINE=true cargo build --release --locked --target x86_64-unknown-linux-musl
@@ -54,3 +52,17 @@ e2e-tests-in-container:
 
 e2e: clean-deps build start-deps
 	bats -t bats
+
+# Nix convenience targets
+nix-build:
+	nix build
+
+nix-shell:
+	nix develop
+
+nix-show:
+	nix flake show
+
+# Run the application
+run:
+	nix run
