@@ -22,7 +22,6 @@ impl From<AccountId> for LedgerJournalId {
         Self::from(uuid::Uuid::from(id))
     }
 }
-
 es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { SigningSessionId }
