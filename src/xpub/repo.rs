@@ -134,7 +134,7 @@ impl XPubs {
             next = paginated_xpub.into_next_query();
         }
 
-        let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id.into()).collect();
+        let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id).collect();
 
         let config_rows = sqlx::query!(
             r#"
@@ -154,7 +154,7 @@ impl XPubs {
             .collect();
 
         for xpub in &mut xpubs {
-            if let Some(config) = config_map.remove(&xpub.id.into()) {
+            if let Some(config) = config_map.remove(&xpub.id) {
                 xpub.encrypted_signer_config = Some(config);
             } else {
                 xpub.encrypted_signer_config = None;
@@ -185,7 +185,7 @@ impl XPubs {
 
         let mut config_map: HashMap<Uuid, (ConfigCyper, Nonce)> = config_rows
             .into_iter()
-            .map(|row| (row.id.into(), (ConfigCyper(row.cypher), Nonce(row.nonce))))
+            .map(|row| (row.id, (ConfigCyper(row.cypher), Nonce(row.nonce))))
             .collect();
         for xpub in &mut xpubs {
             if let Some(config) = config_map.remove(&xpub.id) {
