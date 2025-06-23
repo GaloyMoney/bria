@@ -128,8 +128,8 @@ impl From<WalletAddress> for proto::GetAddressResponse {
     }
 }
 
-impl From<Xpub> for proto::Xpub {
-    fn from(xpub: Xpub) -> Self {
+impl From<AccountXPub> for proto::Xpub {
+    fn from(xpub: AccountXPub) -> Self {
         Self {
             name: xpub.name.to_string(),
             id: xpub.fingerprint().to_string(),

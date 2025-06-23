@@ -18,7 +18,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
 
     let id = repo
         .create(
-            NewXpub::builder()
+            NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
                 .name(name.clone())
@@ -27,7 +27,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
                 .unwrap(),
         )
         .await?
-        .id();
+        .fingerprint();
     let app = App::run(pool, AppConfig::default()).await?;
     app.create_wpkh_wallet(&profile, name.clone(), id.to_string(), None)
         .await?;

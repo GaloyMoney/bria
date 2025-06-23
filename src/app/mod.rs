@@ -200,7 +200,7 @@ impl App {
         derivation: Option<String>,
     ) -> Result<XPubId, ApplicationError> {
         let value = XPub::try_from((&xpub, derivation))?;
-        let xpub = NewXpub::builder()
+        let xpub = NewAccountXPub::builder()
             .account_id(profile.account_id)
             .original(xpub)
             .name(key_name)
@@ -398,7 +398,7 @@ impl App {
                 }
                 Err(_) => {
                     let original = xpub.inner().to_string();
-                    let xpub = NewXpub::builder()
+                    let xpub = NewAccountXPub::builder()
                         .account_id(profile.account_id)
                         .name(format!("{wallet_name}-{}", xpub.id()))
                         .original(original)
@@ -581,7 +581,10 @@ impl App {
     }
 
     #[instrument(name = "app.list_xpubs", skip(self), err)]
-    pub async fn list_xpubs(&self, profile: &Profile) -> Result<Vec<Xpub>, ApplicationError> {
+    pub async fn list_xpubs(
+        &self,
+        profile: &Profile,
+    ) -> Result<Vec<AccountXPub>, ApplicationError> {
         let xpubs = self.xpubs.list_xpubs(profile.account_id).await?;
         Ok(xpubs)
     }

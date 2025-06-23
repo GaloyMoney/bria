@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH entities AS (SELECT account_id, id FROM bria_xpubs WHERE ((account_id = $1) AND (COALESCE(id > $3, true))) ORDER BY id ASC LIMIT $2) SELECT i.id AS \"entity_id: XpubId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_xpub_events e ON i.id = e.id ORDER BY i.id asc, i.id, e.sequence",
+  "query": "WITH entities AS (SELECT account_id, created_at, id FROM bria_xpubs WHERE ((account_id = $1) AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))) ORDER BY created_at ASC, id ASC LIMIT $2) SELECT i.id AS \"entity_id: Uuid\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_xpub_events e ON i.id = e.id ORDER BY i.created_at asc, i.id asc, i.id, e.sequence",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "entity_id: XpubId",
+        "name": "entity_id: Uuid",
         "type_info": "Uuid"
       },
       {
@@ -28,7 +28,8 @@
       "Left": [
         "Uuid",
         "Int8",
-        "Uuid"
+        "Uuid",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -38,5 +39,5 @@
       false
     ]
   },
-  "hash": "f5803b613de86f91317c6b7d1555af2a0ca418c62f12edad2d1cb06c7b5b55fb"
+  "hash": "3e38e5e6601d76b6a904de14e68c4459763b932842b96b740cfea8d92e8b70e4"
 }

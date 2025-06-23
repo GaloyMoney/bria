@@ -3,14 +3,16 @@ use sqlx::{Pool, Postgres};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use super::{entity::*, error::XpubError, reference::*, signer_config::*};
+use super::{entity::*, error::XPubError, reference::*, signer_config::*};
 use crate::primitives::*;
 
 #[derive(EsRepo, Clone, Debug)]
 #[es_repo(
-    entity = "Xpub",
-    err = "XpubError",
+    entity = "AccountXPub",
+    err = "XPubError",
     id = "Uuid",
+    tbl= "bria_xpubs",
+    events_tbl = "bria_xpub_events",
     columns(
         account_id(ty = "AccountId", list_for),
         name(ty = "String"),
@@ -30,8 +32,8 @@ impl XPubs {
     pub async fn persist_updated(
         &self,
         op: &mut DbOp<'_>,
-        mut xpub: Xpub,
-    ) -> Result<(), XpubError> {
+        mut xpub: AccountXPub,
+    ) -> Result<(), XPubError> {
         if xpub.events.any_new() {
             self.persist_events(op, &mut xpub.events).await?;
         }
@@ -60,7 +62,7 @@ impl XPubs {
         &self,
         account_id: AccountId,
         xpub_ref: impl Into<XPubRef>,
-    ) -> Result<Xpub, XpubError> {
+    ) -> Result<AccountXPub, XPubError> {
         let xpub_ref = xpub_ref.into();
         let mut xpub = match xpub_ref {
             XPubRef::Id(fp) => {
@@ -118,7 +120,7 @@ impl XPubs {
         Ok(xpub)
     }
 
-    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<Xpub>, XpubError> {
+    pub async fn list_xpubs(&self, account_id: AccountId) -> Result<Vec<AccountXPub>, XPubError> {
         let mut xpubs = vec![];
         let mut next = Some(PaginatedQueryArgs::default());
         while let Some(query) = next.take() {
@@ -160,7 +162,7 @@ impl XPubs {
         Ok(xpubs)
     }
 
-    pub async fn list_all_xpubs(&self) -> Result<Vec<Xpub>, XpubError> {
+    pub async fn list_all_xpubs(&self) -> Result<Vec<AccountXPub>, XPubError> {
         let mut xpubs = vec![];
         let mut next = Some(PaginatedQueryArgs::default());
         while let Some(query) = next.take() {

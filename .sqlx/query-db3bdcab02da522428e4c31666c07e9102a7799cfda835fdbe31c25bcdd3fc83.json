@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH entities AS (\n                          SELECT *\n                FROM bria_xpubs\n                WHERE account_id = $1 AND name = $2) SELECT i.id AS \"entity_id: XpubId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_xpub_events e ON i.id = e.id ORDER BY i.id, e.sequence",
+  "query": "WITH entities AS (SELECT id FROM bria_xpubs WHERE fingerprint = $1) SELECT i.id AS \"entity_id: Uuid\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_xpub_events e ON i.id = e.id ORDER BY i.id, e.sequence",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "entity_id: XpubId",
+        "name": "entity_id: Uuid",
         "type_info": "Uuid"
       },
       {
@@ -26,8 +26,7 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text"
+        "Bytea"
       ]
     },
     "nullable": [
@@ -37,5 +36,5 @@
       false
     ]
   },
-  "hash": "83b581b9697f820bd5f340c29f897d1fa4a08bf61eee9aca27c1aea5c65e3a85"
+  "hash": "db3bdcab02da522428e4c31666c07e9102a7799cfda835fdbe31c25bcdd3fc83"
 }
