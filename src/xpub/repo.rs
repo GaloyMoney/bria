@@ -34,9 +34,9 @@ impl XPubs {
         op: &mut DbOp<'_>,
         mut xpub: AccountXPub,
     ) -> Result<(), XPubError> {
-        // if xpub.events.any_new() {
-        //     self.persist_events(op, &mut xpub.events).await?;
-        // }
+        if xpub.events.any_new() {
+            self.persist_events(op, &mut xpub.events).await?;
+        }
         if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
             let cypher_bytes = &cypher.0;
             let nonce_bytes = &nonce.0;
