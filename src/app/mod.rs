@@ -203,7 +203,7 @@ impl App {
         let xpub = NewAccountXPub::builder()
             .account_id(profile.account_id)
             .original(xpub)
-            .name(key_name)
+            .key_name(key_name)
             .value(value)
             .build()
             .expect("Couldn't build xpub");
@@ -400,7 +400,7 @@ impl App {
                     let original = xpub.inner().to_string();
                     let xpub = NewAccountXPub::builder()
                         .account_id(profile.account_id)
-                        .name(format!("{wallet_name}-{}", xpub.id()))
+                        .key_name(format!("{wallet_name}-{}", xpub.id()))
                         .original(original)
                         .value(xpub)
                         .build()

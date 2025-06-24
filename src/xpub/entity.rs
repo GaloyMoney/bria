@@ -27,7 +27,7 @@ pub enum AccountXPubEvent {
 #[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct AccountXPub {
     pub account_id: AccountId,
-    pub name: String,
+    pub key_name: String,
     pub value: XPubValue,
     pub original: String,
     #[builder(default)]
@@ -88,7 +88,7 @@ pub struct NewAccountXPub {
     pub(super) id: uuid::Uuid,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
-    pub(super) name: String,
+    pub(super) key_name: String,
     pub(super) original: String,
     pub(super) value: XPubValue,
 }
@@ -102,6 +102,10 @@ impl NewAccountXPub {
 
     pub fn fingerprint(&self) -> XPubId {
         self.value.id()
+    }
+
+    pub fn key_name(&self) -> String {
+        self.key_name.clone()
     }
 }
 impl IntoEvents<AccountXPubEvent> for NewAccountXPub {
@@ -117,7 +121,9 @@ impl IntoEvents<AccountXPubEvent> for NewAccountXPub {
                 original: self.original,
                 derivation_path: self.value.derivation,
             },
-            AccountXPubEvent::NameUpdated { name: self.name },
+            AccountXPubEvent::NameUpdated {
+                name: self.key_name,
+            },
         ];
         EntityEvents::init(self.id, events)
     }
@@ -146,7 +152,7 @@ impl TryFromEvents<AccountXPubEvent> for AccountXPub {
                         .original(original.clone());
                 }
                 AccountXPubEvent::NameUpdated { name } => {
-                    builder = builder.name(name.clone());
+                    builder = builder.key_name(name.clone());
                 }
             }
         }

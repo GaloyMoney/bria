@@ -21,7 +21,7 @@ async fn create_wpkh_wallet() -> anyhow::Result<()> {
             NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
-                .name(name.clone())
+                .key_name(name.clone())
                 .value(xpub)
                 .build()
                 .unwrap(),

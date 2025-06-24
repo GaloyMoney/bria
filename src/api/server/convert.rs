@@ -131,7 +131,7 @@ impl From<WalletAddress> for proto::GetAddressResponse {
 impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
         Self {
-            name: xpub.name.to_string(),
+            name: xpub.key_name.to_string(),
             id: xpub.fingerprint().to_string(),
             xpub: xpub.original.clone(),
             derivation_path: xpub

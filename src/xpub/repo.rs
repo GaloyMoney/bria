@@ -15,7 +15,7 @@ use crate::primitives::*;
     events_tbl = "bria_xpub_events",
     columns(
         account_id(ty = "AccountId", list_for),
-        name(ty = "String"),
+        name(ty = "String", update(persist=false), create(accessor=key_name())),
         fingerprint(ty = "XPubId", create(accessor=fingerprint()), update(persist = false))
     ),
     tbl_prefix = "bria"

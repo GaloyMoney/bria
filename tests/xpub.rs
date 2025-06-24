@@ -16,7 +16,7 @@ async fn test_xpub() -> anyhow::Result<()> {
             NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())
-                .name("name")
+                .key_name("name")
                 .value(xpub)
                 .build()
                 .unwrap(),
