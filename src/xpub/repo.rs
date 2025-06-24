@@ -10,7 +10,7 @@ use crate::primitives::*;
 #[es_repo(
     entity = "AccountXPub",
     err = "XPubError",
-    id = "Uuid",
+    id = Uuid,
     tbl = "bria_xpubs",
     events_tbl = "bria_xpub_events",
     columns(
@@ -34,9 +34,9 @@ impl XPubs {
         op: &mut DbOp<'_>,
         mut xpub: AccountXPub,
     ) -> Result<(), XPubError> {
-        if xpub.events.any_new() {
-            self.persist_events(op, &mut xpub.events).await?;
-        }
+        // if xpub.events.any_new() {
+        //     self.persist_events(op, &mut xpub.events).await?;
+        // }
         if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
             let cypher_bytes = &cypher.0;
             let nonce_bytes = &nonce.0;
@@ -72,9 +72,9 @@ impl XPubs {
                     "bria",
                     &self.pool,
                     r#"
-                          SELECT *
-                FROM bria_xpubs
-                WHERE account_id = $1 AND fingerprint = $2"#,
+                    SELECT *
+                    FROM bria_xpubs
+                    WHERE account_id = $1 AND fingerprint = $2"#,
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
@@ -89,9 +89,9 @@ impl XPubs {
                     "bria",
                     &self.pool,
                     r#"
-                          SELECT *
-                FROM bria_xpubs
-                WHERE account_id = $1 AND name = $2"#,
+                    SELECT *
+                    FROM bria_xpubs
+                    WHERE account_id = $1 AND name = $2"#,
                     Uuid::from(account_id),
                     name
                 )
@@ -141,7 +141,6 @@ impl XPubs {
             SELECT id, cypher, nonce
             FROM bria_xpub_signer_configs
             WHERE id = ANY($1)
-            ORDER BY id ASC
             "#,
             &ids
         )
