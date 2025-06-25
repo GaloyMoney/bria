@@ -78,6 +78,7 @@
           export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
           export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
           export CARGO_HTTP_CAINFO="$SSL_CERT_FILE"
+          export GIT_SSL_CAINFO="$SSL_CERT_FILE"
         '';
       });
       
@@ -91,6 +92,7 @@
           export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
           export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
           export CARGO_HTTP_CAINFO="$SSL_CERT_FILE"
+          export GIT_SSL_CAINFO="$SSL_CERT_FILE"
         '';
       });
       
@@ -115,6 +117,7 @@
           export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
           export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
           export CARGO_HTTP_CAINFO="$SSL_CERT_FILE"
+          export GIT_SSL_CAINFO="$SSL_CERT_FILE"
         '';
         
         buildPhaseCargoCommand = "check";
