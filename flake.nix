@@ -96,38 +96,7 @@
         '';
       });
       
-      checkCode = craneLib.mkCargoDerivation {
-        pname = "check-code";
-        version = "0.1.0";
-        src = rustSource;
-        cargoToml = ./Cargo.toml;
-        cargoLock = ./Cargo.lock;
-        inherit cargoArtifacts;
-        SQLX_OFFLINE = true;
-        
-        nativeBuildInputs = with pkgs; [
-          protobuf
-          cacert
-          cargo-audit
-        ];
-        
-        configurePhase = ''
-          export CARGO_NET_GIT_FETCH_WITH_CLI=true
-          export PROTOC="${pkgs.protobuf}/bin/protoc"
-          export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
-          export SSL_CERT_FILE="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-          export CARGO_HTTP_CAINFO="$SSL_CERT_FILE"
-          export GIT_SSL_CAINFO="$SSL_CERT_FILE"
-        '';
-        
-        buildPhaseCargoCommand = "check";
-        buildPhase = ''
-          cargo fmt --check --all
-          cargo clippy --all-features
-          cargo audit
-        '';
-        installPhase = "touch $out";
-      };
+
       
       nativeBuildInputs = with pkgs;
         [
@@ -150,12 +119,10 @@
         packages = {
           default = bria;
           bria = bria;
-          check-code = checkCode;
         };
         
         checks = {
           inherit bria;
-          check-code = checkCode;
           
           bria-clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
@@ -167,8 +134,17 @@
           };
         };
         
-        apps.default = flake-utils.lib.mkApp {
-          drv = bria;
+        apps = {
+          default = flake-utils.lib.mkApp {
+            drv = bria;
+          };
+          
+          local-daemon = flake-utils.lib.mkApp {
+            drv = pkgs.writeShellScriptBin "bria-local-daemon" ''
+              export SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
+              exec ${bria}/bin/bria daemon --config ./bats/bria.local.yml postgres://user:password@127.0.0.1:5432/pg run
+            '';
+          };
         };
 
         devShells.default = mkShell (devEnvVars

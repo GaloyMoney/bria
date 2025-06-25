@@ -13,12 +13,8 @@ next-watch:
 test-integration: reset-deps
 	cargo nextest run --verbose --locked
 
-check-code:
-	nix build .#check-code
-
 local-daemon:
-	SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000" \
-cargo run --bin bria daemon --config ./bats/bria.local.yml run
+	nix run .#local-daemon
 
 build-x86_64-unknown-linux-musl-release:
 	SQLX_OFFLINE=true cargo build --release --locked --target x86_64-unknown-linux-musl
