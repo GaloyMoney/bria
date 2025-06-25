@@ -148,7 +148,7 @@ pub async fn execute(
                 let address_info = keychain_wallet
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
-                let found_addr = NewAddress::builder()
+                let found_addr = NewWalletAddress::builder()
                     .account_id(data.account_id)
                     .wallet_id(data.wallet_id)
                     .keychain_id(keychain_id)
@@ -271,7 +271,7 @@ pub async fn execute(
                     let address_info = keychain_wallet
                         .find_address_from_path(*path, utxo.keychain)
                         .await?;
-                    let found_addr = NewAddress::builder()
+                    let found_addr = NewWalletAddress::builder()
                         .account_id(data.account_id)
                         .wallet_id(data.wallet_id)
                         .keychain_id(keychain_id)

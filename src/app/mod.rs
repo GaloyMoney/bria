@@ -1,6 +1,7 @@
 mod config;
 pub mod error;
 
+use es_entity::EsEntity;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
 
@@ -492,7 +493,7 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
         let address = Address::from(addr.address);
-        let mut builder = NewAddress::builder();
+        let mut builder = NewWalletAddress::builder();
         builder
             .address(address.clone())
             .account_id(profile.account_id)
@@ -506,7 +507,7 @@ impl App {
             builder.external_id(external_id);
         }
         let new_address = builder.build().expect("Couldn't build NewAddress");
-        self.addresses.persist_new_address(new_address).await?;
+        self.addresses.create(new_address).await?;
 
         Ok((wallet.id, address))
     }
@@ -521,7 +522,7 @@ impl App {
     ) -> Result<(), ApplicationError> {
         let mut address = self
             .addresses
-            .find_by_address(profile.account_id, address)
+            .find_by_account_id_and_address(profile.account_id, address)
             .await?;
         if let Some(id) = new_external_id {
             address.update_external_id(id);
@@ -529,7 +530,9 @@ impl App {
         if let Some(metadata) = new_metadata {
             address.update_metadata(metadata);
         }
-        self.addresses.update(address).await?;
+        if address.events().any_new(){
+            self.addresses.update(&mut address).await?;
+        }
         Ok(())
     }
 
@@ -559,7 +562,7 @@ impl App {
     ) -> Result<WalletAddress, ApplicationError> {
         let address = self
             .addresses
-            .find_by_external_id(profile.account_id, external_id)
+            .find_by_account_id_and_external_id(profile.account_id, external_id)
             .await?;
         Ok(address)
     }
@@ -572,7 +575,7 @@ impl App {
     ) -> Result<WalletAddress, ApplicationError> {
         let address = self
             .addresses
-            .find_by_address(profile.account_id, address)
+            .find_by_account_id_and_address(profile.account_id, address)
             .await?;
         Ok(address)
     }
