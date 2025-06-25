@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'fix: check code script'
-      sha: 6c5be6f1ad65a3c9dc2e8ddb330f4a7c33a8450d
+      commitTitle: 'chore: remove bats helper sourcing from bats script'
+      sha: a940bf705505fe507f3a6aded4f3fdcd8138d624
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'fix: check code script'
-      sha: 6c5be6f1ad65a3c9dc2e8ddb330f4a7c33a8450d
+      commitTitle: 'chore: remove bats helper sourcing from bats script'
+      sha: a940bf705505fe507f3a6aded4f3fdcd8138d624
     path: .
   path: vendor
 kind: LockConfig
