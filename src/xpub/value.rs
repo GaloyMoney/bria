@@ -5,7 +5,7 @@ use std::fmt;
 use super::error::XPubError;
 use crate::primitives::{
     bitcoin::{DerivationPath, ExtendedPubKey},
-    XPubId,
+    XPubFingerprint,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -15,8 +15,8 @@ pub struct XPub {
 }
 
 impl XPub {
-    pub fn id(&self) -> XPubId {
-        XPubId::from(self.inner.fingerprint())
+    pub fn id(&self) -> XPubFingerprint {
+        XPubFingerprint::from(self.inner.fingerprint())
     }
 
     pub fn inner(&self) -> &ExtendedPubKey {

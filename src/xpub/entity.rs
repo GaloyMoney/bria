@@ -37,7 +37,7 @@ pub struct AccountXPub {
 }
 
 impl AccountXPub {
-    pub fn fingerprint(&self) -> XPubId {
+    pub fn fingerprint(&self) -> XPubFingerprint {
         self.value.id()
     }
 
@@ -100,7 +100,7 @@ impl NewAccountXPub {
         builder
     }
 
-    pub fn fingerprint(&self) -> XPubId {
+    pub fn fingerprint(&self) -> XPubFingerprint {
         self.value.id()
     }
 

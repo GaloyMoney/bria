@@ -72,7 +72,7 @@ pub enum ApplicationError {
     #[error("Signing Session not found for batch id: {0}")]
     SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
     #[error("Signing Session not found for xpub id: {0}")]
-    SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
+    SigningSessionNotFoundForXPubFingerprint(crate::primitives::XPubFingerprint),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Hex decode error: {0}")]

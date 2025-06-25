@@ -17,7 +17,7 @@ use crate::primitives::*;
     columns(
         account_id(ty = "AccountId", list_for),
         name(ty = "String", update(persist=false), create(accessor=key_name())),
-        fingerprint(ty = "XPubId", create(accessor=fingerprint()), update(persist = false))
+        fingerprint(ty = "XPubFingerprint", create(accessor=fingerprint()), update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
@@ -25,7 +25,7 @@ pub struct XPubs {
     pool: Pool<Postgres>,
 }
 
-impl Encode<'_, Postgres> for XPubId {
+impl Encode<'_, Postgres> for XPubFingerprint {
     fn encode_by_ref(
         &self,
         buf: &mut <Postgres as Database>::ArgumentBuffer<'_>,
@@ -35,7 +35,7 @@ impl Encode<'_, Postgres> for XPubId {
     }
 }
 
-impl sqlx::Type<Postgres> for XPubId {
+impl sqlx::Type<Postgres> for XPubFingerprint {
     fn type_info() -> <Postgres as Database>::TypeInfo {
         sqlx::postgres::PgTypeInfo::with_name("BYTEA")
     }

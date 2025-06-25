@@ -87,12 +87,14 @@ pub async fn execute(
     };
 
     let mut any_updated = false;
-    for (xpub_id, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
+    for (xpub_fingerprint, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
         any_updated = true;
-        let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
+        let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_fingerprint) {
             xpub
         } else {
-            xpubs.find_from_ref(data.account_id, xpub_id).await?
+            xpubs
+                .find_from_ref(data.account_id, xpub_fingerprint)
+                .await?
         };
         let mut client = match account_xpub
             .remote_signing_client(signer_encryption_config.key)

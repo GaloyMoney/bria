@@ -706,7 +706,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::SigningSessionNotFoundForXPubId(_) => {
+            ApplicationError::SigningSessionNotFoundForXPubFingerprint(_) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::WalletError(WalletError::PsbtDoesNotHaveValidSignatures) => {

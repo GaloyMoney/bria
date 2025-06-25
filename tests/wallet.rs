@@ -58,10 +58,10 @@ async fn create_descriptors_wallet() -> anyhow::Result<()> {
     let internal = "wpkh([1ff51810/84'/0'/0']tpubDDdzmt7vndmNywiVAeBPuhYLTFa7hmtfaqUxxTv5iLy7bxU93B62M9WKFSmn1BEN2vte8GDD3SUNKbupRajFW4RK8hd3i6W15pvTRQfo1fK/1/*)#3nxmc294".to_owned();
     let app = App::run(pool, AppConfig::default()).await?;
     let wallet_name = "test_import_descriptor".to_owned();
-    let (_, xpub_ids) = app
+    let (_, xpub_fingerprints) = app
         .create_descriptors_wallet(&profile, wallet_name, external, internal)
         .await?;
-    assert_eq!(xpub_ids.len(), 1);
-    assert_eq!(xpub_ids[0].to_string(), "2f18f2f7");
+    assert_eq!(xpub_fingerprints.len(), 1);
+    assert_eq!(xpub_fingerprints[0].to_string(), "2f18f2f7");
     Ok(())
 }
