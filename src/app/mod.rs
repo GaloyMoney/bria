@@ -207,8 +207,8 @@ impl App {
             .value(value)
             .build()
             .expect("Couldn't build xpub");
-        let id = self.xpubs.create(xpub).await?.fingerprint();
-        Ok(id)
+        let fingerprint = self.xpubs.create(xpub).await?.fingerprint();
+        Ok(fingerprint)
     }
 
     #[instrument(name = "app.set_signer_config", skip(self), err)]
@@ -390,7 +390,7 @@ impl App {
         for xpub in xpubs {
             match self
                 .xpubs
-                .find_from_ref(profile.account_id, xpub.id())
+                .find_from_ref(profile.account_id, xpub.fingerprint())
                 .await
             {
                 Ok(xpub) => {
@@ -400,7 +400,7 @@ impl App {
                     let original = xpub.inner().to_string();
                     let xpub = NewAccountXPub::builder()
                         .account_id(profile.account_id)
-                        .key_name(format!("{wallet_name}-{}", xpub.id()))
+                        .key_name(format!("{wallet_name}-{}", xpub.fingerprint()))
                         .original(original)
                         .value(xpub)
                         .build()

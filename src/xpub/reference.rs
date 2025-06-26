@@ -1,7 +1,7 @@
 use crate::primitives::*;
 
 pub enum XPubRef {
-    Id(XPubFingerprint),
+    Fingerprint(XPubFingerprint),
     Name(String),
 }
 
@@ -9,8 +9,8 @@ impl std::str::FromStr for XPubRef {
     type Err = super::error::XPubError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Ok(id) = XPubFingerprint::from_str(s) {
-            Ok(XPubRef::Id(id))
+        if let Ok(fingerprint) = XPubFingerprint::from_str(s) {
+            Ok(XPubRef::Fingerprint(fingerprint))
         } else {
             Ok(XPubRef::Name(s.to_string()))
         }
@@ -18,13 +18,13 @@ impl std::str::FromStr for XPubRef {
 }
 
 impl From<XPubFingerprint> for XPubRef {
-    fn from(id: XPubFingerprint) -> Self {
-        Self::Id(id)
+    fn from(fingerprint: XPubFingerprint) -> Self {
+        Self::Fingerprint(fingerprint)
     }
 }
 
 impl From<&XPubFingerprint> for XPubRef {
-    fn from(id: &XPubFingerprint) -> Self {
-        Self::Id(*id)
+    fn from(fingerprint: &XPubFingerprint) -> Self {
+        Self::Fingerprint(*fingerprint)
     }
 }

@@ -63,11 +63,11 @@ pub async fn execute(
             let keychain_xpubs = wallet.xpubs_for_keychains(&summary.signing_keychains);
             for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
-                    let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id()).await?;
+                    let account_xpub = xpubs.find_from_ref(data.account_id, xpub.fingerprint()).await?;
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
-                        .xpub_id(xpub.id())
+                        .xpub_id(xpub.fingerprint())
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");

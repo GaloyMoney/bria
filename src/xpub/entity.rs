@@ -38,7 +38,7 @@ pub struct AccountXPub {
 
 impl AccountXPub {
     pub fn fingerprint(&self) -> XPubFingerprint {
-        self.value.id()
+        self.value.fingerprint()
     }
 
     pub fn set_signer_config(
@@ -101,7 +101,7 @@ impl NewAccountXPub {
     }
 
     pub fn fingerprint(&self) -> XPubFingerprint {
-        self.value.id()
+        self.value.fingerprint()
     }
 
     pub fn key_name(&self) -> String {

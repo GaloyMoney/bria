@@ -82,7 +82,7 @@ impl XPubs {
     ) -> Result<AccountXPub, XPubError> {
         let xpub_ref = xpub_ref.into();
         let mut xpub = match xpub_ref {
-            XPubRef::Id(fp) => {
+            XPubRef::Fingerprint(fp) => {
                 let xpub = es_entity::es_query!(
                     entity_ty = AccountXPub,
                     id_ty = Uuid,

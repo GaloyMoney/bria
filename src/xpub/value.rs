@@ -15,7 +15,7 @@ pub struct XPub {
 }
 
 impl XPub {
-    pub fn id(&self) -> XPubFingerprint {
+    pub fn fingerprint(&self) -> XPubFingerprint {
         XPubFingerprint::from(self.inner.fingerprint())
     }
 
