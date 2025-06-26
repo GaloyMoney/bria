@@ -266,6 +266,8 @@ impl From<TxPriority> for proto::TxPriority {
             TxPriority::NextBlock => proto::TxPriority::NextBlock,
             TxPriority::HalfHour => proto::TxPriority::HalfHour,
             TxPriority::OneHour => proto::TxPriority::OneHour,
+            TxPriority::FourHours => proto::TxPriority::FourHours,
+            TxPriority::NextDay => proto::TxPriority::NextDay,
         }
     }
 }
@@ -323,6 +325,8 @@ impl From<proto::TxPriority> for TxPriority {
             proto::TxPriority::NextBlock => TxPriority::NextBlock,
             proto::TxPriority::HalfHour => TxPriority::HalfHour,
             proto::TxPriority::OneHour => TxPriority::OneHour,
+            proto::TxPriority::FourHours => TxPriority::FourHours,
+            proto::TxPriority::NextDay => TxPriority::NextDay,
         }
     }
 }

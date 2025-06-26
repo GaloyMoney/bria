@@ -307,6 +307,8 @@ enum TxPriority {
   NEXT_BLOCK = 0;
   HALF_HOUR = 1;
   ONE_HOUR = 2;
+  FOUR_HOURS = 3;
+  NEXT_DAY = 4;
 }
 
 message CreatePayoutQueueResponse {
