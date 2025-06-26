@@ -1052,9 +1052,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd63709ee381c782167cf76c3f7692faed4fa15c16a145b8125cf01675316630"
+checksum = "f162222dfcd78f9a2aff387d98024780d6009deda6cdb719e28aa8e55f023795"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1069,9 +1069,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity-macros"
-version = "0.6.6"
+version = "0.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ac9e1c0ba00943fb8372bc2690996f37b8bd2acb6c69df87a43c728c4f4f407"
+checksum = "568e84b4c66b9932a901e62dec84e28dc5e9903d4e1a4df51142adaeb19cf355"
 dependencies = [
  "convert_case",
  "darling",

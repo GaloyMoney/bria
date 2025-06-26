@@ -10,6 +10,7 @@ use crate::primitives::*;
 #[derive(EsRepo, Clone, Debug)]
 #[es_repo(
     entity = "AccountXPub",
+    event = "XPubEvent",
     err = "XPubError",
     id = Uuid,
     tbl = "bria_xpubs",

@@ -8,7 +8,7 @@ use crate::primitives::*;
 #[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "uuid::Uuid")]
-pub enum AccountXPubEvent {
+pub enum XPubEvent {
     Initialized {
         db_uuid: uuid::Uuid,
         account_id: AccountId,
@@ -24,6 +24,7 @@ pub enum AccountXPubEvent {
 }
 
 #[derive(EsEntity, Builder)]
+#[es_entity(event = XPubEvent)]
 #[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct AccountXPub {
     pub account_id: AccountId,
@@ -33,7 +34,7 @@ pub struct AccountXPub {
     #[builder(default)]
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
     pub(super) id: uuid::Uuid,
-    pub(super) events: EntityEvents<AccountXPubEvent>,
+    pub(super) events: EntityEvents<XPubEvent>,
 }
 
 impl AccountXPub {
@@ -108,11 +109,11 @@ impl NewAccountXPub {
         self.key_name.clone()
     }
 }
-impl IntoEvents<AccountXPubEvent> for NewAccountXPub {
-    fn into_events(self) -> EntityEvents<AccountXPubEvent> {
+impl IntoEvents<XPubEvent> for NewAccountXPub {
+    fn into_events(self) -> EntityEvents<XPubEvent> {
         let xpub = self.value.inner;
         let events = vec![
-            AccountXPubEvent::Initialized {
+            XPubEvent::Initialized {
                 db_uuid: self.id,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
@@ -121,7 +122,7 @@ impl IntoEvents<AccountXPubEvent> for NewAccountXPub {
                 original: self.original,
                 derivation_path: self.value.derivation,
             },
-            AccountXPubEvent::NameUpdated {
+            XPubEvent::NameUpdated {
                 name: self.key_name,
             },
         ];
@@ -129,12 +130,12 @@ impl IntoEvents<AccountXPubEvent> for NewAccountXPub {
     }
 }
 
-impl TryFromEvents<AccountXPubEvent> for AccountXPub {
-    fn try_from_events(events: EntityEvents<AccountXPubEvent>) -> Result<Self, EsEntityError> {
+impl TryFromEvents<XPubEvent> for AccountXPub {
+    fn try_from_events(events: EntityEvents<XPubEvent>) -> Result<Self, EsEntityError> {
         let mut builder = AccountXPubBuilder::default();
         for event in events.iter_all() {
             match event {
-                AccountXPubEvent::Initialized {
+                XPubEvent::Initialized {
                     db_uuid,
                     account_id,
                     xpub,
@@ -151,7 +152,7 @@ impl TryFromEvents<AccountXPubEvent> for AccountXPub {
                         })
                         .original(original.clone());
                 }
-                AccountXPubEvent::NameUpdated { name } => {
+                XPubEvent::NameUpdated { name } => {
                     builder = builder.key_name(name.clone());
                 }
             }
