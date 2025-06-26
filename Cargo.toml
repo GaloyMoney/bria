@@ -9,7 +9,7 @@ fail-on-warnings = []
 
 [dependencies]
 # es-entity = { git = "https://github.com/galoymoney/cala.git", branch = "main" }
-es-entity = "0.5.1"
+es-entity = "0.6.7"
 sqlx-ledger = { version = "0.11.5", features = ["otel"] }
 
 anyhow = "1.0.82"

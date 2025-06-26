@@ -18,7 +18,7 @@ impl SigningSessions {
 
     pub async fn persist_sessions(
         &self,
-        sessions: HashMap<XPubId, NewSigningSession>,
+        sessions: HashMap<XPubFingerprint, NewSigningSession>,
     ) -> Result<BatchSigningSession, SigningSessionError> {
         let mut tx = self.pool.begin().await?;
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
@@ -27,16 +27,19 @@ impl SigningSessions {
         );
         let mut account_id = None;
         let mut batch_id = None;
-        query_builder.push_values(sessions.iter(), |mut builder, (xpub_id, session)| {
-            if account_id.is_none() && batch_id.is_none() {
-                account_id = Some(session.account_id);
-                batch_id = Some(session.batch_id);
-            }
-            builder.push_bind(Uuid::from(session.id));
-            builder.push_bind(Uuid::from(session.account_id));
-            builder.push_bind(Uuid::from(session.batch_id));
-            builder.push_bind(xpub_id.as_bytes().to_owned());
-        });
+        query_builder.push_values(
+            sessions.iter(),
+            |mut builder, (xpub_fingerprint, session)| {
+                if account_id.is_none() && batch_id.is_none() {
+                    account_id = Some(session.account_id);
+                    batch_id = Some(session.batch_id);
+                }
+                builder.push_bind(Uuid::from(session.id));
+                builder.push_bind(Uuid::from(session.account_id));
+                builder.push_bind(Uuid::from(session.batch_id));
+                builder.push_bind(xpub_fingerprint.as_bytes().to_owned());
+            },
+        );
         let query = query_builder.build();
         query.execute(&mut *tx).await?;
         EntityEvents::<SigningSessionEvent>::persist(
@@ -62,7 +65,7 @@ impl SigningSessions {
     pub async fn update_sessions(
         &self,
         tx: &mut Transaction<'_, Postgres>,
-        sessions: &HashMap<XPubId, SigningSession>,
+        sessions: &HashMap<XPubFingerprint, SigningSession>,
     ) -> Result<(), SigningSessionError> {
         EntityEvents::<SigningSessionEvent>::persist(
             "bria_signing_session_events",
@@ -117,7 +120,7 @@ impl SigningSessions {
         &self,
         tx: &mut Transaction<'_, Postgres>,
         account_id: AccountId,
-        xpub_id: XPubId,
+        xpub_fingerprint: XPubFingerprint,
     ) -> Result<Vec<BatchId>, SigningSessionError> {
         let rows = sqlx::query!(
             r#"
@@ -125,7 +128,7 @@ impl SigningSessions {
           FROM bria_signing_sessions
           WHERE account_id = $1 AND xpub_fingerprint = $2 FOR UPDATE"#,
             Uuid::from(account_id),
-            xpub_id.as_bytes()
+            xpub_fingerprint.as_bytes()
         )
         .fetch_all(&mut **tx)
         .await?;

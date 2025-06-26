@@ -12,7 +12,7 @@ async fn test_xpub() -> anyhow::Result<()> {
     let xpub = XPub::try_from((original, Some("m/84'/0'/0'"))).unwrap();
     let repo = XPubs::new(&pool);
     let _ = repo
-        .persist(
+        .create(
             NewAccountXPub::builder()
                 .account_id(profile.account_id)
                 .original(original.to_owned())

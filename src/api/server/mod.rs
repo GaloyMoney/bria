@@ -246,7 +246,7 @@ impl BriaService for Bria {
                 name,
                 keychain_config,
             } = request.into_inner();
-            let (id, xpub_ids) = match keychain_config {
+            let (id, xpub_fingerprints) = match keychain_config {
                 Some(KeychainConfig {
                     config:
                         Some(keychain_config::Config::Wpkh(keychain_config::Wpkh {
@@ -285,7 +285,7 @@ impl BriaService for Bria {
             };
             Ok(Response::new(CreateWalletResponse {
                 id: id.to_string(),
-                xpub_ids: xpub_ids.into_iter().map(|id| id.to_string()).collect(),
+                xpub_ids: xpub_fingerprints.into_iter().map(|id| id.to_string()).collect(),
             }))
         })
         .await

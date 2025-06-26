@@ -15,7 +15,7 @@ use crate::{
 pub enum SigningSessionEvent {
     Initialized {
         id: SigningSessionId,
-        xpub_id: XPubId,
+        xpub_id: XPubFingerprint,
         account_id: AccountId,
         batch_id: BatchId,
         unsigned_psbt: psbt::PartiallySignedTransaction,
@@ -44,7 +44,7 @@ pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
     pub batch_id: BatchId,
-    pub xpub_id: XPubId,
+    pub xpub_id: XPubFingerprint,
     pub unsigned_psbt: psbt::PartiallySignedTransaction,
     pub(super) events: EntityEvents<SigningSessionEvent>,
 }
@@ -134,7 +134,7 @@ impl From<&SigningClientError> for SigningFailureReason {
 }
 
 pub struct BatchSigningSession {
-    pub xpub_sessions: HashMap<XPubId, SigningSession>,
+    pub xpub_sessions: HashMap<XPubFingerprint, SigningSession>,
 }
 
 #[derive(Builder, Clone, Debug)]
@@ -143,7 +143,7 @@ pub struct NewSigningSession {
     pub(super) id: SigningSessionId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
-    pub(super) xpub_id: XPubId,
+    pub(super) xpub_id: XPubFingerprint,
     unsigned_psbt: psbt::PartiallySignedTransaction,
 }
 

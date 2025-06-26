@@ -132,7 +132,7 @@ impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
         Self {
             name: xpub.key_name.to_string(),
-            id: xpub.id().to_string(),
+            id: xpub.fingerprint().to_string(),
             xpub: xpub.original.clone(),
             derivation_path: xpub
                 .derivation_path()
@@ -706,7 +706,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::SigningSessionNotFoundForXPubId(_) => {
+            ApplicationError::SigningSessionNotFoundForXPubFingerprint(_) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::WalletError(WalletError::PsbtDoesNotHaveValidSignatures) => {
