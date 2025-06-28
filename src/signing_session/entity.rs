@@ -1,17 +1,18 @@
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use std::collections::HashMap;
 
 use crate::{
-    entity::*,
     primitives::{bitcoin::psbt, *},
     xpub::SigningClientError,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "SigningSessionId")]
 pub enum SigningSessionEvent {
     Initialized {
         id: SigningSessionId,
@@ -38,13 +39,13 @@ pub enum SigningSessionState {
     Complete,
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct SigningSession {
     pub id: SigningSessionId,
     pub account_id: AccountId,
     pub batch_id: BatchId,
-    pub xpub_id: XPubFingerprint,
+    pub xpub_fingerprint: XPubFingerprint,
     pub unsigned_psbt: psbt::PartiallySignedTransaction,
     pub(super) events: EntityEvents<SigningSessionEvent>,
 }
@@ -72,7 +73,7 @@ impl SigningSession {
 
     pub fn signed_psbt(&self) -> Option<&psbt::PartiallySignedTransaction> {
         let mut ret = None;
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             match event {
                 SigningSessionEvent::RemoteSigningCompleted { signed_psbt }
                 | SigningSessionEvent::ExternallySignedPsbtSubmitted { signed_psbt } => {
@@ -86,7 +87,7 @@ impl SigningSession {
 
     pub fn failure_reason(&self) -> Option<&SigningFailureReason> {
         let mut ret = None;
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             if let SigningSessionEvent::SigningAttemptFailed { reason } = event {
                 ret = Some(reason);
             }
@@ -102,7 +103,7 @@ impl SigningSession {
 
     pub fn state(&self) -> SigningSessionState {
         let mut ret = SigningSessionState::Initialized;
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { .. } => SigningSessionState::Failed,
                 SigningSessionEvent::RemoteSigningCompleted { .. } => SigningSessionState::Complete,
@@ -116,7 +117,7 @@ impl SigningSession {
     }
 }
 
-#[derive(Error, Debug, Serialize, Deserialize)]
+#[derive(Error, Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum SigningFailureReason {
     #[error("SignerConfigMissing")]
@@ -143,7 +144,7 @@ pub struct NewSigningSession {
     pub(super) id: SigningSessionId,
     pub(super) account_id: AccountId,
     pub(super) batch_id: BatchId,
-    pub(super) xpub_id: XPubFingerprint,
+    pub(super) xpub_fingerprint: XPubFingerprint,
     unsigned_psbt: psbt::PartiallySignedTransaction,
 }
 
@@ -153,24 +154,24 @@ impl NewSigningSession {
         builder.id(SigningSessionId::new());
         builder
     }
-
-    pub(super) fn initial_events(self) -> EntityEvents<SigningSessionEvent> {
-        EntityEvents::init([SigningSessionEvent::Initialized {
+}
+impl IntoEvents<SigningSessionEvent> for NewSigningSession {
+    fn into_events(self) -> EntityEvents<SigningSessionEvent> {
+        let events = vec![SigningSessionEvent::Initialized {
             id: self.id,
             account_id: self.account_id,
             batch_id: self.batch_id,
-            xpub_id: self.xpub_id,
+            xpub_id: self.xpub_fingerprint,
             unsigned_psbt: self.unsigned_psbt,
-        }])
+        }];
+        EntityEvents::init(self.id, events)
     }
 }
 
-impl TryFrom<EntityEvents<SigningSessionEvent>> for SigningSession {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<SigningSessionEvent>) -> Result<Self, Self::Error> {
+impl TryFromEvents<SigningSessionEvent> for SigningSession {
+    fn try_from_events(events: EntityEvents<SigningSessionEvent>) -> Result<Self, EsEntityError> {
         let mut builder = SigningSessionBuilder::default();
-        for event in events.iter() {
+        for event in events.iter_all() {
             if let SigningSessionEvent::Initialized {
                 id,
                 account_id,
@@ -183,7 +184,7 @@ impl TryFrom<EntityEvents<SigningSessionEvent>> for SigningSession {
                     .id(*id)
                     .account_id(*account_id)
                     .batch_id(*batch_id)
-                    .xpub_id(*xpub_id)
+                    .xpub_fingerprint(*xpub_id)
                     .unsigned_psbt(unsigned_psbt.clone());
             }
         }

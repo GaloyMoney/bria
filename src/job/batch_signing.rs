@@ -69,7 +69,7 @@ pub async fn execute(
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
-                        .xpub_id(xpub.fingerprint())
+                        .xpub_fingerprint(xpub.fingerprint())
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");
@@ -130,9 +130,9 @@ pub async fn execute(
     }
 
     if any_updated {
-        let mut tx = pool.begin().await?;
-        signing_sessions.update_sessions(&mut tx, &sessions).await?;
-        tx.commit().await?;
+        let mut db = signing_sessions.begin_op().await?;
+        signing_sessions.update_sessions(&mut db, &sessions).await?;
+        db.commit().await?;
     }
     let mut sessions = sessions.into_values();
 
