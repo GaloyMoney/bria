@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::{entity::*, error::ProfileError};
 use crate::{dev_constants, primitives::*};
 
-#[derive(EsRepo, Clone, Debug)]
+#[derive(EsRepo)]
 #[es_repo(
     entity = "Profile",
     err = "ProfileError",

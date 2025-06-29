@@ -7,7 +7,7 @@ use uuid::Uuid;
 use super::{entity::*, error::XPubError, reference::*, signer_config::*};
 use crate::primitives::*;
 
-#[derive(EsRepo, Clone, Debug)]
+#[derive(EsRepo, Clone)]
 #[es_repo(
     entity = "AccountXPub",
     event = "XPubEvent",
