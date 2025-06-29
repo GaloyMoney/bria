@@ -131,6 +131,7 @@ pub async fn execute(
 
     if any_updated {
         let mut db = signing_sessions.begin_op().await?;
+        // make this &mut db optional since not needed?
         signing_sessions.update_sessions(&mut db, &sessions).await?;
         db.commit().await?;
     }

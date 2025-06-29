@@ -31,18 +31,20 @@ impl SigningSessions {
         &self,
         sessions: HashMap<XPubFingerprint, NewSigningSession>,
     ) -> Result<BatchSigningSession, SigningSessionError> {
-        let (account_id, batch_id) = if let Some((_, first_session)) = sessions.iter().next() {
-            (first_session.account_id, first_session.batch_id)
-        } else {
+        let signing_sessions = self.create_all(sessions.into_values().collect()).await?;
+
+        if signing_sessions.is_empty() {
             return Err(SigningSessionError::EsEntityError(
                 es_entity::EsEntityError::NotFound,
             ));
-        };
-        self.create_all(sessions.into_values().collect()).await?;
-        Ok(self
-            .list_for_batch(account_id, batch_id)
-            .await?
-            .expect("New session not found"))
+        }
+
+        let mut xpub_sessions = HashMap::new();
+        for session in signing_sessions {
+            xpub_sessions.insert(session.xpub_fingerprint, session);
+        }
+
+        Ok(BatchSigningSession { xpub_sessions })
     }
 
     pub async fn update_sessions(
@@ -87,8 +89,7 @@ impl SigningSessions {
                 FROM bria_signing_sessions
                 WHERE account_id = $1 AND batch_id = $2
                 AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))
-                ORDER BY created_at, id
-                FOR UPDATE"#,
+                ORDER BY created_at, id"#,
                 account_id as AccountId,
                 batch_id as BatchId,
                 id as Option<SigningSessionId>,
