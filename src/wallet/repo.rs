@@ -47,10 +47,18 @@ impl Wallets {
         account_id: AccountId,
         id: WalletId,
     ) -> Result<Wallet, WalletError> {
-        let wallet = self.find_by_id(id).await?;
-        if wallet.account_id != account_id {
-            return Err(WalletError::EsEntityError(EsEntityError::NotFound));
-        }
+        let wallet = es_entity::es_query!(
+            "bria",
+            &self.pool,
+            r#"
+            SELECT *
+            FROM bria_wallets
+            WHERE account_id = $1 and id = $2"#,
+            account_id as AccountId,
+            id as WalletId,
+        )
+        .fetch_one()
+        .await?;
         Ok(wallet)
     }
 
@@ -59,10 +67,18 @@ impl Wallets {
         account_id: AccountId,
         name: String,
     ) -> Result<Wallet, WalletError> {
-        let wallet = self.find_by_name(name).await?;
-        if wallet.account_id != account_id {
-            return Err(WalletError::EsEntityError(EsEntityError::NotFound));
-        }
+        let wallet = es_entity::es_query!(
+            "bria",
+            &self.pool,
+            r#"
+            SELECT *
+            FROM bria_wallets
+            WHERE account_id = $1 and name = $2"#,
+            account_id as AccountId,
+            name as String,
+        )
+        .fetch_one()
+        .await?;
         Ok(wallet)
     }
 

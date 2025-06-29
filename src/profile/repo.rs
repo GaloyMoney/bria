@@ -48,11 +48,18 @@ impl Profiles {
         account_id: AccountId,
         id: ProfileId,
     ) -> Result<Profile, ProfileError> {
-        let profile = self.find_by_id(id).await?;
-
-        if profile.account_id != account_id {
-            return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
-        }
+        let profile = es_entity::es_query!(
+            "bria",
+            &self.pool,
+            r#"
+            SELECT *
+            FROM bria_profiles
+            WHERE account_id = $1 and id = $2"#,
+            account_id as AccountId,
+            id as ProfileId,
+        )
+        .fetch_one()
+        .await?;
         Ok(profile)
     }
 
@@ -61,10 +68,18 @@ impl Profiles {
         account_id: AccountId,
         name: String,
     ) -> Result<Profile, ProfileError> {
-        let profile = self.find_by_name(name).await?;
-        if profile.account_id != account_id {
-            return Err(ProfileError::EsEntityError(EsEntityError::NotFound));
-        }
+        let profile = es_entity::es_query!(
+            "bria",
+            &self.pool,
+            r#"
+            SELECT *
+            FROM bria_profiles
+            WHERE account_id = $1 and name = $2"#,
+            account_id as AccountId,
+            name as String,
+        )
+        .fetch_one()
+        .await?;
         Ok(profile)
     }
 
