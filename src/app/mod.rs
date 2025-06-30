@@ -1099,4 +1099,8 @@ impl App {
         });
         Ok(())
     }
+
+    pub fn pool(&self) -> sqlx::PgPool {
+        self.pool.clone()
+    }
 }
