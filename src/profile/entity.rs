@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::primitives::*;
 
-#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "ProfileId")]
 pub enum ProfileEvent {
