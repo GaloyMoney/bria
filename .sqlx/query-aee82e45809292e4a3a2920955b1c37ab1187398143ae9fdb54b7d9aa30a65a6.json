@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH entities AS (\n             SELECT *\n            FROM bria_payouts\n            WHERE account_id = $1 AND id = $2\n            ORDER BY created_at, id\n            FOR UPDATE) SELECT i.id AS \"entity_id: PayoutId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_payout_events e ON i.id = e.id ORDER BY i.id, e.sequence",
+  "query": "WITH entities AS (\n            SELECT *\n            FROM bria_payouts\n            WHERE account_id = $1 AND id = $2\n            FOR UPDATE) SELECT i.id AS \"entity_id: PayoutId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_payout_events e ON i.id = e.id ORDER BY i.id, e.sequence",
   "describe": {
     "columns": [
       {
@@ -37,5 +37,5 @@
       false
     ]
   },
-  "hash": "64ced19262344cdbfccb483cecfca029f388793e19c140f9bbea2a912b2163e8"
+  "hash": "aee82e45809292e4a3a2920955b1c37ab1187398143ae9fdb54b7d9aa30a65a6"
 }

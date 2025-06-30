@@ -14,7 +14,7 @@ use crate::primitives::*;
     columns(
         account_id(ty = "AccountId", list_for, update(persist = false)),
         wallet_id(ty = "WalletId", update(persist = false)),
-        payout_queue_id(ty = "PayoutQueueId"),
+        payout_queue_id(ty = "PayoutQueueId", update(persist = false)),
         profile_id(ty = "ProfileId", update(persist = false)),
         external_id(ty = "String"),
         batch_id(
@@ -128,7 +128,7 @@ impl Payouts {
             payouts.entry(payout.wallet_id).or_default().push(payout);
         }
 
-        let filtered_payouts: HashMap<WalletId, Vec<Payout>> = payouts
+        let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = payouts
             .into_iter()
             .map(|(wallet_id, unbatched_payouts)| {
                 let filtered_unbatched_payouts = unbatched_payouts
@@ -139,23 +139,12 @@ impl Payouts {
                             .iter_all()
                             .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
                     })
+                    .filter_map(|payout| UnbatchedPayout::try_from(payout).ok())
                     .collect();
                 (wallet_id, filtered_unbatched_payouts)
             })
             .collect();
-
-        let unbatched_payouts = filtered_payouts
-            .into_iter()
-            .map(|(wallet_id, payouts)| {
-                let unbatched_payouts = payouts
-                    .into_iter()
-                    .filter_map(|payout| UnbatchedPayout::try_from(payout).ok())
-                    .collect();
-                (wallet_id, unbatched_payouts)
-            })
-            .collect();
-
-        Ok(UnbatchedPayouts::new(unbatched_payouts))
+        Ok(UnbatchedPayouts::new(filtered_payouts))
     }
 
     #[instrument(name = "payouts.list_for_wallet", skip(self))]
@@ -167,11 +156,7 @@ impl Payouts {
         page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
         let offset = (page - 1) * page_size;
-
-        let value: u64 = 42;
-        let size: usize = value.try_into().expect("Value too large for usize");
-        // add error ?
-
+        let size: usize = page_size.try_into().expect("Value too large for usize");
         let payouts = es_entity::es_query!(
             "bria",
             &self.pool,
@@ -325,10 +310,9 @@ impl Payouts {
             "bria",
             &mut **tx,
             r#"
-             SELECT *
+            SELECT *
             FROM bria_payouts
             WHERE account_id = $1 AND id = $2
-            ORDER BY created_at, id
             FOR UPDATE"#,
             account_id as AccountId,
             payout_id as PayoutId,
