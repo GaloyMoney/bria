@@ -56,7 +56,7 @@ impl SigningSessions {
             .values()
             .map(|session| session.events.clone())
             .collect();
-        self.persist_events_batch(op, &mut events);
+        self.persist_events_batch(op, &mut events).await?;
         Ok(())
     }
 
