@@ -7,7 +7,7 @@ use crate::primitives::{bitcoin::*, *};
 #[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "uuid::Uuid")]
-pub enum WalletAddressEvent {
+pub enum AddressEvent {
     Initialized {
         db_uuid: uuid::Uuid,
         account_id: AccountId,
@@ -35,7 +35,7 @@ pub struct WalletAddress {
     pub external_id: String,
     kind: KeychainKind,
     pub(super) id: uuid::Uuid,
-    pub(super) events: EntityEvents<WalletAddressEvent>,
+    pub(super) events: EntityEvents<AddressEvent>,
 }
 
 impl std::fmt::Debug for WalletAddress {
@@ -55,7 +55,7 @@ impl WalletAddress {
     pub fn metadata(&self) -> Option<&serde_json::Value> {
         let mut ret = None;
         for event in self.events.iter_all() {
-            if let WalletAddressEvent::MetadataUpdated { metadata } = event {
+            if let AddressEvent::MetadataUpdated { metadata } = event {
                 ret = Some(metadata)
             }
         }
@@ -66,14 +66,14 @@ impl WalletAddress {
         if self.external_id != external_id {
             self.external_id.clone_from(&external_id);
             self.events
-                .push(WalletAddressEvent::ExternalIdUpdated { external_id });
+                .push(AddressEvent::ExternalIdUpdated { external_id });
         }
     }
 
     pub fn update_metadata(&mut self, metadata: serde_json::Value) {
         if self.metadata() != Some(&metadata) {
             self.events
-                .push(WalletAddressEvent::MetadataUpdated { metadata });
+                .push(AddressEvent::MetadataUpdated { metadata });
         }
     }
 
@@ -108,10 +108,10 @@ impl NewWalletAddress {
     }
 }
 
-impl IntoEvents<WalletAddressEvent> for NewWalletAddress {
-    fn into_events(self) -> EntityEvents<WalletAddressEvent> {
+impl IntoEvents<AddressEvent> for NewWalletAddress {
+    fn into_events(self) -> EntityEvents<AddressEvent> {
         let mut events = vec![
-            WalletAddressEvent::Initialized {
+            AddressEvent::Initialized {
                 db_uuid: self.id,
                 account_id: self.account_id,
                 wallet_id: self.wallet_id,
@@ -121,12 +121,12 @@ impl IntoEvents<WalletAddressEvent> for NewWalletAddress {
                 address_idx: self.address_idx,
                 kind: self.kind,
             },
-            WalletAddressEvent::ExternalIdUpdated {
+            AddressEvent::ExternalIdUpdated {
                 external_id: self.external_id,
             },
         ];
         if let Some(metadata) = self.metadata {
-            events.push(WalletAddressEvent::MetadataUpdated { metadata })
+            events.push(AddressEvent::MetadataUpdated { metadata })
         }
         EntityEvents::init(self.id, events)
     }
@@ -142,12 +142,12 @@ impl NewWalletAddressBuilder {
     }
 }
 
-impl TryFromEvents<WalletAddressEvent> for WalletAddress {
-    fn try_from_events(events: EntityEvents<WalletAddressEvent>) -> Result<Self, EsEntityError> {
+impl TryFromEvents<AddressEvent> for WalletAddress {
+    fn try_from_events(events: EntityEvents<AddressEvent>) -> Result<Self, EsEntityError> {
         let mut builder = WalletAddressBuilder::default();
         for event in events.iter_all() {
             match event {
-                WalletAddressEvent::Initialized {
+                AddressEvent::Initialized {
                     db_uuid,
                     account_id,
                     wallet_id,
@@ -162,7 +162,7 @@ impl TryFromEvents<WalletAddressEvent> for WalletAddress {
                         .wallet_id(*wallet_id)
                         .kind(*kind);
                 }
-                WalletAddressEvent::ExternalIdUpdated { external_id } => {
+                AddressEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.to_owned());
                 }
                 _ => {}

@@ -7,6 +7,7 @@ use uuid::Uuid;
 #[derive(EsRepo, Clone)]
 #[es_repo(
     entity = "WalletAddress",
+    event = "AddressEvent",
     err = "AddressError",
     tbl = "bria_addresses",
     id = Uuid,
@@ -44,70 +45,35 @@ impl Addresses {
         Self { pool: pool.clone() }
     }
 
-    // pub async fn persist_new_address(&self, address: NewAddress) -> Result<(), AddressError> {
-    //     let mut tx = self.pool.begin().await?;
-    //     sqlx::query!(
-    //         r#"INSERT INTO bria_addresses
-    //            (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
-    //            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"#,
-    //         address.db_uuid,
-    //         address.account_id as AccountId,
-    //         address.wallet_id as WalletId,
-    //         address.keychain_id as KeychainId,
-    //         address.profile_id as Option<ProfileId>,
-    //         address.address.to_string(),
-    //         pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
-    //         address.external_id,
-    //     )
-    //     .execute(&mut *tx)
-    //     .await?;
-
-    //     Self::persist_events(&mut tx, address).await?;
-    //     tx.commit().await?;
-    //     Ok(())
-    // }
-
     pub async fn persist_if_not_present(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut DbOp<'_>,
         address: NewWalletAddress,
     ) -> Result<(), AddressError> {
-        // let res = sqlx::query!(
-        //     r#"INSERT INTO bria_addresses
-        //        (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
-        //        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING"#,
-        //     address.db_uuid,
-        //     address.account_id as AccountId,
-        //     address.wallet_id as WalletId,
-        //     address.keychain_id as KeychainId,
-        //     address.profile_id as Option<ProfileId>,
-        //     address.address.to_string(),
-        //     pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
-        //     address.external_id,
-        // )
-        // .execute(&mut **tx)
-        // .await?;
+        let res = sqlx::query!(
+            r#"INSERT INTO bria_addresses
+               (id, account_id, wallet_id, keychain_id, profile_id, address, kind, external_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING"#,
+            address.db_uuid,
+            address.account_id as AccountId,
+            address.wallet_id as WalletId,
+            address.keychain_id as KeychainId,
+            address.profile_id as Option<ProfileId>,
+            address.address.to_string(),
+            pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
+            address.external_id,
+        )
+        .execute(&mut **op.tx())
+        .await?;
 
-        // if res.rows_affected() == 0 {
-        //     return Ok(());
-        // }
-        // Self::persist_events(tx, address).await
-        unimplemented!();
+        if res.rows_affected() == 0 {
+            return Ok(());
+        }
+        let mut op = self.begin_op().await?;
+        self.persist_events(&mut op, &mut address.into_events())
+            .await?;
+        Ok(())
     }
-
-    // async fn persist_events(
-    //     tx: &mut Transaction<'_, Postgres>,
-    //     address: NewAddress,
-    // ) -> Result<(), AddressError> {
-    //     let id = address.db_uuid;
-    //     EntityEvents::<AddressEvent>::persist(
-    //         "bria_address_events",
-    //         tx,
-    //         address.initial_events().new_serialized_events(id),
-    //     )
-    //     .await?;
-    //     Ok(())
-    // }
 
     pub async fn list_external_by_wallet_id(
         &self,
