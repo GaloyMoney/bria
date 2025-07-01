@@ -17,7 +17,6 @@ use std::collections::HashMap;
     ),
     tbl_prefix = "bria"
 )]
-
 pub struct SigningSessions {
     pool: Pool<Postgres>,
 }
