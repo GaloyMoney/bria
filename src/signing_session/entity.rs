@@ -155,6 +155,7 @@ impl NewSigningSession {
         builder
     }
 }
+
 impl IntoEvents<SigningSessionEvent> for NewSigningSession {
     fn into_events(self) -> EntityEvents<SigningSessionEvent> {
         let events = vec![SigningSessionEvent::Initialized {

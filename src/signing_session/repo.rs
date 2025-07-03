@@ -32,12 +32,6 @@ impl SigningSessions {
     ) -> Result<BatchSigningSession, SigningSessionError> {
         let signing_sessions = self.create_all(sessions.into_values().collect()).await?;
 
-        if signing_sessions.is_empty() {
-            return Err(SigningSessionError::EsEntityError(
-                es_entity::EsEntityError::NotFound,
-            ));
-        }
-
         let mut xpub_sessions = HashMap::new();
         for session in signing_sessions {
             xpub_sessions.insert(session.xpub_fingerprint, session);
