@@ -88,9 +88,6 @@ impl SigningSession {
     pub fn failure_reason(&self) -> Option<&SigningFailureReason> {
         let mut ret = None;
         for event in self.events.iter_all() {
-            if let SigningSessionEvent::SigningAttemptFailed { reason } = event {
-                ret = Some(reason);
-            }
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { reason } => Some(reason),
                 SigningSessionEvent::RemoteSigningCompleted { .. } => None,
