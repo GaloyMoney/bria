@@ -90,9 +90,7 @@ impl SigningSession {
         for event in self.events.iter_all() {
             ret = match event {
                 SigningSessionEvent::SigningAttemptFailed { reason } => Some(reason),
-                SigningSessionEvent::RemoteSigningCompleted { .. } => None,
-                SigningSessionEvent::ExternallySignedPsbtSubmitted { .. } => None,
-                _ => ret,
+                _ => None,
             };
         }
         ret
