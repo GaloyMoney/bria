@@ -16,7 +16,7 @@ use crate::primitives::*;
     tbl = "bria_xpubs",
     events_tbl = "bria_xpub_events",
     columns(
-        account_id(ty = "AccountId", list_for),
+        account_id(ty = "AccountId", list_for, update(persist = false)),
         name(ty = "String", update(persist=false), create(accessor=key_name())),
         fingerprint(ty = "XPubFingerprint", create(accessor=fingerprint()), update(persist = false))
     ),
@@ -50,11 +50,8 @@ impl XPubs {
     pub async fn persist_updated(
         &self,
         op: &mut DbOp<'_>,
-        mut xpub: AccountXPub,
+        xpub: AccountXPub,
     ) -> Result<(), XPubError> {
-        if xpub.events.any_new() {
-            self.persist_events(op, &mut xpub.events).await?;
-        }
         if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
             let cypher_bytes = &cypher.0;
             let nonce_bytes = &nonce.0;
@@ -152,7 +149,7 @@ impl XPubs {
             next = paginated_xpub.into_next_query();
         }
 
-        let ids: Vec<Uuid> = xpubs.iter().map(|row| row.id).collect();
+        let ids: Vec<Uuid> = xpubs.iter().map(|xpub| xpub.id).collect();
 
         let config_rows = sqlx::query!(
             r#"
