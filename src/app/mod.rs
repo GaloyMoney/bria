@@ -306,12 +306,16 @@ impl App {
             ApplicationError::SigningSessionNotFoundForXPubFingerprint(xpub_fingerprint)
         })?;
 
-        let mut tx = self.pool.begin().await?;
+        let mut db = self.signing_sessions.begin_op().await?;
         session.submit_externally_signed_psbt(signed_psbt);
         self.signing_sessions
-            .update_sessions(&mut tx, &sessions)
+            .update_sessions(&mut db, &sessions)
             .await?;
-        job::spawn_all_batch_signings(tx, std::iter::once((profile.account_id, batch_id))).await?;
+        job::spawn_all_batch_signings(
+            db.into_tx(),
+            std::iter::once((profile.account_id, batch_id)),
+        )
+        .await?;
         Ok(())
     }
 

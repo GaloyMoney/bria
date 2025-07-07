@@ -275,7 +275,7 @@ impl From<SigningSession> for proto::SigningSession {
         proto::SigningSession {
             id: session.id.to_string(),
             batch_id: session.batch_id.to_string(),
-            xpub_id: session.xpub_id.to_string(),
+            xpub_id: session.xpub_fingerprint.to_string(),
             failure_reason: session.failure_reason().map(|r| r.to_string()),
             state: format!("{:?}", session.state()),
         }
