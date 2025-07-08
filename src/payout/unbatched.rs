@@ -107,12 +107,11 @@ impl UnbatchedPayout {
     }
 }
 
-impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
+impl TryFrom<Payout> for UnbatchedPayout {
     type Error = EsEntityError;
-
-    fn try_from(events: EntityEvents<PayoutEvent>) -> Result<Self, Self::Error> {
+    fn try_from(payout: Payout) -> Result<Self, Self::Error> {
         let mut builder = UnbatchedPayoutBuilder::default();
-        for event in events.iter_all() {
+        for event in payout.events.iter_all() {
             if let PayoutEvent::Initialized {
                 id,
                 wallet_id,
@@ -128,7 +127,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
                     .satoshis(*satoshis);
             }
         }
-        builder.events(events).build()
+        builder.events(payout.events).build()
     }
 }
 
@@ -139,19 +138,5 @@ impl From<&UnbatchedPayout> for TxPayout {
             payout.destination.onchain_address().clone(),
             payout.satoshis,
         )
-    }
-}
-
-impl TryFrom<Payout> for UnbatchedPayout {
-    type Error = EsEntityError;
-    fn try_from(payout: Payout) -> Result<Self, Self::Error> {
-        let mut builder = UnbatchedPayoutBuilder::default();
-        builder = builder
-            .id(payout.id)
-            .wallet_id(payout.wallet_id)
-            .destination(payout.destination)
-            .satoshis(payout.satoshis)
-            .events(payout.events);
-        builder.build()
     }
 }

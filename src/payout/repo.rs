@@ -16,7 +16,7 @@ use crate::primitives::*;
         wallet_id(ty = "WalletId", update(persist = false)),
         payout_queue_id(ty = "PayoutQueueId", update(persist = false)),
         profile_id(ty = "ProfileId", update(persist = false)),
-        external_id(ty = "String"),
+        external_id(ty = "String", update(persist = false)),
         batch_id(
             ty = "Option<BatchId>",
             create(persist = false),
@@ -63,7 +63,10 @@ impl Payouts {
         let payout = es_entity::es_query!(
             "bria",
             &self.pool,
-            r#"SELECT * FROM bria_payouts WHERE account_id = $1 AND external_id = $2"#,
+            r#"
+            SELECT *
+            FROM bria_payouts 
+            WHERE account_id = $1 AND external_id = $2"#,
             account_id as AccountId,
             external_id as String
         )
@@ -161,11 +164,11 @@ impl Payouts {
             "bria",
             &self.pool,
             r#"
-                SELECT *
-                FROM bria_payouts
-                WHERE account_id = $1 AND wallet_id = $2
-                ORDER BY created_at, id DESC
-                OFFSET $3"#,
+            SELECT *
+            FROM bria_payouts
+            WHERE account_id = $1 AND wallet_id = $2
+            ORDER BY created_at DESC                
+            OFFSET $3"#,
             account_id as AccountId,
             wallet_id as WalletId,
             offset as i64

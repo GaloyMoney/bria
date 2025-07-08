@@ -204,6 +204,7 @@ mod tests {
         let mut payout = Payout::try_from_events(init_events()).unwrap();
         assert!(payout.cancel_payout(payout.profile_id).is_ok());
         // REVIEW REQUIRED FOR THE CHANGE BELOW: marks all events persisted(new ones to persisted) then gets last from the persisted ones
+        // as no db interaction happens here to actually persist them
         payout
             .events
             .mark_new_events_persisted_at(chrono::Utc::now());
