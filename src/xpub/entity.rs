@@ -2,7 +2,6 @@ use derive_builder::Builder;
 use es_entity::*;
 use serde::{Deserialize, Serialize};
 
-// why alias? why name update event?
 use super::{error::XPubError, signer_config::*, signing_client::*, value::XPub as XPubValue};
 use crate::primitives::*;
 

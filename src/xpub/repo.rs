@@ -47,7 +47,7 @@ impl XPubs {
         Self { pool: pool.clone() }
     }
 
-    pub async fn persist_updated(
+    pub async fn update_signer_config(
         &self,
         op: &mut DbOp<'_>,
         xpub: AccountXPub,

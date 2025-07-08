@@ -230,7 +230,7 @@ impl App {
             .await?;
         let xpub_fingerprint = xpub.fingerprint();
         xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
-        self.xpubs.persist_updated(&mut db, xpub).await?;
+        self.xpubs.update_signer_config(&mut db, xpub).await?;
         let batch_ids = self
             .signing_sessions
             .list_batch_ids_for(db.tx(), profile.account_id, xpub_fingerprint)
@@ -264,7 +264,7 @@ impl App {
         for mut xpub in xpubs {
             if let Some(signing_cfg) = xpub.signing_cfg(deprecated_key) {
                 xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
-                self.xpubs.persist_updated(&mut db, xpub).await?;
+                self.xpubs.update_signer_config(&mut db, xpub).await?;
             }
         }
         db.commit().await?;
