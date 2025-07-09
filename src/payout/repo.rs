@@ -2,7 +2,7 @@ use es_entity::*;
 use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 
-use std::{collections::HashMap, u32::MAX};
+use std::collections::HashMap;
 
 use super::{entity::*, error::*, unbatched::*};
 use crate::primitives::*;
@@ -159,7 +159,7 @@ impl Payouts {
         page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
         let offset = (page - 1) * page_size;
-        let size = page_size.min(MAX as u64) as usize;
+        let size = page_size.min(u32::MAX as u64) as usize;
         // or add a new error for try_into when page_size not converted to usize?
         let payouts = es_entity::es_query!(
             "bria",
