@@ -2,7 +2,7 @@ use es_entity::*;
 use sqlx::{Pool, Postgres, Transaction};
 use tracing::instrument;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, u32::MAX};
 
 use super::{entity::*, error::*, unbatched::*};
 use crate::primitives::*;
@@ -37,7 +37,7 @@ impl Payouts {
     pub async fn find_by_account_id_and_id(
         &self,
         account_id: AccountId,
-        id: PayoutId,
+        payout_id: PayoutId,
     ) -> Result<Payout, PayoutError> {
         let payout = es_entity::es_query!(
             "bria",
@@ -47,7 +47,7 @@ impl Payouts {
             FROM bria_payouts
             WHERE account_id = $1 AND id = $2"#,
             account_id as AccountId,
-            id as PayoutId,
+            payout_id as PayoutId,
         )
         .fetch_one()
         .await?;
@@ -68,7 +68,7 @@ impl Payouts {
             FROM bria_payouts 
             WHERE account_id = $1 AND external_id = $2"#,
             account_id as AccountId,
-            external_id as String
+            external_id
         )
         .fetch_one()
         .await?;
@@ -102,7 +102,7 @@ impl Payouts {
                 r#"
                 SELECT *
                 FROM bria_payouts
-                WHERE account_id = $1 AND payout_queue_id = $2 AND batch_id is NULL
+                WHERE batch_id is NULL AND account_id = $1 AND payout_queue_id = $2
                 AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))
                 ORDER BY created_at, id
                 FOR UPDATE"#,
@@ -159,7 +159,8 @@ impl Payouts {
         page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
         let offset = (page - 1) * page_size;
-        let size: usize = page_size.try_into().expect("Value too large for usize");
+        let size = page_size.min(MAX as u64) as usize;
+        // or add a new error for try_into when page_size not converted to usize?
         let payouts = es_entity::es_query!(
             "bria",
             &self.pool,
@@ -171,7 +172,7 @@ impl Payouts {
             OFFSET $3"#,
             account_id as AccountId,
             wallet_id as WalletId,
-            offset as i64
+            offset as i64,
         )
         .fetch_n(size)
         .await?;
@@ -240,7 +241,7 @@ impl Payouts {
 
     pub async fn update_unbatched(
         &self,
-        tx: &mut DbOp<'_>,
+        op: &mut DbOp<'_>,
         payouts: UnbatchedPayouts,
     ) -> Result<(), PayoutError> {
         if payouts.batch_id.is_none() || payouts.batched.is_empty() {
@@ -256,14 +257,14 @@ impl Payouts {
             })
             .collect();
 
-        self.persist_events_batch(tx, &mut all_events).await?;
+        self.persist_events_batch(op, &mut all_events).await?;
 
         sqlx::query!(
             r#"UPDATE bria_payouts SET batch_id = $1 WHERE id = ANY($2)"#,
             payouts.batch_id.unwrap() as BatchId,
             &ids[..],
         )
-        .execute(&mut **tx.tx())
+        .execute(&mut **op.tx())
         .await?;
         Ok(())
     }
@@ -316,6 +317,7 @@ impl Payouts {
             SELECT *
             FROM bria_payouts
             WHERE account_id = $1 AND id = $2
+            ORDER BY created_at
             FOR UPDATE"#,
             account_id as AccountId,
             payout_id as PayoutId,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH entities AS (\n                SELECT *\n                FROM bria_payouts\n                WHERE account_id = $1 AND payout_queue_id = $2 AND batch_id is NULL\n                AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))\n                ORDER BY created_at, id\n                FOR UPDATE) SELECT i.id AS \"entity_id: PayoutId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_payout_events e ON i.id = e.id ORDER BY i.id, e.sequence",
+  "query": "WITH entities AS (\n            SELECT *\n            FROM bria_payouts\n            WHERE account_id = $1 AND id = $2\n            ORDER BY created_at\n            FOR UPDATE) SELECT i.id AS \"entity_id: PayoutId\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_payout_events e ON i.id = e.id ORDER BY i.id, e.sequence",
   "describe": {
     "columns": [
       {
@@ -27,9 +27,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid",
-        "Uuid",
-        "Timestamptz"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -39,5 +37,5 @@
       false
     ]
   },
-  "hash": "2c6f8c86d7337ca23a2252d0a54558db001a8725c37fa0d866f3a487a9ad60ed"
+  "hash": "9e21032d4483666179d2e6ce07a503f32249a408d42e475ab364888951800317"
 }
