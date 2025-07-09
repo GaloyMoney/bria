@@ -71,8 +71,8 @@ pub enum ApplicationError {
     PayoutExceedsMaximum(Satoshis),
     #[error("Signing Session not found for batch id: {0}")]
     SigningSessionNotFoundForBatchId(crate::primitives::BatchId),
-    #[error("Signing Session not found for xpub id: {0}")]
-    SigningSessionNotFoundForXPubId(crate::primitives::XPubId),
+    #[error("Signing Session not found for xpub fingerprint: {0}")]
+    SigningSessionNotFoundForXPubFingerprint(crate::primitives::XPubFingerprint),
     #[error("Could not parse incoming psbt: {0}")]
     CouldNotParseIncomingPsbt(bitcoin::psbt::PsbtParseError),
     #[error("Hex decode error: {0}")]

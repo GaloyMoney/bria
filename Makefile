@@ -10,6 +10,9 @@ watch:
 next-watch:
 	cargo watch -s 'cargo nextest run'
 
+test-integration: reset-deps
+	cargo nextest run --verbose --locked
+
 check-code:
 	SQLX_OFFLINE=true cargo fmt --check --all
 	SQLX_OFFLINE=true cargo clippy --all-features
@@ -17,7 +20,7 @@ check-code:
 
 local-daemon:
 	SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000" \
-														cargo run --bin bria daemon --config ./tests/e2e/bria.local.yml run
+														cargo run --bin bria daemon --config ./bats/bria.local.yml run
 
 build-x86_64-unknown-linux-musl-release:
 	SQLX_OFFLINE=true cargo build --release --locked --target x86_64-unknown-linux-musl
@@ -47,7 +50,7 @@ test-in-ci: start-deps
 e2e-tests-in-container:
 	git config --global --add safe.directory /repo # otherwise bats complains
 	SQLX_OFFLINE=true cargo build --locked
-	bats -t tests/e2e
+	bats -t bats
 
 e2e: clean-deps build start-deps
-	bats -t tests/e2e
+	bats -t bats

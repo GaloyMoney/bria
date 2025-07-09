@@ -7,18 +7,17 @@ github_token: ((github.api_token))
 github_app_id: ((github.github_app_id))
 github_app_private_key: ((github.github_app_private_key))
 
-git_charts_uri: git@github.com:GaloyMoney/charts.git
+git_charts_uri: git@github.com:GaloyMoney/galoy-charts.git
 git_charts_branch: main
 git_charts_bot_branch: bot-bump-bria-image
 
-docker_registry: us.gcr.io/galoy-org
-docker_registry_user: ((docker-creds.username))
-docker_registry_password: ((docker-creds.password))
+docker_registry: us.gcr.io/galoyorg
+gar_registry_user: ((gar-creds.username))
+gar_registry_password: ((gar-creds.password))
 osxcross_docker_username: ((osxcross-image.username))
 osxcross_docker_password: ((osxcross-image.password))
 osxcross_repository: ((osxcross-image.repository))
 
-docker_host_ip: ((staging-ssh.docker_host_ip))
 artifacts_bucket_name: ((staging-gcp-creds.bucket_name))
 staging_inception_creds: ((staging-gcp-creds.creds_json))
 staging_ssh_private_key: ((staging-ssh.ssh_private_key))
@@ -26,3 +25,6 @@ staging_ssh_pub_key: ((staging-ssh.ssh_public_key))
 git_version_branch: version
 gh_org: GaloyMoney
 gh_repository: bria
+
+cachix_auth_token: ((cachix-token.token))
+cachix_cache_name: bria-ci

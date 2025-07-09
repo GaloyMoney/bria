@@ -37,12 +37,12 @@ impl KeychainConfig {
                 let mut ret = HashMap::new();
                 internal.for_each_key(|key| {
                     let xpub = XPub::try_from(key).expect("Couldn't convert xpub");
-                    ret.insert(xpub.id(), xpub);
+                    ret.insert(xpub.fingerprint(), xpub);
                     true
                 });
                 external.for_each_key(|key| {
                     let xpub = XPub::try_from(key).expect("Couldn't convert xpub");
-                    ret.insert(xpub.id(), xpub);
+                    ret.insert(xpub.fingerprint(), xpub);
                     true
                 });
                 ret.into_values().collect()

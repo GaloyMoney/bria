@@ -132,7 +132,7 @@ impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
         Self {
             name: xpub.key_name.to_string(),
-            id: xpub.id().to_string(),
+            id: xpub.fingerprint().to_string(),
             xpub: xpub.original.clone(),
             derivation_path: xpub
                 .derivation_path()
@@ -275,7 +275,7 @@ impl From<SigningSession> for proto::SigningSession {
         proto::SigningSession {
             id: session.id.to_string(),
             batch_id: session.batch_id.to_string(),
-            xpub_id: session.xpub_id.to_string(),
+            xpub_id: session.xpub_fingerprint.to_string(),
             failure_reason: session.failure_reason().map(|r| r.to_string()),
             state: format!("{:?}", session.state()),
         }
@@ -661,12 +661,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::ProfileError(ProfileError::ProfileKeyNotFound) => {
                 tonic::Status::unauthenticated(err.to_string())
             }
-            ApplicationError::WalletError(WalletError::WalletNameNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
-            ApplicationError::WalletError(WalletError::WalletIdNotFound(_)) => {
-                tonic::Status::not_found(err.to_string())
-            }
+            ApplicationError::WalletError(WalletError::EsEntityError(
+                es_entity::EsEntityError::NotFound,
+            )) => tonic::Status::not_found(err.to_string()),
             ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
                 tonic::Status::not_found(err.to_string())
             }
@@ -706,7 +703,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::SigningSessionNotFoundForXPubId(_) => {
+            ApplicationError::SigningSessionNotFoundForXPubFingerprint(_) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::WalletError(WalletError::PsbtDoesNotHaveValidSignatures) => {

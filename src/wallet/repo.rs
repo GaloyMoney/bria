@@ -1,11 +1,21 @@
-use sqlx::{Pool, Postgres, Transaction};
+use es_entity::*;
+use sqlx::{Pool, Postgres};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use super::{entity::*, error::*};
-use crate::{entity::*, primitives::*};
+use super::{entity::*, error::WalletError};
+use crate::primitives::*;
 
-#[derive(Debug, Clone)]
+#[derive(EsRepo, Clone, Debug)]
+#[es_repo(
+    entity = "Wallet",
+    err = "WalletError",
+    columns(
+        name(ty = "String"),
+        account_id(ty = "AccountId", list_for, update(persist = false))
+    ),
+    tbl_prefix = "bria"
+)]
 pub struct Wallets {
     pool: Pool<Postgres>,
 }
@@ -15,53 +25,45 @@ impl Wallets {
         Self { pool: pool.clone() }
     }
 
-    pub async fn create_in_tx(
+    pub async fn list_for_account(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
-        new_wallet: NewWallet,
-    ) -> Result<WalletId, WalletError> {
-        let record = sqlx::query!(
-            r#"INSERT INTO bria_wallets (id, account_id, name) VALUES ($1, $2, $3) RETURNING (id)"#,
-            Uuid::from(new_wallet.id),
-            Uuid::from(new_wallet.account_id),
-            new_wallet.name
-        )
-        .fetch_one(&mut **tx)
-        .await?;
-        EntityEvents::<WalletEvent>::persist(
-            "bria_wallet_events",
-            tx,
-            new_wallet.initial_events().new_serialized_events(record.id),
-        )
-        .await?;
-        Ok(WalletId::from(record.id))
+        account_id: AccountId,
+    ) -> Result<Vec<Wallet>, WalletError> {
+        let mut wallets = Vec::new();
+        let mut next = Some(PaginatedQueryArgs::default());
+
+        while let Some(query) = next.take() {
+            let mut res = self
+                .list_for_account_id_by_id(account_id, query, Default::default())
+                .await?;
+            wallets.append(&mut res.entities);
+            next = res.into_next_query();
+        }
+        Ok(wallets)
     }
 
-    pub async fn find_by_name(
+    pub async fn find_by_account_id_and_id(
+        &self,
+        account_id: AccountId,
+        id: WalletId,
+    ) -> Result<Wallet, WalletError> {
+        let wallet = self.find_by_id(id).await?;
+        if wallet.account_id != account_id {
+            return Err(WalletError::EsEntityError(EsEntityError::NotFound));
+        }
+        Ok(wallet)
+    }
+
+    pub async fn find_by_account_id_and_name(
         &self,
         account_id: AccountId,
         name: String,
     ) -> Result<Wallet, WalletError> {
-        let rows = sqlx::query!(
-            r#"
-              SELECT b.*, e.sequence, e.event
-              FROM bria_wallets b
-              JOIN bria_wallet_events e ON b.id = e.id
-              WHERE account_id = $1 AND name = $2
-              ORDER BY e.sequence"#,
-            account_id as AccountId,
-            name
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        if rows.is_empty() {
-            return Err(WalletError::WalletNameNotFound(name));
+        let wallet = self.find_by_name(name).await?;
+        if wallet.account_id != account_id {
+            return Err(WalletError::EsEntityError(EsEntityError::NotFound));
         }
-        let mut events = EntityEvents::new();
-        for row in rows {
-            events.load_event(row.sequence as usize, row.event)?;
-        }
-        Ok(Wallet::try_from(events)?)
+        Ok(wallet)
     }
 
     pub async fn all_ids(
@@ -77,72 +79,5 @@ impl Wallets {
                 WalletId::from(row.wallet_id),
             )
         }))
-    }
-
-    pub async fn find_by_id(&self, id: WalletId) -> Result<Wallet, WalletError> {
-        let ids: HashSet<WalletId> = std::iter::once(id).collect();
-        if let Some(wallet) = self.find_by_ids(ids).await?.remove(&id) {
-            Ok(wallet)
-        } else {
-            Err(WalletError::WalletIdNotFound(id.to_string()))
-        }
-    }
-
-    pub async fn list_by_account_id(
-        &self,
-        account_id: AccountId,
-    ) -> Result<Vec<Wallet>, WalletError> {
-        let rows = sqlx::query!(
-            r#"
-              SELECT b.*, e.sequence, e.event
-              FROM bria_wallets b
-              JOIN bria_wallet_events e ON b.id = e.id
-              WHERE account_id = $1
-              ORDER BY e.sequence"#,
-            account_id as AccountId,
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        let mut events = HashMap::new();
-        for row in rows {
-            let id = WalletId::from(row.id);
-            let sequence = row.sequence;
-            let events = events.entry(id).or_insert_with(EntityEvents::new);
-            events.load_event(sequence as usize, row.event)?;
-        }
-        Ok(events
-            .into_values()
-            .map(Wallet::try_from)
-            .collect::<Result<Vec<_>, _>>()?)
-    }
-
-    pub async fn find_by_ids(
-        &self,
-        ids: HashSet<WalletId>,
-    ) -> Result<HashMap<WalletId, Wallet>, WalletError> {
-        let uuids = ids.into_iter().map(Uuid::from).collect::<Vec<_>>();
-        let rows = sqlx::query!(
-            r#"
-              SELECT b.*, e.sequence, e.event
-              FROM bria_wallets b
-              JOIN bria_wallet_events e ON b.id = e.id
-              WHERE b.id = ANY($1)
-              ORDER BY b.id, e.sequence"#,
-            &uuids[..]
-        )
-        .fetch_all(&self.pool)
-        .await?;
-        let mut events = HashMap::new();
-        for row in rows {
-            let id = WalletId::from(row.id);
-            let sequence = row.sequence;
-            let events = events.entry(id).or_insert_with(EntityEvents::new);
-            events.load_event(sequence as usize, row.event)?;
-        }
-        let mut wallets = HashMap::new();
-        for (id, events) in events {
-            wallets.insert(id, Wallet::try_from(events)?);
-        }
-        Ok(wallets)
     }
 }

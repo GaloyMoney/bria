@@ -4,9 +4,7 @@
 #@   "build_edge_image",
 #@   "public_docker_registry",
 #@   "nodejs_task_image_config",
-#@   "rust_check_code",
-#@   "docker_host_pool",
-#@   "test_on_docker_host",
+#@   "check_code",
 #@   "repo_resource",
 #@   "edge_image_resource",
 #@   "version_resource",
@@ -16,14 +14,16 @@
 #@   "rust_task_image_config",
 #@   "charts_repo_resource",
 #@   "charts_repo_bot_branch",
+#@   "integration_test",
+#@   "bats_test",
 #@ )
 
 groups:
 - name: bria
   jobs:
   - check-code
-  - integration-tests
-  - e2e-tests
+  - integration-test
+  - bats-test
   - release
   - release-docker
   - set-dev-version
@@ -31,9 +31,9 @@ groups:
   - build-edge-image
 
 jobs:
-- #@ rust_check_code()
-- #@ test_on_docker_host("integration-tests")
-- #@ test_on_docker_host("e2e-tests")
+- #@ check_code()
+- #@ integration_test()
+- #@ bats_test()
 
 - #@ build_edge_image()
 
@@ -43,8 +43,8 @@ jobs:
   - in_parallel:
     - get: repo
       passed:
-      - integration-tests
-      - e2e-tests
+      - integration-test
+      - bats-test
       - check-code
     - get: pipeline-tasks
     - get: version
@@ -298,9 +298,8 @@ resources:
   type: registry-image
   source:
     tag: latest
-    username: #@ data.values.docker_registry_user
-    password: #@ data.values.docker_registry_password
+    username: #@ data.values.gar_registry_user
+    password: #@ data.values.gar_registry_password
     repository: #@ public_docker_registry() + "/" + data.values.gh_repository
 - #@ charts_repo_resource()
 - #@ charts_repo_bot_branch()
-- #@ docker_host_pool()

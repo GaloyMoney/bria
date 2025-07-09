@@ -47,7 +47,7 @@ source:
 #@ def nix_task_image_config():
 type: registry-image
 source:
-  repository: nixpkgs/nix-flakes
+  repository: ghcr.io/nix-community/docker-nixpkgs/cachix-flakes
 #@ end
 
 #@ def check_code():
@@ -64,6 +64,10 @@ plan:
     inputs:
     - name: pipeline-tasks
     - name: repo
+    caches:
+    - path: cargo-home/registry/index
+    - path: cargo-home/registry/cache
+    - path: cargo-target-dir
     run:
       path: pipeline-tasks/ci/vendor/tasks/check-code.sh
 #@ end
@@ -86,27 +90,6 @@ plan:
     - name: repo
     run:
       path: pipeline-tasks/ci/vendor/tasks/nodejs-check-code.sh
-#@ end
-
-#@ def rust_check_code():
-name: check-code
-serial: true
-plan:
-- in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-- task: check-code
-  config:
-    platform: linux
-    image_resource: #@ rust_task_image_config()
-    inputs:
-    - name: pipeline-tasks
-    - name: repo
-    caches:
-    - path: cargo-home
-    - path: cargo-target-dir
-    run:
-      path: pipeline-tasks/ci/vendor/tasks/rust-check-code.sh
 #@ end
 
 #@ def install_yarn_deps():
@@ -133,103 +116,57 @@ plan:
     file: bundled-deps/bundled-deps-*.tgz
 #@ end
 
-#@ def test_on_docker_host(container, additional_params={}):
-#@ params = dict(additional_params)
-#@ params["REPO_PATH"] = data.values.gh_repository + "-" + container
-#@ params["GOOGLE_CREDENTIALS"] = "((staging-gcp-creds.creds_json))"
-#@ params["SSH_PRIVATE_KEY"] = "((staging-ssh.ssh_private_key))"
-#@ params["SSH_PUB_KEY"] = "((staging-ssh.ssh_public_key))"
-#@ params["TEST_CONTAINER"] = container
-#@ params["JEST_TIMEOUT"] = 90000
-name: #@ container
-serial: true
+#@ def integration_test():
+name: integration-test
 plan:
-- { put: docker-host, params: { acquire: true } }
-- in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-- task: #@ container
-  attempts: 2
-  timeout: 12m
-  tags: ["galoy-staging"]
-  config:
-    platform: linux
-    image_resource: #@ rust_task_image_config()
-    inputs:
-    - name: pipeline-tasks
-    - name: docker-host
-    - name: repo
-      path: #@ data.values.gh_repository + "-" + container
-    caches:
-    - path: cargo-home
-    - path: cargo-target-dir
-    params: #@ params
-    run:
-      path: pipeline-tasks/ci/vendor/tasks/test-on-docker-host.sh
-  ensure:
-    put: docker-host
-    params:
-      release: docker-host
+  - in_parallel:
+    - get: repo
+      trigger: true
+    - { get: pipeline-tasks }
+  - task: integration-test
+    attempts: 2
+    privileged: true
+    config:
+      platform: linux
+      image_resource: #@ nix_task_image_config()
+      inputs:
+        - name: pipeline-tasks
+        - name: repo
+      caches:
+      - path: cargo-home/registry/index
+      - path: cargo-home/registry/cache
+      - path: cargo-target-dir
+      run:
+        path: pipeline-tasks/ci/vendor/tasks/test-integration.sh
+      params:
+        CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
+        CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
 #@ end
 
-#@ def nodejs_integration_test():
-name: test-integration
-serial: true
+#@ def bats_test():
+name: bats-test
 plan:
 - in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-  - { get: bundled-deps, tags: ["galoy-staging"], trigger: true}
-- task: test-integration
-  timeout: 12m
-  tags: ["galoy-staging"]
+  - get: repo
+    trigger: true
+  - get: pipeline-tasks
+- task: bats-test
+  privileged: true
   config:
     platform: linux
-    image_resource: #@ nodejs_task_image_config()
-    inputs:
-    - name: bundled-deps
-    - name: pipeline-tasks
-    - name: repo
-      path: #@ data.values.gh_repository + "-integration"
-    params:
-      REPO_PATH: #@ data.values.gh_repository + "-integration"
-      DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
-      GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
-      SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
-      SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
-      JEST_TIMEOUT: 90000
-    run:
-      path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
-#@ end
-
-#@ def rust_integration_test():
-name: test-integration
-serial: true
-plan:
-- in_parallel:
-  - { get: repo, trigger: true }
-  - { get: pipeline-tasks }
-- task: test-integration
-  timeout: 12m
-  tags: ["galoy-staging"]
-  config:
-    platform: linux
-    image_resource: #@ rust_task_image_config()
+    image_resource: #@ nix_task_image_config()
     inputs:
     - name: pipeline-tasks
     - name: repo
-      path: #@ data.values.gh_repository + "-integration"
     caches:
-    - path: cargo-home
+    - path: cargo-home/registry/index
+    - path: cargo-home/registry/cache
     - path: cargo-target-dir
-    params:
-      REPO_PATH: #@ data.values.gh_repository + "-integration"
-      DOCKER_HOST_IP: ((staging-ssh.docker_host_ip))
-      GOOGLE_CREDENTIALS: ((staging-gcp-creds.creds_json))
-      SSH_PRIVATE_KEY: ((staging-ssh.ssh_private_key))
-      SSH_PUB_KEY: ((staging-ssh.ssh_public_key))
     run:
-      path: pipeline-tasks/ci/vendor/tasks/chart-test-integration.sh
+      path: pipeline-tasks/ci/vendor/tasks/test-bats.sh
+    params:
+      CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
+      CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
 #@ end
 
 #@ def nodejs_audit(level = "high"):
@@ -508,16 +445,6 @@ type: git
 source:
   uri: #@ data.values.git_charts_uri
   branch: #@ "bot-bump-" + data.values.gh_repository + "-image"
-  private_key: #@ data.values.github_private_key
-#@ end
-
-#@ def docker_host_pool():
-name: docker-host
-type: pool
-source:
-  uri: git@github.com:GaloyMoney/galoy-concourse-locks.git
-  branch: main
-  pool: docker-hosts
   private_key: #@ data.values.github_private_key
 #@ end
 

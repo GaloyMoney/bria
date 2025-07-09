@@ -63,16 +63,18 @@ pub async fn execute(
             let keychain_xpubs = wallet.xpubs_for_keychains(&summary.signing_keychains);
             for (_, keychain_xpubs) in keychain_xpubs.into_iter() {
                 for xpub in keychain_xpubs.into_iter() {
-                    let account_xpub = xpubs.find_from_ref(data.account_id, xpub.id()).await?;
+                    let account_xpub = xpubs
+                        .find_from_ref(data.account_id, xpub.fingerprint())
+                        .await?;
                     let new_session = NewSigningSession::builder()
                         .account_id(data.account_id)
                         .batch_id(data.batch_id)
-                        .xpub_id(xpub.id())
+                        .xpub_fingerprint(xpub.fingerprint())
                         .unsigned_psbt(unsigned_psbt.clone())
                         .build()
                         .expect("Could not build signing session");
-                    new_sessions.insert(account_xpub.id(), new_session);
-                    account_xpubs.insert(account_xpub.id(), account_xpub);
+                    new_sessions.insert(account_xpub.fingerprint(), new_session);
+                    account_xpubs.insert(account_xpub.fingerprint(), account_xpub);
                 }
             }
         }
@@ -87,12 +89,14 @@ pub async fn execute(
     };
 
     let mut any_updated = false;
-    for (xpub_id, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
+    for (xpub_fingerprint, session) in sessions.iter_mut().filter(|(_, s)| !s.is_completed()) {
         any_updated = true;
-        let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_id) {
+        let account_xpub = if let Some(xpub) = account_xpub_cache.remove(xpub_fingerprint) {
             xpub
         } else {
-            xpubs.find_from_ref(data.account_id, xpub_id).await?
+            xpubs
+                .find_from_ref(data.account_id, xpub_fingerprint)
+                .await?
         };
         let mut client = match account_xpub
             .remote_signing_client(signer_encryption_config.key)
@@ -126,9 +130,9 @@ pub async fn execute(
     }
 
     if any_updated {
-        let mut tx = pool.begin().await?;
-        signing_sessions.update_sessions(&mut tx, &sessions).await?;
-        tx.commit().await?;
+        let mut db = signing_sessions.begin_op().await?;
+        signing_sessions.update_sessions(&mut db, &sessions).await?;
+        db.commit().await?;
     }
     let mut sessions = sessions.into_values();
 

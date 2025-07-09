@@ -8,7 +8,7 @@ use crate::primitives::*;
 
 use super::config::*;
 
-#[derive(EsEvent, Debug, Clone, Serialize, Deserialize)]
+#[derive(EsEvent, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[es_event(id = "PayoutQueueId")]
 pub enum PayoutQueueEvent {
