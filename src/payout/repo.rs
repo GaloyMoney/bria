@@ -159,8 +159,6 @@ impl Payouts {
         page_size: u64,
     ) -> Result<Vec<Payout>, PayoutError> {
         let offset = (page - 1) * page_size;
-        let size = page_size.min(u32::MAX as u64) as usize;
-        // or add a new error for try_into when page_size not converted to usize?
         let payouts = es_entity::es_query!(
             "bria",
             &self.pool,
@@ -174,7 +172,7 @@ impl Payouts {
             wallet_id as WalletId,
             offset as i64,
         )
-        .fetch_n(size)
+        .fetch_n(page_size as usize)
         .await?;
         Ok(payouts.0)
     }

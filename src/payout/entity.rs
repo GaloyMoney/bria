@@ -203,7 +203,6 @@ mod tests {
     fn cancel_payout() {
         let mut payout = Payout::try_from_events(init_events()).unwrap();
         assert!(payout.cancel_payout(payout.profile_id).is_ok());
-        // REVIEW REQUIRED FOR THE CHANGE BELOW:
         assert!(matches!(
             payout.events.iter_all().last().unwrap(),
             PayoutEvent::Cancelled { .. }
