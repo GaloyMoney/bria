@@ -20,7 +20,6 @@ use crate::primitives::*;
         batch_id(
             ty = "Option<BatchId>",
             create(persist = false),
-            update(persist = true)
         )
     ),
     tbl_prefix = "bria"
