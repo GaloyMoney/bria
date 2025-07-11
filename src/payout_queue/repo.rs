@@ -26,19 +26,10 @@ impl PayoutQueues {
         account_id: AccountId,
         id: PayoutQueueId,
     ) -> Result<PayoutQueue, PayoutQueueError> {
-        let payout_queue = es_entity::es_query!(
-            "bria",
-            &self.pool,
-            r#"
-            SELECT *
-            FROM bria_payout_queues
-            WHERE account_id = $1 and id = $2"#,
-            account_id as AccountId,
-            id as PayoutQueueId,
-        )
-        .fetch_one()
-        .await?;
-
+        let payout_queue = self.find_by_id(id).await?;
+        if payout_queue.account_id != account_id {
+            return Err(PayoutQueueError::EsEntityError(EsEntityError::NotFound));
+        }
         Ok(payout_queue)
     }
 
