@@ -46,7 +46,7 @@ impl PayoutQueues {
             FROM bria_payout_queues
             WHERE account_id = $1 and name = $2"#,
             account_id as AccountId,
-            name as String,
+            name
         )
         .fetch_one()
         .await?;
