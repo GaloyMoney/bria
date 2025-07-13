@@ -105,7 +105,7 @@ impl Payouts {
                 account_id as AccountId,
                 payout_queue_id as PayoutQueueId,
                 id as Option<PayoutId>,
-                created_at as Option<chrono::DateTime<chrono::Utc>>,
+                created_at
             )
             .fetch_n(first)
             .await?;
@@ -205,7 +205,7 @@ impl Payouts {
                 account_id as AccountId,
                 batch_id as BatchId,
                 id as Option<PayoutId>,
-                created_at as Option<chrono::DateTime<chrono::Utc>>,
+                created_at
             )
             .fetch_n(first)
             .await?;
@@ -311,7 +311,6 @@ impl Payouts {
             SELECT *
             FROM bria_payouts
             WHERE account_id = $1 AND id = $2
-            ORDER BY created_at
             FOR UPDATE"#,
             account_id as AccountId,
             payout_id as PayoutId,
