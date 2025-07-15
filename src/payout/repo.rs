@@ -85,12 +85,10 @@ impl Payouts {
         };
 
         loop {
-            let es_entity::PaginatedQueryArgs { first, after } = query;
-            let (id, created_at) = if let Some(after) = after {
-                (Some(after.id), Some(after.created_at))
-            } else {
-                (None, None)
-            };
+            let (id, created_at) = query
+                .after
+                .map(|c| (Some(c.id), Some(c.created_at)))
+                .unwrap_or((None, None));
 
             let (entities, has_next_page) = es_entity::es_query!(
                 "bria",
@@ -107,7 +105,7 @@ impl Payouts {
                 id as Option<PayoutId>,
                 created_at
             )
-            .fetch_n(first)
+            .fetch_n(query.first)
             .await?;
 
             unbatched_payouts.extend(entities);
@@ -122,10 +120,15 @@ impl Payouts {
             query.after = end_cursor;
         }
 
-        let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
-        for payout in unbatched_payouts {
-            payouts.entry(payout.wallet_id).or_default().push(payout);
-        }
+        let payouts: HashMap<WalletId, Vec<Payout>> =
+            unbatched_payouts
+                .into_iter()
+                .fold(HashMap::new(), |mut map, unbatched_payout| {
+                    map.entry(unbatched_payout.wallet_id)
+                        .or_default()
+                        .push(unbatched_payout);
+                    map
+                });
 
         let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = payouts
             .into_iter()
@@ -186,12 +189,10 @@ impl Payouts {
         };
 
         loop {
-            let es_entity::PaginatedQueryArgs { first, after } = query;
-            let (id, created_at) = if let Some(after) = after {
-                (Some(after.id), Some(after.created_at))
-            } else {
-                (None, None)
-            };
+            let (id, created_at) = query
+                .after
+                .map(|c| (Some(c.id), Some(c.created_at)))
+                .unwrap_or((None, None));
 
             let (entities, has_next_page) = es_entity::es_query!(
                 "bria",
@@ -207,7 +208,7 @@ impl Payouts {
                 id as Option<PayoutId>,
                 created_at
             )
-            .fetch_n(first)
+            .fetch_n(query.first)
             .await?;
 
             batched_payouts.extend(entities);
@@ -223,13 +224,15 @@ impl Payouts {
             query.after = end_cursor;
         }
 
-        let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
-        for batched_payout in batched_payouts {
-            payouts
-                .entry(batched_payout.wallet_id)
-                .or_default()
-                .push(batched_payout);
-        }
+        let payouts: HashMap<WalletId, Vec<Payout>> =
+            batched_payouts
+                .into_iter()
+                .fold(HashMap::new(), |mut map, batched_payout| {
+                    map.entry(batched_payout.wallet_id)
+                        .or_default()
+                        .push(batched_payout);
+                    map
+                });
         Ok(payouts)
     }
 
