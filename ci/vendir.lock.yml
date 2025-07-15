@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'chore: remove bats helper sourcing from bats script'
-      sha: a940bf705505fe507f3a6aded4f3fdcd8138d624
+      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
+      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'chore: remove bats helper sourcing from bats script'
-      sha: a940bf705505fe507f3a6aded4f3fdcd8138d624
+      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
+      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
     path: .
   path: vendor
 kind: LockConfig
