@@ -120,32 +120,19 @@ impl Payouts {
             query.after = end_cursor;
         }
 
-        let payouts: HashMap<WalletId, Vec<Payout>> =
-            unbatched_payouts
-                .into_iter()
-                .fold(HashMap::new(), |mut map, unbatched_payout| {
-                    map.entry(unbatched_payout.wallet_id)
-                        .or_default()
-                        .push(unbatched_payout);
-                    map
-                });
-
-        let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = payouts
+        let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = unbatched_payouts
             .into_iter()
-            .map(|(wallet_id, unbatched_payouts)| {
-                let filtered_unbatched_payouts = unbatched_payouts
-                    .into_iter()
-                    .filter(|payout| {
-                        !payout
-                            .events
-                            .iter_all()
-                            .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
-                    })
-                    .filter_map(|payout| UnbatchedPayout::try_from(payout).ok())
-                    .collect();
-                (wallet_id, filtered_unbatched_payouts)
+            .filter(|payout| {
+                !payout
+                    .events
+                    .iter_all()
+                    .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
             })
-            .collect();
+            .filter_map(|unbatched_payout| UnbatchedPayout::try_from(unbatched_payout).ok())
+            .fold(HashMap::new(), |mut map, payout| {
+                map.entry(payout.wallet_id).or_default().push(payout);
+                map
+            });
         Ok(UnbatchedPayouts::new(filtered_payouts))
     }
 
