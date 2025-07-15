@@ -1,13 +1,12 @@
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    entity::*,
-    primitives::{bitcoin::*, *},
-};
+use crate::primitives::{bitcoin::*, *};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "uuid::Uuid")]
 pub enum AddressEvent {
     Initialized {
         db_uuid: uuid::Uuid,
@@ -27,22 +26,36 @@ pub enum AddressEvent {
     },
 }
 
-#[derive(Debug, Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[es_entity(event = AddressEvent)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct WalletAddress {
     pub account_id: AccountId,
     pub address: Address,
     pub wallet_id: WalletId,
     pub external_id: String,
-    kind: KeychainKind,
-    pub(super) db_uuid: uuid::Uuid,
+    kind: pg::PgKeychainKind,
+    pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<AddressEvent>,
+}
+
+impl std::fmt::Debug for WalletAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.debug_struct("WalletAddress")
+            .field("account_id", &self.account_id)
+            .field("address", &self.address)
+            .field("wallet_id", &self.wallet_id)
+            .field("external_id", &self.external_id)
+            .field("kind", &self.kind)
+            .field("id", &self.id)
+            .finish()
+    }
 }
 
 impl WalletAddress {
     pub fn metadata(&self) -> Option<&serde_json::Value> {
         let mut ret = None;
-        for event in self.events.iter() {
+        for event in self.events.iter_all() {
             if let AddressEvent::MetadataUpdated { metadata } = event {
                 ret = Some(metadata)
             }
@@ -65,13 +78,13 @@ impl WalletAddress {
     }
 
     pub fn is_external(&self) -> bool {
-        self.kind == KeychainKind::External
+        self.kind == pg::PgKeychainKind::External
     }
 }
 
 #[derive(Builder, Clone, Debug)]
-pub struct NewAddress {
-    pub(super) db_uuid: uuid::Uuid,
+pub struct NewWalletAddress {
+    pub(super) id: uuid::Uuid,
     #[builder(setter(custom))]
     pub(super) address: Address,
     #[builder(setter(into))]
@@ -83,41 +96,44 @@ pub struct NewAddress {
     pub(super) keychain_id: KeychainId,
     #[builder(setter(into))]
     pub(super) external_id: String,
-    pub(super) kind: KeychainKind,
+    #[builder(setter(custom))]
+    pub(super) kind: pg::PgKeychainKind,
     metadata: Option<serde_json::Value>,
 }
 
-impl NewAddress {
-    pub fn builder() -> NewAddressBuilder {
-        let mut builder = NewAddressBuilder::default();
-        builder.db_uuid(uuid::Uuid::new_v4());
+impl NewWalletAddress {
+    pub fn builder() -> NewWalletAddressBuilder {
+        let mut builder = NewWalletAddressBuilder::default();
+        builder.id(uuid::Uuid::new_v4());
         builder
     }
+}
 
-    pub fn initial_events(self) -> EntityEvents<AddressEvent> {
-        let mut events = EntityEvents::init([
+impl IntoEvents<AddressEvent> for NewWalletAddress {
+    fn into_events(self) -> EntityEvents<AddressEvent> {
+        let mut events = vec![
             AddressEvent::Initialized {
-                db_uuid: self.db_uuid,
+                db_uuid: self.id,
                 account_id: self.account_id,
                 wallet_id: self.wallet_id,
                 keychain_id: self.keychain_id,
                 profile_id: self.profile_id,
                 address: self.address,
                 address_idx: self.address_idx,
-                kind: self.kind,
+                kind: self.kind.into(),
             },
             AddressEvent::ExternalIdUpdated {
                 external_id: self.external_id,
             },
-        ]);
+        ];
         if let Some(metadata) = self.metadata {
             events.push(AddressEvent::MetadataUpdated { metadata })
         }
-        events
+        EntityEvents::init(self.id, events)
     }
 }
 
-impl NewAddressBuilder {
+impl NewWalletAddressBuilder {
     pub fn address(&mut self, address: Address) -> &mut Self {
         if self.external_id.is_none() {
             self.external_id = Some(address.to_string());
@@ -125,14 +141,16 @@ impl NewAddressBuilder {
         self.address = Some(address);
         self
     }
+    pub fn kind(&mut self, kind: KeychainKind) -> &mut Self {
+        self.kind = Some(pg::PgKeychainKind::from(kind));
+        self
+    }
 }
 
-impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<AddressEvent>) -> Result<Self, EntityError> {
+impl TryFromEvents<AddressEvent> for WalletAddress {
+    fn try_from_events(events: EntityEvents<AddressEvent>) -> Result<Self, EsEntityError> {
         let mut builder = WalletAddressBuilder::default();
-        for event in events.iter() {
+        for event in events.iter_all() {
             match event {
                 AddressEvent::Initialized {
                     db_uuid,
@@ -143,11 +161,11 @@ impl TryFrom<EntityEvents<AddressEvent>> for WalletAddress {
                     ..
                 } => {
                     builder = builder
-                        .db_uuid(*db_uuid)
+                        .id(*db_uuid)
                         .account_id(*account_id)
                         .address(address.clone())
                         .wallet_id(*wallet_id)
-                        .kind(*kind);
+                        .kind((*kind).into());
                 }
                 AddressEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.to_owned());

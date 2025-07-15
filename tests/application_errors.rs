@@ -25,7 +25,7 @@ async fn external_id_does_not_exist() -> anyhow::Result<()> {
     assert!(matches!(
         err,
         Err(ApplicationError::AddressError(
-            AddressError::ExternalIdNotFound
+            AddressError::EsEntityError(EsEntityError::NotFound)
         ))
     ));
 
