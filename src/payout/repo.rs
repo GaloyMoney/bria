@@ -307,7 +307,6 @@ impl Payouts {
         )
         .fetch_one()
         .await?;
-
         Ok(payout)
     }
 }
