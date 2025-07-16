@@ -4,6 +4,10 @@ use es_entity::*;
 use sqlx::{Database, Encode, Pool, Postgres};
 use uuid::Uuid;
 
+// update, create need to handle pg::PgKeychainKind
+// make sure create_in_op handles if_not_persist thing to use in place if it
+// wallet sync, when it runs
+// it has atomic plus if not present, so it is not just retry something, but something expected
 #[derive(EsRepo, Clone)]
 #[es_repo(
     entity = "WalletAddress",
@@ -89,8 +93,7 @@ impl Addresses {
             after: None,
         };
         loop {
-            let es_entity::PaginatedQueryArgs { first, after } = query;
-            let (id, created_at) = if let Some(after) = after {
+            let (id, created_at) = if let Some(after) = query.after {
                 (Some(after.id), Some(after.created_at))
             } else {
                 (None, None)
@@ -112,7 +115,7 @@ impl Addresses {
                 id,
                 created_at
             )
-            .fetch_n(first)
+            .fetch_n(query.first)
             .await?;
 
             wallet_addresses.extend(entities);
