@@ -266,6 +266,7 @@ pub async fn execute(
                 } else {
                     (pool.begin().await?, None, LedgerTransactionId::new())
                 };
+
                 let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
                 let mut change_utxos = Vec::new();
                 for (utxo, path) in change.iter() {

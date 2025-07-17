@@ -43,7 +43,6 @@ impl Utxos {
         origin_tx_vbytes: u64,
         self_pay: bool,
         current_block_height: u32,
-        // ) -> Result<Option<(LedgerTransactionId, es_entity::DbOp<'_>)>, UtxoError> {
     ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
             .account_id(account_id)
