@@ -12,6 +12,7 @@ use super::error::PayoutError;
 pub enum PayoutEvent {
     Initialized {
         id: PayoutId,
+        account_id: AccountId,
         wallet_id: WalletId,
         payout_queue_id: PayoutQueueId,
         profile_id: ProfileId,
@@ -37,6 +38,7 @@ pub enum PayoutEvent {
 #[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct Payout {
     pub id: PayoutId,
+    pub account_id: AccountId,
     pub wallet_id: WalletId,
     pub profile_id: ProfileId,
     pub payout_queue_id: PayoutQueueId,
@@ -88,6 +90,7 @@ impl TryFromEvents<PayoutEvent> for Payout {
             match event {
                 PayoutEvent::Initialized {
                     id,
+                    account_id,
                     wallet_id,
                     profile_id,
                     payout_queue_id,
@@ -97,6 +100,7 @@ impl TryFromEvents<PayoutEvent> for Payout {
                 } => {
                     builder = builder
                         .id(*id)
+                        .account_id(*account_id)
                         .wallet_id(*wallet_id)
                         .profile_id(*profile_id)
                         .payout_queue_id(*payout_queue_id)
@@ -152,6 +156,7 @@ impl IntoEvents<PayoutEvent> for NewPayout {
         let mut events = vec![
             PayoutEvent::Initialized {
                 id: self.id,
+                account_id: self.account_id,
                 wallet_id: self.wallet_id,
                 payout_queue_id: self.payout_queue_id,
                 profile_id: self.profile_id,
@@ -182,6 +187,7 @@ mod tests {
             [
                 PayoutEvent::Initialized {
                     id: id,
+                    account_id: AccountId::new(),
                     wallet_id: WalletId::new(),
                     profile_id: ProfileId::new(),
                     payout_queue_id: PayoutQueueId::new(),
