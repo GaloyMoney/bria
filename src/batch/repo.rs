@@ -212,9 +212,8 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(es_entity::DbOp<'_>, BatchInfo, LedgerTxId)>, BatchError> {
-        let tx = self.pool.begin().await?;
-        let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
+    ) -> Result<Option<(Transaction<'_, Postgres>, BatchInfo, LedgerTxId)>, BatchError> {
+        let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (
                  SELECT id, payout_queue_id FROM bria_batches
@@ -232,7 +231,7 @@ impl Batches {
             bitcoin_tx_id.as_ref() as &[u8],
             wallet_id as WalletId
         )
-        .fetch_optional(&mut **op.tx())
+        .fetch_optional(&mut *tx)
         .await?;
         if row.is_none() || row.as_ref().unwrap().batch_created_ledger_tx_id.is_none() {
             return Ok(None);
@@ -243,7 +242,7 @@ impl Batches {
         let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
         if row.ledger_id.is_some() {
             return Ok(Some((
-                op,
+                tx,
                 BatchInfo {
                     id: batch_id,
                     payout_queue_id,
@@ -262,11 +261,11 @@ impl Batches {
             batch_id as BatchId,
             wallet_id as WalletId,
         )
-        .execute(&mut **op.tx())
+        .execute(&mut *tx)
         .await?;
 
         Ok(Some((
-            op,
+            tx,
             BatchInfo {
                 id: batch_id,
                 payout_queue_id,

@@ -43,7 +43,8 @@ impl Utxos {
         origin_tx_vbytes: u64,
         self_pay: bool,
         current_block_height: u32,
-    ) -> Result<Option<(LedgerTransactionId, es_entity::DbOp<'_>)>, UtxoError> {
+        // ) -> Result<Option<(LedgerTransactionId, es_entity::DbOp<'_>)>, UtxoError> {
+    ) -> Result<Option<(LedgerTransactionId, Transaction<'_, Postgres>)>, UtxoError> {
         let new_utxo = NewUtxo::builder()
             .account_id(account_id)
             .wallet_id(wallet_id)
@@ -61,10 +62,9 @@ impl Utxos {
             .self_pay(self_pay)
             .build()
             .expect("Could not build NewUtxo");
-        let tx = self.pool.begin().await?;
-        let mut db = es_entity::DbOp::new(tx, chrono::Utc::now());
-        let tx_id = self.utxos.persist_utxo(db.tx(), new_utxo).await?;
-        Ok(tx_id.map(|id| (id, db)))
+        let mut tx = self.pool.begin().await?;
+        let tx_id = self.utxos.persist_utxo(&mut tx, new_utxo).await?;
+        Ok(tx_id.map(|id| (id, tx)))
     }
 
     #[instrument(name = "utxos.settle_utxo", skip(self, tx), err)]

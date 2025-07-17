@@ -158,7 +158,7 @@ pub async fn execute(
                     .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
                     .build()
                     .expect("Could not build new address in sync wallet");
-                if let Some((pending_id, mut op)) = deps
+                if let Some((pending_id, tx)) = deps
                     .bria_utxos
                     .new_utxo_detected(
                         data.account_id,
@@ -173,6 +173,7 @@ pub async fn execute(
                     )
                     .await?
                 {
+                    let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
                     trackers.n_pending_utxos += 1;
                     deps.bria_addresses
                         .persist_if_not_present(&mut op, found_addr)
@@ -257,19 +258,15 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let (mut op, batch_info, tx_id) = if let Some((op, create_batch, tx_id)) = batches
+                let (tx, batch_info, tx_id) = if let Some((tx, create_batch, tx_id)) = batches
                     .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
                     .await?
                 {
-                    (op, Some(create_batch), tx_id)
+                    (tx, Some(create_batch), tx_id)
                 } else {
-                    (
-                        es_entity::DbOp::new(pool.begin().await?, chrono::Utc::now()),
-                        None,
-                        LedgerTransactionId::new(),
-                    )
+                    (pool.begin().await?, None, LedgerTransactionId::new())
                 };
-
+                let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
                 let mut change_utxos = Vec::new();
                 for (utxo, path) in change.iter() {
                     let address_info = keychain_wallet

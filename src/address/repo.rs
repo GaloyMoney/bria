@@ -8,9 +8,7 @@ use crate::primitives::{bitcoin::*, *};
 
 // update, create need to handle pg::PgKeychainKind
 // make sure create_in_op handles if_not_persist thing to use in place if it
-// wallet sync, when it runs
 // it has atomic plus if not present, so it is not just retry something, but something expected
-// find workaround by testing sqlx urself new project
 #[derive(EsRepo, Clone)]
 #[es_repo(
     entity = "WalletAddress",
