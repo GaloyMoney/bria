@@ -4,15 +4,15 @@ use thiserror::Error;
 pub enum AddressError {
     #[error("AddressError - external_id already exists")]
     ExternalIdAlreadyExists,
-    #[error("AddressError - external_id does not exist")]
-    ExternalIdNotFound,
-    #[error("AddressError - Could not find address: {0}")]
-    AddressNotFound(String),
     #[error("AddressError - Sqlx: {0}")]
     Sqlx(sqlx::Error),
-    #[error("AddressError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
+    #[error("ProfileError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
+    #[error("ProfileError - CursorDestructureError: {0}")]
+    CursorDestructureError(#[from] es_entity::CursorDestructureError),
 }
+
+es_entity::from_es_entity_error!(AddressError);
 
 impl From<sqlx::Error> for AddressError {
     fn from(error: sqlx::Error) -> Self {

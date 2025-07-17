@@ -148,7 +148,7 @@ pub async fn execute(
                 let address_info = keychain_wallet
                     .find_address_from_path(path, local_utxo.keychain)
                     .await?;
-                let found_addr = NewAddress::builder()
+                let found_addr = NewWalletAddress::builder()
                     .account_id(data.account_id)
                     .wallet_id(data.wallet_id)
                     .keychain_id(keychain_id)
@@ -158,7 +158,7 @@ pub async fn execute(
                     .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
                     .build()
                     .expect("Could not build new address in sync wallet");
-                if let Some((pending_id, mut tx)) = deps
+                if let Some((pending_id, tx)) = deps
                     .bria_utxos
                     .new_utxo_detected(
                         data.account_id,
@@ -173,14 +173,15 @@ pub async fn execute(
                     )
                     .await?
                 {
+                    let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
                     trackers.n_pending_utxos += 1;
                     deps.bria_addresses
-                        .persist_if_not_present(&mut tx, found_addr)
+                        .persist_if_not_present(&mut op, found_addr)
                         .await?;
-                    bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
+                    bdk_utxos.mark_as_synced(op.tx(), &local_utxo).await?;
                     deps.ledger
                         .utxo_detected(
-                            tx,
+                            op.into_tx(),
                             pending_id,
                             UtxoDetectedParams {
                                 journal_id: wallet.journal_id,
@@ -257,7 +258,7 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let (mut tx, batch_info, tx_id) = if let Some((tx, create_batch, tx_id)) = batches
+                let (tx, batch_info, tx_id) = if let Some((tx, create_batch, tx_id)) = batches
                     .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
                     .await?
                 {
@@ -265,13 +266,13 @@ pub async fn execute(
                 } else {
                     (pool.begin().await?, None, LedgerTransactionId::new())
                 };
-
+                let mut op = es_entity::DbOp::new(tx, chrono::Utc::now());
                 let mut change_utxos = Vec::new();
                 for (utxo, path) in change.iter() {
                     let address_info = keychain_wallet
                         .find_address_from_path(*path, utxo.keychain)
                         .await?;
-                    let found_addr = NewAddress::builder()
+                    let found_addr = NewWalletAddress::builder()
                         .account_id(data.account_id)
                         .wallet_id(data.wallet_id)
                         .keychain_id(keychain_id)
@@ -282,7 +283,7 @@ pub async fn execute(
                         .build()
                         .expect("Could not build new address in sync wallet");
                     deps.bria_addresses
-                        .persist_if_not_present(&mut tx, found_addr)
+                        .persist_if_not_present(&mut op, found_addr)
                         .await?;
                     change_utxos.push((utxo, address_info));
                 }
@@ -290,7 +291,7 @@ pub async fn execute(
                 if let Some((settled_sats, allocations)) = deps
                     .bria_utxos
                     .spend_detected(
-                        &mut tx,
+                        op.tx(),
                         data.account_id,
                         wallet.id,
                         keychain_id,
@@ -315,7 +316,7 @@ pub async fn execute(
                     {
                         deps.ledger
                             .batch_broadcast(
-                                tx,
+                                op.into_tx(),
                                 created_ledger_tx_id,
                                 tx_id,
                                 fees_to_encumber,
@@ -337,7 +338,7 @@ pub async fn execute(
                             .await?;
                         deps.ledger
                             .spend_detected(
-                                tx,
+                                op.into_tx(),
                                 tx_id,
                                 SpendDetectedParams {
                                     journal_id: wallet.journal_id,
