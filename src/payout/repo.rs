@@ -12,7 +12,7 @@ use crate::primitives::*;
     entity = "Payout",
     err = "PayoutError",
     columns(
-        account_id(ty = "AccountId", list_for, update(persist = false)),
+        account_id(ty = "AccountId", update(persist = false)),
         wallet_id(ty = "WalletId", update(persist = false)),
         payout_queue_id(ty = "PayoutQueueId", update(persist = false)),
         profile_id(ty = "ProfileId", update(persist = false)),
