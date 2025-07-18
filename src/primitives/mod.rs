@@ -21,11 +21,11 @@ impl From<AccountId> for LedgerJournalId {
         Self::from(uuid::Uuid::from(id))
     }
 }
-es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, SigningSessionId }
+
+es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, SigningSessionId, PayoutId }
 crate::entity_id! { ProfileApiKeyId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { SignerId }
-crate::entity_id! { PayoutId }
 
 impl From<PayoutId> for LedgerTransactionId {
     fn from(id: PayoutId) -> Self {
