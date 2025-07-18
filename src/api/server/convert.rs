@@ -679,9 +679,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::ProfileError(ProfileError::EsEntityError(
                 es_entity::EsEntityError::NotFound,
             )) => tonic::Status::not_found(err.to_string()),
-            ApplicationError::PayoutError(PayoutError::EsEntityError(
-                es_entity::EsEntityError::NotFound,
-            )) => tonic::Status::not_found(err.to_string()),
+            ApplicationError::PayoutError(err) if err.was_not_found() => {
+                tonic::Status::not_found(err.to_string())
+            }
             ApplicationError::PayoutError(PayoutError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
             }
