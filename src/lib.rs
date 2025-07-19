@@ -19,6 +19,7 @@ pub mod ledger;
 mod outbox;
 pub mod payout;
 pub mod payout_queue;
+pub mod payjoin;
 pub mod primitives;
 pub mod profile;
 pub mod signing_session;
