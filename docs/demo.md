@@ -27,9 +27,9 @@
   ```
   export PATH="${PATH}:$(pwd)/target/debug"
   ```
-* start the bria daemon with the [default configuration](../tests/e2e/bria.local.yml) and bootstrap
+* start the bria daemon with the [default configuration](../bats/bria.local.yml) and bootstrap
   ```
-  bria daemon --config ./tests/e2e/bria.local.yml postgres://user:password@127.0.0.1:5432/pg dev
+  bria daemon --config ./bats/bria.local.yml postgres://user:password@127.0.0.1:5432/pg dev
   ```
 * open a new terminal and run direnv allow
 
@@ -43,10 +43,10 @@
   bitcoin_cli createwallet "default"
   bitcoin_cli generatetoaddress 200 "$(bitcoin_cli getnewaddress)"
   ```
-* create a bitcoind wallet using a [sample private descriptor](../tests/e2e/bitcoind_signer_descriptors.json)
+* create a bitcoind wallet using a [sample private descriptor](../bats/bitcoind_signer_descriptors.json)
   ```
   bitcoin_signer_cli createwallet "default"
-  bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat tests/e2e/bitcoind_signer_descriptors.json)"
+  bitcoin_signer_cli -rpcwallet=default importdescriptors "$(cat bats/bitcoind_signer_descriptors.json)"
   ```
 * create a Bria account
   ```
