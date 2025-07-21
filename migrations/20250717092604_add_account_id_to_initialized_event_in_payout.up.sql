@@ -6,4 +6,4 @@ SET event = jsonb_set(
 )
 FROM bria_payouts p
 WHERE bria_payout_events.id = p.id
-AND event_type = 'initialized';
+AND event_type = 'initialized' AND event->>'account_id' IS NULL;
