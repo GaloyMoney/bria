@@ -21,12 +21,11 @@ impl From<AccountId> for LedgerJournalId {
         Self::from(uuid::Uuid::from(id))
     }
 }
-es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId }
+
+es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, SigningSessionId, PayoutId }
 crate::entity_id! { ProfileApiKeyId }
-crate::entity_id! { SigningSessionId }
 crate::entity_id! { KeychainId }
 crate::entity_id! { SignerId }
-crate::entity_id! { PayoutId }
 
 impl From<PayoutId> for LedgerTransactionId {
     fn from(id: PayoutId) -> Self {
@@ -44,15 +43,15 @@ crate::entity_id! { OutboxEventId }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct XPubId(bitcoin::Fingerprint);
+pub struct XPubFingerprint(bitcoin::Fingerprint);
 
-impl From<bitcoin::Fingerprint> for XPubId {
+impl From<bitcoin::Fingerprint> for XPubFingerprint {
     fn from(fp: bitcoin::Fingerprint) -> Self {
         Self(fp)
     }
 }
 
-impl std::str::FromStr for XPubId {
+impl std::str::FromStr for XPubFingerprint {
     type Err = <bitcoin::Fingerprint as std::str::FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -61,13 +60,13 @@ impl std::str::FromStr for XPubId {
     }
 }
 
-impl fmt::Display for XPubId {
+impl fmt::Display for XPubFingerprint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
     }
 }
 
-impl std::ops::Deref for XPubId {
+impl std::ops::Deref for XPubFingerprint {
     type Target = bitcoin::Fingerprint;
 
     fn deref(&self) -> &Self::Target {

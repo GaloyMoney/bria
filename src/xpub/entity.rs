@@ -1,11 +1,13 @@
 use derive_builder::Builder;
+use es_entity::*;
 use serde::{Deserialize, Serialize};
 
 use super::{error::XPubError, signer_config::*, signing_client::*, value::XPub as XPubValue};
-use crate::{entity::*, primitives::*};
+use crate::primitives::*;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(EsEvent, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[es_event(id = "uuid::Uuid")]
 pub enum XPubEvent {
     Initialized {
         db_uuid: uuid::Uuid,
@@ -21,21 +23,23 @@ pub enum XPubEvent {
     },
 }
 
-#[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[derive(EsEntity, Builder)]
+#[es_entity(event = XPubEvent)]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct AccountXPub {
     pub account_id: AccountId,
     pub key_name: String,
     pub value: XPubValue,
     pub original: String,
+    #[builder(default)]
     pub(super) encrypted_signer_config: Option<(ConfigCyper, Nonce)>,
-    pub(super) db_uuid: uuid::Uuid,
+    pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<XPubEvent>,
 }
 
 impl AccountXPub {
-    pub fn id(&self) -> XPubId {
-        self.value.id()
+    pub fn fingerprint(&self) -> XPubFingerprint {
+        self.value.fingerprint()
     }
 
     pub fn set_signer_config(
@@ -82,7 +86,7 @@ impl AccountXPub {
 
 #[derive(Builder, Clone, Debug)]
 pub struct NewAccountXPub {
-    pub(super) db_uuid: uuid::Uuid,
+    pub(super) id: uuid::Uuid,
     pub(super) account_id: AccountId,
     #[builder(setter(into))]
     pub(super) key_name: String,
@@ -93,19 +97,24 @@ pub struct NewAccountXPub {
 impl NewAccountXPub {
     pub fn builder() -> NewAccountXPubBuilder {
         let mut builder = NewAccountXPubBuilder::default();
-        builder.db_uuid(uuid::Uuid::new_v4());
+        builder.id(uuid::Uuid::new_v4());
         builder
     }
 
-    pub fn id(&self) -> XPubId {
-        self.value.id()
+    pub fn fingerprint(&self) -> XPubFingerprint {
+        self.value.fingerprint()
     }
 
-    pub(super) fn initial_events(self) -> EntityEvents<XPubEvent> {
+    pub fn key_name(&self) -> String {
+        self.key_name.clone()
+    }
+}
+impl IntoEvents<XPubEvent> for NewAccountXPub {
+    fn into_events(self) -> EntityEvents<XPubEvent> {
         let xpub = self.value.inner;
-        EntityEvents::init([
+        let events = vec![
             XPubEvent::Initialized {
-                db_uuid: self.db_uuid,
+                db_uuid: self.id,
                 account_id: self.account_id,
                 fingerprint: xpub.fingerprint(),
                 parent_fingerprint: xpub.parent_fingerprint,
@@ -116,18 +125,15 @@ impl NewAccountXPub {
             XPubEvent::NameUpdated {
                 name: self.key_name,
             },
-        ])
+        ];
+        EntityEvents::init(self.id, events)
     }
 }
 
-impl TryFrom<(EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>)> for AccountXPub {
-    type Error = EntityError;
-
-    fn try_from(
-        (events, config): (EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>),
-    ) -> Result<Self, Self::Error> {
+impl TryFromEvents<XPubEvent> for AccountXPub {
+    fn try_from_events(events: EntityEvents<XPubEvent>) -> Result<Self, EsEntityError> {
         let mut builder = AccountXPubBuilder::default();
-        for event in events.iter() {
+        for event in events.iter_all() {
             match event {
                 XPubEvent::Initialized {
                     db_uuid,
@@ -138,7 +144,7 @@ impl TryFrom<(EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>)> for Accoun
                     ..
                 } => {
                     builder = builder
-                        .db_uuid(*db_uuid)
+                        .id(*db_uuid)
                         .account_id(*account_id)
                         .value(XPubValue {
                             inner: *xpub,
@@ -150,11 +156,6 @@ impl TryFrom<(EntityEvents<XPubEvent>, Option<(ConfigCyper, Nonce)>)> for Accoun
                     builder = builder.key_name(name.clone());
                 }
             }
-        }
-        if let Some((encrypted_config, nonce)) = config {
-            builder = builder.encrypted_signer_config(Some((encrypted_config, nonce)));
-        } else {
-            builder = builder.encrypted_signer_config(None);
         }
         builder.events(events).build()
     }

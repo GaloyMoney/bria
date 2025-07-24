@@ -20,4 +20,10 @@ pub enum XPubError {
     UnsupportedPubKeyType,
     #[error("Could not decrypt signer config: {0}")]
     CouldNotDecryptSignerConfig(chacha20poly1305::Error),
+    #[error("XPubError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
+    #[error("XPubError - CursorDestructureError: {0}")]
+    CursorDestructureError(#[from] es_entity::CursorDestructureError),
 }
+
+es_entity::from_es_entity_error!(XPubError);

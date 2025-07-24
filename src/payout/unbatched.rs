@@ -1,9 +1,10 @@
 use derive_builder::Builder;
 
+use es_entity::*;
 use std::collections::HashMap;
 
-use super::entity::PayoutEvent;
-use crate::{entity::*, primitives::*};
+use super::entity::{Payout, PayoutEvent};
+use crate::primitives::*;
 
 pub struct UnbatchedPayouts {
     inner: HashMap<WalletId, Vec<UnbatchedPayout>>,
@@ -90,7 +91,7 @@ impl UnbatchedPayouts {
 }
 
 #[derive(Builder)]
-#[builder(pattern = "owned", build_fn(error = "EntityError"))]
+#[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct UnbatchedPayout {
     pub id: PayoutId,
     pub wallet_id: WalletId,
@@ -107,12 +108,11 @@ impl UnbatchedPayout {
     }
 }
 
-impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
-    type Error = EntityError;
-
-    fn try_from(events: EntityEvents<PayoutEvent>) -> Result<Self, Self::Error> {
+impl TryFrom<Payout> for UnbatchedPayout {
+    type Error = EsEntityError;
+    fn try_from(payout: Payout) -> Result<Self, Self::Error> {
         let mut builder = UnbatchedPayoutBuilder::default();
-        for event in events.iter() {
+        for event in payout.events.iter_all() {
             if let PayoutEvent::Initialized {
                 id,
                 wallet_id,
@@ -128,7 +128,7 @@ impl TryFrom<EntityEvents<PayoutEvent>> for UnbatchedPayout {
                     .satoshis(*satoshis);
             }
         }
-        builder.events(events).build()
+        builder.events(payout.events).build()
     }
 }
 

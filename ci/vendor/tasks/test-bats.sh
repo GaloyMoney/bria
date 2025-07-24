@@ -54,15 +54,6 @@ echo "--- Building test artifacts---"
 # nix build . -L
 make build
 
-# --- Source BatsHelpers ---
-if [[ -f "bats/helpers.bash" ]]; then
-  echo "--- Sourcing helpers ---"
-  source "bats/helpers.bash"
-else
-  echo "Error: helpers.bash not found at bats/helpers.bash"
-  exit 1
-fi
-
 # --- Run Bats Tests ---
 echo "--- Running BATS tests ---"
 export DOCKER_ENGINE=podman

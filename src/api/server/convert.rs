@@ -132,7 +132,7 @@ impl From<AccountXPub> for proto::Xpub {
     fn from(xpub: AccountXPub) -> Self {
         Self {
             name: xpub.key_name.to_string(),
-            id: xpub.id().to_string(),
+            id: xpub.fingerprint().to_string(),
             xpub: xpub.original.clone(),
             derivation_path: xpub
                 .derivation_path()
@@ -275,7 +275,7 @@ impl From<SigningSession> for proto::SigningSession {
         proto::SigningSession {
             id: session.id.to_string(),
             batch_id: session.batch_id.to_string(),
-            xpub_id: session.xpub_id.to_string(),
+            xpub_id: session.xpub_fingerprint.to_string(),
             failure_reason: session.failure_reason().map(|r| r.to_string()),
             state: format!("{:?}", session.state()),
         }
@@ -652,31 +652,28 @@ impl From<AddressAugmentation> for proto::WalletAddress {
 
 impl From<ApplicationError> for tonic::Status {
     fn from(err: ApplicationError) -> Self {
-        use crate::{
-            address::error::*, payout::error::*, payout_queue::error::*, profile::error::*,
-            wallet::error::*,
-        };
+        use crate::{address::error::*, payout::error::*, profile::error::*, wallet::error::*};
 
         match err {
             ApplicationError::ProfileError(ProfileError::ProfileKeyNotFound) => {
                 tonic::Status::unauthenticated(err.to_string())
             }
-            ApplicationError::WalletError(WalletError::EsEntityError(
-                es_entity::EsEntityError::NotFound,
-            )) => tonic::Status::not_found(err.to_string()),
+            ApplicationError::WalletError(err) if err.was_not_found() => {
+                tonic::Status::not_found(err.to_string())
+            }
             ApplicationError::AddressError(err) if err.was_not_found() => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
                 tonic::Status::already_exists(err.to_string())
             }
-            ApplicationError::PayoutQueueError(PayoutQueueError::EsEntityError(
-                es_entity::EsEntityError::NotFound,
-            )) => tonic::Status::not_found(err.to_string()),
-            ApplicationError::ProfileError(ProfileError::EsEntityError(
-                es_entity::EsEntityError::NotFound,
-            )) => tonic::Status::not_found(err.to_string()),
-            ApplicationError::PayoutError(PayoutError::PayoutIdNotFound(_)) => {
+            ApplicationError::PayoutQueueError(err) if err.was_not_found() => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::ProfileError(err) if err.was_not_found() => {
+                tonic::Status::not_found(err.to_string())
+            }
+            ApplicationError::PayoutError(err) if err.was_not_found() => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::PayoutError(PayoutError::ExternalIdAlreadyExists) => {
@@ -687,9 +684,6 @@ impl From<ApplicationError> for tonic::Status {
             }
             ApplicationError::CouldNotParseIncomingUuid(_) => {
                 tonic::Status::invalid_argument(err.to_string())
-            }
-            ApplicationError::PayoutError(PayoutError::ExternalIdNotFound) => {
-                tonic::Status::not_found(err.to_string())
             }
             ApplicationError::DestinationBlocked(_) => {
                 tonic::Status::permission_denied(err.to_string())
@@ -703,7 +697,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::SigningSessionNotFoundForBatchId(_) => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::SigningSessionNotFoundForXPubId(_) => {
+            ApplicationError::SigningSessionNotFoundForXPubFingerprint(_) => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::WalletError(WalletError::PsbtDoesNotHaveValidSignatures) => {

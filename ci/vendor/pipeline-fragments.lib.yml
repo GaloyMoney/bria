@@ -48,6 +48,7 @@ source:
 type: registry-image
 source:
   repository: ghcr.io/nix-community/docker-nixpkgs/cachix-flakes
+  tag: latest-x86_64-linux
 #@ end
 
 #@ def check_code():
@@ -445,16 +446,6 @@ type: git
 source:
   uri: #@ data.values.git_charts_uri
   branch: #@ "bot-bump-" + data.values.gh_repository + "-image"
-  private_key: #@ data.values.github_private_key
-#@ end
-
-#@ def docker_host_pool():
-name: docker-host
-type: pool
-source:
-  uri: git@github.com:GaloyMoney/galoy-concourse-locks.git
-  branch: main
-  pool: docker-hosts
   private_key: #@ data.values.github_private_key
 #@ end
 

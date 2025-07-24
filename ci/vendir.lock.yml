@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'feat: add concourse cargo caching'
-      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
+      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
+      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'feat: add concourse cargo caching'
-      sha: 6d3de519642ae3aef696e5c6edd42a49ceb5422c
+      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
+      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
     path: .
   path: vendor
 kind: LockConfig
