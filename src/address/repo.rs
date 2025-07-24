@@ -1,14 +1,11 @@
 use es_entity::*;
-use sqlx::{Database, Encode, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::{entity::*, error::AddressError};
 
 use crate::primitives::{bitcoin::*, *};
 
-// update, create need to handle pg::PgKeychainKind
-// make sure create_in_op handles if_not_persist thing to use in place if it
-// it has atomic plus if not present, so it is not just retry something, but something expected
 #[derive(EsRepo, Clone)]
 #[es_repo(
     entity = "WalletAddress",
@@ -22,7 +19,7 @@ use crate::primitives::{bitcoin::*, *};
         account_id(ty = "AccountId", update(persist = false)),
         keychain_id(ty = "KeychainId", update(persist = false)),
         profile_id(ty = "Option<ProfileId>", update(persist = false)),
-        address(ty = "Address", update(persist = false)),
+        address(ty = "String", create(accessor = "address.to_string()"), update(persist = false)),
         kind(
             ty = "pg::PgKeychainKind",
             create(accessor = "kind.into()"),
@@ -34,22 +31,6 @@ use crate::primitives::{bitcoin::*, *};
 )]
 pub struct Addresses {
     pool: Pool<Postgres>,
-}
-
-impl Encode<'_, Postgres> for Address {
-    fn encode_by_ref(
-        &self,
-        buf: &mut <Postgres as Database>::ArgumentBuffer<'_>,
-    ) -> Result<sqlx::encode::IsNull, Box<(dyn std::error::Error + Send + Sync)>> {
-        let string = self.to_string();
-        <String as sqlx::Encode<'_, Postgres>>::encode_by_ref(&string, buf)
-    }
-}
-
-impl sqlx::Type<Postgres> for Address {
-    fn type_info() -> <Postgres as Database>::TypeInfo {
-        sqlx::postgres::PgTypeInfo::with_name("VARCHAR")
-    }
 }
 
 impl Addresses {

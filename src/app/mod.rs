@@ -1,7 +1,6 @@
 mod config;
 pub mod error;
 
-use es_entity::EsEntity;
 use sqlxmq::JobRunnerHandle;
 use tracing::instrument;
 
@@ -530,9 +529,7 @@ impl App {
         if let Some(metadata) = new_metadata {
             address.update_metadata(metadata);
         }
-        if address.events().any_new() {
-            self.addresses.update(&mut address).await?;
-        }
+        self.addresses.update(&mut address).await?;
         Ok(())
     }
 

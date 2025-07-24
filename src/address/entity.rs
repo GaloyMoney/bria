@@ -39,19 +39,6 @@ pub struct WalletAddress {
     pub(super) events: EntityEvents<AddressEvent>,
 }
 
-impl std::fmt::Debug for WalletAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        f.debug_struct("WalletAddress")
-            .field("account_id", &self.account_id)
-            .field("address", &self.address)
-            .field("wallet_id", &self.wallet_id)
-            .field("external_id", &self.external_id)
-            .field("kind", &self.kind)
-            .field("id", &self.id)
-            .finish()
-    }
-}
-
 impl WalletAddress {
     pub fn metadata(&self) -> Option<&serde_json::Value> {
         let mut ret = None;
