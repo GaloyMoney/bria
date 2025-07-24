@@ -109,11 +109,9 @@ impl Addresses {
             if !has_next_page {
                 break;
             }
-            let end_cursor = wallet_addresses
+            query.after = wallet_addresses
                 .last()
                 .map(wallet_address_cursor::WalletAddressesByCreatedAtCursor::from);
-
-            query.after = end_cursor;
         }
         Ok(wallet_addresses)
     }

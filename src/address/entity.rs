@@ -70,6 +70,7 @@ impl WalletAddress {
 }
 
 #[derive(Builder, Clone, Debug)]
+#[builder(name = "NewAddressBuilder")]
 pub struct NewWalletAddress {
     pub(super) id: uuid::Uuid,
     #[builder(setter(custom))]
@@ -88,8 +89,8 @@ pub struct NewWalletAddress {
 }
 
 impl NewWalletAddress {
-    pub fn builder() -> NewWalletAddressBuilder {
-        let mut builder = NewWalletAddressBuilder::default();
+    pub fn builder() -> NewAddressBuilder {
+        let mut builder = NewAddressBuilder::default();
         builder.id(uuid::Uuid::new_v4());
         builder
     }
@@ -119,7 +120,7 @@ impl IntoEvents<AddressEvent> for NewWalletAddress {
     }
 }
 
-impl NewWalletAddressBuilder {
+impl NewAddressBuilder {
     pub fn address(&mut self, address: Address) -> &mut Self {
         if self.external_id.is_none() {
             self.external_id = Some(address.to_string());
