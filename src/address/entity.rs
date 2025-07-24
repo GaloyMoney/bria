@@ -34,7 +34,7 @@ pub struct WalletAddress {
     pub address: Address,
     pub wallet_id: WalletId,
     pub external_id: String,
-    kind: pg::PgKeychainKind,
+    pub kind: KeychainKind,
     pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<AddressEvent>,
 }
@@ -78,7 +78,7 @@ impl WalletAddress {
     }
 
     pub fn is_external(&self) -> bool {
-        self.kind == pg::PgKeychainKind::External
+        matches!(self.kind, KeychainKind::External)
     }
 }
 
@@ -96,8 +96,7 @@ pub struct NewWalletAddress {
     pub(super) keychain_id: KeychainId,
     #[builder(setter(into))]
     pub(super) external_id: String,
-    #[builder(setter(custom))]
-    pub(super) kind: pg::PgKeychainKind,
+    pub(super) kind: KeychainKind,
     metadata: Option<serde_json::Value>,
 }
 
@@ -120,7 +119,7 @@ impl IntoEvents<AddressEvent> for NewWalletAddress {
                 profile_id: self.profile_id,
                 address: self.address,
                 address_idx: self.address_idx,
-                kind: self.kind.into(),
+                kind: self.kind,
             },
             AddressEvent::ExternalIdUpdated {
                 external_id: self.external_id,
@@ -139,10 +138,6 @@ impl NewWalletAddressBuilder {
             self.external_id = Some(address.to_string());
         }
         self.address = Some(address);
-        self
-    }
-    pub fn kind(&mut self, kind: KeychainKind) -> &mut Self {
-        self.kind = Some(pg::PgKeychainKind::from(kind));
         self
     }
 }
@@ -165,7 +160,7 @@ impl TryFromEvents<AddressEvent> for WalletAddress {
                         .account_id(*account_id)
                         .address(address.clone())
                         .wallet_id(*wallet_id)
-                        .kind((*kind).into());
+                        .kind(*kind);
                 }
                 AddressEvent::ExternalIdUpdated { external_id } => {
                     builder = builder.external_id(external_id.to_owned());
