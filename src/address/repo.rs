@@ -23,7 +23,11 @@ use crate::primitives::{bitcoin::*, *};
         keychain_id(ty = "KeychainId", update(persist = false)),
         profile_id(ty = "Option<ProfileId>", update(persist = false)),
         address(ty = "Address", update(persist = false)),
-        kind(ty = "pg::PgKeychainKind", update(persist = false)),
+        kind(
+            ty = "pg::PgKeychainKind",
+            create(accessor = "kind.into()"),
+            update(persist = false)
+        ),
         external_id(ty = "String")
     ),
     tbl_prefix = "bria"
@@ -68,7 +72,7 @@ impl Addresses {
             address.keychain_id as KeychainId,
             address.profile_id as Option<ProfileId>,
             address.address.to_string(),
-            address.kind as pg::PgKeychainKind,
+            pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
         .execute(&mut **op.tx())
