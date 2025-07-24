@@ -500,7 +500,7 @@ impl App {
         let keychain_wallet = wallet.current_keychain_wallet(&self.pool);
         let addr = keychain_wallet.new_external_address().await?;
         let address = Address::from(addr.address);
-        let mut builder = NewWalletAddress::builder();
+        let mut builder = NewAddress::builder();
         builder
             .address(address.clone())
             .account_id(profile.account_id)

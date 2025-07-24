@@ -41,7 +41,7 @@ impl Addresses {
     pub async fn persist_if_not_present(
         &self,
         op: &mut DbOp<'_>,
-        address: NewWalletAddress,
+        address: NewAddress,
     ) -> Result<(), AddressError> {
         let res = sqlx::query!(
             r#"INSERT INTO bria_addresses

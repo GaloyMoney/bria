@@ -27,7 +27,7 @@ pub enum AddressEvent {
 }
 
 #[derive(EsEntity, Builder)]
-#[es_entity(event = AddressEvent)]
+#[es_entity(event = AddressEvent, new = NewAddress)]
 #[builder(pattern = "owned", build_fn(error = "EsEntityError"))]
 pub struct WalletAddress {
     pub account_id: AccountId,
@@ -70,8 +70,7 @@ impl WalletAddress {
 }
 
 #[derive(Builder, Clone, Debug)]
-#[builder(name = "NewAddressBuilder")]
-pub struct NewWalletAddress {
+pub struct NewAddress {
     pub(super) id: uuid::Uuid,
     #[builder(setter(custom))]
     pub(super) address: Address,
@@ -88,7 +87,7 @@ pub struct NewWalletAddress {
     metadata: Option<serde_json::Value>,
 }
 
-impl NewWalletAddress {
+impl NewAddress {
     pub fn builder() -> NewAddressBuilder {
         let mut builder = NewAddressBuilder::default();
         builder.id(uuid::Uuid::new_v4());
@@ -96,7 +95,7 @@ impl NewWalletAddress {
     }
 }
 
-impl IntoEvents<AddressEvent> for NewWalletAddress {
+impl IntoEvents<AddressEvent> for NewAddress {
     fn into_events(self) -> EntityEvents<AddressEvent> {
         let mut events = vec![
             AddressEvent::Initialized {
