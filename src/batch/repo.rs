@@ -212,7 +212,7 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(Transaction<'_, Postgres>, BatchInfo, LedgerTxId)>, BatchError> {
+    ) -> Result<Option<(es_entity::DbOp<'_>, BatchInfo, LedgerTxId)>, BatchError> {
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (
@@ -242,7 +242,7 @@ impl Batches {
         let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
         if row.ledger_id.is_some() {
             return Ok(Some((
-                tx,
+                es_entity::DbOp::new(tx, chrono::Utc::now()),
                 BatchInfo {
                     id: batch_id,
                     payout_queue_id,
@@ -265,7 +265,7 @@ impl Batches {
         .await?;
 
         Ok(Some((
-            tx,
+            es_entity::DbOp::new(tx, chrono::Utc::now()),
             BatchInfo {
                 id: batch_id,
                 payout_queue_id,
