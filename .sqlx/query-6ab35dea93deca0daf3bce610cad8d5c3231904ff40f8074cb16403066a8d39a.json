@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n              SELECT b.id, e.sequence, e.event\n              FROM bria_addresses b\n              JOIN bria_address_events e ON b.id = e.id\n              WHERE account_id = $1 AND external_id = $2\n              ORDER BY b.created_at, b.id, sequence",
+  "query": "SELECT i.id AS \"id: Uuid\", e.sequence, e.event, e.recorded_at FROM bria_addresses i JOIN bria_address_events e ON i.id = e.id WHERE i.id = ANY($1) ORDER BY i.id, e.sequence",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: Uuid",
         "type_info": "Uuid"
       },
       {
@@ -17,19 +17,24 @@
         "ordinal": 2,
         "name": "event",
         "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "recorded_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text"
+        "UuidArray"
       ]
     },
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "7c0ecd129f976df38b788e7e89b54d10632d96210d4dd59e4eeba1fd71117348"
+  "hash": "6ab35dea93deca0daf3bce610cad8d5c3231904ff40f8074cb16403066a8d39a"
 }

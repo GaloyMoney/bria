@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH entities AS (\n            SELECT *\n            FROM bria_addresses\n            WHERE account_id = $1 AND address = $2) SELECT i.id AS \"entity_id: Uuid\", e.sequence, e.event, e.recorded_at FROM entities i JOIN bria_address_events e ON i.id = e.id ORDER BY i.id, e.sequence",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "entity_id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "sequence",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "event",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "recorded_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d354c0be1712533bfc1a1632f790cbbc0b6cb1aa2b95b5cce0e07ab19d1f32ed"
+}

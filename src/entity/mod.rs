@@ -1,8 +1,6 @@
 mod error;
-mod event;
 
 pub use error::*;
-pub use event::*;
 
 #[macro_export]
 macro_rules! entity_id {

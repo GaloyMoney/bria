@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bria_address_events (id, recorded_at, sequence, event_type, event) SELECT $1, $2, ROW_NUMBER() OVER () + $3, unnested.event_type, unnested.event FROM UNNEST($4::text[], $5::jsonb[]) AS unnested(event_type, event)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Int8",
+        "TextArray",
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ea0f38341afed052baa254a870e600e687e5a4a83963fc03f9057ad7922dcd4b"
+}

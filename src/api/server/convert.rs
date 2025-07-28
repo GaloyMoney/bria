@@ -661,10 +661,7 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::WalletError(err) if err.was_not_found() => {
                 tonic::Status::not_found(err.to_string())
             }
-            ApplicationError::AddressError(AddressError::ExternalIdNotFound) => {
-                tonic::Status::not_found(err.to_string())
-            }
-            ApplicationError::AddressError(AddressError::AddressNotFound(_)) => {
+            ApplicationError::AddressError(err) if err.was_not_found() => {
                 tonic::Status::not_found(err.to_string())
             }
             ApplicationError::AddressError(AddressError::ExternalIdAlreadyExists) => {
