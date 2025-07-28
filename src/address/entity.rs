@@ -34,7 +34,7 @@ pub struct WalletAddress {
     pub address: Address,
     pub wallet_id: WalletId,
     pub external_id: String,
-    pub kind: KeychainKind,
+    kind: KeychainKind,
     pub(super) id: uuid::Uuid,
     pub(super) events: EntityEvents<AddressEvent>,
 }
