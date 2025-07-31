@@ -41,7 +41,6 @@
           || pkgs.lib.hasInfix "/proto/" path
           || pkgs.lib.hasInfix "/.sqlx/" path;
       };
-      
       commonArgs = {
         src = rustSource;
         strictDeps = true;
@@ -68,11 +67,21 @@
         PROTOC_INCLUDE = "${pkgs.protobuf}/include";
       };
       
+      cargoVendorDir = craneLib.vendorCargoDeps {
+        inherit (commonArgs) src cargoLock;
+
+        outputHashes = {
+          "git+https://github.com/HyperparamAI/sqlxmq?rev=52c3daf6af55416aefa4b1114e108f968f6c57d4#52c3daf6af55416aefa4b1114e108f968f6c57d4" = "sha256-nYD3c/Pj95bOHHhFS+rdXVpJgFl9BkVmWZ05/Dot6rY=";
+        };
+
+      };
+      
       cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
         pname = "bria-deps";
         version = "0.0.0";
+        cargoVendorDir = cargoVendorDir;     
         
-        configurePhase = ''
+        preConfigure = ''
           export CARGO_NET_GIT_FETCH_WITH_CLI=true
           export PROTOC="${pkgs.protobuf}/bin/protoc"
           export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
@@ -84,9 +93,10 @@
       
       bria = craneLib.buildPackage (commonArgs // {
         inherit cargoArtifacts;
+        cargoVendorDir = cargoVendorDir;     
         doCheck = false;
         
-        configurePhase = ''
+        preConfigure = ''
           export CARGO_NET_GIT_FETCH_WITH_CLI=true
           export PROTOC="${pkgs.protobuf}/bin/protoc"
           export PATH="${pkgs.protobuf}/bin:${pkgs.gitMinimal}/bin:${pkgs.coreutils}/bin:$PATH"
