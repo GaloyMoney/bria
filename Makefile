@@ -49,16 +49,3 @@ e2e-tests-in-container:
 e2e: clean-deps build start-deps
 	bats -t bats
 
-# Nix convenience targets
-nix-build:
-	nix build
-
-nix-shell:
-	nix develop
-
-nix-show:
-	nix flake show
-
-# Run the application
-run:
-	nix run
