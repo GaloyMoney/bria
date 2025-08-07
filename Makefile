@@ -13,6 +13,11 @@ next-watch:
 test-integration: reset-deps
 	cargo nextest run --verbose --locked
 
+check-code:
+	SQLX_OFFLINE=true cargo fmt --check --all
+	SQLX_OFFLINE=true cargo clippy --all-features
+	SQLX_OFFLINE=true cargo audit
+	
 local-daemon:
 	nix run .#local-daemon
 
