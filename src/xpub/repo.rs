@@ -1,5 +1,5 @@
 use es_entity::*;
-use sqlx::{Pool, Postgres};
+use sqlx::{Database, Encode, Pool, Postgres};
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -17,13 +17,29 @@ use crate::primitives::*;
     events_tbl = "bria_xpub_events",
     columns(
         account_id(ty = "AccountId", list_for, update(persist = false)),
-        name(ty = "String", update(persist = false), create(accessor = key_name())),
-        fingerprint(ty = "[u8;4]", create(accessor = value.fingerprint().to_bytes()), update(persist = false))
+        name(ty = "String", update(persist=false), create(accessor=key_name())),
+        fingerprint(ty = "XPubFingerprint", create(accessor=fingerprint()), update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
 pub struct XPubs {
     pool: Pool<Postgres>,
+}
+
+impl Encode<'_, Postgres> for XPubFingerprint {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Postgres as Database>::ArgumentBuffer<'_>,
+    ) -> Result<sqlx::encode::IsNull, Box<dyn std::error::Error + Send + Sync>> {
+        let bytes = self.to_bytes();
+        bytes.encode_by_ref(buf)
+    }
+}
+
+impl sqlx::Type<Postgres> for XPubFingerprint {
+    fn type_info() -> <Postgres as Database>::TypeInfo {
+        sqlx::postgres::PgTypeInfo::with_name("BYTEA")
+    }
 }
 
 impl XPubs {

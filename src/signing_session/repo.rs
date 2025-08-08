@@ -13,7 +13,7 @@ use std::collections::HashMap;
     columns(
         batch_id(ty = "BatchId", update(persist = false)),
         account_id(ty = "AccountId", update(persist = false)),
-        xpub_fingerprint(ty = "[u8;4]", create(accessor = xpub_fingerprint.to_bytes()), update(persist = false))
+        xpub_fingerprint(ty = "XPubFingerprint", update(persist = false))
     ),
     tbl_prefix = "bria"
 )]
