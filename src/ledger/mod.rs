@@ -241,12 +241,12 @@ impl Ledger {
     #[instrument(name = "ledger.payout_submitted", skip(self, tx))]
     pub async fn payout_submitted(
         &self,
-        tx: Transaction<'_, Postgres>,
+        op: es_entity::DbOp<'_>,
         tx_id: impl Into<LedgerTransactionId> + std::fmt::Debug,
         params: PayoutSubmittedParams,
     ) -> Result<(), LedgerError> {
         self.inner
-            .post_transaction_in_tx(tx, tx_id.into(), PAYOUT_SUBMITTED_CODE, Some(params))
+            .post_transaction_in_tx(op.into(), tx_id.into(), PAYOUT_SUBMITTED_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -254,7 +254,7 @@ impl Ledger {
     #[instrument(name = "ledger.payout_cancelled", skip(self, tx))]
     pub async fn payout_cancelled(
         &self,
-        tx: Transaction<'_, Postgres>,
+        op: es_entity::DbOp<'_>,
         tx_id: LedgerTransactionId,
         payout_submitted_tx_id: impl Into<LedgerTransactionId> + std::fmt::Debug,
     ) -> Result<(), LedgerError> {
@@ -304,7 +304,7 @@ impl Ledger {
             },
         };
         self.inner
-            .post_transaction_in_tx(tx, tx_id, PAYOUT_CANCELLED_CODE, Some(params))
+            .post_transaction_in_tx(op.into(), tx_id, PAYOUT_CANCELLED_CODE, Some(params))
             .await?;
         Ok(())
     }
@@ -554,10 +554,10 @@ impl Ledger {
         })
     }
 
-    #[instrument(name = "ledger.create_journal_for_account", skip(self, tx))]
+    #[instrument(name = "ledger.create_journal_for_account", skip(self, op))]
     pub async fn create_journal_for_account(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        op: &mut es_entity::DbOp<'_>,
         id: AccountId,
         account_name: String,
     ) -> Result<JournalId, LedgerError> {
@@ -567,14 +567,14 @@ impl Ledger {
             .name(account_name)
             .build()
             .expect("Couldn't build NewJournal");
-        let id = self.inner.journals().create_in_tx(tx, new_journal).await?;
+        let id = self.inner.journals().create_in_tx(op.tx_mut(), new_journal).await?;
         Ok(id)
     }
 
-    #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, tx))]
+    #[instrument(name = "ledger.create_ledger_accounts_for_wallet", skip(self, op))]
     pub async fn create_ledger_accounts_for_wallet(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        op: &mut es_entity::DbOp<'_>,
         ids: impl Into<WalletLedgerAccountIds> + std::fmt::Debug,
     ) -> Result<WalletLedgerAccountIds, LedgerError> {
         let wallet_ledger_account_ids = ids.into();
@@ -582,7 +582,7 @@ impl Ledger {
         let account_ids = WalletLedgerAccountIds {
             onchain_incoming_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.onchain_incoming_id,
                     format!("WALLET_{prefix}_UTXO_INCOMING"),
@@ -592,7 +592,7 @@ impl Ledger {
                 .await?,
             onchain_at_rest_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.onchain_at_rest_id,
                     format!("WALLET_{prefix}_UTXO_AT_REST"),
@@ -602,7 +602,7 @@ impl Ledger {
                 .await?,
             onchain_outgoing_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.onchain_outgoing_id,
                     format!("WALLET_{prefix}_UTXO_OUTGOING"),
@@ -612,7 +612,7 @@ impl Ledger {
                 .await?,
             effective_incoming_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.effective_incoming_id,
                     format!("WALLET_{prefix}_EFFECTIVE_INCOMING"),
@@ -622,7 +622,7 @@ impl Ledger {
                 .await?,
             effective_at_rest_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.effective_at_rest_id,
                     format!("WALLET_{prefix}_EFFECTIVE_AT_REST"),
@@ -632,7 +632,7 @@ impl Ledger {
                 .await?,
             effective_outgoing_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.effective_outgoing_id,
                     format!("WALLET_{prefix}_EFFECTIVE_OUTGOING"),
@@ -642,7 +642,7 @@ impl Ledger {
                 .await?,
             fee_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.fee_id,
                     format!("WALLET_{prefix}_ONCHAIN_FEE"),
@@ -652,7 +652,7 @@ impl Ledger {
                 .await?,
             dust_id: self
                 .create_account_for_wallet(
-                    tx,
+                    op,
                     &prefix,
                     wallet_ledger_account_ids.dust_id,
                     format!("WALLET_{prefix}_DUST"),
@@ -667,7 +667,7 @@ impl Ledger {
     #[instrument(name = "ledger.create_account_for_wallet", skip(self, tx))]
     async fn create_account_for_wallet(
         &self,
-        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        op: &mut es_entity::DbOp<'_>,
         wallet_id_prefix: &str,
         account_id: LedgerAccountId,
         wallet_code: String,
@@ -682,7 +682,7 @@ impl Ledger {
             .normal_balance_type(balance_type)
             .build()
             .expect("Couldn't build NewLedgerAccount");
-        let account_id = self.inner.accounts().create_in_tx(tx, account).await?;
+        let account_id = self.inner.accounts().create_in_tx(op.tx_mut(), account).await?;
         Ok(account_id)
     }
 

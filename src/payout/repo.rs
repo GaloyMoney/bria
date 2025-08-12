@@ -49,8 +49,7 @@ impl Payouts {
         external_id: String,
     ) -> Result<Payout, PayoutError> {
         let payout = es_entity::es_query!(
-            "bria",
-            &self.pool,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_payouts 
@@ -58,7 +57,7 @@ impl Payouts {
             account_id as AccountId,
             external_id
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(payout)
     }
@@ -83,8 +82,7 @@ impl Payouts {
                 .unwrap_or((None, None));
 
             let (entities, has_next_page) = es_entity::es_query!(
-                "bria",
-                &mut **tx,
+                tbl_prefix = "bria",
                 r#"
                 SELECT *
                 FROM bria_payouts
@@ -97,7 +95,7 @@ impl Payouts {
                 id as Option<PayoutId>,
                 created_at
             )
-            .fetch_n(query.first)
+            .fetch_n(self.pool(), query.first)
             .await?;
 
             unbatched_payouts.extend(entities);
@@ -138,8 +136,7 @@ impl Payouts {
     ) -> Result<Vec<Payout>, PayoutError> {
         let offset = (page - 1) * page_size;
         let payouts = es_entity::es_query!(
-            "bria",
-            &self.pool,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_payouts
@@ -150,7 +147,7 @@ impl Payouts {
             wallet_id as WalletId,
             offset as i64,
         )
-        .fetch_n(page_size as usize)
+        .fetch_n(self.pool(), page_size as usize)
         .await?;
         Ok(payouts.0)
     }
@@ -174,8 +171,7 @@ impl Payouts {
                 .unwrap_or((None, None));
 
             let (entities, has_next_page) = es_entity::es_query!(
-                "bria",
-                &self.pool,
+                tbl_prefix = "bria",
                 r#"
                 SELECT *
                 FROM bria_payouts
@@ -187,7 +183,7 @@ impl Payouts {
                 id as Option<PayoutId>,
                 created_at
             )
-            .fetch_n(query.first)
+            .fetch_n(self.pool(), query.first)
             .await?;
 
             batched_payouts.extend(entities);
@@ -282,13 +278,12 @@ impl Payouts {
     #[instrument(name = "payouts.find_by_id_for_cancellation", skip(self))]
     pub async fn find_by_id_for_cancellation(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         account_id: AccountId,
         payout_id: PayoutId,
     ) -> Result<Payout, PayoutError> {
         let payout = es_entity::es_query!(
-            "bria",
-            &mut **tx,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_payouts
@@ -297,7 +292,7 @@ impl Payouts {
             account_id as AccountId,
             payout_id as PayoutId,
         )
-        .fetch_one()
+        .fetch_one(op)
         .await?;
         Ok(payout)
     }

@@ -185,7 +185,7 @@ impl App {
         let mut tx = self.pool.begin().await?;
         let key = self
             .profiles
-            .create_key_for_profile_in_tx(&mut tx, found_profile, false)
+            .create_key_for_profile_in_op(&mut tx, found_profile, false)
             .await?;
         tx.commit().await?;
         Ok(key)
@@ -218,7 +218,7 @@ impl App {
         xpub_ref: String,
         config: SignerConfig,
     ) -> Result<(), ApplicationError> {
-        let mut db = self.xpubs.begin_op().await?;
+        let mut op = self.xpubs.begin_op().await?;
         let mut xpub = self
             .xpubs
             .find_from_ref(
@@ -230,7 +230,7 @@ impl App {
             .await?;
         let xpub_fingerprint = xpub.fingerprint();
         xpub.set_signer_config(config, &self.config.signer_encryption.key)?;
-        self.xpubs.update_signer_config(&mut db, xpub).await?;
+        self.xpubs.update_signer_config(&mut op, xpub).await?;
         let batch_ids = self
             .signing_sessions
             .list_batch_ids_for(db.tx(), profile.account_id, xpub_fingerprint)
@@ -260,14 +260,14 @@ impl App {
             cipher.decrypt(nonce, deprecated_encrypted_key_bytes.as_slice())?;
         let deprecated_key = chacha20poly1305::Key::clone_from_slice(deprecated_key_bytes.as_ref());
         let xpubs = self.xpubs.list_all_xpubs().await?;
-        let mut db = self.xpubs.begin_op().await?;
+        let mut op = self.xpubs.begin_op().await?;
         for mut xpub in xpubs {
             if let Some(signing_cfg) = xpub.signing_cfg(deprecated_key) {
                 xpub.set_signer_config(signing_cfg, &self.config.signer_encryption.key)?;
-                self.xpubs.update_signer_config(&mut db, xpub).await?;
+                self.xpubs.update_signer_config(&mut op, xpub).await?;
             }
         }
-        db.commit().await?;
+        op.commit().await?;
         Ok(())
     }
 
@@ -306,13 +306,13 @@ impl App {
             ApplicationError::SigningSessionNotFoundForXPubFingerprint(xpub_fingerprint)
         })?;
 
-        let mut db = self.signing_sessions.begin_op().await?;
+        let mut op = self.signing_sessions.begin_op().await?;
         session.submit_externally_signed_psbt(signed_psbt);
         self.signing_sessions
-            .update_sessions(&mut db, &sessions)
+            .update_sessions(&mut op, &sessions)
             .await?;
         job::spawn_all_batch_signings(
-            db.into_tx(),
+            op.into(),
             std::iter::once((profile.account_id, batch_id)),
         )
         .await?;
@@ -417,7 +417,7 @@ impl App {
         let wallet_id = WalletId::new();
         let wallet_ledger_accounts = self
             .ledger
-            .create_ledger_accounts_for_wallet(op.tx(), wallet_id)
+            .create_ledger_accounts_for_wallet(&mut op, wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
@@ -447,7 +447,7 @@ impl App {
                 .expect("Could not build descriptor"),
         ];
         self.descriptors
-            .persist_all_in_tx(op.tx(), descriptors)
+            .persist_all_in_tx(&mut op, descriptors)
             .await?;
         op.commit().await?;
         Ok((wallet.id, xpub_fingerprints))
@@ -860,11 +860,11 @@ impl App {
             builder.external_id(external_id);
         }
         let new_payout = builder.build().expect("Couldn't build NewPayout");
-        let mut db = self.payouts.begin_op().await?;
-        let id = self.payouts.create_in_op(&mut db, new_payout).await?.id;
+        let mut op = self.payouts.begin_op().await?;
+        let id = self.payouts.create_in_op(&mut op, new_payout).await?.id;
         self.ledger
             .payout_submitted(
-                db.into_tx(),
+                op,
                 id,
                 PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
@@ -895,15 +895,15 @@ impl App {
         profile: &Profile,
         id: PayoutId,
     ) -> Result<(), ApplicationError> {
-        let mut db = self.payouts.begin_op().await?;
+        let mut op = self.payouts.begin_op().await?;
         let mut payout = self
             .payouts
-            .find_by_id_for_cancellation(db.tx(), profile.account_id, id)
+            .find_by_id_for_cancellation(&mut op, profile.account_id, id)
             .await?;
         payout.cancel_payout(profile.id)?;
-        self.payouts.update_in_op(&mut db, &mut payout).await?;
+        self.payouts.update_in_op(&mut op, &mut payout).await?;
         self.ledger
-            .payout_cancelled(db.into_tx(), LedgerTransactionId::new(), id)
+            .payout_cancelled(op, LedgerTransactionId::new(), id)
             .await?;
         Ok(())
     }

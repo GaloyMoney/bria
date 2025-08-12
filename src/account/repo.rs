@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::{entity::*, error::AccountError};
@@ -13,9 +13,9 @@ impl Accounts {
         Self { pool: pool.clone() }
     }
 
-    pub async fn create_in_tx(
+    pub async fn create_in_op(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         account_name: String,
     ) -> Result<Account, AdminApiError> {
         let id = Uuid::new_v4();
@@ -26,7 +26,7 @@ impl Accounts {
             id,
             account_name,
         )
-        .fetch_one(&mut **tx)
+        .fetch_one(op.as_executor())
         .await?;
         Ok(Account {
             name: account_name,
