@@ -567,7 +567,11 @@ impl Ledger {
             .name(account_name)
             .build()
             .expect("Couldn't build NewJournal");
-        let id = self.inner.journals().create_in_tx(op.tx_mut(), new_journal).await?;
+        let id = self
+            .inner
+            .journals()
+            .create_in_tx(op.tx_mut(), new_journal)
+            .await?;
         Ok(id)
     }
 
@@ -682,7 +686,11 @@ impl Ledger {
             .normal_balance_type(balance_type)
             .build()
             .expect("Couldn't build NewLedgerAccount");
-        let account_id = self.inner.accounts().create_in_tx(op.tx_mut(), account).await?;
+        let account_id = self
+            .inner
+            .accounts()
+            .create_in_tx(op.tx_mut(), account)
+            .await?;
         Ok(account_id)
     }
 

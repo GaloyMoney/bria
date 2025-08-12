@@ -311,11 +311,8 @@ impl App {
         self.signing_sessions
             .update_sessions(&mut op, &sessions)
             .await?;
-        job::spawn_all_batch_signings(
-            op.into(),
-            std::iter::once((profile.account_id, batch_id)),
-        )
-        .await?;
+        job::spawn_all_batch_signings(op.into(), std::iter::once((profile.account_id, batch_id)))
+            .await?;
         Ok(())
     }
 
