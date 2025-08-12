@@ -60,8 +60,7 @@ impl Wallets {
         name: String,
     ) -> Result<Wallet, WalletError> {
         let wallet = es_entity::es_query!(
-            "bria",
-            &self.pool,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_wallets
@@ -69,7 +68,7 @@ impl Wallets {
             account_id as AccountId,
             name
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(wallet)
     }

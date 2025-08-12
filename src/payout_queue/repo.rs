@@ -39,8 +39,7 @@ impl PayoutQueues {
         name: String,
     ) -> Result<PayoutQueue, PayoutQueueError> {
         let payout_queue = es_entity::es_query!(
-            "bria",
-            &self.pool,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_payout_queues
@@ -48,7 +47,7 @@ impl PayoutQueues {
             account_id as AccountId,
             name
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(payout_queue)
     }

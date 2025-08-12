@@ -32,26 +32,26 @@ impl AdminApp {
             return Err(AdminApiError::BadNetworkForDev);
         }
         let admin_key = self.bootstrap().await?;
-        let mut db = self.profiles.begin_op().await?;
+        let mut op = self.profiles.begin_op().await?;
 
         let account = self
             .accounts
-            .create_in_tx(db.tx(), dev_constants::DEV_ACCOUNT_NAME.to_owned())
+            .create_in_op(&mut op, dev_constants::DEV_ACCOUNT_NAME.to_owned())
             .await?;
         self.ledger
-            .create_journal_for_account(db.tx(), account.id, account.name.clone())
+            .create_journal_for_account(&mut op, account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
             .name(account.name)
             .build()
             .expect("Couldn't build NewProfile");
-        let profile = self.profiles.create_in_op(&mut db, new_profile).await?;
+        let profile = self.profiles.create_in_op(&mut op, new_profile).await?;
         let profile_key = self
             .profiles
-            .create_key_for_profile_in_tx(db.tx(), profile, true)
+            .create_key_for_profile_in_op(&mut op, profile, true)
             .await?;
-        db.commit().await?;
+        op.commit().await?;
         Ok((admin_key, profile_key))
     }
 
@@ -71,25 +71,25 @@ impl AdminApp {
         &self,
         account_name: String,
     ) -> Result<ProfileApiKey, AdminApiError> {
-        let mut db = self.profiles.begin_op().await?;
+        let mut op = self.profiles.begin_op().await?;
         let account = self
             .accounts
-            .create_in_tx(db.tx(), account_name.clone())
+            .create_in_op(&mut op, account_name.clone())
             .await?;
         self.ledger
-            .create_journal_for_account(db.tx(), account.id, account.name.clone())
+            .create_journal_for_account(&mut op, account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
             .name(account.name)
             .build()
             .expect("Couldn't build NewProfile");
-        let profile = self.profiles.create_in_op(&mut db, new_profile).await?;
+        let profile = self.profiles.create_in_op(&mut op, new_profile).await?;
         let key = self
             .profiles
-            .create_key_for_profile_in_tx(db.tx(), profile, false)
+            .create_key_for_profile_in_op(&mut op, profile, false)
             .await?;
-        db.commit().await?;
+        op.commit().await?;
         Ok(key)
     }
 

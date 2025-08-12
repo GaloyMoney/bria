@@ -27,7 +27,6 @@ use crate::primitives::{bitcoin::*, *};
         ),
         external_id(ty = "String")
     ),
-    tbl_prefix = "bria"
 )]
 pub struct Addresses {
     pool: Pool<Postgres>,
@@ -56,7 +55,7 @@ impl Addresses {
             pg::PgKeychainKind::from(address.kind) as pg::PgKeychainKind,
             address.external_id,
         )
-        .execute(&mut **op.tx())
+        .execute(op.as_executor())
         .await?;
 
         if res.rows_affected() == 0 {
@@ -86,10 +85,7 @@ impl Addresses {
             };
 
             let (entities, has_next_page) = es_entity::es_query!(
-                entity_ty = WalletAddress,
-                id_ty = Uuid,
-                "bria",
-                &self.pool,
+                entity = WalletAddress,
                 r#"
                 SELECT *
                 FROM bria_addresses
@@ -101,7 +97,7 @@ impl Addresses {
                 id,
                 created_at
             )
-            .fetch_n(query.first)
+            .fetch_n(self.pool(), query.first)
             .await?;
 
             wallet_addresses.extend(entities);
@@ -122,10 +118,7 @@ impl Addresses {
         address: String,
     ) -> Result<WalletAddress, AddressError> {
         let wallet_address = es_entity::es_query!(
-            entity_ty = WalletAddress,
-            id_ty = Uuid,
-            "bria",
-            &self.pool,
+            entity = WalletAddress,
             r#"
             SELECT *
             FROM bria_addresses
@@ -133,7 +126,7 @@ impl Addresses {
             account_id as AccountId,
             address.to_string()
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(wallet_address)
     }
@@ -144,10 +137,7 @@ impl Addresses {
         external_id: String,
     ) -> Result<WalletAddress, AddressError> {
         let wallet_address = es_entity::es_query!(
-            entity_ty = WalletAddress,
-            id_ty = Uuid,
-            "bria",
-            &self.pool,
+            entity = WalletAddress,
             r#"
             SELECT *
             FROM bria_addresses
@@ -155,7 +145,7 @@ impl Addresses {
             account_id as AccountId,
             external_id
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(wallet_address)
     }

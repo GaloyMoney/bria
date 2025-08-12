@@ -61,8 +61,7 @@ impl Profiles {
         name: String,
     ) -> Result<Profile, ProfileError> {
         let profile = es_entity::es_query!(
-            "bria",
-            &self.pool,
+            tbl_prefix = "bria",
             r#"
             SELECT *
             FROM bria_profiles
@@ -70,14 +69,14 @@ impl Profiles {
             account_id as AccountId,
             name
         )
-        .fetch_one()
+        .fetch_one(self.pool())
         .await?;
         Ok(profile)
     }
 
-    pub async fn create_key_for_profile_in_tx(
+    pub async fn create_key_for_profile_in_op(
         &self,
-        tx: &mut sqlx::Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         profile: Profile,
         dev: bool,
     ) -> Result<ProfileApiKey, ProfileError> {
@@ -93,7 +92,7 @@ impl Profiles {
             key,
             Uuid::from(profile.id),
         )
-            .fetch_one(&mut **tx)
+            .fetch_one(op.as_executor())
             .await?;
         Ok(ProfileApiKey {
             key,
