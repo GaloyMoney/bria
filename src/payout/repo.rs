@@ -1,5 +1,5 @@
 use es_entity::*;
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 use tracing::instrument;
 
 use std::collections::HashMap;
@@ -62,10 +62,10 @@ impl Payouts {
         Ok(payout)
     }
 
-    #[instrument(name = "payouts.list_unbatched", skip(self))]
+    #[instrument(name = "payouts.list_unbatched", skip(self, op))]
     pub async fn list_unbatched(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         account_id: AccountId,
         payout_queue_id: PayoutQueueId,
     ) -> Result<UnbatchedPayouts, PayoutError> {
@@ -95,7 +95,7 @@ impl Payouts {
                 id as Option<PayoutId>,
                 created_at
             )
-            .fetch_n(self.pool(), query.first)
+            .fetch_n(op, query.first)
             .await?;
 
             unbatched_payouts.extend(entities);
@@ -213,7 +213,7 @@ impl Payouts {
 
     pub async fn update_unbatched(
         &self,
-        op: &mut DbOp<'_>,
+        op: &mut impl es_entity::AtomicOperation,
         payouts: UnbatchedPayouts,
     ) -> Result<(), PayoutError> {
         if payouts.batch_id.is_none() || payouts.batched.is_empty() {
@@ -236,7 +236,7 @@ impl Payouts {
             payouts.batch_id.unwrap() as BatchId,
             &ids[..],
         )
-        .execute(&mut **op.tx())
+        .execute(op.as_executor())
         .await?;
         Ok(())
     }
@@ -275,7 +275,7 @@ impl Payouts {
         ))
     }
 
-    #[instrument(name = "payouts.find_by_id_for_cancellation", skip(self))]
+    #[instrument(name = "payouts.find_by_id_for_cancellation", skip(self, op))]
     pub async fn find_by_id_for_cancellation(
         &self,
         op: &mut impl es_entity::AtomicOperation,

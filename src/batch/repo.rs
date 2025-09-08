@@ -24,9 +24,9 @@ impl Batches {
     }
 
     #[instrument(name = "batches.create_in_tx", skip_all)]
-    pub async fn create_in_tx<'a>(
+    pub async fn create_in_op<'a>(
         &self,
-        tx: &mut Transaction<'a, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         batch: NewBatch,
     ) -> Result<BatchId, BatchError> {
         let serializied_psbt = batch.unsigned_psbt.serialize();
@@ -39,7 +39,7 @@ impl Batches {
             i64::from(batch.total_fee_sats),
             batch.tx_id.as_ref() as &[u8],
             serializied_psbt.as_slice() as &[u8],
-        ).execute(&mut **tx).await?;
+        ).execute(op.as_executor()).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"INSERT INTO bria_batch_wallet_summaries (
@@ -74,7 +74,7 @@ impl Batches {
             },
         );
         let query = query_builder.build();
-        query.execute(&mut **tx).await?;
+        query.execute(op.as_executor()).await?;
 
         Ok(batch.id)
     }
@@ -212,7 +212,7 @@ impl Batches {
         &self,
         bitcoin_tx_id: bitcoin::Txid,
         wallet_id: WalletId,
-    ) -> Result<Option<(es_entity::DbOp<'_>, BatchInfo, LedgerTxId)>, BatchError> {
+    ) -> Result<Option<(Transaction<'_, Postgres>, BatchInfo, LedgerTxId)>, BatchError> {
         let mut tx = self.pool.begin().await?;
         let row = sqlx::query!(
             r#"WITH b AS (
@@ -242,7 +242,7 @@ impl Batches {
         let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
         if row.ledger_id.is_some() {
             return Ok(Some((
-                es_entity::DbOp::new(tx, chrono::Utc::now()),
+                tx,
                 BatchInfo {
                     id: batch_id,
                     payout_queue_id,
@@ -265,7 +265,7 @@ impl Batches {
         .await?;
 
         Ok(Some((
-            es_entity::DbOp::new(tx, chrono::Utc::now()),
+            tx,
             BatchInfo {
                 id: batch_id,
                 payout_queue_id,

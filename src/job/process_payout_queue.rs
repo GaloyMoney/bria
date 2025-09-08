@@ -54,9 +54,9 @@ pub(super) async fn execute<'a>(
     let payout_queue = payout_queues
         .find_by_account_id_and_id(data.account_id, data.payout_queue_id)
         .await?;
-    let mut db = payouts.begin_op().await?;
+    let mut tx = pool.begin().await?;
     let mut unbatched_payouts = payouts
-        .list_unbatched(db.tx(), data.account_id, data.payout_queue_id)
+        .list_unbatched(&mut tx, data.account_id, data.payout_queue_id)
         .await?;
     let fee_rate = fees_client
         .fee_rate(payout_queue.config.tx_priority)
@@ -71,7 +71,7 @@ pub(super) async fn execute<'a>(
         ..
     } = construct_psbt(
         &pool,
-        db.tx(),
+        &mut tx,
         &unbatched_payouts,
         &utxos,
         &wallets,
@@ -134,10 +134,10 @@ pub(super) async fn execute<'a>(
             }));
 
         let batch_id = batch.id;
-        batches.create_in_tx(db.tx(), batch).await?;
+        batches.create_in_op(&mut tx, batch).await?;
         utxos
             .reserve_utxos_in_batch(
-                db.tx(),
+                &mut tx,
                 data.account_id,
                 batch_id,
                 data.payout_queue_id,
@@ -158,9 +158,9 @@ pub(super) async fn execute<'a>(
             queue_drain_error(unbatched_payouts.n_not_batched());
         }
 
-        payouts.update_unbatched(&mut db, unbatched_payouts).await?;
+        payouts.update_unbatched(&mut tx, unbatched_payouts).await?;
 
-        Ok((data, Some((db.into_tx(), wallet_ids))))
+        Ok((data, Some((tx, wallet_ids))))
     } else {
         if unbatched_payouts.n_not_batched() > 0 {
             queue_drain_error(unbatched_payouts.n_not_batched());

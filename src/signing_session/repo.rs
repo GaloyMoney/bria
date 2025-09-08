@@ -1,6 +1,5 @@
 use es_entity::*;
-use sqlx::{Pool, Postgres, Transaction};
-use uuid::Uuid;
+use sqlx::{Pool, Postgres};
 
 use super::{entity::*, error::SigningSessionError};
 use crate::primitives::*;
@@ -114,7 +113,7 @@ impl SigningSessions {
 
     pub async fn list_batch_ids_for(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         account_id: AccountId,
         xpub_fingerprint: XPubFingerprint,
     ) -> Result<Vec<BatchId>, SigningSessionError> {
@@ -126,7 +125,7 @@ impl SigningSessions {
             Uuid::from(account_id),
             xpub_fingerprint.as_bytes()
         )
-        .fetch_all(&mut **tx)
+        .fetch_all(op.as_executor())
         .await?;
 
         Ok(rows

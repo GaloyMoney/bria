@@ -238,7 +238,7 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.payout_submitted", skip(self, tx))]
+    #[instrument(name = "ledger.payout_submitted", skip(self, op))]
     pub async fn payout_submitted(
         &self,
         op: es_entity::DbOp<'_>,
@@ -251,7 +251,7 @@ impl Ledger {
         Ok(())
     }
 
-    #[instrument(name = "ledger.payout_cancelled", skip(self, tx))]
+    #[instrument(name = "ledger.payout_cancelled", skip(self, op))]
     pub async fn payout_cancelled(
         &self,
         op: es_entity::DbOp<'_>,
@@ -586,7 +586,7 @@ impl Ledger {
         let account_ids = WalletLedgerAccountIds {
             onchain_incoming_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.onchain_incoming_id,
                     format!("WALLET_{prefix}_UTXO_INCOMING"),
@@ -596,7 +596,7 @@ impl Ledger {
                 .await?,
             onchain_at_rest_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.onchain_at_rest_id,
                     format!("WALLET_{prefix}_UTXO_AT_REST"),
@@ -606,7 +606,7 @@ impl Ledger {
                 .await?,
             onchain_outgoing_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.onchain_outgoing_id,
                     format!("WALLET_{prefix}_UTXO_OUTGOING"),
@@ -616,7 +616,7 @@ impl Ledger {
                 .await?,
             effective_incoming_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.effective_incoming_id,
                     format!("WALLET_{prefix}_EFFECTIVE_INCOMING"),
@@ -626,7 +626,7 @@ impl Ledger {
                 .await?,
             effective_at_rest_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.effective_at_rest_id,
                     format!("WALLET_{prefix}_EFFECTIVE_AT_REST"),
@@ -636,7 +636,7 @@ impl Ledger {
                 .await?,
             effective_outgoing_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.effective_outgoing_id,
                     format!("WALLET_{prefix}_EFFECTIVE_OUTGOING"),
@@ -646,7 +646,7 @@ impl Ledger {
                 .await?,
             fee_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.fee_id,
                     format!("WALLET_{prefix}_ONCHAIN_FEE"),
@@ -656,7 +656,7 @@ impl Ledger {
                 .await?,
             dust_id: self
                 .create_account_for_wallet(
-                    op,
+                    op.tx_mut(),
                     &prefix,
                     wallet_ledger_account_ids.dust_id,
                     format!("WALLET_{prefix}_DUST"),
@@ -671,7 +671,7 @@ impl Ledger {
     #[instrument(name = "ledger.create_account_for_wallet", skip(self, tx))]
     async fn create_account_for_wallet(
         &self,
-        op: &mut es_entity::DbOp<'_>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         wallet_id_prefix: &str,
         account_id: LedgerAccountId,
         wallet_code: String,
@@ -686,11 +686,7 @@ impl Ledger {
             .normal_balance_type(balance_type)
             .build()
             .expect("Couldn't build NewLedgerAccount");
-        let account_id = self
-            .inner
-            .accounts()
-            .create_in_tx(op.tx_mut(), account)
-            .await?;
+        let account_id = self.inner.accounts().create_in_tx(tx, account).await?;
         Ok(account_id)
     }
 

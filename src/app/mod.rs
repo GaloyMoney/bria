@@ -233,10 +233,10 @@ impl App {
         self.xpubs.update_signer_config(&mut op, xpub).await?;
         let batch_ids = self
             .signing_sessions
-            .list_batch_ids_for(db.tx(), profile.account_id, xpub_fingerprint)
+            .list_batch_ids_for(&mut op, profile.account_id, xpub_fingerprint)
             .await?;
         job::spawn_all_batch_signings(
-            db.into_tx(),
+            op.into(),
             batch_ids.into_iter().map(|b| (profile.account_id, b)),
         )
         .await?;
@@ -444,7 +444,7 @@ impl App {
                 .expect("Could not build descriptor"),
         ];
         self.descriptors
-            .persist_all_in_tx(&mut op, descriptors)
+            .persist_all_in_op(&mut op, descriptors)
             .await?;
         op.commit().await?;
         Ok((wallet.id, xpub_fingerprints))

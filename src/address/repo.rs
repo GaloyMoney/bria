@@ -39,7 +39,7 @@ impl Addresses {
 
     pub async fn persist_if_not_present(
         &self,
-        op: &mut DbOp<'_>,
+        op: &mut impl es_entity::AtomicOperation,
         address: NewAddress,
     ) -> Result<(), AddressError> {
         let res = sqlx::query!(

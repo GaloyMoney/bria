@@ -1,7 +1,6 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 
 use super::{entity::*, error::DescriptorError};
-use crate::primitives::*;
 
 #[derive(Clone)]
 pub struct Descriptors {
@@ -15,18 +14,18 @@ impl Descriptors {
         }
     }
 
-    pub async fn persist_all_in_tx(
+    pub async fn persist_all_in_op(
         &self,
         op: &mut impl es_entity::AtomicOperation,
         descriptors: Vec<NewDescriptor>,
     ) -> Result<(), DescriptorError> {
         for descriptor in descriptors {
-            self.persist_in_tx(op, descriptor).await?;
+            self.persist_in_op(op, descriptor).await?;
         }
         Ok(())
     }
 
-    async fn persist_in_tx(
+    async fn persist_in_op(
         &self,
         op: &mut impl es_entity::AtomicOperation,
         descriptor: NewDescriptor,
