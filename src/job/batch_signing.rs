@@ -130,9 +130,9 @@ pub async fn execute(
     }
 
     if any_updated {
-        let mut op = signing_sessions.begin_op().await?;
-        signing_sessions.update_sessions(&mut op, &sessions).await?;
-        op.commit().await?;
+        let mut tx = pool.begin().await?;
+        signing_sessions.update_sessions(&mut tx, &sessions).await?;
+        tx.commit().await?;
     }
     let mut sessions = sessions.into_values();
 
