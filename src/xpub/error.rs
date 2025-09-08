@@ -4,8 +4,6 @@ use thiserror::Error;
 pub enum XPubError {
     #[error("XPubError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("XPubError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
     #[error("XPubError - CouldNotParseIncomingMetadata: {0}")]
     CouldNotParseIncomingMetadata(#[from] serde_json::Error),
     #[error("XPubError - FromHex: {0}")]

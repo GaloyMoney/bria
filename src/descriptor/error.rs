@@ -6,6 +6,8 @@ pub enum DescriptorError {
     DescriptorAlreadyInUse,
     #[error("DescriptorError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("DescriptorError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
+    #[error("DescriptorError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
 }
+
+es_entity::from_es_entity_error!(DescriptorError);
