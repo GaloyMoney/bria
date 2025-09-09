@@ -8,6 +8,8 @@ pub use sqlx_ledger::{
 
 use std::fmt;
 
+crate::entity_id! { AdminApiKeyId }
+crate::entity_id! { AccountId }
 impl From<LedgerJournalId> for AccountId {
     fn from(id: LedgerJournalId) -> Self {
         Self::from(uuid::Uuid::from(id))
@@ -20,7 +22,10 @@ impl From<AccountId> for LedgerJournalId {
     }
 }
 
-es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, SigningSessionId, PayoutId, AdminApiKeyId, AccountId, ProfileApiKeyId, KeychainId, BatchId, OutboxEventId }
+es_entity::entity_id! { ProfileId, PayoutQueueId, WalletId, SigningSessionId, PayoutId }
+crate::entity_id! { ProfileApiKeyId }
+crate::entity_id! { KeychainId }
+crate::entity_id! { SignerId }
 
 impl From<PayoutId> for LedgerTransactionId {
     fn from(id: PayoutId) -> Self {
@@ -33,6 +38,8 @@ impl From<LedgerTransactionId> for PayoutId {
         Self::from(uuid::Uuid::from(id))
     }
 }
+crate::entity_id! { BatchId }
+crate::entity_id! { OutboxEventId }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Copy, Serialize, Deserialize)]
 #[serde(transparent)]
