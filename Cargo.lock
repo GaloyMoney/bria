@@ -1061,9 +1061,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity"
-version = "0.7.17"
+version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9794360f03a5afa99987bf1097e888e5f308277d44a2a1c10bc6c6fead81daaa"
+checksum = "90c8c6abf5c2413da17b5ee8b354d8608c92a8cb84d93dd32deecc354038baf2"
 dependencies = [
  "chrono",
  "derive_builder",
@@ -1079,9 +1079,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity-macros"
-version = "0.7.17"
+version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "958f85abbcf6dc6af7e8fa8ca520897e1a631e40a432cfc3574ca6d068061887"
+checksum = "5f4631ba22ecf69722511783e1991814c745e1f26df6d31f173bee07edd9025b"
 dependencies = [
  "convert_case",
  "darling",

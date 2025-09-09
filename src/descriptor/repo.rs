@@ -1,6 +1,7 @@
 use sqlx::{Pool, Postgres};
 
 use super::{entity::*, error::DescriptorError};
+use crate::primitives::*;
 
 #[derive(Clone)]
 pub struct Descriptors {

@@ -20,7 +20,6 @@ use crate::primitives::*;
         name(ty = "String", update(persist=false), create(accessor=key_name())),
         fingerprint(ty = "XPubFingerprint", create(accessor=fingerprint()), update(persist = false))
     ),
-    tbl_prefix = "bria"
 )]
 pub struct XPubs {
     pool: Pool<Postgres>,

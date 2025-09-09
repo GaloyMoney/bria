@@ -1,5 +1,6 @@
 use es_entity::*;
 use sqlx::{Pool, Postgres};
+use uuid::Uuid;
 
 use super::{entity::*, error::SigningSessionError};
 use crate::primitives::*;

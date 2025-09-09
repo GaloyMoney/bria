@@ -8,7 +8,7 @@ edition = "2021"
 fail-on-warnings = []
 
 [dependencies]
-es-entity = "0.7.17"
+es-entity = "0.7.18"
 sqlx-ledger = { version = "0.11.5", features = ["otel"] }
 
 anyhow = "1.0.82"
