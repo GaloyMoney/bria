@@ -19,13 +19,14 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
@@ -44,7 +45,7 @@ async fn utxo_confirmation() -> anyhow::Result<()> {
 
     ledger
         .utxo_detected(
-            tx,
+            op.into(),
             pending_id,
             UtxoDetectedParams {
                 journal_id,
@@ -146,13 +147,14 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
@@ -171,7 +173,7 @@ async fn spent_utxo_confirmation() -> anyhow::Result<()> {
 
     ledger
         .utxo_detected(
-            tx,
+            op.into(),
             pending_id,
             UtxoDetectedParams {
                 journal_id,
@@ -265,24 +267,26 @@ async fn queue_payout() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
-    tx.commit().await?;
+    op.commit().await?;
 
     let payout_id = PayoutId::new();
     let satoshis = Satoshis::from(50_000_000);
 
     let tx = pool.begin().await?;
+    let op = es_entity::DbOp::from(tx);
     ledger
         .payout_submitted(
-            tx,
+            op,
             LedgerTransactionId::new(),
             PayoutSubmittedParams {
                 journal_id,
@@ -331,16 +335,17 @@ async fn create_batch() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
-    tx.commit().await?;
+    op.commit().await?;
 
     let batch_id = BatchId::new();
     let fee_sats = Satoshis::from(2_346);
@@ -439,17 +444,18 @@ async fn spend_detected() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let keychain_id = KeychainId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
-    tx.commit().await?;
+    op.commit().await?;
 
     let fee_sats = Satoshis::from(2_346);
     let change_sats = Satoshis::from(40_000_000);
@@ -588,17 +594,18 @@ async fn spend_detected_unconfirmed() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let keychain_id = KeychainId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
-    tx.commit().await?;
+    op.commit().await?;
 
     let fee_sats = Satoshis::from(2_346);
     let change_sats = Satoshis::from(40_000_000);
@@ -715,13 +722,14 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
     let one_btc = Satoshis::from(100_000_000);
@@ -739,7 +747,7 @@ async fn utxo_dropped() -> anyhow::Result<()> {
 
     ledger
         .utxo_detected(
-            tx,
+            op.into(),
             pending_id,
             UtxoDetectedParams {
                 journal_id,
@@ -795,24 +803,26 @@ async fn payout_cancelled() -> anyhow::Result<()> {
 
     let account_id = AccountId::new();
     let name = Alphanumeric.sample_string(&mut rand::thread_rng(), 32);
-    let mut tx = pool.begin().await?;
+    let tx = pool.begin().await?;
+    let mut op = es_entity::DbOp::from(tx);
     let journal_id = ledger
-        .create_journal_for_account(&mut tx, account_id, name.clone())
+        .create_journal_for_account(&mut op, account_id, name.clone())
         .await?;
     let wallet_id = WalletId::new();
     let wallet_ledger_accounts = ledger
-        .create_ledger_accounts_for_wallet(&mut tx, wallet_id)
+        .create_ledger_accounts_for_wallet(&mut op, wallet_id)
         .await?;
 
-    tx.commit().await?;
+    op.commit().await?;
 
     let payout_id = PayoutId::new();
     let satoshis = Satoshis::from(50_000_000);
     let tx = pool.begin().await?;
+    let op = es_entity::DbOp::from(tx);
     let ledger_id = LedgerTransactionId::new();
     ledger
         .payout_submitted(
-            tx,
+            op,
             ledger_id,
             PayoutSubmittedParams {
                 journal_id,
@@ -851,8 +861,9 @@ async fn payout_cancelled() -> anyhow::Result<()> {
     assert_summaries_match(summary, account_summary);
 
     let tx = pool.begin().await?;
+    let op = es_entity::DbOp::from(tx);
     ledger
-        .payout_cancelled(tx, LedgerTransactionId::new(), ledger_id)
+        .payout_cancelled(op, LedgerTransactionId::new(), ledger_id)
         .await?;
     let summary = WalletBalanceSummary::from(
         ledger
