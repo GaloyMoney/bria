@@ -311,7 +311,7 @@ impl UtxoRepo {
         query_builder.push_bind(payout_queue_id);
         query_builder.push(", spending_sats_per_vbyte = ");
         query_builder.push_bind(fee_rate.as_sat_per_vb());
-        query_builder.push("WHERE account_id = ");
+        query_builder.push(" WHERE account_id = ");
         query_builder.push_bind(account_id);
         query_builder.push(" AND (keychain_id, tx_id, vout) IN");
         query_builder.push_tuples(
