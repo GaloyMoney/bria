@@ -126,7 +126,7 @@ impl UtxoRepo {
         );
         query_builder.push_bind(tx_id);
         query_builder
-            .push("WHERE spend_detected_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
+            .push(" WHERE spend_detected_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
         let mut n_inputs = 0;
         query_builder.push_tuples(utxos, |mut builder, out| {
             n_inputs += 1;
