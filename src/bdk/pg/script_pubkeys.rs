@@ -93,27 +93,6 @@ impl ScriptPubkeys {
         Ok(ret)
     }
 
-    #[instrument(name = "bdk.script_pubkeys.find_path", skip_all)]
-    pub async fn find_path(
-        &self,
-        script: &ScriptBuf,
-    ) -> Result<Option<(BdkKeychainKind, u32)>, bdk::Error> {
-        let rows = sqlx::query!(
-            r#"SELECT keychain_kind as "keychain_kind: BdkKeychainKind", path FROM bdk_script_pubkeys
-            WHERE keychain_id = $1 AND script_hex = ENCODE($2, 'hex')"#,
-            Uuid::from(self.keychain_id),
-            script.as_bytes(),
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        if let Some(row) = rows.into_iter().next() {
-            Ok(Some((row.keychain_kind, row.path as u32)))
-        } else {
-            Ok(None)
-        }
-    }
-
     #[instrument(name = "bdk.script_pubkeys.list_scripts", skip_all)]
     pub async fn list_scripts(
         &self,
