@@ -86,20 +86,6 @@ impl Transactions {
         }))
     }
 
-    #[instrument(name = "bdk.transactions.find_by_id", skip_all)]
-    pub async fn find_by_id(&self, tx_id: &Txid) -> Result<Option<TransactionDetails>, bdk::Error> {
-        let tx = sqlx::query!(
-            r#"
-        SELECT details_json FROM bdk_transactions WHERE keychain_id = $1 AND tx_id = $2 AND deleted_at IS NULL"#,
-            self.keychain_id as KeychainId,
-            tx_id.to_string(),
-        )
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| bdk::Error::Generic(e.to_string()))?;
-        Ok(tx.map(|tx| serde_json::from_value(tx.details_json).unwrap()))
-    }
-
     #[instrument(name = "bdk.transactions.load_all", skip(self), fields(n_rows))]
     pub async fn load_all(&self) -> Result<HashMap<Txid, TransactionDetails>, bdk::Error> {
         let txs = sqlx::query!(
