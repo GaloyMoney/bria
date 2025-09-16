@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH tx_to_sync AS (\n              UPDATE bdk_transactions SET confirmation_synced_to_bria = true, modified_at = NOW()\n              WHERE keychain_id = $1 AND tx_id IN (\n                SELECT tx_id\n                FROM bdk_transactions\n                WHERE keychain_id = $1\n                AND deleted_at IS NULL\n                AND sent > 0\n                AND height IS NOT NULL\n                AND height <= $2\n                AND synced_to_bria = true\n                AND confirmation_synced_to_bria = false\n                ORDER BY height ASC\n                LIMIT 1)\n                RETURNING tx_id, details_json\n            ),\n            previous_outputs AS (\n                SELECT (jsonb_array_elements(details_json->'transaction'->'input')->>'previous_output') AS output\n                FROM tx_to_sync\n            )\n            SELECT t.tx_id, details_json, utxo_json, vout,\n                   CASE WHEN u.tx_id = t.tx_id THEN true ELSE false END AS \"is_tx_output!\"\n            FROM bdk_utxos u\n            JOIN tx_to_sync t ON u.tx_id = t.tx_id OR CONCAT(u.tx_id, ':', u.vout::text) = ANY(\n                SELECT output FROM previous_outputs\n            ) OR u.tx_id = t.tx_id\n            WHERE u.keychain_id = $1 AND u.deleted_at IS NULL AND (u.confirmation_synced_to_bria = false OR u.tx_id != t.tx_id)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tx_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "details_json",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 2,
+        "name": "utxo_json",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 3,
+        "name": "vout",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_tx_output!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ae035b5eb3f913a9c784bf45223b2fcf72d4568f016759a98d0fb7d519f0d6ee"
+}

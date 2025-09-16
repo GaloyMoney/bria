@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH ins AS (\n                   INSERT INTO bria_descriptors (id, account_id, wallet_id, descriptor, checksum, kind)\n                   VALUES ($1, $2, $3, $4, $5, $6)\n                   ON CONFLICT (account_id, checksum) DO NOTHING\n                   RETURNING wallet_id\n               )\n               SELECT wallet_id AS \"wallet_id: WalletId\" FROM ins\n               UNION ALL\n               SELECT wallet_id FROM bria_descriptors\n               WHERE account_id = $2 AND checksum = $5\n               LIMIT 1;\n               ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "wallet_id: WalletId",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "keychainkind",
+            "kind": {
+              "Enum": [
+                "external",
+                "internal"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "efdd550e82e6bdfd1e6793a25106d1a29e17cacae16b0d3e3350dbe8338a16c5"
+}

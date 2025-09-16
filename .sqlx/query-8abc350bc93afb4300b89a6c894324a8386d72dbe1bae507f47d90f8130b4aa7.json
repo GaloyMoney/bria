@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM bdk_utxos \n               WHERE keychain_id = $1 AND (tx_id, vout) IN (\n                   SELECT tx_id, vout FROM bdk_utxos \n                   WHERE keychain_id = $1 AND deleted_at IS NOT NULL \n                   LIMIT 1\n               ) \n               RETURNING keychain_id, utxo_json;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "keychain_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "utxo_json",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "8abc350bc93afb4300b89a6c894324a8386d72dbe1bae507f47d90f8130b4aa7"
+}

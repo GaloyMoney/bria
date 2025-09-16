@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bria_accounts (id, name, journal_id)\n            VALUES ($1, $2, $1)\n            RETURNING (id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "75621ca434e9c583f743225f582e376e719dbb4810462b9092ecfef5c676fdd3"
+}
