@@ -10,9 +10,6 @@ fi
 BITCOIND_SIGNER_ENDPOINT="${BITCOIND_SIGNER_ENDPOINT:-https://localhost:18543}"
 SATS_IN_ONE_BTC=100000000
 
-BATS_TEST_TIMEOUT=300
-BATS_TEST_RETRIES=5
-
 bria_cmd() {
   bria_location=${REPO_ROOT}/target/debug/bria
   if [[ ! -z ${CARGO_TARGET_DIR} ]] ; then
