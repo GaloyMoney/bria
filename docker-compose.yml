@@ -130,7 +130,7 @@ services:
       DATABASE_PASSWORD: "mempool"
       DATABASE_DATABASE: "mempool"
     user: "1000:1000"
-    command: "./wait-for-it.sh mempool_db:3306 --timeout=10 --strict -- ./start.sh"
+    command: "./wait-for-it.sh mempool_db:3306 -- ./start.sh"
     volumes:
       - ${HOST_PROJECT_PATH:-.}/.mempool_data/backend:/backend/cache
   mempool_db:
