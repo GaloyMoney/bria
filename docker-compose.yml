@@ -117,14 +117,33 @@ services:
     command: [ "Fulcrum", "/fulcrum.conf" ]
   mempool:
     image: mempool/backend
-    depends_on: [ bitcoind ]
+    depends_on: [ bitcoind, mempool_db ]
     environment:
       MEMPOOL_BACKEND: "none"
       CORE_RPC_HOST: bitcoind
       CORE_RPC_PORT: "18443"
       CORE_RPC_USERNAME: "rpcuser"
       CORE_RPC_PASSWORD: "rpcpassword"
-      DATABASE_ENABLED: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_HOST: "mempool_db"
+      DATABASE_USERNAME: "mempool"
+      DATABASE_PASSWORD: "mempool"
+      DATABASE_DATABASE: "mempool"
+    user: "1000:1000"
+    command: "./wait-for-it.sh mempool_db:3306 --timeout=10 --strict -- ./start.sh"
+    volumes:
+      - ${HOST_PROJECT_PATH:-.}/.mempool_data/backend:/backend/cache
+  mempool_db:
+    environment:
+      MYSQL_DATABASE: "mempool"
+      MYSQL_USER: "mempool"
+      MYSQL_PASSWORD: "mempool"
+      MYSQL_ROOT_PASSWORD: "admin"
+    image: mariadb:10.5.21
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${HOST_PROJECT_PATH:-.}/.mempool_data/mysql:/var/lib/mysql
 volumes:
   cargo-cache:
   cargo-target:
