@@ -1096,8 +1096,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity"
-version = "0.7.20-dev"
-source = "git+https://github.com/Lakshyyaa/es-entity?branch=pinned-sqlx-version#4e50b13f067539d49f7d5cc0d070cabdde2e8e6f"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51574a2e447ca840cf2d80b610b8c3e88088dc8477c5d3ba24e20c8f6f0d05af"
 dependencies = [
  "chrono",
  "derive_builder",
@@ -1113,8 +1114,9 @@ dependencies = [
 
 [[package]]
 name = "es-entity-macros"
-version = "0.7.20-dev"
-source = "git+https://github.com/Lakshyyaa/es-entity?branch=pinned-sqlx-version#4e50b13f067539d49f7d5cc0d070cabdde2e8e6f"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9beed351da1b6a67b0e82a815aee153bcf2187bf5f4702e6d7e6a48d38aa6f45"
 dependencies = [
  "convert_case",
  "darling 0.21.3",
