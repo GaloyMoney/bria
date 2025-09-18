@@ -39,7 +39,7 @@ impl AdminApp {
             .create_in_op(&mut op, dev_constants::DEV_ACCOUNT_NAME.to_owned())
             .await?;
         self.ledger
-            .create_journal_for_account(&mut op, account.id, account.name.clone())
+            .create_journal_for_account(op.tx_mut(), account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
@@ -77,7 +77,7 @@ impl AdminApp {
             .create_in_op(&mut op, account_name.clone())
             .await?;
         self.ledger
-            .create_journal_for_account(&mut op, account.id, account.name.clone())
+            .create_journal_for_account(op.tx_mut(), account.id, account.name.clone())
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)

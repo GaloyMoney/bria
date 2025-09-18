@@ -414,7 +414,7 @@ impl App {
         let wallet_id = WalletId::new();
         let wallet_ledger_accounts = self
             .ledger
-            .create_ledger_accounts_for_wallet(&mut op, wallet_id)
+            .create_ledger_accounts_for_wallet(op.tx_mut(), wallet_id)
             .await?;
         let new_wallet = NewWallet::builder()
             .id(wallet_id)
@@ -861,7 +861,7 @@ impl App {
         let id = self.payouts.create_in_op(&mut op, new_payout).await?.id;
         self.ledger
             .payout_submitted(
-                op,
+                op.into(),
                 id,
                 PayoutSubmittedParams {
                     journal_id: wallet.journal_id,
@@ -900,7 +900,7 @@ impl App {
         payout.cancel_payout(profile.id)?;
         self.payouts.update_in_op(&mut op, &mut payout).await?;
         self.ledger
-            .payout_cancelled(op, LedgerTransactionId::new(), id)
+            .payout_cancelled(op.into(), LedgerTransactionId::new(), id)
             .await?;
         Ok(())
     }

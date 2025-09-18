@@ -23,7 +23,7 @@ impl Batches {
         Self { pool: pool.clone() }
     }
 
-    #[instrument(name = "batches.create_in_tx", skip_all)]
+    #[instrument(name = "batches.create_in_op", skip_all)]
     pub async fn create_in_op<'a>(
         &self,
         op: &mut impl es_entity::AtomicOperation,
