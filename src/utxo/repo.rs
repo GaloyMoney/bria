@@ -126,7 +126,7 @@ impl UtxoRepo {
         );
         query_builder.push_bind(tx_id);
         query_builder
-            .push("WHERE spend_detected_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
+            .push(" WHERE spend_detected_ledger_tx_id IS NULL AND (keychain_id, tx_id, vout) IN");
         let mut n_inputs = 0;
         query_builder.push_tuples(utxos, |mut builder, out| {
             n_inputs += 1;
@@ -311,7 +311,7 @@ impl UtxoRepo {
         query_builder.push_bind(payout_queue_id);
         query_builder.push(", spending_sats_per_vbyte = ");
         query_builder.push_bind(fee_rate.as_sat_per_vb());
-        query_builder.push("WHERE account_id = ");
+        query_builder.push(" WHERE account_id = ");
         query_builder.push_bind(account_id);
         query_builder.push(" AND (keychain_id, tx_id, vout) IN");
         query_builder.push_tuples(

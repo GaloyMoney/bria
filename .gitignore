@@ -4,6 +4,7 @@
 -
 .direnv
 .env
+.mempool_data
 result
 tmp
 .bacon-locations

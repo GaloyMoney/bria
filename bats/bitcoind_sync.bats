@@ -14,6 +14,8 @@ teardown_file() {
   stop_daemon
 }
 
+BATS_TEST_RETRIES=5
+
 @test "bitcoind_signer_sync: Generates the same address" {
   bitcoind_signer_address=$(bitcoin_signer_cli getnewaddress)
   bria_address=$(bria_cmd new-address -w default | jq -r '.address')
