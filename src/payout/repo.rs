@@ -69,113 +69,61 @@ impl Payouts {
         account_id: AccountId,
         payout_queue_id: PayoutQueueId,
     ) -> Result<UnbatchedPayouts, PayoutError> {
-        // let mut unbatched_payouts = Vec::new();
-        // let mut query = es_entity::PaginatedQueryArgs::<payout_cursor::PayoutsByCreatedAtCursor> {
-        //     first: Default::default(),
-        //     after: None,
-        // };
+        let mut unbatched_payouts = Vec::new();
+        let mut query = es_entity::PaginatedQueryArgs::<payout_cursor::PayoutsByCreatedAtCursor> {
+            first: Default::default(),
+            after: None,
+        };
 
-        // loop {
-        //     let (id, created_at) = query
-        //         .after
-        //         .map(|c| (Some(c.id), Some(c.created_at)))
-        //         .unwrap_or((None, None));
+        loop {
+            let (id, created_at) = query
+                .after
+                .map(|c| (Some(c.id), Some(c.created_at)))
+                .unwrap_or((None, None));
 
-        //     let (entities, has_next_page) = es_entity::es_query!(
-        //         tbl_prefix = "bria",
-        //         r#"
-        //         SELECT *
-        //         FROM bria_payouts
-        //         WHERE batch_id is NULL AND account_id = $1 AND payout_queue_id = $2
-        //         AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))
-        //         ORDER BY created_at, id
-        //         FOR UPDATE"#,
-        //         account_id as AccountId,
-        //         payout_queue_id as PayoutQueueId,
-        //         id as Option<PayoutId>,
-        //         created_at
-        //     )
-        //     .fetch_n(op, query.first)
-        //     .await?;
+            let (entities, has_next_page) = es_entity::es_query!(
+                tbl_prefix = "bria",
+                r#"
+                SELECT *
+                FROM bria_payouts
+                WHERE batch_id is NULL AND account_id = $1 AND payout_queue_id = $2
+                AND (COALESCE((created_at, id) > ($4, $3), $3 IS NULL))
+                ORDER BY created_at, id
+                FOR UPDATE"#,
+                account_id as AccountId,
+                payout_queue_id as PayoutQueueId,
+                id as Option<PayoutId>,
+                created_at
+            )
+            .fetch_n(&mut *op, query.first)
+            .await?;
 
-        //     unbatched_payouts.extend(entities);
+            unbatched_payouts.extend(entities);
 
-        //     if !has_next_page {
-        //         break;
-        //     }
-        //     let end_cursor = unbatched_payouts
-        //         .last()
-        //         .map(payout_cursor::PayoutsByCreatedAtCursor::from);
-
-        //     query.after = end_cursor;
-        // }
-
-        // let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = unbatched_payouts
-        //     .into_iter()
-        //     .filter(|payout| {
-        //         !payout
-        //             .events
-        //             .iter_all()
-        //             .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
-        //     })
-        //     .filter_map(|unbatched_payout| UnbatchedPayout::try_from(unbatched_payout).ok())
-        //     .fold(HashMap::new(), |mut map, payout| {
-        //         map.entry(payout.wallet_id).or_default().push(payout);
-        //         map
-        //     });
-        // Ok(UnbatchedPayouts::new(filtered_payouts))
-
-        let rows = sqlx::query_as!(
-            GenericEvent::<PayoutId>,
-            r#"
-              SELECT e.recorded_at as recorded_at, e.context as "context: ContextData", e.sequence as sequence, e.id as entity_id, e.event
-              FROM bria_payouts b
-              JOIN bria_payout_events e ON b.id = e.id
-              WHERE b.batch_id IS NULL AND b.account_id = $1 AND b.payout_queue_id = $2
-              ORDER BY b.created_at, b.id, e.sequence FOR UPDATE"#,
-            account_id as AccountId,
-            payout_queue_id as PayoutQueueId,
-        )        .fetch_all(op.as_executor())
-        .await?;
-        let mut count = 0;
-        let mut unique_ids = HashSet::new();
-        for row in &rows {
-            if unique_ids.insert(row.entity_id) {
-                count += 1;
+            if !has_next_page {
+                break;
             }
-        }
-        let (unbatched_payouts, _) = EntityEvents::load_n::<Payout>(rows, count)?;
+            let end_cursor = unbatched_payouts
+                .last()
+                .map(payout_cursor::PayoutsByCreatedAtCursor::from);
 
-        let mut payouts: HashMap<WalletId, Vec<Payout>> = HashMap::new();
-        for payout in unbatched_payouts {
-            payouts.entry(payout.wallet_id).or_default().push(payout);
+            query.after = end_cursor;
         }
-        let filtered_payouts: HashMap<WalletId, Vec<Payout>> = payouts
+
+        let filtered_payouts: HashMap<WalletId, Vec<UnbatchedPayout>> = unbatched_payouts
             .into_iter()
-            .map(|(wallet_id, unbatched_payouts)| {
-                let filtered_unbatched_payouts = unbatched_payouts
-                    .into_iter()
-                    .filter(|payout| {
-                        !payout
-                            .events
-                            .iter_all()
-                            .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
-                    })
-                    .collect();
-                (wallet_id, filtered_unbatched_payouts)
+            .filter(|payout| {
+                !payout
+                    .events
+                    .iter_all()
+                    .any(|event| matches!(event, PayoutEvent::Cancelled { .. }))
             })
-            .collect();
-        let unbatched_payouts = filtered_payouts
-            .into_iter()
-            .map(|(wallet_id, payouts)| {
-                let unbatched_payouts = payouts
-                    .into_iter()
-                    .filter_map(|payout| UnbatchedPayout::try_from(payout).ok())
-                    .collect();
-                (wallet_id, unbatched_payouts)
-            })
-            .collect();
-        Ok(UnbatchedPayouts::new(unbatched_payouts))
+            .filter_map(|unbatched_payout| UnbatchedPayout::try_from(unbatched_payout).ok())
+            .fold(HashMap::new(), |mut map, payout| {
+                map.entry(payout.wallet_id).or_default().push(payout);
+                map
+            });
+        Ok(UnbatchedPayouts::new(filtered_payouts))
     }
 
     #[instrument(name = "payouts.list_for_wallet", skip(self))]
