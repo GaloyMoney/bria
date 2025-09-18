@@ -1,5 +1,8 @@
 use es_entity::*;
-use sqlx::{Database, Encode, Pool, Postgres};
+use sqlx::{
+    postgres::{PgHasArrayType, PgTypeInfo},
+    Database, Encode, Pool, Postgres,
+};
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -38,6 +41,12 @@ impl Encode<'_, Postgres> for XPubFingerprint {
 impl sqlx::Type<Postgres> for XPubFingerprint {
     fn type_info() -> <Postgres as Database>::TypeInfo {
         sqlx::postgres::PgTypeInfo::with_name("BYTEA")
+    }
+}
+
+impl PgHasArrayType for XPubFingerprint {
+    fn array_type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_bytea")
     }
 }
 
