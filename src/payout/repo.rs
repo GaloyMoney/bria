@@ -2,7 +2,7 @@ use es_entity::*;
 use sqlx::{Pool, Postgres};
 use tracing::instrument;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use super::{entity::*, error::*, unbatched::*};
 use crate::primitives::*;
