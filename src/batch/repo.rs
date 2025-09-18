@@ -24,7 +24,7 @@ impl Batches {
     }
 
     #[instrument(name = "batches.create_in_op", skip_all)]
-    pub async fn create_in_op<'a>(
+    pub async fn create_in_op(
         &self,
         op: &mut impl es_entity::AtomicOperation,
         batch: NewBatch,
