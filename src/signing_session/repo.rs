@@ -1,5 +1,5 @@
 use es_entity::*;
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::{entity::*, error::SigningSessionError};
@@ -42,7 +42,7 @@ impl SigningSessions {
 
     pub async fn update_sessions(
         &self,
-        op: &mut DbOp<'_>,
+        op: &mut impl es_entity::AtomicOperation,
         sessions: &HashMap<XPubFingerprint, SigningSession>,
     ) -> Result<(), SigningSessionError> {
         let mut events: Vec<EntityEvents<SigningSessionEvent>> = sessions
@@ -75,8 +75,7 @@ impl SigningSessions {
             };
 
             let (entities, has_next_page) = es_entity::es_query!(
-                "bria",
-                &self.pool,
+                tbl_prefix = "bria",
                 r#"
                 SELECT *
                 FROM bria_signing_sessions
@@ -88,7 +87,7 @@ impl SigningSessions {
                 id as Option<SigningSessionId>,
                 created_at as Option<chrono::DateTime<chrono::Utc>>,
             )
-            .fetch_n(first)
+            .fetch_n(self.pool(), first)
             .await?;
 
             signing_sessions.extend(entities);
@@ -115,7 +114,7 @@ impl SigningSessions {
 
     pub async fn list_batch_ids_for(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         account_id: AccountId,
         xpub_fingerprint: XPubFingerprint,
     ) -> Result<Vec<BatchId>, SigningSessionError> {
@@ -127,7 +126,7 @@ impl SigningSessions {
             Uuid::from(account_id),
             xpub_fingerprint.as_bytes()
         )
-        .fetch_all(&mut **tx)
+        .fetch_all(op.as_executor())
         .await?;
 
         Ok(rows

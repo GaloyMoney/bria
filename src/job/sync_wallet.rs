@@ -158,7 +158,7 @@ pub async fn execute(
                     .metadata(Some(address_metadata(&unsynced_tx.tx_id)))
                     .build()
                     .expect("Could not build new address in sync wallet");
-                if let Some((pending_id, mut op)) = deps
+                if let Some((pending_id, mut tx)) = deps
                     .bria_utxos
                     .new_utxo_detected(
                         data.account_id,
@@ -175,12 +175,12 @@ pub async fn execute(
                 {
                     trackers.n_pending_utxos += 1;
                     deps.bria_addresses
-                        .persist_if_not_present(&mut op, found_addr)
+                        .persist_if_not_present(&mut tx, found_addr)
                         .await?;
-                    bdk_utxos.mark_as_synced(op.tx(), &local_utxo).await?;
+                    bdk_utxos.mark_as_synced(&mut tx, &local_utxo).await?;
                     deps.ledger
                         .utxo_detected(
-                            op.into_tx(),
+                            tx,
                             pending_id,
                             UtxoDetectedParams {
                                 journal_id: wallet.journal_id,
@@ -257,17 +257,13 @@ pub async fn execute(
                 }
             }
             if spend_tx {
-                let (mut op, batch_info, tx_id) = if let Some((op, create_batch, tx_id)) = batches
+                let (mut tx, batch_info, tx_id) = if let Some((tx, create_batch, tx_id)) = batches
                     .set_batch_broadcast_ledger_tx_id(unsynced_tx.tx_id, wallet.id)
                     .await?
                 {
-                    (op, Some(create_batch), tx_id)
+                    (tx, Some(create_batch), tx_id)
                 } else {
-                    (
-                        es_entity::DbOp::new(pool.begin().await?, chrono::Utc::now()),
-                        None,
-                        LedgerTransactionId::new(),
-                    )
+                    (pool.begin().await?, None, LedgerTransactionId::new())
                 };
 
                 let mut change_utxos = Vec::new();
@@ -286,7 +282,7 @@ pub async fn execute(
                         .build()
                         .expect("Could not build new address in sync wallet");
                     deps.bria_addresses
-                        .persist_if_not_present(&mut op, found_addr)
+                        .persist_if_not_present(&mut tx, found_addr)
                         .await?;
                     change_utxos.push((utxo, address_info));
                 }
@@ -294,7 +290,7 @@ pub async fn execute(
                 if let Some((settled_sats, allocations)) = deps
                     .bria_utxos
                     .spend_detected(
-                        op.tx(),
+                        &mut tx,
                         data.account_id,
                         wallet.id,
                         keychain_id,
@@ -319,7 +315,7 @@ pub async fn execute(
                     {
                         deps.ledger
                             .batch_broadcast(
-                                op.into_tx(),
+                                tx,
                                 created_ledger_tx_id,
                                 tx_id,
                                 fees_to_encumber,
@@ -341,7 +337,7 @@ pub async fn execute(
                             .await?;
                         deps.ledger
                             .spend_detected(
-                                op.into_tx(),
+                                tx,
                                 tx_id,
                                 SpendDetectedParams {
                                     journal_id: wallet.journal_id,

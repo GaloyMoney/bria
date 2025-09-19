@@ -1,5 +1,8 @@
 use es_entity::*;
-use sqlx::{Database, Encode, Pool, Postgres};
+use sqlx::{
+    postgres::{PgHasArrayType, PgTypeInfo},
+    Database, Encode, Pool, Postgres,
+};
 
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -20,7 +23,6 @@ use crate::primitives::*;
         name(ty = "String", update(persist=false), create(accessor=key_name())),
         fingerprint(ty = "XPubFingerprint", create(accessor=fingerprint()), update(persist = false))
     ),
-    tbl_prefix = "bria"
 )]
 pub struct XPubs {
     pool: Pool<Postgres>,
@@ -42,6 +44,12 @@ impl sqlx::Type<Postgres> for XPubFingerprint {
     }
 }
 
+impl PgHasArrayType for XPubFingerprint {
+    fn array_type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_bytea")
+    }
+}
+
 impl XPubs {
     pub fn new(pool: &Pool<Postgres>) -> Self {
         Self { pool: pool.clone() }
@@ -49,7 +57,7 @@ impl XPubs {
 
     pub async fn update_signer_config(
         &self,
-        op: &mut DbOp<'_>,
+        op: &mut impl es_entity::AtomicOperation,
         xpub: AccountXPub,
     ) -> Result<(), XPubError> {
         if let Some((cypher, nonce)) = xpub.encrypted_signer_config {
@@ -66,7 +74,7 @@ impl XPubs {
                 cypher_bytes,
                 nonce_bytes,
             )
-            .execute(&mut **op.tx())
+            .execute(op.as_executor())
             .await?;
         }
 
@@ -82,10 +90,7 @@ impl XPubs {
         let mut xpub = match xpub_ref {
             XPubRef::Fingerprint(fp) => {
                 let xpub = es_entity::es_query!(
-                    entity_ty = AccountXPub,
-                    id_ty = Uuid,
-                    "bria",
-                    &self.pool,
+                    entity = AccountXPub,
                     r#"
                     SELECT *
                     FROM bria_xpubs
@@ -93,16 +98,13 @@ impl XPubs {
                     Uuid::from(account_id),
                     fp.as_bytes()
                 )
-                .fetch_one()
+                .fetch_one(self.pool())
                 .await?;
                 xpub
             }
             XPubRef::Name(name) => {
                 let xpub = es_entity::es_query!(
-                    entity_ty = AccountXPub,
-                    id_ty = Uuid,
-                    "bria",
-                    &self.pool,
+                    entity = AccountXPub,
                     r#"
                     SELECT *
                     FROM bria_xpubs
@@ -110,7 +112,7 @@ impl XPubs {
                     Uuid::from(account_id),
                     name
                 )
-                .fetch_one()
+                .fetch_one(self.pool())
                 .await?;
                 xpub
             }

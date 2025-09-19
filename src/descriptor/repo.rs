@@ -1,4 +1,4 @@
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{Pool, Postgres};
 
 use super::{entity::*, error::DescriptorError};
 use crate::primitives::*;
@@ -15,20 +15,20 @@ impl Descriptors {
         }
     }
 
-    pub async fn persist_all_in_tx(
+    pub async fn persist_all_in_op(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         descriptors: Vec<NewDescriptor>,
     ) -> Result<(), DescriptorError> {
         for descriptor in descriptors {
-            self.persist_in_tx(tx, descriptor).await?;
+            self.persist_in_op(op, descriptor).await?;
         }
         Ok(())
     }
 
-    async fn persist_in_tx(
+    async fn persist_in_op(
         &self,
-        tx: &mut Transaction<'_, Postgres>,
+        op: &mut impl es_entity::AtomicOperation,
         descriptor: NewDescriptor,
     ) -> Result<(), DescriptorError> {
         let (descriptor_str, checksum) = descriptor.descriptor_and_checksum();
@@ -53,7 +53,7 @@ impl Descriptors {
             bitcoin::pg::PgKeychainKind::from(descriptor.keychain_kind)
                 as bitcoin::pg::PgKeychainKind,
         )
-        .fetch_one(&mut **tx)
+        .fetch_one(op.as_executor())
         .await?;
 
         if res.wallet_id != Some(descriptor.wallet_id) {
