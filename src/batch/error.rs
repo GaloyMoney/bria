@@ -6,10 +6,12 @@ pub enum BatchError {
     BatchIdNotFound(String),
     #[error("BatchError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("BatchError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
     #[error("BatchError - BitcoinConsensusEncodeError: {0}")]
     BitcoinConsensusEncodeError(#[from] crate::primitives::bitcoin::consensus::encode::Error),
     #[error("BatchError - Could not deserialize PSBT: {0}")]
     PsbtDeserializationError(#[from] crate::primitives::bitcoin::psbt::Error),
+    #[error("BatchError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
 }
+
+es_entity::from_es_entity_error!(BatchError);

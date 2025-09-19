@@ -12,7 +12,6 @@ pub mod bdk;
 pub mod cli;
 pub mod descriptor;
 mod dev_constants;
-mod entity;
 pub mod fees;
 mod job;
 pub mod ledger;
