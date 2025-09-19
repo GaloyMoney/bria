@@ -43,6 +43,8 @@ Bria enables transaction batching and UTXO management providing the liquidity of
   - extensive automated testing (unit + integration in rust, end-to-end using BATS)
   - all sensitive credentials (like remote signer config) encrypted at rest to prevent db leaks comprimising funds
 
+- Payjoin support for UTXO consolidation and transaction efficiency
+
 ## Developing
 
 ### Dependencies
