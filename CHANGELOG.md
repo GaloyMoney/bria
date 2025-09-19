@@ -1,3 +1,31 @@
+# [bria release v0.1.114](https://github.com/GaloyMoney/bria/releases/tag/0.1.114)
+
+
+### Bug Fixes
+
+- Addressed trailing junk error introduced in 15.x (#654)
+- Handle repo fns which return collections using es_query (#638)
+- Use WalletId from es_entity for entity migration (#630)
+
+### Miscellaneous Tasks
+
+- Bump tracing-subscriber from 0.3.18 to 0.3.20 (#655)
+- Bump flake (#652)
+- Rename tests/e2e -> bats (#645)
+- Remove empty files, unnecessary check and update repo (#641)
+- Remove unnecessary derive macros from entities (#637)
+
+### Refactor
+
+- Use updated es-entity  (#653)
+- Use accessor to convert to compatible types (#649)
+- Use es_entity for address entity (#644)
+- Use was_not_found for entity errors (#647)
+- Update migration script to avoid redundant update (#646)
+- Use es_entity for payout (#612)
+- Use es_entity for signing session entity (#636)
+- Use es_entity for xpub  (#631)
+
 # [bria release v0.1.113](https://github.com/GaloyMoney/bria/releases/tag/0.1.113)
 
 
