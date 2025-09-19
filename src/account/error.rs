@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum AccountError {
     #[error("AccountError - Sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("AccountError - EntityError: {0}")]
-    EntityError(#[from] crate::entity::EntityError),
+    #[error("AccountError - EsEntityError: {0}")]
+    EsEntityError(es_entity::EsEntityError),
 }
+
+es_entity::from_es_entity_error!(AccountError);
