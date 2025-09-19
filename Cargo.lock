@@ -2595,7 +2595,28 @@ dependencies = [
  "petgraph",
  "prettyplease",
  "prost 0.12.6",
- "prost-types",
+ "prost-types 0.12.6",
+ "regex",
+ "syn 2.0.89",
+ "tempfile",
+]
+
+[[package]]
+name = "prost-build"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c1318b19085f08681016926435853bbf7858f9c082d0999b80550ff5d9abe15"
+dependencies = [
+ "bytes",
+ "heck",
+ "itertools 0.13.0",
+ "log",
+ "multimap",
+ "once_cell",
+ "petgraph",
+ "prettyplease",
+ "prost 0.13.3",
+ "prost-types 0.13.3",
  "regex",
  "syn 2.0.104",
  "tempfile",
@@ -2637,14 +2658,23 @@ dependencies = [
 ]
 
 [[package]]
-name = "prost-wkt"
-version = "0.5.1"
+name = "prost-types"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fb7ec2850c138ebaa7ab682503b5d08c3cb330343e9c94776612928b6ddb53f"
+checksum = "4759aa0d3a6232fb8dbdb97b61de2c20047c68aca932c7ed76da9d788508d670"
+dependencies = [
+ "prost 0.13.3",
+]
+
+[[package]]
+name = "prost-wkt"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8d84e2bee181b04c2bac339f2bfe818c46a99750488cc6728ce4181d5aa8299"
 dependencies = [
  "chrono",
  "inventory",
- "prost 0.12.6",
+ "prost 0.13.3",
  "serde",
  "serde_derive",
  "serde_json",
@@ -2653,27 +2683,27 @@ dependencies = [
 
 [[package]]
 name = "prost-wkt-build"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "598b7365952c2ed4e32902de0533653aafbe5ae3da436e8e2335c7d375a1cef3"
+checksum = "8a669d5acbe719010c6f62a64e6d7d88fdedc1fe46e419747949ecb6312e9b14"
 dependencies = [
  "heck",
- "prost 0.12.6",
- "prost-build",
- "prost-types",
+ "prost 0.13.3",
+ "prost-build 0.13.3",
+ "prost-types 0.13.3",
  "quote",
 ]
 
 [[package]]
 name = "prost-wkt-types"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a8eadc2381640a49c1fbfb9f4a857794b4e5bf5a2cbc2d858cfdb74f64dcd22"
+checksum = "01ef068e9b82e654614b22e6b13699bd545b6c0e2e721736008b00b38aeb4f64"
 dependencies = [
  "chrono",
- "prost 0.12.6",
- "prost-build",
- "prost-types",
+ "prost 0.13.3",
+ "prost-build 0.13.3",
+ "prost-types 0.13.3",
  "prost-wkt",
  "prost-wkt-build",
  "protobuf-src",
@@ -4209,7 +4239,7 @@ checksum = "9d021fc044c18582b9a2408cd0dd05b1596e3ecdb5c4df822bb0183545683889"
 dependencies = [
  "prettyplease",
  "proc-macro2",
- "prost-build",
+ "prost-build 0.12.6",
  "quote",
  "syn 2.0.104",
 ]
@@ -4222,7 +4252,7 @@ checksum = "be4ef6dd70a610078cb4e338a0f79d06bc759ff1b22d2120c2ff02ae264ba9c2"
 dependencies = [
  "prettyplease",
  "proc-macro2",
- "prost-build",
+ "prost-build 0.12.6",
  "quote",
  "syn 2.0.104",
 ]
