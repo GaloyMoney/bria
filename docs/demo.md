@@ -110,3 +110,12 @@
   bria help
   bria <COMMAND> help
   ```
+
+## Payjoin Demo
+
+Bria supports Payjoin (BIP78) for UTXO consolidation and transaction efficiency. To try Payjoin:
+
+- Construct a PSBT as usual for a payout.
+- Submit the PSBT to Bria's Payjoin endpoint (see API docs).
+- Bria will propose a Payjoin by adding one of its own UTXOs, returning a new PSBT.
+- Sign and broadcast the returned PSBT for a Payjoin transaction.
