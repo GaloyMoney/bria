@@ -718,6 +718,9 @@ impl From<ApplicationError> for tonic::Status {
             ApplicationError::CouldNotParseAddress(_) => {
                 tonic::Status::invalid_argument(err.to_string())
             }
+            ApplicationError::JobCrateJobError(_) => {
+                tonic::Status::internal(err.to_string())
+            }
             _ => tonic::Status::internal(err.to_string()),
         }
     }

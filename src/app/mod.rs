@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 pub use config::*;
 use error::*;
+use job_crate::{Jobs, JobSvcConfig};
 
 use crate::{
     account::balance::AccountBalanceSummary,
@@ -86,6 +87,13 @@ impl App {
             fees_client.clone(),
         )
         .await?;
+
+        let mut jobs = Jobs::init(JobSvcConfig::builder().pool(pool.clone()).build().expect("Couldn't build JobSvcConfig")).await?;
+
+        job::spawn_dummy(&jobs).await?;
+        
+        jobs.start_poll().await?;
+
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
@@ -97,6 +105,7 @@ impl App {
             config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
+        
         let app = Self {
             outbox,
             profiles: Profiles::new(&pool),

@@ -6,6 +6,7 @@ mod executor;
 mod populate_outbox;
 mod sync_wallet;
 
+pub mod dummy;
 pub mod error;
 pub mod process_payout_queue;
 
@@ -16,13 +17,12 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient,
-    ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
-    utxo::Utxos, wallet::*, xpub::*,
+    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient, ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*, utxo::Utxos, wallet::*, xpub::*
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
 use batch_wallet_accounting::BatchWalletAccountingData;
+use dummy::{DummyJobConfig, DummyJobInit};
 use error::JobError;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
@@ -608,6 +608,25 @@ pub async fn spawn_respawn_all_outbox_handlers(
             Err(e.into())
         }
         Ok(_) => Ok(()),
+    }
+}
+
+#[instrument(name = "job.spawn_dummy", skip_all, fields(error, error.level, error.message), err)]
+pub async fn spawn_dummy(
+    jobs: &job_crate::Jobs
+) -> Result<(), JobError> {
+    tracing::info!("Attempting to spawn dummy job");
+    let job_config = DummyJobConfig;
+    match jobs.add_initializer_and_spawn_unique(DummyJobInit, job_config).await {
+        Ok(_) => {
+            tracing::info!("Successfully spawned dummy job");
+            Ok(())
+        }
+        Err(e) => {
+            tracing::error!("Failed to spawn dummy job: {}", e);
+            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
+            Err(e.into())
+        }
     }
 }
 

@@ -58,6 +58,8 @@ pub enum JobError {
     PsbtMissingInSigningSessions,
     #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
+    #[error("JobCrateError: {0}")]
+    JobCrateError(#[from] job_crate::error::JobError),
 }
 
 impl JobExecutionError for JobError {}

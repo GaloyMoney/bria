@@ -1,5 +1,6 @@
 use chacha20poly1305;
 use thiserror::Error;
+use job_crate::error::JobError as JobCrateJobError;
 
 use crate::{
     address::error::AddressError,
@@ -81,6 +82,8 @@ pub enum ApplicationError {
     CouldNotDecryptKey(chacha20poly1305::Error),
     #[error("AddressError - Could not parse the address: {0}")]
     CouldNotParseAddress(#[from] bitcoin::AddressError),
+    #[error("JobCrateError - Sqlx: {0}")]
+    JobCrateJobError(#[from] JobCrateJobError),
 }
 
 impl From<chacha20poly1305::Error> for ApplicationError {
