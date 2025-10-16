@@ -3,7 +3,6 @@ mod batch_signing;
 mod batch_wallet_accounting;
 mod config;
 mod executor;
-mod populate_outbox;
 mod sync_wallet;
 
 pub mod error;
@@ -26,7 +25,6 @@ use batch_wallet_accounting::BatchWalletAccountingData;
 use error::JobError;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
-use populate_outbox::PopulateOutboxData;
 use process_payout_queue::ProcessPayoutQueueData;
 use sync_wallet::SyncWalletData;
 
@@ -51,6 +49,7 @@ pub async fn start_job_runner(
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
     fees_client: FeesClient,
+    jobs: job_crate::Jobs,
 ) -> Result<JobRunnerHandle, JobError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -62,7 +61,6 @@ pub async fn start_job_runner(
         batch_signing,
         batch_broadcasting,
         respawn_all_outbox_handlers,
-        populate_outbox,
     ]);
     registry.set_context(config);
     registry.set_context(blockchain_cfg);
@@ -78,6 +76,7 @@ pub async fn start_job_runner(
     registry.set_context(addresses);
     registry.set_context(signer_encryption_config);
     registry.set_context(fees_client);
+    registry.set_context(jobs);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -139,25 +138,6 @@ async fn process_all_payout_queues(
     Ok(())
 }
 
-#[job(name = "populate_outbox")]
-async fn populate_outbox(
-    mut current_job: CurrentJob,
-    outbox: Outbox,
-    ledger: Ledger,
-) -> Result<(), JobError> {
-    JobExecutor::builder(&mut current_job)
-        .max_retry_delay(std::time::Duration::from_secs(20))
-        .build()
-        .expect("couldn't build JobExecutor")
-        .execute(|data| async move {
-            let data: PopulateOutboxData = data.expect("no PopulateOutboxData available");
-            let data = populate_outbox::execute(data, outbox, ledger).await?;
-            Ok::<_, JobError>(data)
-        })
-        .await?;
-    Ok(())
-}
-
 #[job(name = "respawn_all_outbox_handlers")]
 async fn respawn_all_outbox_handlers(
     mut current_job: CurrentJob,
@@ -165,6 +145,7 @@ async fn respawn_all_outbox_handlers(
         respawn_all_outbox_handlers_delay: delay,
         ..
     }: JobsConfig,
+    jobs: job_crate::Jobs,
 ) -> Result<(), JobError> {
     let pool = current_job.pool().clone();
     let accounts = Accounts::new(&pool);
@@ -173,7 +154,7 @@ async fn respawn_all_outbox_handlers(
         .expect("couldn't build JobExecutor")
         .execute(|_| async move {
             for account in accounts.list().await? {
-                let _ = spawn_outbox_handler(&pool, account).await;
+                let _ = crate::job_svc::spawn_outbox_handler(&jobs, account).await;
             }
             Ok::<(), JobError>(())
         })
@@ -568,29 +549,6 @@ async fn spawn_batch_broadcasting(
     }
 }
 
-#[instrument(name = "job.spawn_outbox_handler", skip_all)]
-pub async fn spawn_outbox_handler(pool: &sqlx::PgPool, account: Account) -> Result<(), JobError> {
-    let data = PopulateOutboxData {
-        account_id: account.id,
-        journal_id: account.journal_id(),
-        tracing_data: crate::tracing::extract_tracing_data(),
-    };
-    match JobBuilder::new_with_id(Uuid::from(data.journal_id), "populate_outbox")
-        .set_channel_name("populate_outbox")
-        .set_channel_args(&format!("account_id:{}", data.account_id))
-        .set_json(&data)
-        .expect("Couldn't set json")
-        .spawn(pool)
-        .await
-    {
-        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(()),
-        Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-            Err(e.into())
-        }
-        Ok(_) => Ok(()),
-    }
-}
 #[instrument(name = "job.spawn_respawn_all_outbox_handlers", skip_all, fields(error, error.level, error.message), err)]
 pub async fn spawn_respawn_all_outbox_handlers(
     pool: &sqlx::PgPool,

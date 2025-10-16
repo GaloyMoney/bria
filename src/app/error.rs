@@ -1,6 +1,8 @@
 use chacha20poly1305;
 use thiserror::Error;
 
+use job_crate::error::JobError as JobSvcError;
+
 use crate::{
     address::error::AddressError,
     batch::error::BatchError,
@@ -43,6 +45,8 @@ pub enum ApplicationError {
     XPubError(#[from] XPubError),
     #[error("{0}")]
     JobError(#[from] JobError),
+    #[error("{0}")]
+    JobSvcError(#[from] JobSvcError),
     #[error("{0}")]
     OutboxError(#[from] OutboxError),
     #[error("{0}")]

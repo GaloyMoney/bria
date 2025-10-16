@@ -14,6 +14,7 @@ pub mod descriptor;
 mod dev_constants;
 pub mod fees;
 mod job;
+pub mod job_svc;
 pub mod ledger;
 mod outbox;
 pub mod payout;
