@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub use config::*;
 use error::*;
 
-use job_crate::{Jobs, JobSvcConfig};
+use job_crate::{JobSvcConfig, Jobs};
 
 use crate::{
     account::balance::AccountBalanceSummary,
@@ -73,13 +73,12 @@ impl App {
         .await?;
         let fees_client = FeesClient::new(config.fees.clone());
 
-        let job_svc_config = JobSvcConfig::builder().pool(pool.clone()).build().expect("couldn't build job_svc_config");
+        let job_svc_config = JobSvcConfig::builder()
+            .pool(pool.clone())
+            .build()
+            .expect("couldn't build job_svc_config");
         let mut jobs = Jobs::init(job_svc_config).await?;
-        JobSvc::init(
-            &jobs,
-            outbox.clone(),
-            ledger.clone(),
-        );
+        JobSvc::init(&jobs, outbox.clone(), ledger.clone());
         jobs.start_poll().await?;
 
         let runner = job::start_job_runner(

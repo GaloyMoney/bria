@@ -5,17 +5,8 @@ use std::collections::HashMap;
 use tracing::instrument;
 
 use job_crate::{
-    error::JobError as JobSvcError,
-    Job,
-    JobConfig,
-    JobId,
-    JobInitializer,
-    JobRunner,
-    Jobs,
-    JobType,
-    RetrySettings,
-    CurrentJob,
-    JobCompletion
+    error::JobError as JobSvcError, CurrentJob, Job, JobCompletion, JobConfig, JobId,
+    JobInitializer, JobRunner, JobType, Jobs, RetrySettings,
 };
 
 use crate::{
@@ -94,7 +85,7 @@ impl JobRunner for PopulateOutboxJobRunner {
                     .await?,
             )
             .await?;
-        
+
         while let Some(event) = stream.next().await {
             self.outbox
                 .handle_journal_event(event?, tracing::Span::current())
@@ -106,10 +97,7 @@ impl JobRunner for PopulateOutboxJobRunner {
 }
 
 #[instrument(name = "job.spawn_outbox_handler", skip_all)]
-pub async fn spawn_outbox_handler(
-    jobs: &Jobs,
-    account: Account,
-) -> Result<(), JobSvcError> {
+pub async fn spawn_outbox_handler(jobs: &Jobs, account: Account) -> Result<(), JobSvcError> {
     let config = PopulateOutboxJobConfig {
         account_id: account.id,
         journal_id: account.journal_id(),
