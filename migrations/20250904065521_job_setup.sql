@@ -21,6 +21,7 @@ CREATE TYPE JobExecutionState AS ENUM ('pending', 'running');
 CREATE TABLE job_executions (
   id UUID REFERENCES jobs(id) NOT NULL UNIQUE,
   job_type VARCHAR NOT NULL,
+  poller_instance_id UUID,
   attempt_index INT NOT NULL DEFAULT 1,
   state JobExecutionState NOT NULL DEFAULT 'pending',
   execution_state_json JSONB,
@@ -28,6 +29,10 @@ CREATE TABLE job_executions (
   alive_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL
 );
+
+CREATE INDEX idx_job_executions_poller_instance
+  ON job_executions(poller_instance_id)
+  WHERE state = 'running';
 
 CREATE OR REPLACE FUNCTION notify_job_execution_insert() RETURNS TRIGGER AS $$
 BEGIN
