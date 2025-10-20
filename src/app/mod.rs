@@ -9,8 +9,6 @@ use std::collections::HashMap;
 pub use config::*;
 use error::*;
 
-use job_crate::{JobSvcConfig, Jobs};
-
 use crate::{
     account::balance::AccountBalanceSummary,
     address::*,
@@ -51,7 +49,6 @@ pub struct App {
     batch_inclusion: BatchInclusion,
     pool: sqlx::PgPool,
     config: AppConfig,
-    jobs: Jobs,
 }
 
 impl App {
@@ -73,13 +70,7 @@ impl App {
         .await?;
         let fees_client = FeesClient::new(config.fees.clone());
 
-        let job_svc_config = JobSvcConfig::builder()
-            .pool(pool.clone())
-            .build()
-            .expect("couldn't build job_svc_config");
-        let mut jobs = Jobs::init(job_svc_config).await?;
-        JobSvc::init(&jobs, outbox.clone(), ledger.clone());
-        jobs.start_poll().await?;
+        let job_svc = JobSvc::init(pool.clone(), outbox.clone(), ledger.clone()).await?;
 
         let runner = job::start_job_runner(
             &pool,
@@ -97,18 +88,12 @@ impl App {
             config.blockchain.clone(),
             config.signer_encryption.clone(),
             fees_client.clone(),
-            jobs.clone(),
         )
         .await?;
         Self::spawn_sync_all_wallets(pool.clone(), config.jobs.sync_all_wallets_delay).await?;
         Self::spawn_process_all_payout_queues(
             pool.clone(),
             config.jobs.process_all_payout_queues_delay,
-        )
-        .await?;
-        Self::spawn_respawn_all_outbox_handlers(
-            pool.clone(),
-            config.jobs.respawn_all_outbox_handlers_delay,
         )
         .await?;
 
@@ -130,7 +115,6 @@ impl App {
             batch_inclusion,
             config,
             _runner: runner,
-            jobs,
         };
         if let Some(deprecrated_encryption_key) = app.config.deprecated_encryption_key.as_ref() {
             app.rotate_encryption_key(deprecrated_encryption_key)
@@ -1097,26 +1081,4 @@ impl App {
         Ok(())
     }
 
-    #[instrument(
-        name = "app.spawn_respawn_all_outbox_handlers",
-        level = "trace",
-        skip_all,
-        err
-    )]
-    async fn spawn_respawn_all_outbox_handlers(
-        pool: sqlx::PgPool,
-        delay: std::time::Duration,
-    ) -> Result<(), ApplicationError> {
-        tokio::spawn(async move {
-            loop {
-                let _ = job::spawn_respawn_all_outbox_handlers(
-                    &pool,
-                    std::time::Duration::from_secs(1),
-                )
-                .await;
-                tokio::time::sleep(delay).await;
-            }
-        });
-        Ok(())
-    }
 }

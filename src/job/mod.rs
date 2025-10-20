@@ -15,7 +15,7 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    account::*, address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient,
+    address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient,
     ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
     utxo::Utxos, wallet::*, xpub::*,
 };
@@ -30,7 +30,6 @@ use sync_wallet::SyncWalletData;
 
 const SYNC_ALL_WALLETS_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000001");
 const PROCESS_ALL_PAYOUT_QUEUES_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000002");
-const RESPAWN_ALL_OUTBOX_ID: Uuid = uuid!("00000000-0000-0000-0000-000000000003");
 
 #[allow(clippy::too_many_arguments)]
 pub async fn start_job_runner(
@@ -49,7 +48,6 @@ pub async fn start_job_runner(
     blockchain_cfg: BlockchainConfig,
     signer_encryption_config: SignerEncryptionConfig,
     fees_client: FeesClient,
-    jobs: job_crate::Jobs,
 ) -> Result<JobRunnerHandle, JobError> {
     let mut registry = JobRegistry::new(&[
         sync_all_wallets,
@@ -60,7 +58,6 @@ pub async fn start_job_runner(
         batch_wallet_accounting,
         batch_signing,
         batch_broadcasting,
-        respawn_all_outbox_handlers,
     ]);
     registry.set_context(config);
     registry.set_context(blockchain_cfg);
@@ -76,7 +73,6 @@ pub async fn start_job_runner(
     registry.set_context(addresses);
     registry.set_context(signer_encryption_config);
     registry.set_context(fees_client);
-    registry.set_context(jobs);
 
     Ok(registry.runner(pool).set_keep_alive(false).run().await?)
 }
@@ -135,31 +131,6 @@ async fn process_all_payout_queues(
         })
         .await?;
     spawn_process_all_payout_queues(current_job.pool(), delay).await?;
-    Ok(())
-}
-
-#[job(name = "respawn_all_outbox_handlers")]
-async fn respawn_all_outbox_handlers(
-    mut current_job: CurrentJob,
-    JobsConfig {
-        respawn_all_outbox_handlers_delay: delay,
-        ..
-    }: JobsConfig,
-    jobs: job_crate::Jobs,
-) -> Result<(), JobError> {
-    let pool = current_job.pool().clone();
-    let accounts = Accounts::new(&pool);
-    JobExecutor::builder(&mut current_job)
-        .build()
-        .expect("couldn't build JobExecutor")
-        .execute(|_| async move {
-            for account in accounts.list().await? {
-                let _ = crate::job_svc::spawn_outbox_handler(&jobs, account).await;
-            }
-            Ok::<(), JobError>(())
-        })
-        .await?;
-    spawn_respawn_all_outbox_handlers(current_job.pool(), delay).await?;
     Ok(())
 }
 
@@ -546,26 +517,6 @@ async fn spawn_batch_broadcasting(
             tx.commit().await?;
             Ok(())
         }
-    }
-}
-
-#[instrument(name = "job.spawn_respawn_all_outbox_handlers", skip_all, fields(error, error.level, error.message), err)]
-pub async fn spawn_respawn_all_outbox_handlers(
-    pool: &sqlx::PgPool,
-    duration: std::time::Duration,
-) -> Result<(), JobError> {
-    match JobBuilder::new_with_id(RESPAWN_ALL_OUTBOX_ID, "respawn_all_outbox_handlers")
-        .set_channel_name("respawn_all_outbox_handlers")
-        .set_delay(duration)
-        .spawn(pool)
-        .await
-    {
-        Err(sqlx::Error::Database(err)) if err.message().contains("duplicate key") => Ok(()),
-        Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-            Err(e.into())
-        }
-        Ok(_) => Ok(()),
     }
 }
 

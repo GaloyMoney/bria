@@ -1,8 +1,6 @@
 use chacha20poly1305;
 use thiserror::Error;
 
-use job_crate::error::JobError as JobSvcError;
-
 use crate::{
     address::error::AddressError,
     batch::error::BatchError,
@@ -11,6 +9,7 @@ use crate::{
     descriptor::error::DescriptorError,
     fees::error::FeeEstimationError,
     job::error::JobError,
+    job_svc::JobSvcError,
     ledger::error::LedgerError,
     outbox::error::OutboxError,
     payout::error::PayoutError,

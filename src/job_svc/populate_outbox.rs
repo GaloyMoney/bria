@@ -2,15 +2,12 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::instrument;
 
 use job_crate::{
-    error::JobError as JobSvcError, CurrentJob, Job, JobCompletion, JobConfig, JobId,
-    JobInitializer, JobRunner, JobType, Jobs, RetrySettings,
+    CurrentJob, Job, JobCompletion, JobConfig, JobInitializer, JobRunner, JobType, RetrySettings,
 };
 
 use crate::{
-    account::Account,
     ledger::Ledger,
     outbox::Outbox,
     primitives::{AccountId, LedgerJournalId},
@@ -96,22 +93,3 @@ impl JobRunner for PopulateOutboxJobRunner {
     }
 }
 
-#[instrument(name = "job.spawn_outbox_handler", skip_all)]
-pub async fn spawn_outbox_handler(jobs: &Jobs, account: Account) -> Result<(), JobSvcError> {
-    let config = PopulateOutboxJobConfig {
-        account_id: account.id,
-        journal_id: account.journal_id(),
-        tracing_data: crate::tracing::extract_tracing_data(),
-    };
-
-    let job_id = JobId::from(uuid::Uuid::from(config.journal_id));
-
-    match jobs.create_and_spawn(job_id, config).await {
-        Ok(_) => Ok(()),
-        Err(JobSvcError::DuplicateUniqueJobType) => Ok(()),
-        Err(e) => {
-            crate::tracing::insert_error_fields(tracing::Level::ERROR, &e);
-            Err(e)
-        }
-    }
-}
