@@ -33,6 +33,27 @@ impl JobSvc {
         Ok(Self { jobs })
     }
 
+    /// Initialize JobSvc for testing - creates its own infrastructure
+    pub async fn init_for_test(pool: sqlx::PgPool) -> Result<Self, JobSvcError> {
+        use crate::{
+            address::Addresses, batch_inclusion::BatchInclusion, payout::Payouts,
+            payout_queue::PayoutQueues,
+        };
+
+        let ledger = Ledger::init(&pool).await?;
+        let addresses = Addresses::new(&pool);
+        let payouts = Payouts::new(&pool);
+        let payout_queues = PayoutQueues::new(&pool);
+        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues);
+        let outbox = Outbox::init(
+            &pool,
+            crate::outbox::Augmenter::new(&addresses, &payouts, &batch_inclusion),
+        )
+        .await?;
+
+        Self::init(pool, outbox, ledger).await
+    }
+
     pub fn jobs(&self) -> &Jobs {
         &self.jobs
     }

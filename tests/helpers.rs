@@ -14,7 +14,7 @@ use bdk::{
     miniscript::Segwitv0,
 };
 use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
-use bria::{admin::*, primitives::*, profile::*, xpub::*};
+use bria::{admin::*, job_svc::JobSvc, primitives::*, profile::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
 
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
@@ -32,7 +32,10 @@ pub async fn create_test_account(pool: &sqlx::PgPool) -> anyhow::Result<Profile>
         "TEST_{}",
         Alphanumeric.sample_string(&mut rand::thread_rng(), 32)
     );
-    let app = AdminApp::new(pool.clone(), bitcoin::Network::Regtest);
+
+    let job_svc = JobSvc::init_for_test(pool.clone()).await?;
+
+    let app = AdminApp::new(pool.clone(), bitcoin::Network::Regtest, job_svc);
 
     let profile_key = app.create_account(name.clone()).await?;
     Ok(Profiles::new(pool).find_by_key(&profile_key.key).await?)
