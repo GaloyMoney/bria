@@ -57,7 +57,7 @@ impl AdminApp {
             .await?;
 
         self.job_svc
-            .spawn_outbox_handler_in_op(&mut op, account)
+            .spawn_outbox_handler_in_op(&mut op, account.id, account.journal_id())
             .await?;
 
         op.commit().await?;
@@ -100,7 +100,7 @@ impl AdminApp {
             .await?;
 
         self.job_svc
-            .spawn_outbox_handler_in_op(&mut op, account)
+            .spawn_outbox_handler_in_op(&mut op, account.id, account.journal_id())
             .await?;
 
         op.commit().await?;

@@ -1071,10 +1071,8 @@ async fn run_cmd(
     let mut handles = Vec::new();
     let pool = init_pool(&db).await?;
 
-    // Initialize App first (creates JobSvc internally with its infrastructure)
     let main_app = crate::app::App::run(pool.clone(), app.clone()).await?;
 
-    // Extract JobSvc from App to pass to AdminApp
     let admin_job_svc = main_app.job_svc().clone();
 
     let admin_send = send.clone();
@@ -1095,7 +1093,6 @@ async fn run_cmd(
     let api_send = send.clone();
     handles.push(tokio::spawn(async move {
         let _ = api_send.try_send(if dev {
-            // API runs with the main_app (which already has JobSvc)
             super::api::run_dev(pool, api, app, dev_xpub, dev_derivation)
                 .await
                 .context("Api server error")

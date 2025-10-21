@@ -4,11 +4,10 @@ mod populate_outbox;
 use job_crate::{JobId, JobSvcConfig, Jobs};
 use tracing::instrument;
 
-use crate::job_svc::populate_outbox::PopulateOutboxJobInit;
-use crate::{account::Account, ledger::Ledger, outbox::Outbox};
+use crate::job_svc::populate_outbox::{PopulateOutboxJobInit, PopulateOutboxJobConfig};
+use crate::{ledger::Ledger, outbox::Outbox, primitives::{AccountId, LedgerJournalId}};
 
 pub use error::JobSvcError;
-pub use populate_outbox::PopulateOutboxJobConfig;
 
 #[derive(Clone)]
 pub struct JobSvc {
@@ -24,34 +23,13 @@ impl JobSvc {
         let job_svc_config = JobSvcConfig::builder()
             .pool(pool)
             .build()
-            .map_err(|e| JobSvcError::ConfigBuild(e.to_string()))?;
+            .expect("Couldn't build JobSvcConfig");
 
         let mut jobs = Jobs::init(job_svc_config).await?;
         jobs.add_initializer(PopulateOutboxJobInit::new(outbox, ledger));
         jobs.start_poll().await?;
 
         Ok(Self { jobs })
-    }
-
-    /// Initialize JobSvc for testing - creates its own infrastructure
-    pub async fn init_for_test(pool: sqlx::PgPool) -> anyhow::Result<Self> {
-        use crate::{
-            address::Addresses, batch_inclusion::BatchInclusion, payout::Payouts,
-            payout_queue::PayoutQueues,
-        };
-
-        let ledger = Ledger::init(&pool).await?;
-        let addresses = Addresses::new(&pool);
-        let payouts = Payouts::new(&pool);
-        let payout_queues = PayoutQueues::new(&pool);
-        let batch_inclusion = BatchInclusion::new(pool.clone(), payout_queues);
-        let outbox = Outbox::init(
-            &pool,
-            crate::outbox::Augmenter::new(&addresses, &payouts, &batch_inclusion),
-        )
-        .await?;
-
-        Self::init(pool, outbox, ledger).await.map_err(Into::into)
     }
 
     pub fn jobs(&self) -> &Jobs {
@@ -62,11 +40,12 @@ impl JobSvc {
     pub async fn spawn_outbox_handler_in_op(
         &self,
         op: &mut impl es_entity::AtomicOperation,
-        account: Account,
+        account_id: AccountId,
+        journal_id: LedgerJournalId,
     ) -> Result<(), JobSvcError> {
         let config = PopulateOutboxJobConfig {
-            account_id: account.id,
-            journal_id: account.journal_id(),
+            account_id,
+            journal_id,
             tracing_data: crate::tracing::extract_tracing_data(),
         };
 
