@@ -4,8 +4,12 @@ mod populate_outbox;
 use job_crate::{JobId, JobSvcConfig, Jobs};
 use tracing::instrument;
 
-use crate::job_svc::populate_outbox::{PopulateOutboxJobInit, PopulateOutboxJobConfig};
-use crate::{ledger::Ledger, outbox::Outbox, primitives::{AccountId, LedgerJournalId}};
+use crate::job_svc::populate_outbox::{PopulateOutboxJobConfig, PopulateOutboxJobInit};
+use crate::{
+    ledger::Ledger,
+    outbox::Outbox,
+    primitives::{AccountId, LedgerJournalId},
+};
 
 pub use error::JobSvcError;
 

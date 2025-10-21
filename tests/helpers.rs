@@ -17,7 +17,14 @@ use bitcoincore_rpc::{Client as BitcoindClient, RpcApi};
 use bria::{admin::*, job_svc::JobSvc, primitives::*, profile::*, xpub::*};
 use rand::distributions::{Alphanumeric, DistString};
 
-use bria::{address::Addresses, batch_inclusion::BatchInclusion, payout::Payouts, payout_queue::PayoutQueues, outbox::{Outbox, Augmenter}, ledger::Ledger};
+use bria::{
+    address::Addresses,
+    batch_inclusion::BatchInclusion,
+    ledger::Ledger,
+    outbox::{Augmenter, Outbox},
+    payout::Payouts,
+    payout_queue::PayoutQueues,
+};
 pub async fn init_pool() -> anyhow::Result<sqlx::PgPool> {
     let pg_host = std::env::var("PG_HOST").unwrap_or("localhost".to_string());
     let pg_con = format!("postgres://user:password@{pg_host}:5432/pg");
