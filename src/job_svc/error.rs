@@ -6,8 +6,4 @@ pub enum JobSvcError {
     ConfigBuild(String),
     #[error("JobSvcError - JobCrateError: {0}")]
     JobCrateError(#[from] job_crate::error::JobError),
-    #[error("JobSvcError - LedgerError: {0}")]
-    Ledger(#[from] crate::ledger::error::LedgerError),
-    #[error("JobSvcError - OutboxError: {0}")]
-    Outbox(#[from] crate::outbox::error::OutboxError),
 }

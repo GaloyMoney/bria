@@ -34,7 +34,7 @@ impl JobSvc {
     }
 
     /// Initialize JobSvc for testing - creates its own infrastructure
-    pub async fn init_for_test(pool: sqlx::PgPool) -> Result<Self, JobSvcError> {
+    pub async fn init_for_test(pool: sqlx::PgPool) -> anyhow::Result<Self> {
         use crate::{
             address::Addresses, batch_inclusion::BatchInclusion, payout::Payouts,
             payout_queue::PayoutQueues,
@@ -51,7 +51,7 @@ impl JobSvc {
         )
         .await?;
 
-        Self::init(pool, outbox, ledger).await
+        Self::init(pool, outbox, ledger).await.map_err(Into::into)
     }
 
     pub fn jobs(&self) -> &Jobs {
