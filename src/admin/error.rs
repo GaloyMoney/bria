@@ -1,8 +1,8 @@
 use thiserror::Error;
 
 use crate::{
-    account::error::AccountError, app::error::ApplicationError, ledger::error::LedgerError,
-    profile::error::ProfileError,
+    account::error::AccountError, app::error::ApplicationError, job_svc::JobSvcError,
+    ledger::error::LedgerError, profile::error::ProfileError,
 };
 
 #[allow(clippy::large_enum_variant)]
@@ -22,6 +22,8 @@ pub enum AdminApiError {
     ProfileError(#[from] ProfileError),
     #[error("{0}")]
     LedgerError(#[from] LedgerError),
+    #[error("{0}")]
+    JobSvcError(#[from] JobSvcError),
     #[error("AdminApiError - DevBootstrapError: {0}")]
     DevBootstrapError(#[from] anyhow::Error),
 }

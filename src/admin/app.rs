@@ -1,7 +1,9 @@
 use tracing::instrument;
 
 use super::{error::*, keys::*};
-use crate::{account::*, dev_constants, ledger::Ledger, primitives::bitcoin, profile::*};
+use crate::{
+    account::*, dev_constants, job_svc::JobSvc, ledger::Ledger, primitives::bitcoin, profile::*,
+};
 
 const BOOTSTRAP_KEY_NAME: &str = "admin_bootstrap_key";
 
@@ -11,16 +13,18 @@ pub struct AdminApp {
     profiles: Profiles,
     ledger: Ledger,
     network: bitcoin::Network,
+    job_svc: JobSvc,
 }
 
 impl AdminApp {
-    pub fn new(pool: sqlx::PgPool, network: bitcoin::Network) -> Self {
+    pub fn new(pool: sqlx::PgPool, network: bitcoin::Network, job_svc: JobSvc) -> Self {
         Self {
             keys: AdminApiKeys::new(&pool),
             accounts: Accounts::new(&pool),
             profiles: Profiles::new(&pool),
             ledger: Ledger::new(&pool),
             network,
+            job_svc,
         }
     }
 }
@@ -43,7 +47,7 @@ impl AdminApp {
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
-            .name(account.name)
+            .name(account.name.clone())
             .build()
             .expect("Couldn't build NewProfile");
         let profile = self.profiles.create_in_op(&mut op, new_profile).await?;
@@ -51,6 +55,11 @@ impl AdminApp {
             .profiles
             .create_key_for_profile_in_op(&mut op, profile, true)
             .await?;
+
+        self.job_svc
+            .spawn_outbox_handler_in_op(&mut op, account)
+            .await?;
+
         op.commit().await?;
         Ok((admin_key, profile_key))
     }
@@ -81,7 +90,7 @@ impl AdminApp {
             .await?;
         let new_profile = NewProfile::builder()
             .account_id(account.id)
-            .name(account.name)
+            .name(account.name.clone())
             .build()
             .expect("Couldn't build NewProfile");
         let profile = self.profiles.create_in_op(&mut op, new_profile).await?;
@@ -89,6 +98,11 @@ impl AdminApp {
             .profiles
             .create_key_for_profile_in_op(&mut op, profile, false)
             .await?;
+
+        self.job_svc
+            .spawn_outbox_handler_in_op(&mut op, account)
+            .await?;
+
         op.commit().await?;
         Ok(key)
     }

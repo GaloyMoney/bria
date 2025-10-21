@@ -15,9 +15,9 @@ use tracing::instrument;
 use uuid::{uuid, Uuid};
 
 use crate::{
-    address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient,
-    ledger::Ledger, outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*,
-    utxo::Utxos, wallet::*, xpub::*,
+    address::Addresses, app::BlockchainConfig, batch::*, fees::FeesClient, ledger::Ledger,
+    outbox::*, payout::*, payout_queue::*, primitives::*, signing_session::*, utxo::Utxos,
+    wallet::*, xpub::*,
 };
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;

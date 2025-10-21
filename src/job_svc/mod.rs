@@ -1,7 +1,7 @@
 pub mod error;
 mod populate_outbox;
 
-use job_crate::{error::JobError as JobCrateError, JobId, JobSvcConfig, Jobs};
+use job_crate::{JobId, JobSvcConfig, Jobs};
 use tracing::instrument;
 
 use crate::job_svc::populate_outbox::PopulateOutboxJobInit;
@@ -25,12 +25,16 @@ impl JobSvc {
             .pool(pool)
             .build()
             .map_err(|e| JobSvcError::ConfigBuild(e.to_string()))?;
-        
+
         let mut jobs = Jobs::init(job_svc_config).await?;
         jobs.add_initializer(PopulateOutboxJobInit::new(outbox, ledger));
         jobs.start_poll().await?;
 
         Ok(Self { jobs })
+    }
+
+    pub fn jobs(&self) -> &Jobs {
+        &self.jobs
     }
 
     #[instrument(name = "job_svc.spawn_outbox_handler_in_op", skip_all)]
@@ -47,7 +51,7 @@ impl JobSvc {
 
         let job_id = JobId::from(uuid::Uuid::from(config.journal_id));
 
-        self.jobs.create_and_spawn_in_op(op, job_id, config).await?
+        self.jobs.create_and_spawn_in_op(op, job_id, config).await?;
         Ok(())
     }
 }

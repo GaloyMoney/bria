@@ -33,6 +33,7 @@ use crate::{
 #[allow(dead_code)]
 pub struct App {
     _runner: JobRunnerHandle,
+    job_svc: JobSvc,
     outbox: Outbox,
     profiles: Profiles,
     xpubs: XPubs,
@@ -98,6 +99,7 @@ impl App {
         .await?;
 
         let app = Self {
+            job_svc,
             outbox,
             profiles: Profiles::new(&pool),
             xpubs,
@@ -125,6 +127,10 @@ impl App {
 
     pub fn network(&self) -> bitcoin::Network {
         self.config.blockchain.network
+    }
+
+    pub fn job_svc(&self) -> &JobSvc {
+        &self.job_svc
     }
 
     #[instrument(name = "app.authenticate", skip_all, err)]
@@ -1080,5 +1086,4 @@ impl App {
         });
         Ok(())
     }
-
 }
