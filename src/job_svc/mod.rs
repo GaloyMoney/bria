@@ -50,7 +50,6 @@ impl JobSvc {
         let config = PopulateOutboxJobConfig {
             account_id,
             journal_id,
-            tracing_data: crate::tracing::extract_tracing_data(),
         };
 
         let job_id = JobId::from(uuid::Uuid::from(config.journal_id));

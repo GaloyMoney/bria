@@ -1,7 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use job_crate::{
     CurrentJob, Job, JobCompletion, JobConfig, JobInitializer, JobRunner, JobType, RetrySettings,
@@ -17,8 +16,6 @@ use crate::{
 pub struct PopulateOutboxJobConfig {
     pub account_id: AccountId,
     pub journal_id: LedgerJournalId,
-    #[serde(flatten)]
-    pub tracing_data: HashMap<String, String>,
 }
 
 impl JobConfig for PopulateOutboxJobConfig {
