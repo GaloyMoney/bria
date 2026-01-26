@@ -2,14 +2,14 @@ apiVersion: vendir.k14s.io/v1alpha1
 directories:
 - contents:
   - git:
-      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
-      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
+      commitTitle: 'Merge pull request #9 from GaloyMoney/chore/migrate-kaniko-to-oci-build-task...'
+      sha: 8653c10a6ed135eea3d26cce9772afa96e0139d6
     path: .
   path: ../.github/workflows/vendor
 - contents:
   - git:
-      commitTitle: 'Merge pull request #6 from GaloyMoney/chore--update-cachix-flakes-img...'
-      sha: f9f82f114aa5b9c50b999309e09c5eb2fcf54281
+      commitTitle: 'Merge pull request #9 from GaloyMoney/chore/migrate-kaniko-to-oci-build-task...'
+      sha: 8653c10a6ed135eea3d26cce9772afa96e0139d6
     path: .
   path: vendor
 kind: LockConfig

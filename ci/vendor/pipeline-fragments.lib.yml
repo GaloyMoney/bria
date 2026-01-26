@@ -210,27 +210,22 @@ plan:
     run:
       path: pipeline-tasks/ci/vendor/tasks/docker-prep-docker-build-env.sh
 - task: build
+  privileged: true
   config:
     platform: linux
     image_resource:
       type: registry-image
       source:
-        repository: gcr.io/kaniko-project/executor
-        tag: debug
+        repository: concourse/oci-build-task
     inputs:
     - name: repo
     outputs:
     - name: image
+    params:
+      CONTEXT: repo
+      DOCKERFILE: repo/Dockerfile
     run:
-      path: /kaniko/executor
-      args:
-        - --dockerfile=Dockerfile
-        - --context=repo
-        - --use-new-run
-        - --single-snapshot
-        - --cache=false
-        - --no-push
-        - --tar-path=image/image.tar
+      path: build
 - put: edge-image
   params:
     image: image/image.tar
