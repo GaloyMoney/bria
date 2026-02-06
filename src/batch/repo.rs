@@ -240,7 +240,7 @@ impl Batches {
         let created_ledger_tx_id = LedgerTxId::from(row.batch_created_ledger_tx_id.unwrap());
         let batch_id = BatchId::from(row.id);
         let payout_queue_id = PayoutQueueId::from(row.payout_queue_id);
-        if row.ledger_id.is_some() {
+        if let Some(ledger_id) = row.ledger_id {
             return Ok(Some((
                 tx,
                 BatchInfo {
@@ -248,7 +248,7 @@ impl Batches {
                     payout_queue_id,
                     created_ledger_tx_id,
                 },
-                LedgerTxId::from(row.ledger_id.unwrap()),
+                LedgerTxId::from(ledger_id),
             )));
         }
         let ledger_transaction_id = LedgerTxId::new();
