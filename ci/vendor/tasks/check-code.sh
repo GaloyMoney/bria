@@ -8,7 +8,7 @@ set -euo pipefail
 nix -L develop ./repo -c sh -exc '
 set -euo pipefail
 
-source pipeline-tasks/ci/vendor/tasks/helpers.sh
+source pipeline-tasks/ci/vendor/tasks/rust-helpers.sh
 pushd repo
 
 make check-code

@@ -66,11 +66,14 @@ plan:
     - name: pipeline-tasks
     - name: repo
     caches:
+    - path: /nix-cache
     - path: cargo-home/registry/index
     - path: cargo-home/registry/cache
     - path: cargo-target-dir
     run:
-      path: pipeline-tasks/ci/vendor/tasks/check-code.sh
+      path: pipeline-tasks/ci/vendor/tasks/with-nix-cache.sh
+      args:
+      - pipeline-tasks/ci/vendor/tasks/check-code.sh
 #@ end
 
 #@ def nodejs_check_code():
@@ -134,14 +137,14 @@ plan:
         - name: pipeline-tasks
         - name: repo
       caches:
+      - path: /nix-cache
       - path: cargo-home/registry/index
       - path: cargo-home/registry/cache
       - path: cargo-target-dir
       run:
-        path: pipeline-tasks/ci/vendor/tasks/test-integration.sh
-      params:
-        CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
-        CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
+        path: pipeline-tasks/ci/vendor/tasks/with-nix-cache.sh
+        args:
+        - pipeline-tasks/ci/vendor/tasks/test-integration.sh
 #@ end
 
 #@ def bats_test():
@@ -160,14 +163,14 @@ plan:
     - name: pipeline-tasks
     - name: repo
     caches:
+    - path: /nix-cache
     - path: cargo-home/registry/index
     - path: cargo-home/registry/cache
     - path: cargo-target-dir
     run:
-      path: pipeline-tasks/ci/vendor/tasks/test-bats.sh
-    params:
-      CACHIX_AUTH_TOKEN: #@ data.values.cachix_auth_token
-      CACHIX_CACHE_NAME: #@ data.values.cachix_cache_name
+      path: pipeline-tasks/ci/vendor/tasks/with-nix-cache.sh
+      args:
+      - pipeline-tasks/ci/vendor/tasks/test-bats.sh
 #@ end
 
 #@ def nodejs_audit(level = "high"):
@@ -456,4 +459,173 @@ name: npm
 type: docker-image
 source:
   repository: timotto/concourse-npm-resource
+#@ end
+
+#! ── Fuzzing (cargo-fuzz / libFuzzer) ────────────────────────────────
+#! A self-bootstrapping nightly fuzz job. The corpus is persisted to GCS via
+#! gsutil (NOT a Concourse gcs-resource — nixpkgs google-cloud-sdk's gsutil is
+#! broken with an EVP_MD_CTX_new crypto mismatch, so GCS access uses the
+#! google/cloud-sdk image). First run finds no corpus and fuzzes from scratch.
+#!
+#! A repo adopts fuzzing by shipping a `fuzz/` cargo-fuzz crate and including
+#! `fuzz_job()` plus the fuzz-time + zenduty resources/types below. Credentials:
+#! reuses the shared `staging-gcp-creds` (same as bundled_deps_resource); swap
+#! for a dedicated fuzz credential in the job if that isn't available.
+
+#@ def fuzz_time_resource():
+name: fuzz-time
+type: time
+source:
+  #! Weekly: Saturday 06:00–07:00 UTC. The job is still manually triggerable
+  #! via `fly trigger-job -j <pipeline>/fuzz`.
+  location: "UTC"
+  start: "6:00 AM"
+  stop: "7:00 AM"
+  days: ["Saturday"]
+#@ end
+
+#@ def zenduty_notification_hook():
+put: zenduty-notification
+params:
+  alert_type: non-critical
+#@ end
+
+#@ def zenduty_notification_resource():
+name: zenduty-notification
+type: zenduty-notification
+source:
+  webhook_url: #@ data.values.zenduty_webhook_url
+#@ end
+
+#@ def zenduty_resource_type():
+name: zenduty-notification
+type: registry-image
+source:
+  username: #@ data.values.gar_registry_user
+  password: #@ data.values.gar_registry_password
+  repository: #@ public_docker_registry() + "/zenduty-notification-resource"
+  tag: edge
+#@ end
+
+#@ def fuzz_job(fuzz_seconds="86400"):
+name: fuzz
+serial: true
+plan:
+- in_parallel:
+  - { get: repo }
+  - { get: pipeline-tasks }
+  - { get: fuzz-time, trigger: true }
+- task: restore-corpus
+  config:
+    platform: linux
+    image_resource:
+      type: registry-image
+      source: { repository: google/cloud-sdk }
+    outputs:
+    - { name: corpus }
+    params:
+      GCS_BUCKET: ((staging-gcp-creds.bucket_name))
+      GCS_CREDS: ((staging-gcp-creds.creds_json))
+      GCS_PREFIX: #@ data.values.gh_repository + "-artifacts/fuzz-corpus"
+    run:
+      path: sh
+      args:
+      - -exc
+      - |
+        set -euo pipefail
+        mkdir -p corpus
+        printf '%s' "$GCS_CREDS" > /tmp/key.json
+        gcloud auth activate-service-account --key-file=/tmp/key.json >/dev/null
+        prefix="gs://$GCS_BUCKET/$GCS_PREFIX"
+        latest="$(gsutil ls "$prefix/corpus-v*.tgz" 2>/dev/null | sort | tail -1 || true)"
+        if [ -n "$latest" ]; then
+          echo "restoring corpus from $latest"
+          gsutil cp "$latest" corpus/
+        else
+          echo "no existing corpus; bootstrapping from scratch"
+        fi
+- task: fuzz
+  config:
+    platform: linux
+    image_resource: #@ nix_task_image_config()
+    inputs:
+    - { name: repo }
+    - { name: corpus }
+    - { name: pipeline-tasks }
+    outputs:
+    - { name: corpus-out }
+    - { name: artifacts-out }
+    caches:
+    - { path: /nix-cache }
+    - { path: cargo-home }
+    - { path: cargo-target-dir }
+    run:
+      path: pipeline-tasks/ci/vendor/tasks/with-nix-cache.sh
+      args:
+      - sh
+      - -exc
+      - |
+        set -euo pipefail
+        cd repo
+        nix -L develop . -c sh -exc '
+          set -euo pipefail
+          export CARGO_HOME=$PWD/../cargo-home
+          export CARGO_TARGET_DIR=$PWD/../cargo-target-dir
+          export CORPUS_TARBALL_IN="../corpus/*.tgz"
+          export CORPUS_TARBALL_OUT="../corpus-out/corpus-v$(date -u +%Y%m%d-%H%M%S).tgz"
+          export ARTIFACTS_TARBALL_OUT="../artifacts-out/artifacts-v$(date -u +%Y%m%d-%H%M%S).tgz"
+          bash ci/vendor/tasks/fuzz.sh
+        '
+    params:
+      FUZZ_SECONDS: #@ fuzz_seconds
+  ensure:
+    do:
+    - task: store-corpus
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: google/cloud-sdk }
+        inputs:
+        - { name: corpus-out }
+        params:
+          GCS_BUCKET: ((staging-gcp-creds.bucket_name))
+          GCS_CREDS: ((staging-gcp-creds.creds_json))
+          GCS_PREFIX: #@ data.values.gh_repository + "-artifacts/fuzz-corpus"
+        run:
+          path: sh
+          args:
+          - -exc
+          - |
+            set -euo pipefail
+            if ! ls corpus-out/*.tgz >/dev/null 2>&1; then echo "no corpus to store; nothing was packaged"; exit 0; fi
+            printf '%s' "$GCS_CREDS" > /tmp/key.json
+            gcloud auth activate-service-account --key-file=/tmp/key.json >/dev/null
+            gsutil cp corpus-out/corpus-v*.tgz "gs://$GCS_BUCKET/$GCS_PREFIX/"
+            echo "stored corpus"
+    - task: store-artifacts
+      config:
+        platform: linux
+        image_resource:
+          type: registry-image
+          source: { repository: google/cloud-sdk }
+        inputs:
+        - { name: artifacts-out }
+        params:
+          GCS_BUCKET: ((staging-gcp-creds.bucket_name))
+          GCS_CREDS: ((staging-gcp-creds.creds_json))
+          GCS_PREFIX: #@ data.values.gh_repository + "-artifacts/fuzz-artifacts"
+        run:
+          path: sh
+          args:
+          - -exc
+          - |
+            set -euo pipefail
+            if ! ls artifacts-out/*.tgz >/dev/null 2>&1; then echo "no artifacts to store"; exit 0; fi
+            printf '%s' "$GCS_CREDS" > /tmp/key.json
+            gcloud auth activate-service-account --key-file=/tmp/key.json >/dev/null
+            gsutil cp artifacts-out/artifacts-v*.tgz "gs://$GCS_BUCKET/$GCS_PREFIX/"
+            echo "stored artifacts"
+on_failure: #@ zenduty_notification_hook()
+on_error: #@ zenduty_notification_hook()
 #@ end
