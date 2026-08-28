@@ -58,6 +58,8 @@ pub enum JobError {
     PsbtMissingInSigningSessions,
     #[error("JobError - psbt::Error: {0}")]
     PsbtError(#[from] psbt::Error),
+    #[error("JobError - BatchSigningStalled: {0}")]
+    BatchSigningStalled(&'static str),
 }
 
 impl JobExecutionError for JobError {}
