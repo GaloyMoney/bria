@@ -2,6 +2,7 @@ mod batch_broadcasting;
 mod batch_signing;
 mod batch_wallet_accounting;
 mod config;
+mod electrum;
 mod executor;
 mod sync_wallet;
 
@@ -22,6 +23,7 @@ use crate::{
 use batch_broadcasting::BatchBroadcastingData;
 use batch_signing::BatchSigningData;
 use batch_wallet_accounting::BatchWalletAccountingData;
+use electrum::SharedElectrum;
 use error::JobError;
 pub use executor::JobExecutionError;
 use executor::JobExecutor;
@@ -60,6 +62,7 @@ pub async fn start_job_runner(
         batch_broadcasting,
     ]);
     registry.set_context(config);
+    registry.set_context(SharedElectrum::new(&blockchain_cfg.electrum_url));
     registry.set_context(blockchain_cfg);
     registry.set_context(outbox);
     registry.set_context(wallets);
@@ -139,7 +142,7 @@ async fn process_all_payout_queues(
 async fn sync_wallet(
     mut current_job: CurrentJob,
     wallets: Wallets,
-    blockchain_cfg: BlockchainConfig,
+    electrum: SharedElectrum,
     addresses: Addresses,
     utxos: Utxos,
     ledger: Ledger,
@@ -158,7 +161,7 @@ async fn sync_wallet(
             let (more, data) = sync_wallet::execute(
                 pool,
                 wallets,
-                blockchain_cfg,
+                electrum,
                 utxos,
                 addresses,
                 ledger,
@@ -338,7 +341,7 @@ async fn batch_signing(
 )]
 async fn batch_broadcasting(
     mut current_job: CurrentJob,
-    blockchain_cfg: BlockchainConfig,
+    electrum: SharedElectrum,
     batches: Batches,
 ) -> Result<(), JobError> {
     JobExecutor::builder(&mut current_job)
@@ -346,7 +349,7 @@ async fn batch_broadcasting(
         .expect("couldn't build JobExecutor")
         .execute(|data| async move {
             let data: BatchBroadcastingData = data.expect("no BatchBroadcastingData available");
-            batch_broadcasting::execute(data, blockchain_cfg, batches).await
+            batch_broadcasting::execute(data, electrum, batches).await
         })
         .await?;
     Ok(())

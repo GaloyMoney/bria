@@ -1,12 +1,11 @@
-use bdk::blockchain::{Blockchain, ElectrumBlockchain};
-use electrum_client::{Client, ConfigBuilder};
+use bdk::blockchain::Blockchain;
 use serde::{Deserialize, Serialize};
 use tracing::instrument;
 
 use std::collections::HashMap;
 
-use super::error::JobError;
-use crate::{app::BlockchainConfig, batch::*, bdk::error::BdkError, primitives::*};
+use super::{electrum::SharedElectrum, error::JobError};
+use crate::{batch::*, bdk::error::BdkError, primitives::*};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchBroadcastingData {
@@ -24,10 +23,10 @@ pub struct BatchBroadcastingData {
 )]
 pub async fn execute(
     data: BatchBroadcastingData,
-    blockchain_cfg: BlockchainConfig,
+    electrum: SharedElectrum,
     batches: Batches,
 ) -> Result<BatchBroadcastingData, JobError> {
-    let blockchain = init_electrum(&blockchain_cfg.electrum_url).await?;
+    let blockchain = electrum.get()?;
     let batch = batches.find_by_id(data.account_id, data.batch_id).await?;
     let span = tracing::Span::current();
     span.record("txid", tracing::field::display(batch.bitcoin_tx_id));
@@ -38,12 +37,4 @@ pub async fn execute(
         }
     }
     Ok(data)
-}
-
-async fn init_electrum(electrum_url: &str) -> Result<ElectrumBlockchain, BdkError> {
-    let blockchain = ElectrumBlockchain::from(Client::from_config(
-        electrum_url,
-        ConfigBuilder::new().retry(10).timeout(Some(60)).build(),
-    )?);
-    Ok(blockchain)
 }

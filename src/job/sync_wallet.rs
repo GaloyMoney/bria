@@ -1,18 +1,13 @@
-use bdk::blockchain::{ElectrumBlockchain, GetHeight};
-use electrum_client::{Client, ConfigBuilder};
 use serde::{Deserialize, Serialize};
 use tracing::{info, instrument};
 
 use super::error::JobError;
 use crate::{
     address::*,
-    app::BlockchainConfig,
     batch::*,
-    bdk::{
-        error::BdkError,
-        pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
-    },
+    bdk::pg::{ConfirmedIncomeUtxo, ConfirmedSpendTransaction, Transactions, Utxos as BdkUtxos},
     fees::{self, FeesClient},
+    job::electrum::SharedElectrum,
     ledger::*,
     primitives::*,
     utxo::{error::UtxoError, Utxos, WalletUtxo},
@@ -51,7 +46,7 @@ impl InstrumentationTrackers {
 }
 
 struct Deps {
-    blockchain_cfg: BlockchainConfig,
+    electrum: SharedElectrum,
     bria_addresses: Addresses,
     bria_utxos: Utxos,
     ledger: Ledger,
@@ -75,7 +70,7 @@ const MAX_TXS_PER_SYNC: usize = 100;
 pub async fn execute(
     pool: sqlx::PgPool,
     wallets: Wallets,
-    blockchain_cfg: BlockchainConfig,
+    electrum: SharedElectrum,
     bria_utxos: Utxos,
     bria_addresses: Addresses,
     ledger: Ledger,
@@ -88,7 +83,7 @@ pub async fn execute(
     let wallet = wallets.find_by_id(data.wallet_id).await?;
     let mut trackers = InstrumentationTrackers::new();
     let deps = Deps {
-        blockchain_cfg,
+        electrum,
         bria_addresses,
         bria_utxos,
         ledger,
@@ -102,10 +97,10 @@ pub async fn execute(
         let keychain_id = keychain_wallet.keychain_id;
         utxos_to_fetch.clear();
         utxos_to_fetch.insert(keychain_id, Vec::<bitcoin::OutPoint>::new());
-        let (blockchain, current_height) = init_electrum(&deps.blockchain_cfg.electrum_url).await?;
+        let (blockchain, current_height) = deps.electrum.get_with_height()?;
         span.record("current_height", current_height);
         let latest_change_settle_height = wallet.config.latest_change_settle_height(current_height);
-        keychain_wallet.sync(blockchain).await?;
+        keychain_wallet.sync_shared(blockchain).await?;
         let bdk_txs = Transactions::new(keychain_id, pool.clone());
         let bdk_utxos = BdkUtxos::new(keychain_id, pool.clone());
         let mut txs_to_skip = Vec::new();
@@ -546,15 +541,6 @@ pub async fn execute(
     span.record("has_more", has_more);
 
     Ok((has_more, data))
-}
-
-async fn init_electrum(electrum_url: &str) -> Result<(ElectrumBlockchain, u32), BdkError> {
-    let blockchain = ElectrumBlockchain::from(Client::from_config(
-        electrum_url,
-        ConfigBuilder::new().retry(10).timeout(Some(60)).build(),
-    )?);
-    let current_height = blockchain.get_height()?;
-    Ok((blockchain, current_height))
 }
 
 fn address_metadata(tx_id: &bitcoin::Txid) -> serde_json::Value {

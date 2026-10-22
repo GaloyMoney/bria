@@ -5,6 +5,7 @@ use bdk::{
     Wallet,
 };
 use sqlx::PgPool;
+use std::sync::Arc;
 use tracing::instrument;
 
 use super::config::*;
@@ -106,7 +107,15 @@ impl KeychainWallet {
         &self,
         blockchain: B,
     ) -> Result<(), BdkError> {
-        self.with_wallet(move |wallet| wallet.sync(&blockchain, Default::default()))
+        self.sync_shared(Arc::new(blockchain)).await
+    }
+
+    #[instrument(name = "keychain_wallet.sync_shared", skip_all)]
+    pub async fn sync_shared<B: WalletSync + GetHeight + Send + Sync + 'static>(
+        &self,
+        blockchain: Arc<B>,
+    ) -> Result<(), BdkError> {
+        self.with_wallet(move |wallet| wallet.sync(blockchain.as_ref(), Default::default()))
             .await??;
         Ok(())
     }
