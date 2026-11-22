@@ -1,5 +1,9 @@
 ## Demo walkthrough
 
+> **Local regtest demo only.** The Docker configuration, example RPC credentials,
+> signer keys, descriptors, and addresses in this guide are for disposable test
+> environments. Never reuse them on a network holding real funds.
+
 ### Build from source
 * clone the bria repository
   ```
@@ -19,24 +23,35 @@
   ```
   make reset-deps
   ```
-* provide a database encryption key
-  ```
-  export SIGNER_ENCRYPTION_KEY="0000000000000000000000000000000000000000000000000000000000000000"
-  ```
 * add bria to PATH
   ```
   export PATH="${PATH}:$(pwd)/target/debug"
   ```
-* start the bria daemon with the [default configuration](../bats/bria.local.yml) and bootstrap
+* start the Bria daemon in development mode with the [regtest configuration](../bats/bria.local.yml) and bootstrap.
+  The `dev` subcommand uses a built-in signer-encryption key for local testing;
+  `SIGNER_ENCRYPTION_KEY` does not need to be exported for this command.
   ```
   bria daemon --config ./bats/bria.local.yml postgres://user:password@127.0.0.1:5432/pg dev
   ```
-* open a new terminal and run direnv allow
+* leave the daemon running. In a second terminal, return to the cloned repository
+  directory, load the development environment, and put the binary on `PATH`:
+  ```
+  cd bria
+  direnv allow
+  export PATH="${PATH}:$(pwd)/target/debug"
+  ```
 
 * create aliases to work with the docker containers
   ```
   alias bitcoin_cli="docker exec bria-bitcoind-1 bitcoin-cli"
   alias bitcoin_signer_cli="docker exec bria-bitcoind-signer-1 bitcoin-cli"
+  ```
+* verify that **both** Bitcoin containers are on regtest before creating wallets
+  or sending test coins. Both responses must contain `"chain": "regtest"`;
+  stop if either reports another network:
+  ```
+  bitcoin_cli getblockchaininfo
+  bitcoin_signer_cli getblockchaininfo
   ```
 * initialize the local bitcoind on regtest
   ```
@@ -53,7 +68,7 @@
   export PATH="${PATH}:$(pwd)/target/debug"
   bria admin create-account --name default
   ```
-* import the wallet used in the signer bitcoind with it's public descriptor
+* import the wallet used in the signer bitcoind with its public descriptor
   ```
   bria create-wallet -n default descriptors -d "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/0/*)#l6n08zmr" \
       -c "wpkh([6f2fa1b2/84'/0'/0']tpubDDDDGYiFda8HfJRc2AHFJDxVzzEtBPrKsbh35EaW2UGd5qfzrF2G87ewAgeeRyHEz4iB3kvhAYW1sH6dpLepTkFUzAktumBN8AXeXWE9nd1/1/*)#wwkw6htm"
